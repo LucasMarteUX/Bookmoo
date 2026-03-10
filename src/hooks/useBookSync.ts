@@ -24,5 +24,20 @@ export function useBookSync() {
     [updateBook, hasSupabase, userId]
   )
 
-  return { updateBookAndSync }
+  /** Persiste no Supabase e depois atualiza o store. Use quando precisar garantir que o DB foi salvo antes de seguir (ex.: quadrinho). */
+  const updateBookAndSyncAsync = useCallback(
+    async (id: string, updates: Partial<Book>): Promise<void> => {
+      if (hasSupabase && supabase && userId) {
+        const book = useBookStore.getState().books.find((b) => b.id === id)
+        if (book) {
+          const merged = { ...book, ...updates }
+          await upsertBook(supabase, userId, merged)
+        }
+      }
+      updateBook(id, updates)
+    },
+    [updateBook, hasSupabase, userId]
+  )
+
+  return { updateBookAndSync, updateBookAndSyncAsync }
 }

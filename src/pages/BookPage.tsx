@@ -14,7 +14,7 @@ export function BookPage() {
   const { locale } = useLanguage()
   const { t } = useTranslations(locale)
   const { books, setCurrentBook } = useBookStore()
-  const { updateBookAndSync } = useBookSync()
+  const { updateBookAndSync, updateBookAndSyncAsync } = useBookSync()
   const [mode, setMode] = useState<'read' | 'edit'>('read')
 
   const book = books.find(b => b.id === id)
@@ -40,8 +40,8 @@ export function BookPage() {
     )
   }
 
-  const handleSaveContent = (pages: string[], currentPage: number) => {
-    updateBookAndSync(book.id, { pages, currentPage, content: pages[currentPage] || '' })
+  const handleSaveContent = async (pages: string[], currentPage: number) => {
+    await updateBookAndSyncAsync(book.id, { pages, currentPage, content: pages[currentPage] || '' })
     setMode('read')
   }
 

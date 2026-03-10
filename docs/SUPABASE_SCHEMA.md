@@ -120,6 +120,7 @@ Uma linha por usuário (PK = `user_id`).
 4. `add_books_pinned_vocab_ids` – Coluna books.pinned_vocab_ids  
 5. `add_reader_settings_playback_and_voice` – Colunas reader_settings.playback_rate e voice_gender  
 6. `add-comic-docs` (scripts/add-comic-docs.sql) – Colunas books.comic_style_doc e books.comic_characters  
+7. `ensure-books-schema` (scripts/ensure-books-schema.sql) – Garante todas as colunas de books (pages, comic_*, author, context, description, total_pages, language_code, cover_data, etc.). Execute uma vez no SQL Editor.
 
 ---
 

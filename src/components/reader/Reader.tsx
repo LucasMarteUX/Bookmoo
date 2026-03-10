@@ -37,7 +37,7 @@ export function Reader({ book }: ReaderProps) {
 
   const readerFontFamily = fontFamily === 'sans' ? '"Inter", ui-sans-serif, system-ui, sans-serif' : '"Playfair Display", ui-serif, Georgia, serif'
   const { updateBook } = useBookStore()
-  const { updateBookAndSync } = useBookSync()
+  const { updateBookAndSync, updateBookAndSyncAsync } = useBookSync()
   const { session, hasSupabase } = useAuth()
   const userId = session?.user?.id ?? null
   const effectiveGeminiKey = useEffectiveGeminiKey()
@@ -423,7 +423,7 @@ export function Reader({ book }: ReaderProps) {
           }
         }
         newComicPages[currentPage] = valueToSave
-        updateBookAndSync(book.id, { comicPages: newComicPages })
+        await updateBookAndSyncAsync(book.id, { comicPages: newComicPages })
         setViewMode('comic')
         // Extração de estilo/personagens em segundo plano; não deve afetar a UX
         if (!regenerate && isFirstPage) {
