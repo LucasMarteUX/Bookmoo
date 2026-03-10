@@ -410,25 +410,30 @@ export function Reader({ book }: ReaderProps) {
         newComicPages[currentPage] = comicImage
         updateBookAndSync(book.id, { comicPages: newComicPages })
         setViewMode('comic')
+        // Extração de estilo/personagens em segundo plano; não deve afetar a UX
         if (!regenerate && isFirstPage) {
-          try {
-            const extracted = await extractComicStyleAndCharacters(comicImage, currentContent, effectiveGeminiKey)
-            if (extracted) {
-              updateBookAndSync(book.id, {
-                comicStyleDoc: extracted.styleDoc,
-                comicCharacters: extracted.characters.map(c => ({ ...c, firstPage: currentPage }))
-              })
-            }
-          } catch (_) {
-            // style/characters extraction failed; comic image is already saved
-          }
+          extractComicStyleAndCharacters(comicImage, currentContent, effectiveGeminiKey)
+            .then((extracted) => {
+              if (extracted) {
+                updateBookAndSync(book.id, {
+                  comicStyleDoc: extracted.styleDoc,
+                  comicCharacters: extracted.characters.map(c => ({ ...c, firstPage: currentPage }))
+                })
+              }
+            })
+            .catch((e) => console.warn('Comic style extraction failed', e))
         }
       } else {
         alert(API_KEY_REQUIRED_MESSAGE)
       }
     } catch (error) {
       console.error("Failed to generate comic:", error)
-      alert("Failed to generate comic. Please try again.")
+      // Só mostra erro se a geração falhou de fato; não mostrar se a imagem já foi salva
+      const bookNow = useBookStore.getState().books.find((b) => b.id === book.id)
+      const imageWasSaved = bookNow?.comicPages?.[currentPage] != null
+      if (!imageWasSaved) {
+        alert("Failed to generate comic. Please try again.")
+      }
     } finally {
       setIsGeneratingComic(false)
     }
