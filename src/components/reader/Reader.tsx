@@ -19,7 +19,7 @@ import {
 import { useEffectiveGeminiKey } from '@/hooks/useEffectiveGeminiKey'
 import { useBookSync } from '@/hooks/useBookSync'
 import { useLanguage } from '@/store/useLanguage'
-import { useTranslations } from '@/lib/i18n'
+import { useTranslations, getGeneratingComicMessage } from '@/lib/i18n'
 
 interface ReaderProps {
   book: Book
@@ -362,17 +362,25 @@ export function Reader({ book }: ReaderProps) {
 
       let searchContext = ''
       if (!regenerate && isFirstPage) {
-        searchContext = await enrichComicPromptWithSearch(book.title, bookContextForPrompt, currentContent, effectiveGeminiKey)
+        try {
+          searchContext = await enrichComicPromptWithSearch(book.title, bookContextForPrompt, currentContent, effectiveGeminiKey)
+        } catch (_) {
+          // optional: continue without search context
+        }
       }
 
       let comicStyleDoc = book.comicStyleDoc
       let comicCharacters = book.comicCharacters ? [...book.comicCharacters] : []
 
-      if (!regenerate && !isFirstPage && comicCharacters.length >= 0) {
-        const newChars = await detectNewCharactersInPageText(currentContent, comicCharacters, effectiveGeminiKey)
-        if (newChars.length > 0) {
-          comicCharacters = [...comicCharacters, ...newChars.map(c => ({ ...c, firstPage: currentPage }))]
-          updateBookAndSync(book.id, { comicCharacters })
+      if (!regenerate && !isFirstPage) {
+        try {
+          const newChars = await detectNewCharactersInPageText(currentContent, comicCharacters, effectiveGeminiKey)
+          if (newChars.length > 0) {
+            comicCharacters = [...comicCharacters, ...newChars.map(c => ({ ...c, firstPage: currentPage }))]
+            updateBookAndSync(book.id, { comicCharacters })
+          }
+        } catch (_) {
+          // optional: continue with existing characters
         }
       }
 
@@ -400,16 +408,21 @@ export function Reader({ book }: ReaderProps) {
       if (comicImage) {
         const newComicPages = { ...(book.comicPages || {}) }
         newComicPages[currentPage] = comicImage
-        const updates: Partial<Book> = { comicPages: newComicPages }
+        updateBookAndSync(book.id, { comicPages: newComicPages })
+        setViewMode('comic')
         if (!regenerate && isFirstPage) {
-          const extracted = await extractComicStyleAndCharacters(comicImage, currentContent, effectiveGeminiKey)
-          if (extracted) {
-            updates.comicStyleDoc = extracted.styleDoc
-            updates.comicCharacters = extracted.characters.map(c => ({ ...c, firstPage: currentPage }))
+          try {
+            const extracted = await extractComicStyleAndCharacters(comicImage, currentContent, effectiveGeminiKey)
+            if (extracted) {
+              updateBookAndSync(book.id, {
+                comicStyleDoc: extracted.styleDoc,
+                comicCharacters: extracted.characters.map(c => ({ ...c, firstPage: currentPage }))
+              })
+            }
+          } catch (_) {
+            // style/characters extraction failed; comic image is already saved
           }
         }
-        updateBookAndSync(book.id, updates)
-        setViewMode('comic')
       } else {
         alert(API_KEY_REQUIRED_MESSAGE)
       }
@@ -1553,7 +1566,7 @@ function ComicReader({
           }}
         >
           <div className="flex items-center justify-center w-full h-full">
-            {currentImage ? (
+            {currentImage && !isGeneratingComic ? (
               <img
                 src={`data:image/jpeg;base64,${currentImage}`}
                 alt={`${t('comicPageAlt')} ${currentPage + 1}`}
@@ -1562,27 +1575,51 @@ function ComicReader({
                 draggable={false}
               />
             ) : (
-              <div className="flex items-center justify-center h-full max-w-full">
+              <div className="flex flex-col items-center justify-center h-full max-w-full px-4">
                 <div
-                  className="flex flex-col items-center justify-center border-2 border-[var(--theme-border-subtle)] rounded-xl text-center max-w-[90vw] aspect-[3/4]"
-                  style={{ height: '100%', backgroundColor: 'transparent' }}
+                  className="relative flex flex-col items-center justify-center rounded-2xl text-center max-w-md w-full py-8 px-6 border border-white/10 bg-black/30 backdrop-blur-sm min-h-[320px]"
                 >
-                  <p
-                    className="mb-4 text-sm"
-                    style={{ color: 'var(--theme-text)' }}
-                  >
-                    {t('noComicYet')}
-                  </p>
-                  <Button
-                    type="button"
-                    onClick={onGenerateComic}
-                    disabled={isGeneratingComic}
-                    className="flex items-center gap-2 px-5"
-                  >
-                    {isGeneratingComic && <Loader2 className="w-4 h-4 animate-spin" />}
-                    {!isGeneratingComic && <ImageIcon className="w-4 h-4" />}
-                    <span>{isGeneratingComic ? t('generating') : t('generateComic')}</span>
-                  </Button>
+                  {isGeneratingComic ? (
+                    <div className="flex flex-col items-center gap-6">
+                      <div className="relative">
+                        <div className="w-16 h-16 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <ImageIcon className="w-6 h-6 text-white/80" />
+                        </div>
+                      </div>
+                      <p className="text-sm md:text-base text-white/95 font-medium leading-relaxed max-w-xs">
+                        {getGeneratingComicMessage(book.languageCode)}
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="mb-6 flex items-center justify-center animate-comic-icon-float">
+                        <svg width="120" height="100" viewBox="0 0 120 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-white/90" aria-hidden>
+                          <rect x="8" y="10" width="48" height="38" rx="4" stroke="currentColor" strokeWidth="2" fill="none" opacity="0.9" />
+                          <rect x="64" y="10" width="48" height="38" rx="4" stroke="currentColor" strokeWidth="2" fill="none" opacity="0.7" />
+                          <rect x="8" y="52" width="48" height="38" rx="4" stroke="currentColor" strokeWidth="2" fill="none" opacity="0.7" />
+                          <rect x="64" y="52" width="48" height="38" rx="4" stroke="currentColor" strokeWidth="2" fill="none" opacity="0.5" />
+                          <path d="M20 28 L36 28 M20 34 L32 34" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" opacity="0.8" />
+                          <path d="M76 28 L92 28 M76 34 L88 34" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" opacity="0.6" />
+                        </svg>
+                      </div>
+                      <h3 className="text-lg font-semibold text-white mb-2">
+                        {t('comicEmptyTitle')}
+                      </h3>
+                      <p className="text-sm text-white/80 leading-relaxed mb-6 max-w-sm">
+                        {t('comicEmptyDescription')}
+                      </p>
+                      <Button
+                        type="button"
+                        onClick={() => onGenerateComic()}
+                        disabled={isGeneratingComic}
+                        className="flex items-center gap-2 px-6 py-3 rounded-xl bg-white text-black hover:bg-white/90 font-medium shadow-lg"
+                      >
+                        <ImageIcon className="w-5 h-5" />
+                        <span>{t('comicEmptyCta')}</span>
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
             )}

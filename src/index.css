@@ -298,4 +298,12 @@
   .card-pastel-text {
     color: var(--theme-pastel-text) !important;
   }
+
+  @keyframes comic-icon-float {
+    0%, 100% { transform: translateY(0); opacity: 0.95; }
+    50% { transform: translateY(-6px); opacity: 1; }
+  }
+  .animate-comic-icon-float {
+    animation: comic-icon-float 3s ease-in-out infinite;
+  }
 }

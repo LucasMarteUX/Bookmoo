@@ -74,6 +74,9 @@ const en = {
   generateComic: 'Generate Comic',
   generating: 'Generating...',
   noComicYet: 'No comic generated for this page yet.',
+  comicEmptyTitle: 'Turn this page into a comic',
+  comicEmptyDescription: 'Our AI will illustrate this page in a consistent comic style. The first page sets the look; the next pages will match it. Add book context in settings for better results.',
+  comicEmptyCta: 'Generate this page',
   deleteComicPage: 'Delete this comic page',
   regenerateComic: 'Generate another version',
   comicPageAlt: 'Comic page',
@@ -234,6 +237,9 @@ const ptBr: Record<TranslationKey, string> = {
   generateComic: 'Gerar Quadrinho',
   generating: 'Gerando...',
   noComicYet: 'Nenhum quadrinho gerado para esta página ainda.',
+  comicEmptyTitle: 'Transforme esta página em quadrinho',
+  comicEmptyDescription: 'A IA vai ilustrar esta página em estilo de quadrinhos consistente. A primeira página define o visual; as próximas seguem o mesmo estilo. Adicione o contexto do livro nas configurações para melhores resultados.',
+  comicEmptyCta: 'Gerar esta página',
   deleteComicPage: 'Excluir esta página de quadrinho',
   regenerateComic: 'Gerar outra versão',
   comicPageAlt: 'Página de quadrinho',
@@ -326,6 +332,22 @@ const ptBr: Record<TranslationKey, string> = {
 }
 
 const messages: Record<Locale, Record<TranslationKey, string>> = { en, 'pt-BR': ptBr }
+
+/** Message shown while generating a comic, in the book language. */
+const GENERATING_COMIC_BY_LANG: Record<string, string> = {
+  en: "We're generating your comic. Please wait a moment...",
+  pt: 'Estamos gerando seu quadrinho. Aguarde um momento...',
+  es: 'Estamos generando tu cómic. Espera un momento...',
+  fr: "Nous générons votre bande dessinée. Un instant...",
+  de: 'Wir erstellen deinen Comic. Einen Moment bitte...',
+  ja: 'コミックを生成しています。少々お待ちください...',
+  zh: '正在生成您的漫画，请稍候…'
+}
+
+export function getGeneratingComicMessage(bookLanguageCode?: string): string {
+  const code = (bookLanguageCode || 'en').split('-')[0].toLowerCase()
+  return GENERATING_COMIC_BY_LANG[code] ?? GENERATING_COMIC_BY_LANG.en
+}
 
 export function useTranslations(locale: Locale) {
   const t = (key: TranslationKey): string => messages[locale]?.[key] ?? en[key] ?? key
