@@ -25,7 +25,7 @@ O banco está alinhado ao modelo de dados do app (Zustand). Todas as tabelas usa
 | progress         | numeric   | Progresso 0–1 (no app: 0–100; converter ao sincronizar) |
 | last_read        | timestamptz | Última leitura |
 | word_count       | integer   | Total de palavras. Default 0 |
-| comic_pages      | jsonb     | Opcional. Objeto `{ "0": "base64...", "1": "base64..." }` (índice → imagem base64) |
+| comic_pages      | jsonb     | Opcional. Objeto `{ "0": "url ou base64", "1": "..." }`. Preferir URLs do Storage (bucket `comic-pages`) para evitar limite de tamanho. |
 | comic_style_doc  | jsonb     | Opcional. Estilo da primeira página (cores, traços, estética, fontes) para consistência. |
 | comic_characters | jsonb     | Opcional. Array de `{ name, visualDescription, firstPage? }` para personagens documentados. |
 | pinned_vocab_ids | jsonb     | IDs de vocabulário fixados na barra lateral. Default `[]` |
@@ -123,6 +123,14 @@ Uma linha por usuário (PK = `user_id`).
 
 ---
 
+## Storage (quadrinhos)
+
+- **Bucket:** `comic-pages` (público, para leitura das imagens).
+- **Caminho:** `{user_id}/{book_id}/{page_index}.jpg`
+- **Criação:** `node scripts/create-comic-bucket.mjs` (usa SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY em .env.local). Assim as imagens são persistidas no Storage e no `books.comic_pages` ficam apenas as URLs, evitando falha de sync por tamanho do JSONB.
+
+---
+
 ## Próximos passos (integração no app)
 
 1. **Auth:** Usar Supabase Auth (email/senha ou OAuth); `auth.uid()` será o `user_id` em todas as tabelas.  
@@ -131,6 +139,6 @@ Uma linha por usuário (PK = `user_id`).
 4. **Conversões:**  
    - `books.progress`: app usa 0–100, DB usa 0–1.  
    - `books.pinned_vocab_ids`: array de UUIDs em jsonb.  
-   - `books.comic_pages`: objeto com chaves string (índice da página) e valor base64.
+   - `books.comic_pages`: objeto com chaves string (índice) e valor URL (Storage) ou base64 (fallback).
 
 Com isso, o banco fica 100% alinhado ao ReadLingo e pronto para uso com Supabase Auth e cliente JS.

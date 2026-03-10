@@ -18,6 +18,9 @@ import {
 } from '@/lib/ai'
 import { useEffectiveGeminiKey } from '@/hooks/useEffectiveGeminiKey'
 import { useBookSync } from '@/hooks/useBookSync'
+import { useAuth } from '@/contexts/AuthContext'
+import { supabase } from '@/lib/supabase'
+import { uploadComicPage, getComicPageBase64, isComicPageUrl } from '@/lib/comicStorage'
 import { useLanguage } from '@/store/useLanguage'
 import { useTranslations, getGeneratingComicMessage } from '@/lib/i18n'
 
@@ -35,6 +38,8 @@ export function Reader({ book }: ReaderProps) {
   const readerFontFamily = fontFamily === 'sans' ? '"Inter", ui-sans-serif, system-ui, sans-serif' : '"Playfair Display", ui-serif, Georgia, serif'
   const { updateBook } = useBookStore()
   const { updateBookAndSync } = useBookSync()
+  const { session, hasSupabase } = useAuth()
+  const userId = session?.user?.id ?? null
   const effectiveGeminiKey = useEffectiveGeminiKey()
   
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -322,7 +327,7 @@ export function Reader({ book }: ReaderProps) {
         const imgData = book.comicPages?.[i]
         if (imgData) {
           const img = new Image()
-          img.src = `data:image/jpeg;base64,${imgData}`
+          img.src = isComicPageUrl(imgData) ? imgData : `data:image/jpeg;base64,${imgData}`
         }
       }
     })
@@ -384,9 +389,10 @@ export function Reader({ book }: ReaderProps) {
         }
       }
 
-      const referenceImages: string[] = []
-      if (firstPageImage) referenceImages.push(firstPageImage)
-      if (prevPageImage && prevPageImage !== firstPageImage) referenceImages.push(prevPageImage)
+      const refsToConvert: string[] = []
+      if (firstPageImage) refsToConvert.push(firstPageImage)
+      if (prevPageImage && prevPageImage !== firstPageImage) refsToConvert.push(prevPageImage)
+      const referenceImages = await Promise.all(refsToConvert.map((v) => getComicPageBase64(v)))
 
       const comicImage = await generateComicPage(
         {
@@ -407,7 +413,16 @@ export function Reader({ book }: ReaderProps) {
 
       if (comicImage) {
         const newComicPages = { ...(book.comicPages || {}) }
-        newComicPages[currentPage] = comicImage
+        let valueToSave = comicImage
+        if (hasSupabase && supabase && userId) {
+          try {
+            const url = await uploadComicPage(supabase, userId, book.id, currentPage, comicImage)
+            valueToSave = url
+          } catch (e) {
+            console.warn('Comic Storage upload failed, saving base64 in row', e)
+          }
+        }
+        newComicPages[currentPage] = valueToSave
         updateBookAndSync(book.id, { comicPages: newComicPages })
         setViewMode('comic')
         // Extração de estilo/personagens em segundo plano; não deve afetar a UX
@@ -1573,7 +1588,7 @@ function ComicReader({
           <div className="flex items-center justify-center w-full h-full">
             {currentImage && !isGeneratingComic ? (
               <img
-                src={`data:image/jpeg;base64,${currentImage}`}
+                src={isComicPageUrl(currentImage) ? currentImage : `data:image/jpeg;base64,${currentImage}`}
                 alt={`${t('comicPageAlt')} ${currentPage + 1}`}
                 className="max-h-full w-auto max-w-full object-contain select-none"
                 referrerPolicy="no-referrer"
