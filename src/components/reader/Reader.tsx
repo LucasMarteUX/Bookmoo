@@ -4,11 +4,18 @@ import { useReaderSettings } from '@/store/useReaderSettings'
 import { useVocabularyStore } from '@/store/useVocabularyStore'
 import { FloatingAction } from './FloatingAction'
 import { VocabularyModal } from '../vocabulary/VocabularyModal'
-import { ChevronLeft, ChevronRight, MousePointer2, Type, Pin, PinOff, Pencil, Trash2, Play, Image as ImageIcon, Loader2, Pause, Settings, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, MousePointer2, Type, Pin, PinOff, Pencil, Trash2, Play, Image as ImageIcon, Loader2, Pause, Settings, X, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { playBase64Audio } from '@/lib/audio'
-import { generateComicPage, generateAudio, API_KEY_REQUIRED_MESSAGE } from '@/lib/ai'
+import {
+  generateComicPage,
+  generateAudio,
+  API_KEY_REQUIRED_MESSAGE,
+  enrichComicPromptWithSearch,
+  extractComicStyleAndCharacters,
+  detectNewCharactersInPageText
+} from '@/lib/ai'
 import { useEffectiveGeminiKey } from '@/hooks/useEffectiveGeminiKey'
 import { useBookSync } from '@/hooks/useBookSync'
 import { useLanguage } from '@/store/useLanguage'
@@ -336,46 +343,72 @@ export function Reader({ book }: ReaderProps) {
     playBase64Audio(base64)
   }
 
-  const handleGenerateComic = async () => {
+  const handleGenerateComic = async (opts?: { regenerate?: boolean }) => {
+    const regenerate = opts?.regenerate === true
     try {
       // @ts-ignore
       if (window.aistudio && !await window.aistudio.hasSelectedApiKey()) {
         // @ts-ignore
         await window.aistudio.openSelectKey()
       }
-      
       setIsGeneratingComic(true)
-      
-      // Use previous page as reference for visual continuity; otherwise first available
-      let referenceImage: string | undefined = undefined
-      if (book.comicPages) {
-        const prevPage = currentPage - 1
-        if (prevPage >= 0 && book.comicPages[prevPage]) {
-          referenceImage = book.comicPages[prevPage]
-        } else {
-          const pageKeys = Object.keys(book.comicPages).map(Number).sort((a, b) => a - b)
-          if (pageKeys.length > 0) referenceImage = book.comicPages[pageKeys[0]]
+
+      const bookContextForPrompt = (book.context && book.context.trim()) ? book.context : book.content
+      const pageKeys = book.comicPages ? Object.keys(book.comicPages).map(Number).sort((a, b) => a - b) : []
+      const firstPageIndex = pageKeys[0] ?? 0
+      const firstPageImage = book.comicPages?.[firstPageIndex]
+      const prevPageImage = currentPage > 0 ? book.comicPages?.[currentPage - 1] : undefined
+      const isFirstPage = !regenerate && pageKeys.length === 0
+
+      let searchContext = ''
+      if (!regenerate && isFirstPage) {
+        searchContext = await enrichComicPromptWithSearch(book.title, bookContextForPrompt, currentContent, effectiveGeminiKey)
+      }
+
+      let comicStyleDoc = book.comicStyleDoc
+      let comicCharacters = book.comicCharacters ? [...book.comicCharacters] : []
+
+      if (!regenerate && !isFirstPage && comicCharacters.length >= 0) {
+        const newChars = await detectNewCharactersInPageText(currentContent, comicCharacters, effectiveGeminiKey)
+        if (newChars.length > 0) {
+          comicCharacters = [...comicCharacters, ...newChars.map(c => ({ ...c, firstPage: currentPage }))]
+          updateBookAndSync(book.id, { comicCharacters })
         }
       }
 
-      const bookContextForPrompt = (book.context && book.context.trim()) ? book.context : book.content
+      const referenceImages: string[] = []
+      if (firstPageImage) referenceImages.push(firstPageImage)
+      if (prevPageImage && prevPageImage !== firstPageImage) referenceImages.push(prevPageImage)
+
       const comicImage = await generateComicPage(
         {
           pageText: currentContent,
           bookTitle: book.title,
           bookContext: bookContextForPrompt,
-          referenceImage,
+          referenceImages: referenceImages.length > 0 ? referenceImages : undefined,
+          referenceImage: referenceImages[0],
+          comicStyleDoc,
+          comicCharacters: comicCharacters.length > 0 ? comicCharacters : undefined,
+          searchContext: searchContext || undefined,
           languageCode: book.languageCode
         },
         undefined,
         undefined,
         effectiveGeminiKey
       )
-      
+
       if (comicImage) {
         const newComicPages = { ...(book.comicPages || {}) }
         newComicPages[currentPage] = comicImage
-        updateBookAndSync(book.id, { comicPages: newComicPages })
+        const updates: Partial<Book> = { comicPages: newComicPages }
+        if (!regenerate && isFirstPage) {
+          const extracted = await extractComicStyleAndCharacters(comicImage, currentContent, effectiveGeminiKey)
+          if (extracted) {
+            updates.comicStyleDoc = extracted.styleDoc
+            updates.comicCharacters = extracted.characters.map(c => ({ ...c, firstPage: currentPage }))
+          }
+        }
+        updateBookAndSync(book.id, updates)
         setViewMode('comic')
       } else {
         alert(API_KEY_REQUIRED_MESSAGE)
@@ -1223,7 +1256,7 @@ interface ComicReaderProps {
   currentPage: number
   goToPage: (index: number) => void
   onExit: () => void
-  onGenerateComic: () => void
+  onGenerateComic: (opts?: { regenerate?: boolean }) => void
   onDeleteComic: () => void
   isGeneratingComic: boolean
   t: (key: any) => string
@@ -1464,15 +1497,27 @@ function ComicReader({
         <div className="flex items-center justify-between px-4 md:px-8 py-3 md:py-4 text-xs md:text-sm font-medium text-white bg-black/60 backdrop-blur-sm">
           <div className="flex items-center gap-2">
             {currentImage && (
-              <button
-                type="button"
-                onClick={onDeleteComic}
-                className="flex items-center justify-center w-8 h-8 rounded-full bg-red-600/70 hover:bg-red-600 text-[10px] md:text-xs"
-                title={t('deleteComicPage')}
-                aria-label={t('deleteComicPage')}
-              >
-                <Trash2 className="w-3 h-3" />
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={() => onGenerateComic({ regenerate: true })}
+                  disabled={isGeneratingComic}
+                  className="flex items-center justify-center w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-[10px] md:text-xs disabled:opacity-50"
+                  title={t('regenerateComic')}
+                  aria-label={t('regenerateComic')}
+                >
+                  {isGeneratingComic ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                </button>
+                <button
+                  type="button"
+                  onClick={onDeleteComic}
+                  className="flex items-center justify-center w-8 h-8 rounded-full bg-red-600/70 hover:bg-red-600 text-[10px] md:text-xs"
+                  title={t('deleteComicPage')}
+                  aria-label={t('deleteComicPage')}
+                >
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              </>
             )}
           </div>
           <span className="truncate px-4 text-center">

@@ -3,6 +3,21 @@ import { persist } from 'zustand/middleware'
 import { v4 as uuidv4 } from 'uuid'
 import { splitContentIntoPages } from '@/lib/utils'
 
+/** Style doc extracted from the first comic page for consistent generation. */
+export interface ComicStyleDoc {
+  colors?: string
+  lineStyle?: string
+  aesthetics?: string
+  fonts?: string
+}
+
+/** Character documented for consistent appearance across comic pages. */
+export interface ComicCharacter {
+  name: string
+  visualDescription: string
+  firstPage?: number
+}
+
 export interface Book {
   id: string
   title: string
@@ -21,6 +36,10 @@ export interface Book {
   /** Target number of pages for progress bar (progress = pages.length / totalPages). */
   totalPages?: number
   comicPages?: Record<number, string>
+  /** Style extracted from first comic page (colors, lineStyle, aesthetics, fonts). */
+  comicStyleDoc?: ComicStyleDoc
+  /** Characters documented for consistent drawing across pages. */
+  comicCharacters?: ComicCharacter[]
   pinnedVocabIds?: string[]
   /** ISO 639-1 language code of the book (e.g. en, pt, es). Used for AI and display. */
   languageCode?: string

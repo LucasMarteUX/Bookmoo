@@ -1,4 +1,5 @@
 import { GoogleGenAI, Type, Modality } from "@google/genai"
+import type { ComicStyleDoc, ComicCharacter } from "@/store/useBookStore"
 
 let clientInstance: GoogleGenAI | null = null
 
@@ -18,6 +19,36 @@ function getClient(apiKey?: string | null): GoogleGenAI | null {
     clientInstance = new GoogleGenAI({ apiKey: key })
   }
   return clientInstance
+}
+
+/** Optional: use Gemini with Google Search to get visual references (movies, art, characters) for the comic prompt. Returns text to inject or empty on failure. */
+export async function enrichComicPromptWithSearch(
+  bookTitle: string,
+  bookContext: string,
+  pageText: string,
+  apiKey?: string | null
+): Promise<string> {
+  const ai = getClient(apiKey)
+  if (!ai) return ""
+  try {
+    const prompt = `For a comic book adaptation, suggest brief visual references (movies, animated series, book covers, existing character designs or art style) that could inspire the look of this story. Be very concise (max 4–5 short bullet points).
+Book title: ${bookTitle}
+Story context: ${bookContext.substring(0, 800)}
+This page: ${pageText.substring(0, 600)}
+Reply with only the bullet points, no intro.`
+    const response = await ai.models.generateContent({
+      model: "gemini-2.0-flash",
+      contents: prompt,
+      config: {
+        tools: [{ googleSearch: {} }]
+      } as any
+    })
+    const text = response.text?.trim() ?? ""
+    return text
+  } catch (error) {
+    console.warn("enrichComicPromptWithSearch failed (grounding may be unavailable):", error)
+    return ""
+  }
 }
 
 export interface VocabExplanation {
@@ -59,7 +90,16 @@ export interface GenerateComicOptions {
   pageText: string
   bookTitle: string
   bookContext: string
+  /** Single reference image (legacy). Ignored if referenceImages is set. */
   referenceImage?: string
+  /** Up to 2 images: [firstPageForStyle, previousPage]. First is always style reference. */
+  referenceImages?: string[]
+  /** Documented style from first page; injected into prompt. */
+  comicStyleDoc?: ComicStyleDoc
+  /** Documented characters; injected into prompt. */
+  comicCharacters?: ComicCharacter[]
+  /** Optional block from web search to enrich the prompt. */
+  searchContext?: string
   /** ISO 639-1. All speech bubbles and captions must be in this language. */
   languageCode?: string
 }
@@ -77,10 +117,16 @@ export async function generateComicPage(
   const bookTitle = typeof options === 'string' ? '' : options.bookTitle
   const bookContext = typeof options === 'string' ? (legacyBookContext ?? '') : options.bookContext
   const referenceImage = typeof options === 'string' ? legacyReferenceImage : options.referenceImage
+  const referenceImages = typeof options === 'string' ? undefined : options.referenceImages
+  const comicStyleDoc = typeof options === 'string' ? undefined : options.comicStyleDoc
+  const comicCharacters = typeof options === 'string' ? undefined : options.comicCharacters
+  const searchContext = typeof options === 'string' ? undefined : options.searchContext
   const languageCode = typeof options === 'string' ? undefined : options.languageCode
   const langInstruction = languageCode
     ? `\nLANGUAGE: The book is in ${languageCode}. All speech bubbles, captions, and any visible text MUST be in this same language. Do not translate the page text.`
     : ''
+
+  const refs = referenceImages && referenceImages.length > 0 ? referenceImages : (referenceImage ? [referenceImage] : [])
 
   try {
     const contextExcerpt = bookContext.trim().substring(0, 2000)
@@ -102,6 +148,34 @@ ${contextExcerpt.length < bookContext.length ? '\n...' : ''}
     let prompt = `You are creating ONE PAGE of a comic book or manga that belongs to a longer story. Your goal is VISUAL AND THEMATIC CONSISTENCY so that every page feels like the same book and the same characters.
 
 ${thematicBlock}
+`
+    if (searchContext && searchContext.trim()) {
+      prompt += `
+VISUAL REFERENCES (use to inspire style and mood; adapt to your comic):
+"""
+${searchContext.trim().substring(0, 1500)}
+"""
+`
+    }
+    if (comicStyleDoc && (comicStyleDoc.colors || comicStyleDoc.lineStyle || comicStyleDoc.aesthetics || comicStyleDoc.fonts)) {
+      const parts: string[] = []
+      if (comicStyleDoc.colors) parts.push(`Colors: ${comicStyleDoc.colors}`)
+      if (comicStyleDoc.lineStyle) parts.push(`Line style: ${comicStyleDoc.lineStyle}`)
+      if (comicStyleDoc.aesthetics) parts.push(`Aesthetics: ${comicStyleDoc.aesthetics}`)
+      if (comicStyleDoc.fonts) parts.push(`Fonts/lettering: ${comicStyleDoc.fonts}`)
+      prompt += `
+STYLE REFERENCE (must follow exactly):
+${parts.join('\n')}
+`
+    }
+    if (comicCharacters && comicCharacters.length > 0) {
+      prompt += `
+CHARACTERS (draw identically in every panel where they appear):
+${comicCharacters.map(c => `- ${c.name}: ${c.visualDescription}`).join('\n')}
+`
+    }
+
+    prompt += `
 
 CURRENT PAGE TEXT TO ILLUSTRATE (use ONLY this text in speech bubbles and captions — do not invent or add any other text):
 """
@@ -120,11 +194,18 @@ STYLE:
 TEXT FIDELITY (critical):
 - NEVER invent or hallucinate text. Every word in speech bubbles and captions MUST be EXACTLY from the "CURRENT PAGE TEXT TO ILLUSTRATE" above. Do not paraphrase or add anything.${langInstruction}`
 
-    if (referenceImage) {
+    if (refs.length === 2) {
+      prompt += `
+
+VISUAL MEMORY — Two reference images provided (in order):
+1. FIRST IMAGE: The FIRST PAGE of this comic. This is your MAIN style reference. You MUST use the exact same colors, line work, shading, aesthetics, and overall look.
+2. SECOND IMAGE: The PREVIOUS page. Use it for character continuity (same faces, hair, clothing) and scene flow.
+Draw the CURRENT page so that a reader would have no doubt it is the same story and the same characters.`
+    } else if (refs.length === 1) {
       prompt += `
 
 VISUAL MEMORY — Reference image provided:
-- The attached image is the PREVIOUS page of this same comic. You MUST use it as the ONLY visual reference for:
+- The attached image is the FIRST or PREVIOUS page of this same comic. You MUST use it as the visual reference for:
   * Same art style (line work, shading, color palette).
   * Same character designs: same faces, same hair, same body types.
   * Same clothing and accessories for each character.
@@ -138,10 +219,10 @@ VISUAL IDENTITY:
     }
 
     const parts: any[] = []
-    if (referenceImage) {
+    for (const img of refs) {
       parts.push({
         inlineData: {
-          data: referenceImage,
+          data: img,
           mimeType: "image/jpeg"
         }
       })
@@ -169,6 +250,189 @@ VISUAL IDENTITY:
   } catch (error) {
     console.error("Failed to generate comic page:", error)
     return null
+  }
+}
+
+export interface ExtractComicResult {
+  styleDoc: ComicStyleDoc
+  characters: ComicCharacter[]
+}
+
+/** Analyze the first comic page image and extract style + character descriptions for future consistency. */
+export async function extractComicStyleAndCharacters(
+  imageBase64: string,
+  pageText?: string,
+  apiKey?: string | null
+): Promise<ExtractComicResult | null> {
+  const ai = getClient(apiKey)
+  if (!ai) return null
+  try {
+    const textPart = pageText
+      ? `Page text (for character names):\n${pageText.substring(0, 1500)}`
+      : "Describe the visible style and any characters."
+    const response = await ai.models.generateContent({
+      model: "gemini-2.0-flash",
+      contents: [
+        {
+          parts: [
+            {
+              inlineData: {
+                data: imageBase64,
+                mimeType: "image/jpeg"
+              }
+            },
+            { text: `Analyze this comic page. ${textPart}\n\nRespond with JSON only, no markdown. Use this exact structure:
+{
+  "styleDoc": {
+    "colors": "short description of color palette and mood",
+    "lineStyle": "line weight, clean vs sketchy, etc.",
+    "aesthetics": "overall look: manga, western comic, etc.",
+    "fonts": "lettering style if visible"
+  },
+  "characters": [
+    { "name": "Character name", "visualDescription": "face, hair, clothing, distinctive traits", "firstPage": 0 }
+  ]
+}
+Include every character visible in the page. firstPage should be 0 for this first page.` }
+          ]
+        }
+      ],
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            styleDoc: {
+              type: Type.OBJECT,
+              properties: {
+                colors: { type: Type.STRING },
+                lineStyle: { type: Type.STRING },
+                aesthetics: { type: Type.STRING },
+                fonts: { type: Type.STRING }
+              }
+            },
+            characters: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  name: { type: Type.STRING },
+                  visualDescription: { type: Type.STRING },
+                  firstPage: { type: Type.NUMBER }
+                },
+                required: ["name", "visualDescription"]
+              }
+            }
+          },
+          required: ["styleDoc", "characters"]
+        }
+      }
+    })
+    const raw = response.text || "{}"
+    const parsed = JSON.parse(raw) as { styleDoc?: ComicStyleDoc; characters?: ComicCharacter[] }
+    const styleDoc: ComicStyleDoc = parsed.styleDoc ?? {}
+    const characters: ComicCharacter[] = Array.isArray(parsed.characters)
+      ? parsed.characters.map((c: any) => ({
+          name: String(c.name ?? ""),
+          visualDescription: String(c.visualDescription ?? ""),
+          firstPage: typeof c.firstPage === "number" ? c.firstPage : undefined
+        }))
+      : []
+    return { styleDoc, characters }
+  } catch (error) {
+    console.error("Failed to extract comic style and characters:", error)
+    return null
+  }
+}
+
+/** Detect new characters in page text that are not yet in existingCharacters; return descriptions for them. */
+export async function detectNewCharactersInPageText(
+  pageText: string,
+  existingCharacters: ComicCharacter[],
+  apiKey?: string | null
+): Promise<ComicCharacter[]> {
+  const ai = getClient(apiKey)
+  if (!ai) return []
+  const existingNames = existingCharacters.map(c => c.name.trim().toLowerCase())
+  if (existingNames.length === 0) {
+    try {
+      const response = await ai.models.generateContent({
+        model: "gemini-2.0-flash",
+        contents: `This is a page from a story:
+"""
+${pageText.substring(0, 3000)}
+"""
+List the characters that appear or are mentioned on this page. For each character, provide a short visual description (face, hair, clothing, distinctive traits) suitable for an artist to draw them consistently. Respond with JSON only:
+{ "characters": [ { "name": "Name", "visualDescription": "description" } ] }`,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              characters: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    name: { type: Type.STRING },
+                    visualDescription: { type: Type.STRING }
+                  },
+                  required: ["name", "visualDescription"]
+                }
+              }
+            },
+            required: ["characters"]
+          }
+        }
+      })
+      const raw = response.text || "{}"
+      const parsed = JSON.parse(raw) as { characters?: { name: string; visualDescription: string }[] }
+      const arr = Array.isArray(parsed.characters) ? parsed.characters : []
+      return arr.map(c => ({ name: String(c.name ?? ""), visualDescription: String(c.visualDescription ?? "") }))
+    } catch (e) {
+      console.error("detectNewCharactersInPageText:", e)
+      return []
+    }
+  }
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-2.0-flash",
+      contents: `This is a page from a story:
+"""
+${pageText.substring(0, 3000)}
+"""
+Already documented characters (do NOT include these again): ${existingCharacters.map(c => c.name).join(", ")}
+
+List ONLY characters that appear or are mentioned on this page and are NOT in the list above. For each NEW character, provide a short visual description (face, hair, clothing, distinctive traits). If no new characters, return empty array. Respond with JSON only:
+{ "characters": [ { "name": "Name", "visualDescription": "description" } ] }`,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            characters: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  name: { type: Type.STRING },
+                  visualDescription: { type: Type.STRING }
+                },
+                required: ["name", "visualDescription"]
+              }
+            }
+          },
+          required: ["characters"]
+        }
+      }
+    })
+    const raw = response.text || "{}"
+    const parsed = JSON.parse(raw) as { characters?: { name: string; visualDescription: string }[] }
+    const arr = Array.isArray(parsed.characters) ? parsed.characters : []
+    return arr.map(c => ({ name: String(c.name ?? ""), visualDescription: String(c.visualDescription ?? "") }))
+  } catch (e) {
+    console.error("detectNewCharactersInPageText:", e)
+    return []
   }
 }
 

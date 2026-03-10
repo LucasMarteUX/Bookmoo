@@ -26,6 +26,8 @@ O banco está alinhado ao modelo de dados do app (Zustand). Todas as tabelas usa
 | last_read        | timestamptz | Última leitura |
 | word_count       | integer   | Total de palavras. Default 0 |
 | comic_pages      | jsonb     | Opcional. Objeto `{ "0": "base64...", "1": "base64..." }` (índice → imagem base64) |
+| comic_style_doc  | jsonb     | Opcional. Estilo da primeira página (cores, traços, estética, fontes) para consistência. |
+| comic_characters | jsonb     | Opcional. Array de `{ name, visualDescription, firstPage? }` para personagens documentados. |
 | pinned_vocab_ids | jsonb     | IDs de vocabulário fixados na barra lateral. Default `[]` |
 | created_at       | timestamptz | |
 | updated_at       | timestamptz | |
@@ -96,6 +98,8 @@ Uma linha por usuário (PK = `user_id`).
 | Book.lastRead (ms) | books.last_read (timestamptz) |
 | Book.wordCount | books.word_count |
 | Book.comicPages | books.comic_pages (jsonb; chaves numéricas como string) |
+| Book.comicStyleDoc | books.comic_style_doc (jsonb) |
+| Book.comicCharacters | books.comic_characters (jsonb array) |
 | Book.pinnedVocabIds | books.pinned_vocab_ids (jsonb array) |
 | **useVocabularyStore** | |
 | Vocabulary.* | vocabulary.* (bookId → book_id, createdAt → created_at) |
@@ -115,6 +119,7 @@ Uma linha por usuário (PK = `user_id`).
 3. `lexis_rls` – Políticas RLS (select/insert/update/delete por user_id)  
 4. `add_books_pinned_vocab_ids` – Coluna books.pinned_vocab_ids  
 5. `add_reader_settings_playback_and_voice` – Colunas reader_settings.playback_rate e voice_gender  
+6. `add-comic-docs` (scripts/add-comic-docs.sql) – Colunas books.comic_style_doc e books.comic_characters  
 
 ---
 

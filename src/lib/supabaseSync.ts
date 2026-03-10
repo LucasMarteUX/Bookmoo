@@ -15,6 +15,8 @@ export function bookFromRow(row: any): Book {
   const totalPages = typeof row.total_pages === 'number' && row.total_pages > 0 ? row.total_pages : undefined
   const pages = Array.isArray(row.pages) ? row.pages : [row.content ?? '']
   const progress = totalPages ? Math.min(100, Math.round((pages.length / totalPages) * 100)) : (typeof row.progress === 'number' ? row.progress * 100 : 0)
+  const comicStyleDoc = row.comic_style_doc && typeof row.comic_style_doc === 'object' ? row.comic_style_doc : undefined
+  const comicCharacters = Array.isArray(row.comic_characters) ? row.comic_characters : undefined
   return {
     id: row.id,
     title: row.title ?? '',
@@ -29,6 +31,8 @@ export function bookFromRow(row: any): Book {
     wordCount: typeof row.word_count === 'number' ? row.word_count : 0,
     totalPages,
     comicPages: Object.keys(comicPagesNum).length ? comicPagesNum : undefined,
+    comicStyleDoc: comicStyleDoc ?? undefined,
+    comicCharacters: comicCharacters ?? undefined,
     pinnedVocabIds: Array.isArray(row.pinned_vocab_ids) ? row.pinned_vocab_ids : undefined,
     languageCode: row.language_code ?? undefined,
     coverData: row.cover_data ?? undefined
@@ -61,6 +65,8 @@ export function bookToRow(book: Book, userId: string) {
     word_count: book.wordCount ?? 0,
     total_pages: book.totalPages ?? null,
     comic_pages: Object.keys(comicPages).length ? comicPages : null,
+    comic_style_doc: book.comicStyleDoc ?? null,
+    comic_characters: book.comicCharacters ?? null,
     pinned_vocab_ids: book.pinnedVocabIds ?? [],
     language_code: book.languageCode ?? 'en',
     cover_data: book.coverData ?? null
