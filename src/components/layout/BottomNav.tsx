@@ -9,7 +9,7 @@ export function BottomNav() {
   const { t } = useTranslations(locale)
 
   return (
-    <div className="fixed bottom-4 left-2 right-2 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 z-50 max-w-[400px] sm:w-[90%]">
+    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-1rem)] max-w-[400px]">
       <div 
         className="rounded-[24px] px-4 py-3 sm:px-6 sm:py-4 flex items-center justify-between transition-colors duration-300 min-h-[56px] sm:min-h-[72px] gap-2"
         style={{ backgroundColor: 'var(--theme-nav-bg)', border: '1px solid var(--theme-border)' }}
