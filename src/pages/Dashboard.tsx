@@ -12,6 +12,7 @@ import { supabase } from '@/lib/supabase'
 import { upsertBook, deleteBookRemote, fetchBooks } from '@/lib/supabaseSync'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { BookCardSkeleton } from '@/components/BookCardSkeleton'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -57,6 +58,7 @@ export function Dashboard() {
   const [editTotalPages, setEditTotalPages] = useState<string>('')
   const [editContext, setEditContext] = useState('')
   const editCoverInputRef = useRef<HTMLInputElement>(null)
+  const [isLoadingBooks, setIsLoadingBooks] = useState(false)
  
   const handleAddBook = () => {
     if (!newTitle.trim()) return
@@ -142,8 +144,6 @@ export function Dashboard() {
   const hour = new Date().getHours()
   const greetingKey: 'goodMorning' | 'goodAfternoon' | 'goodEvening' = hour >= 5 && hour < 12 ? 'goodMorning' : hour >= 12 && hour < 18 ? 'goodAfternoon' : 'goodEvening'
 
-  console.log('[Dashboard] books length', books.length, books)
-
   // Fallback: garantir que livros sejam carregados direto na Dashboard,
   // mesmo que algo impeça o hook de hidratação de rodar corretamente.
   useEffect(() => {
@@ -151,13 +151,15 @@ export function Dashboard() {
     if (!hasSupabase || !supabase || !userId) return
     if (books.length > 0) return
 
+    setIsLoadingBooks(true)
     ;(async () => {
       try {
         const remoteBooks = await fetchBooks(supabase, userId)
-        console.log('[Dashboard] fetched books directly', remoteBooks)
         setBooks(remoteBooks)
       } catch (e) {
         console.error('[Dashboard] error fetching books directly', e)
+      } finally {
+        setIsLoadingBooks(false)
       }
     })()
   }, [hasSupabase, session?.user?.id, books.length, setBooks])
@@ -239,7 +241,13 @@ export function Dashboard() {
           <h2 className="text-2xl font-bold" style={{ color: 'var(--theme-text)' }}>{t('yourLibrary')}</h2>
         </div>
         
-        {books.length === 0 ? (
+        {isLoadingBooks && books.length === 0 ? (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <BookCardSkeleton key={i} />
+            ))}
+          </div>
+        ) : books.length === 0 ? (
           <Card className="p-12 text-center rounded-[16px] border" style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-border)' }}>
             <div className="flex flex-col items-center justify-center">
               <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6" style={{ backgroundColor: 'var(--theme-bg)' }}>
