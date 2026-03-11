@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, BookOpen, Clock, BookMarked, Trash2, Pencil, ImagePlus } from 'lucide-react'
+import { Plus, BookOpen, Clock, BookMarked, Trash2, Pencil, ImagePlus, X } from 'lucide-react'
 import { useBookStore } from '@/store/useBookStore'
 import { useStudyStore } from '@/store/useStudyStore'
 import { useVocabularyStore } from '@/store/useVocabularyStore'
@@ -326,7 +326,15 @@ export function Dashboard() {
       </div>
  
       <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-        <DialogContent className="sm:max-w-lg rounded-[2rem] border" style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-border)' }}>
+        <DialogContent className="relative sm:max-w-lg rounded-[2rem] border pt-8" style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-border)' }}>
+          <button
+            type="button"
+            onClick={() => setIsAddModalOpen(false)}
+            className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-[var(--theme-bg-secondary)] hover:bg-[var(--theme-bg)]"
+            aria-label={t('cancel')}
+          >
+            <X className="h-4 w-4" />
+          </button>
           <DialogHeader>
             <DialogTitle style={{ color: 'var(--theme-text)' }}>{t('addNewBook')}</DialogTitle>
             <DialogDescription style={{ color: 'var(--theme-text-secondary)' }}>{t('addNewBookDescription')}</DialogDescription>
@@ -343,7 +351,7 @@ export function Dashboard() {
             </div>
             <div className="space-y-2">
               <Label style={{ color: 'var(--theme-text)' }}>{t('bookLanguage')}</Label>
-              <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto p-2 rounded-xl border" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg-secondary)' }}>
+              <div className="flex flex-wrap gap-2 p-2 rounded-xl border" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg-secondary)' }}>
                 {BOOK_LANGUAGES.map((lang) => (
                   <button
                     key={lang.code}
@@ -407,7 +415,15 @@ export function Dashboard() {
       </Dialog>
 
       <Dialog open={!!editBookId} onOpenChange={(open) => !open && setEditBookId(null)}>
-        <DialogContent className="sm:max-w-lg rounded-[2rem] border max-h-[90vh] overflow-y-auto" style={{ backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-text)', borderColor: 'var(--theme-border)' }}>
+        <DialogContent className="relative sm:max-w-lg rounded-[2rem] border pt-8" style={{ backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-text)', borderColor: 'var(--theme-border)' }}>
+          <button
+            type="button"
+            onClick={() => setEditBookId(null)}
+            className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-[var(--theme-bg-secondary)] hover:bg-[var(--theme-bg)]"
+            aria-label={t('cancel')}
+          >
+            <X className="h-4 w-4" />
+          </button>
           <DialogHeader>
             <DialogTitle>{t('editBook')}</DialogTitle>
             <DialogDescription style={{ color: 'var(--theme-text-secondary)' }}>{t('bookDescriptionPlaceholder')}</DialogDescription>
@@ -427,7 +443,7 @@ export function Dashboard() {
             </div>
             <div className="space-y-2">
               <Label style={{ color: 'var(--theme-text)' }}>{t('bookLanguage')}</Label>
-              <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-2 rounded-xl border" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg-secondary)' }}>
+              <div className="flex flex-wrap gap-2 p-2 rounded-xl border" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg-secondary)' }}>
                 {BOOK_LANGUAGES.map((lang) => (
                   <button
                     key={lang.code}

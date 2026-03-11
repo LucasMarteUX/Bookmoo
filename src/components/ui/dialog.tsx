@@ -12,7 +12,7 @@ export function Dialog({ open, onOpenChange, children }: { open: boolean, onOpen
 
   return (
     <DialogContext.Provider value={{ open, onOpenChange }}>
-      <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto py-6 px-4 sm:px-0">
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => onOpenChange(false)} />
         {children}
       </div>
