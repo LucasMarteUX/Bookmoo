@@ -1528,31 +1528,7 @@ function ComicReader({
         }
       >
         <div className="flex items-center justify-between px-4 md:px-8 py-3 md:py-4 text-xs md:text-sm font-medium text-white bg-black/60 backdrop-blur-sm">
-          <div className="flex items-center gap-2">
-            {currentImage && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => onGenerateComic({ regenerate: true })}
-                  disabled={isGeneratingComic}
-                  className="flex items-center justify-center w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-[10px] md:text-xs disabled:opacity-50"
-                  title={t('regenerateComic')}
-                  aria-label={t('regenerateComic')}
-                >
-                  {isGeneratingComic ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
-                </button>
-                <button
-                  type="button"
-                  onClick={onDeleteComic}
-                  className="flex items-center justify-center w-8 h-8 rounded-full bg-red-600/70 hover:bg-red-600 text-[10px] md:text-xs"
-                  title={t('deleteComicPage')}
-                  aria-label={t('deleteComicPage')}
-                >
-                  <Trash2 className="w-3 h-3" />
-                </button>
-              </>
-            )}
-          </div>
+          <div className="flex items-center gap-2 w-8 md:w-9" />
           <span className="truncate px-4 text-center">
             {book.title} — {t('page')} {currentPage + 1}
           </span>
@@ -1587,13 +1563,39 @@ function ComicReader({
         >
           <div className="flex items-center justify-center w-full h-full">
             {currentImage && !isGeneratingComic ? (
-              <img
-                src={isComicPageUrl(currentImage) ? currentImage : `data:image/jpeg;base64,${currentImage}`}
-                alt={`${t('comicPageAlt')} ${currentPage + 1}`}
-                className="max-h-full w-auto max-w-full object-contain select-none"
-                referrerPolicy="no-referrer"
-                draggable={false}
-              />
+              <div
+                className="relative group inline-block max-h-full"
+                onClick={e => e.stopPropagation()}
+              >
+                <img
+                  src={isComicPageUrl(currentImage) ? currentImage : `data:image/jpeg;base64,${currentImage}`}
+                  alt={`${t('comicPageAlt')} ${currentPage + 1}`}
+                  className="max-h-full w-auto max-w-full object-contain select-none block"
+                  referrerPolicy="no-referrer"
+                  draggable={false}
+                />
+                <div className="absolute top-2 right-2 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none group-hover:pointer-events-auto">
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); onGenerateComic({ regenerate: true }) }}
+                    disabled={isGeneratingComic}
+                    className="flex items-center justify-center w-8 h-8 rounded-full bg-black/60 hover:bg-black/80 text-white disabled:opacity-50 shadow-lg"
+                    title={t('regenerateComic')}
+                    aria-label={t('regenerateComic')}
+                  >
+                    {isGeneratingComic ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); onDeleteComic() }}
+                    className="flex items-center justify-center w-8 h-8 rounded-full bg-red-600/90 hover:bg-red-600 text-white shadow-lg"
+                    title={t('deleteComicPage')}
+                    aria-label={t('deleteComicPage')}
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </div>
+              </div>
             ) : (
               <div className="flex flex-col items-center justify-center h-full max-w-full px-4">
                 <div

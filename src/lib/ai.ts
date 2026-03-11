@@ -192,7 +192,10 @@ STYLE:
 - Match the atmosphere to the book context (e.g. dark for drama, bright for adventure).
 
 TEXT FIDELITY (critical):
-- NEVER invent or hallucinate text. Every word in speech bubbles and captions MUST be EXACTLY from the "CURRENT PAGE TEXT TO ILLUSTRATE" above. Do not paraphrase or add anything.${langInstruction}`
+- NEVER invent or hallucinate text. Every word in speech bubbles and captions MUST be EXACTLY from the "CURRENT PAGE TEXT TO ILLUSTRATE" above. Do not paraphrase or add anything.
+
+QUALITY & READABILITY (critical):
+- Render the image at high resolution with sharp, crisp details. All text inside speech bubbles and caption boxes MUST be legible and easy to read: use clear lettering, strong contrast between text and background, and avoid blurry or low-resolution text. Dialogue and captions are essential for reading the story—prioritize their visual clarity.${langInstruction}`
 
     if (refs.length === 2) {
       prompt += `
