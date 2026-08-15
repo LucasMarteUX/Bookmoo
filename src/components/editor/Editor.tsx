@@ -7,7 +7,7 @@ import { preparePageImage, transcribePageImage } from '@/lib/pageTranscription'
 
 interface EditorProps {
   book: Book
-  onSave: (pages: string[], currentPage: number) => void
+  onSave: (pages: string[], currentPage: number) => Promise<void>
   onCancel: () => void
 }
 
@@ -16,6 +16,8 @@ export function Editor({ book, onSave, onCancel }: EditorProps) {
   const [currentPage, setCurrentPage] = useState(book.currentPage || 0)
   const [content, setContent] = useState(pages[currentPage] || '')
   const [isImageDialogOpen, setIsImageDialogOpen] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   useEffect(() => {
     setContent(pages[currentPage] || '')
@@ -43,10 +45,33 @@ export function Editor({ book, onSave, onCancel }: EditorProps) {
     setContent(newPages[newCurrentPage] || '')
   }
 
+  const persistPages = async (nextPages: string[], nextCurrentPage: number) => {
+    if (isSaving) return
+    setIsSaving(true)
+    setSaveError(null)
+    try {
+      await onSave(nextPages, nextCurrentPage)
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'Não foi possível salvar o conteúdo.')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   const handleSave = () => {
     const newPages = [...pages]
     newPages[currentPage] = content
-    onSave(newPages, currentPage)
+    void persistPages(newPages, currentPage)
+  }
+
+  const handleTranscribed = async (transcribedText: string) => {
+    const newPages = [...pages, transcribedText]
+    const newCurrentPage = newPages.length - 1
+    setPages(newPages)
+    setCurrentPage(newCurrentPage)
+    setContent(transcribedText)
+    setIsImageDialogOpen(false)
+    await persistPages(newPages, newCurrentPage)
   }
 
   return (
@@ -105,20 +130,21 @@ export function Editor({ book, onSave, onCancel }: EditorProps) {
         />
       </div>
       <div className="flex justify-end gap-3">
+        {saveError && (
+          <p className="mr-auto self-center max-w-[22rem] text-right text-xs text-red-600" role="alert">
+            {saveError}
+          </p>
+        )}
         <Button variant="outline" onClick={onCancel}>Cancelar</Button>
-        <Button onClick={handleSave}>Salvar Alterações</Button>
+        <Button onClick={handleSave} disabled={isSaving}>
+          {isSaving ? 'Salvando…' : 'Salvar Alterações'}
+        </Button>
       </div>
       <PageImageDialog
         open={isImageDialogOpen}
         languageCode={book.languageCode}
         onClose={() => setIsImageDialogOpen(false)}
-        onTranscribed={(transcribedText) => {
-          const newPages = [...pages, transcribedText]
-          setPages(newPages)
-          setCurrentPage(newPages.length - 1)
-          setContent(transcribedText)
-          setIsImageDialogOpen(false)
-        }}
+        onTranscribed={(transcribedText) => { void handleTranscribed(transcribedText) }}
       />
     </div>
   )

@@ -7,6 +7,9 @@ import { useTranslations } from '@/lib/i18n'
 import { Reader } from '@/components/reader/Reader'
 import { Editor } from '@/components/editor/Editor'
 import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { CheckCircle2, XCircle } from 'lucide-react'
+import { useAuth } from '@/contexts/AuthContext'
 
 export function BookPage() {
   const { id } = useParams<{ id: string }>()
@@ -15,7 +18,10 @@ export function BookPage() {
   const { t } = useTranslations(locale)
   const { books, setCurrentBook } = useBookStore()
   const { updateBookAndSync, updateBookAndSyncAsync } = useBookSync()
+  const { hasSupabase, session } = useAuth()
   const [mode, setMode] = useState<'read' | 'edit'>('read')
+  const [saveFeedback, setSaveFeedback] = useState<'success' | 'error' | null>(null)
+  const [saveError, setSaveError] = useState('')
 
   const book = books.find(b => b.id === id)
 
@@ -41,8 +47,17 @@ export function BookPage() {
   }
 
   const handleSaveContent = async (pages: string[], currentPage: number) => {
-    await updateBookAndSyncAsync(book.id, { pages, currentPage, content: pages[currentPage] || '' })
-    setMode('read')
+    try {
+      await updateBookAndSyncAsync(book.id, { pages, currentPage, content: pages[currentPage] || '' })
+      setSaveError('')
+      setSaveFeedback('success')
+      setMode('read')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Não foi possível salvar o conteúdo no banco de dados.'
+      setSaveError(message)
+      setSaveFeedback('error')
+      throw error
+    }
   }
 
   return (
@@ -94,6 +109,30 @@ export function BookPage() {
         )}
       </div>
 
+      <Dialog open={saveFeedback !== null} onOpenChange={(open) => !open && setSaveFeedback(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {saveFeedback === 'success' ? (
+                <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+              ) : (
+                <XCircle className="h-5 w-5 text-red-600" />
+              )}
+              {saveFeedback === 'success' ? 'Conteúdo salvo' : 'Falha ao salvar'}
+            </DialogTitle>
+            <DialogDescription>
+              {saveFeedback === 'success'
+                ? hasSupabase && session
+                  ? 'As páginas foram salvas no banco de dados do Supabase.'
+                  : 'As páginas foram salvas localmente. Faça login para sincronizar com o Supabase.'
+                : saveError || 'Não foi possível salvar as páginas no banco de dados.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end">
+            <Button onClick={() => setSaveFeedback(null)}>Entendi</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
