@@ -1,8 +1,7 @@
 # ReadLingo – Arquitetura do banco Supabase
 
-**Projeto:** `ywnmeacpvmcuhzhshpwz`  
-**URL:** https://ywnmeacpvmcuhzhshpwz.supabase.co  
-**Organização (MCP):** Redora
+**Projeto:** substitua pelo ref do seu projeto no Dashboard (ex.: `SEU-PROJETO`)
+**URL:** `https://SEU-PROJETO.supabase.co`
 
 ## Visão geral
 
@@ -48,6 +47,9 @@ O banco está alinhado ao modelo de dados do app (Zustand). Todas as tabelas usa
 | status     | text      | `'learned'` \| `'review'` \| `'important'`. Default `'review'` |
 | explanation| text      | Definição/explicação |
 | examples   | jsonb     | Array de strings. Default `[]` |
+| grammar_examples | jsonb | Exemplos estruturados nas formas afirmativa, negativa e interrogativa |
+| usage_note | text | Nota curta de uso gramatical |
+| variant_story | text | História paralela gerada para fixação do termo |
 | audio_data | text      | Opcional. Áudio em base64 |
 | created_at | timestamptz | |
 

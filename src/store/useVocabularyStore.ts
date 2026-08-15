@@ -5,6 +5,13 @@ import { v4 as uuidv4 } from 'uuid'
 export type VocabStatus = 'learned' | 'review' | 'important'
 export type VocabType = 'word' | 'phrase' | 'sentence'
 
+export interface GrammarExample {
+  form: 'affirmative' | 'negative' | 'interrogative'
+  context: string
+  english: string
+  portuguese: string
+}
+
 export interface Vocabulary {
   id: string
   bookId: string
@@ -13,6 +20,9 @@ export interface Vocabulary {
   status: VocabStatus
   explanation: string
   examples: string[]
+  grammarExamples?: GrammarExample[]
+  usageNote?: string
+  variantStory?: string
   audioData?: string
   createdAt: number
 }

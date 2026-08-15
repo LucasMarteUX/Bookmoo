@@ -37,7 +37,7 @@ Story context: ${bookContext.substring(0, 800)}
 This page: ${pageText.substring(0, 600)}
 Reply with only the bullet points, no intro.`
     const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash",
+      model: "gemini-2.5-flash",
       contents: prompt,
       config: {
         tools: [{ googleSearch: {} }]
@@ -55,6 +55,13 @@ export interface VocabExplanation {
   definition: string
   ipa: string
   examples: string[]
+  grammarExamples: {
+    form: "affirmative" | "negative" | "interrogative"
+    context: string
+    english: string
+    portuguese: string
+  }[]
+  usageNote: string
 }
 
 /** Language code (ISO 639-1) for TTS; affects pronunciation. */
@@ -274,7 +281,7 @@ export async function extractComicStyleAndCharacters(
       ? `Page text (for character names):\n${pageText.substring(0, 1500)}`
       : "Describe the visible style and any characters."
     const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash",
+      model: "gemini-2.5-flash",
       contents: [
         {
           parts: [
@@ -360,7 +367,7 @@ export async function detectNewCharactersInPageText(
   if (existingNames.length === 0) {
     try {
       const response = await ai.models.generateContent({
-        model: "gemini-2.0-flash",
+        model: "gemini-2.5-flash",
         contents: `This is a page from a story:
 """
 ${pageText.substring(0, 3000)}
@@ -399,7 +406,7 @@ List the characters that appear or are mentioned on this page. For each characte
   }
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash",
+      model: "gemini-2.5-flash",
       contents: `This is a page from a story:
 """
 ${pageText.substring(0, 3000)}
@@ -453,7 +460,9 @@ export async function generateExplanation(
     return {
       definition: "Configure GEMINI_API_KEY no arquivo .env.local para usar esta função.",
       ipa: "",
-      examples: []
+      examples: [],
+      grammarExamples: [],
+      usageNote: ""
     }
   }
   try {
@@ -461,7 +470,16 @@ export async function generateExplanation(
       model: "gemini-3-flash-preview",
       contents: `Explain clearly in ${langName} the meaning of "${text}".
 Level: ${level}
-Be concise.`,
+Be concise.
+
+You are a language teacher focused on practical English for business and career. In addition to the definition and pronunciation, create exactly three practical examples using different business contexts:
+1. affirmative
+2. negative
+3. interrogative
+
+For each example, include the grammatical form, a distinct context, the sentence in English with the analyzed term wrapped in **, and a fluent Portuguese translation. Add a short usage note when the negative or interrogative form changes an auxiliary, verb tense, word order, or another grammatical element.
+
+Return JSON only.`,
       config: {
         systemInstruction: `You are a ${langName} teacher. Provide a simple definition in ${langName}, an intuitive phonetic spelling (e.g., AP-uhl for apple) instead of IPA, and exactly 3 example sentences in ${langName}.`,
         responseMimeType: "application/json",
@@ -482,9 +500,28 @@ Be concise.`,
                 type: Type.STRING
               },
               description: "Exactly 3 example sentences using the word or phrase."
+            },
+            grammarExamples: {
+              type: Type.ARRAY,
+              minItems: 3,
+              maxItems: 3,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  form: { type: Type.STRING, enum: ["affirmative", "negative", "interrogative"] },
+                  context: { type: Type.STRING },
+                  english: { type: Type.STRING },
+                  portuguese: { type: Type.STRING }
+                },
+                required: ["form", "context", "english", "portuguese"]
+              }
+            },
+            usageNote: {
+              type: Type.STRING,
+              description: "Brief grammar note, or an empty string if no special note is needed."
             }
           },
-          required: ["definition", "ipa", "examples"]
+          required: ["definition", "ipa", "examples", "grammarExamples", "usageNote"]
         }
       }
     })
@@ -493,14 +530,39 @@ Be concise.`,
     return {
       definition: result.definition || "No definition found.",
       ipa: result.ipa || "",
-      examples: result.examples || []
+      examples: result.examples || [],
+      grammarExamples: Array.isArray(result.grammarExamples) ? result.grammarExamples : [],
+      usageNote: result.usageNote || ""
     }
   } catch (error) {
     console.error("Failed to generate explanation:", error)
     return {
       definition: "Failed to generate explanation.",
       ipa: "",
-      examples: []
+      examples: [],
+      grammarExamples: [],
+      usageNote: ""
     }
+  }
+}
+
+export async function generateVariantStory(
+  text: string,
+  targetLanguageCode?: string,
+  apiKey?: string | null
+): Promise<string | null> {
+  const ai = getClient(apiKey)
+  if (!ai || !text.trim()) return null
+  const language = targetLanguageCode === "pt" ? "Portuguese" : "the learner's interface language"
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: `Create a short parallel story for a language learner based on the English term "${text}".
+The story must be independent from any book context, use a fresh everyday or professional situation, and demonstrate the term naturally at least three times in different sentences. Write the story in ${language}, but keep the target term and its example sentences in English. Add a one-sentence title. Keep it between 80 and 130 words. Return plain text only.`,
+    })
+    return response.text?.trim() || null
+  } catch (error) {
+    console.error("Failed to generate variant story:", error)
+    return null
   }
 }

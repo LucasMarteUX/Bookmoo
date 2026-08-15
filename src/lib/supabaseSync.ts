@@ -83,6 +83,9 @@ export function vocabularyFromRow(row: any): Vocabulary {
     status: (row.status as Vocabulary['status']) ?? 'review',
     explanation: row.explanation ?? '',
     examples: Array.isArray(row.examples) ? row.examples : [],
+    grammarExamples: Array.isArray(row.grammar_examples) ? row.grammar_examples : undefined,
+    usageNote: row.usage_note ?? undefined,
+    variantStory: row.variant_story ?? undefined,
     audioData: row.audio_data ?? undefined,
     createdAt: row.created_at ? new Date(row.created_at).getTime() : Date.now()
   }
@@ -99,6 +102,9 @@ export function vocabularyToRow(v: Vocabulary, userId: string) {
     status: v.status,
     explanation: v.explanation,
     examples: v.examples ?? [],
+    grammar_examples: v.grammarExamples ?? null,
+    usage_note: v.usageNote ?? null,
+    variant_story: v.variantStory ?? null,
     audio_data: v.audioData ?? null
   }
 }

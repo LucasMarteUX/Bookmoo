@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
-import { Sparkles, Trash2, Volume2, Play, MousePointer2 } from 'lucide-react'
-import { useVocabularyStore, VocabStatus, VocabType } from '@/store/useVocabularyStore'
+import { Sparkles, Trash2, Volume2, Play, MousePointer2, BookOpenText, WandSparkles } from 'lucide-react'
+import { useVocabularyStore, VocabStatus, VocabType, GrammarExample } from '@/store/useVocabularyStore'
 import { useBookStore } from '@/store/useBookStore'
-import { generateExplanation, generateAudio, API_KEY_REQUIRED_MESSAGE } from '@/lib/ai'
+import { generateExplanation, generateAudio, generateVariantStory, API_KEY_REQUIRED_MESSAGE } from '@/lib/ai'
 import { useEffectiveGeminiKey } from '@/hooks/useEffectiveGeminiKey'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
@@ -34,6 +34,9 @@ export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId 
   const [status, setStatus] = useState<VocabStatus>('review')
   const [explanation, setExplanation] = useState('')
   const [examples, setExamples] = useState<string[]>([])
+  const [grammarExamples, setGrammarExamples] = useState<GrammarExample[]>([])
+  const [usageNote, setUsageNote] = useState('')
+  const [variantStory, setVariantStory] = useState('')
   const [audioData, setAudioData] = useState<string | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false)
@@ -56,6 +59,9 @@ export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId 
           setStatus(vocab.status || 'review')
           setExplanation(vocab.explanation || '')
           setExamples(vocab.examples || [])
+          setGrammarExamples(vocab.grammarExamples || [])
+          setUsageNote(vocab.usageNote || '')
+          setVariantStory(vocab.variantStory || '')
           setAudioData(vocab.audioData || null)
         }
       } else {
@@ -64,6 +70,9 @@ export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId 
         setStatus('review')
         setExplanation('')
         setExamples([])
+        setGrammarExamples([])
+        setUsageNote('')
+        setVariantStory('')
         setAudioData(null)
       }
     }
@@ -76,6 +85,21 @@ export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId 
       const result = await generateExplanation(text, 'B1', effectiveGeminiKey, bookLanguageCode)
       setExplanation(`${result.definition}\n\nPronunciation: ${result.ipa}`)
       setExamples(result.examples)
+      setGrammarExamples(result.grammarExamples)
+      setUsageNote(result.usageNote)
+    } catch (error) {
+      console.error(error)
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+
+  const handleGenerateVariantStory = async () => {
+    setIsGenerating(true)
+    try {
+      const result = await generateVariantStory(text, bookLanguageCode, effectiveGeminiKey)
+      if (result) setVariantStory(result)
+      else alert(API_KEY_REQUIRED_MESSAGE)
     } catch (error) {
       console.error(error)
     } finally {
@@ -123,6 +147,9 @@ export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId 
         status,
         explanation,
         examples,
+        grammarExamples,
+        usageNote,
+        variantStory,
         audioData: audioData || undefined
       })
       if (hasSupabase && supabase && userId) {
@@ -137,6 +164,9 @@ export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId 
         status,
         explanation,
         examples,
+        grammarExamples,
+        usageNote,
+        variantStory,
         audioData: audioData || undefined
       })
       if (hasSupabase && supabase && userId) {
@@ -159,18 +189,19 @@ export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent
-        className="sm:max-w-md rounded-3xl max-h-[90vh] overflow-y-auto"
+        className="max-h-[92vh] max-w-5xl overflow-y-auto rounded-[2rem] p-4 sm:p-6"
         style={{ cursor: isAudioPlaying ? 'pointer' : undefined }}
       >
         <DialogHeader>
-          <DialogTitle>{vocabId ? 'Editar Vocabulário' : 'Adicionar Vocabulário'}</DialogTitle>
+          <DialogTitle className="text-xl">{vocabId ? 'Editar vocabulário' : 'Adicionar vocabulário'}</DialogTitle>
           <DialogDescription>
-            Salve esta palavra ou frase na sua lista de vocabulário.
+            Estude o termo com exemplos reais, áudio e uma pequena história paralela.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 pt-4">
-          <div className="space-y-2">
+        <div className="grid grid-cols-1 gap-6 pt-2 md:grid-cols-[minmax(220px,0.72fr)_minmax(0,1.28fr)]">
+          <div className="space-y-4">
+            <div className="space-y-2">
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <Label className="shrink-0">Texto Selecionado</Label>
               <Button 
@@ -195,9 +226,9 @@ export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId 
               </Button>
             </div>
             <Input value={text} onChange={e => setText(e.target.value)} />
-          </div>
+            </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4">
             <div className="space-y-2 min-w-0">
               <Label>Tipo</Label>
               <div className="flex p-0.5 rounded-lg border transition-colors min-w-0" style={{ backgroundColor: 'var(--theme-bg-secondary)', borderColor: 'var(--theme-border-subtle)' }}>
@@ -240,10 +271,15 @@ export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId 
               </div>
             </div>
           </div>
+          </div>
 
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label>Explicação</Label>
+          <div className="space-y-4">
+            <div className="rounded-2xl p-4" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <Label>Explicação</Label>
+                <p className="mt-1 text-xs" style={{ color: 'var(--theme-text-secondary)' }}>Definição, pronúncia e formas de uso</p>
+              </div>
               <Button 
                 variant="ghost" 
                 size="sm" 
@@ -267,16 +303,58 @@ export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId 
               placeholder="Adicione sua própria explicação ou use a IA..."
               className="min-h-[100px]"
             />
-          </div>
+            </div>
 
-          <div className="space-y-2">
-            <Label>Exemplos</Label>
-            <Textarea 
-              value={examples.join('\n')} 
-              onChange={e => setExamples(e.target.value.split('\n').map(s => s.trim()).filter(Boolean))}
-              placeholder="Adicione exemplos (um por linha)..."
-              className="min-h-[100px]"
-            />
+            {grammarExamples.length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <BookOpenText className="h-4 w-4" style={{ color: 'var(--theme-accent)' }} />
+                  <Label>Aplicações práticas</Label>
+                </div>
+                <div className="grid gap-3">
+                  {grammarExamples.map((example) => (
+                    <div key={example.form} className="rounded-2xl p-3" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
+                      <div className="mb-2 flex items-center justify-between gap-2">
+                        <span className="text-[10px] font-bold uppercase tracking-[0.16em]" style={{ color: 'var(--theme-accent)' }}>
+                          {example.form === 'affirmative' ? 'Afirmativa' : example.form === 'negative' ? 'Negativa' : 'Interrogativa'}
+                        </span>
+                        <span className="text-[11px]" style={{ color: 'var(--theme-text-secondary)' }}>{example.context}</span>
+                      </div>
+                      <p className="text-sm font-medium" style={{ color: 'var(--theme-text)' }}>{example.english}</p>
+                      <p className="mt-1 text-xs leading-relaxed" style={{ color: 'var(--theme-text-secondary)' }}>{example.portuguese}</p>
+                    </div>
+                  ))}
+                </div>
+                {usageNote && (
+                  <p className="rounded-xl border-l-2 px-3 py-2 text-xs leading-relaxed" style={{ borderColor: 'var(--theme-accent)', color: 'var(--theme-text-secondary)' }}>
+                    <strong style={{ color: 'var(--theme-text)' }}>Nota de uso: </strong>{usageNote}
+                  </p>
+                )}
+              </div>
+            )}
+
+            <div className="rounded-2xl p-4" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <Label className="flex items-center gap-2"><WandSparkles className="h-4 w-4" style={{ color: 'var(--theme-accent)' }} /> Variante de história</Label>
+                  <p className="mt-1 text-xs" style={{ color: 'var(--theme-text-secondary)' }}>Uma situação nova para fixar o termo</p>
+                </div>
+                <Button variant="ghost" size="sm" className="h-8 text-xs" style={{ color: 'var(--theme-accent)' }} onClick={handleGenerateVariantStory} disabled={isGenerating || !text.trim()}>
+                  <Sparkles className="mr-1 h-3 w-3" />{isGenerating ? 'Criando...' : 'Criar história'}
+                </Button>
+              </div>
+              <Textarea value={variantStory} onChange={e => setVariantStory(e.target.value)} placeholder="Crie uma história curta com novos exemplos..." className="mt-3 min-h-[120px]" />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Exemplos editáveis</Label>
+              <Textarea
+                value={examples.join('\n')}
+                onChange={e => setExamples(e.target.value.split('\n').map(s => s.trim()).filter(Boolean))}
+                placeholder="Adicione exemplos (um por linha)..."
+                className="min-h-[80px]"
+              />
+            </div>
           </div>
         </div>
 
