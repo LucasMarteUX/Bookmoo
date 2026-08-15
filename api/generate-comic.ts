@@ -1,6 +1,6 @@
-import { GoogleGenAI } from '@google/genai'
+import OpenAI, { toFile } from 'openai'
 
-const COMIC_IMAGE_MODEL = 'gemini-3.1-flash-image'
+const COMIC_IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL || 'gpt-image-1'
 
 type VercelRequest = {
   method?: string
@@ -100,34 +100,41 @@ QUALITY:
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
-  const apiKey = process.env.GEMINI_API_KEY
   const body = req.body
-  if (!apiKey) return res.status(500).json({ error: 'GEMINI_API_KEY is not configured on Vercel' })
+  const openAiKey = process.env.OPENAI_API_KEY
+  if (!openAiKey) return res.status(500).json({ error: 'OPENAI_API_KEY is not configured on Vercel' })
   if (!body?.pageText?.trim()) return res.status(400).json({ error: 'Page text is required' })
 
   try {
-    const ai = new GoogleGenAI({ apiKey })
+    const openai = new OpenAI({ apiKey: openAiKey })
     const { prompt, refs } = buildPrompt(body)
-    const parts: any[] = refs.slice(0, 2).map((image) => ({
-      inlineData: { data: image, mimeType: 'image/jpeg' }
-    }))
-    parts.push({ text: prompt })
+    const response = refs.length > 0
+      ? await openai.images.edit({
+          model: COMIC_IMAGE_MODEL,
+          image: await Promise.all(refs.slice(0, 2).map((image, index) => (
+            toFile(Buffer.from(image, 'base64'), `comic-reference-${index}.jpg`, { type: 'image/jpeg' })
+          ))),
+          prompt,
+          size: '1024x1536',
+          quality: 'medium',
+          output_format: 'jpeg',
+          output_compression: 80
+        })
+      : await openai.images.generate({
+          model: COMIC_IMAGE_MODEL,
+          prompt,
+          size: '1024x1536',
+          quality: 'medium',
+          output_format: 'jpeg',
+          output_compression: 80
+        })
 
-    const response = await ai.models.generateContent({
-      model: COMIC_IMAGE_MODEL,
-      contents: { parts },
-      config: {
-        responseModalities: ['TEXT', 'IMAGE'],
-        imageConfig: { aspectRatio: '3:4', imageSize: '1K' }
-      }
-    })
-
-    const image = response.candidates?.[0]?.content?.parts?.find((part) => part.inlineData)?.inlineData?.data
-    if (!image) return res.status(502).json({ error: 'Gemini did not return an image' })
+    const image = response.data?.[0]?.b64_json
+    if (!image) return res.status(502).json({ error: 'OpenAI did not return an image' })
     return res.status(200).json({ image })
   } catch (error) {
-    console.error('Gemini comic generation failed:', error)
-    const message = error instanceof Error ? error.message : 'Gemini image generation failed'
+    console.error('OpenAI comic generation failed:', error)
+    const message = error instanceof Error ? error.message : 'OpenAI image generation failed'
     return res.status(isQuotaError(error) ? 429 : 502).json({ error: message })
   }
 }

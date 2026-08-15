@@ -15,9 +15,10 @@ View your app in AI Studio: https://ai.studio/apps/6d14231d-4951-4d80-bf95-7ba99
 
 1. Install dependencies:
    `npm install`
-2. (Optional) Set `GEMINI_API_KEY` in `.env.local` for IA features (explanations, TTS, comic generation). The app runs without it; those features will prompt you to configure the key.
-3. For ElevenLabs page narration, set `ELEVENLABS_API_KEY` and `VITE_ELEVENLABS_VOICE_ID` in `.env.local`. The ElevenLabs secret is consumed by `/api/elevenlabs-tts` and must be configured as a server environment variable in Vercel.
-4. Run the app:
+2. (Optional) Set `GEMINI_API_KEY` in `.env.local` for explanations, transcription and Gemini TTS.
+3. Set `OPENAI_API_KEY` in `.env.local` for comic image generation. The key is consumed only by `/api/generate-comic`; configure it as a server environment variable in Vercel. `OPENAI_IMAGE_MODEL` defaults to `gpt-image-1`.
+4. For ElevenLabs page narration, set `ELEVENLABS_API_KEY` and `VITE_ELEVENLABS_VOICE_ID` in `.env.local`. The ElevenLabs secret is consumed by `/api/elevenlabs-tts` and must be configured as a server environment variable in Vercel.
+5. Run the app:
    `npm run dev`
 
 ## Deploy no Supabase (Storage)

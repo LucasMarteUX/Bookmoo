@@ -62,3 +62,23 @@ export async function getComicPageBase64(value: string): Promise<string> {
   if (isComicPageUrl(value)) return fetchImageAsBase64(value)
   return value
 }
+
+/** Reduz referências antes de enviá-las à função serverless. */
+export async function compressComicReference(base64: string, maxDimension = 768): Promise<string> {
+  const image = new Image()
+  image.src = `data:image/jpeg;base64,${base64}`
+  await new Promise<void>((resolve, reject) => {
+    image.onload = () => resolve()
+    image.onerror = () => reject(new Error('Failed to decode comic reference'))
+  })
+
+  const scale = Math.min(1, maxDimension / Math.max(image.naturalWidth, image.naturalHeight))
+  const canvas = document.createElement('canvas')
+  canvas.width = Math.max(1, Math.round(image.naturalWidth * scale))
+  canvas.height = Math.max(1, Math.round(image.naturalHeight * scale))
+  const context = canvas.getContext('2d')
+  if (!context) throw new Error('Failed to prepare comic reference')
+  context.drawImage(image, 0, 0, canvas.width, canvas.height)
+  const dataUrl = canvas.toDataURL('image/jpeg', 0.65)
+  return dataUrl.split(',')[1] ?? ''
+}

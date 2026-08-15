@@ -22,7 +22,7 @@ import { useEffectiveGeminiKey } from '@/hooks/useEffectiveGeminiKey'
 import { useBookSync } from '@/hooks/useBookSync'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
-import { uploadComicPage, getComicPageBase64, isComicPageUrl } from '@/lib/comicStorage'
+import { uploadComicPage, getComicPageBase64, compressComicReference, isComicPageUrl } from '@/lib/comicStorage'
 import { useLanguage } from '@/store/useLanguage'
 import { useTranslations, getGeneratingComicMessage } from '@/lib/i18n'
 
@@ -424,7 +424,9 @@ export function Reader({ book }: ReaderProps) {
       const refsToConvert: string[] = []
       if (firstPageImage) refsToConvert.push(firstPageImage)
       if (prevPageImage && prevPageImage !== firstPageImage) refsToConvert.push(prevPageImage)
-      const referenceImages = await Promise.all(refsToConvert.map((v) => getComicPageBase64(v)))
+      const referenceImages = await Promise.all(
+        refsToConvert.map(async (value) => compressComicReference(await getComicPageBase64(value)))
+      )
 
       const comicImage = await generateComicPage(
         {
