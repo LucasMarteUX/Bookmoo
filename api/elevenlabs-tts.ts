@@ -21,11 +21,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const apiKey = process.env.ELEVENLABS_API_KEY || process.env.VITE_ELEVENLABS_API_KEY
   const text = req.body?.text?.trim()
   const voiceId = req.body?.voiceId?.trim() || 'jfIS2w2yJi0grJZPyEsk'
+  const fallbackVoiceId = 'JBFqnCBsd6RMkjVDRZzb'
 
   if (!apiKey) return res.status(500).json({ error: 'ELEVENLABS_API_KEY is not configured' })
   if (!text) return res.status(400).json({ error: 'Text is required' })
 
-  const elevenResponse = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+  const requestVoice = (requestedVoiceId: string) => fetch(`https://api.elevenlabs.io/v1/text-to-speech/${requestedVoiceId}`, {
     method: 'POST',
     headers: {
       Accept: 'audio/mpeg',
@@ -38,6 +39,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       output_format: 'mp3_44100_128'
     })
   })
+  let elevenResponse = await requestVoice(voiceId)
+  if (elevenResponse.status === 402 && voiceId !== fallbackVoiceId) {
+    elevenResponse = await requestVoice(fallbackVoiceId)
+  }
 
   if (!elevenResponse.ok) {
     const details = await elevenResponse.text()
