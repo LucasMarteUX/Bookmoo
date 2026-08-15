@@ -1,5 +1,6 @@
 import { GoogleGenAI, Type, Modality } from "@google/genai"
 import type { ComicStyleDoc, ComicCharacter } from "@/store/useBookStore"
+import { GEMINI_MODELS } from "@/lib/geminiConfig"
 
 let clientInstance: GoogleGenAI | null = null
 
@@ -240,7 +241,7 @@ VISUAL IDENTITY:
     parts.push({ text: prompt })
 
     const response = await ai.models.generateContent({
-      model: 'gemini-3.1-flash-image-preview',
+      model: GEMINI_MODELS.comicImage,
       contents: { parts },
       config: {
         imageConfig: {

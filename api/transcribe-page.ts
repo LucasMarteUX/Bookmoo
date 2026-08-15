@@ -1,4 +1,5 @@
 import { GoogleGenAI } from '@google/genai'
+import { GEMINI_MODELS } from '../src/lib/geminiConfig'
 
 type VercelRequest = {
   method?: string
@@ -30,7 +31,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const [, mimeType, data] = match
   const ai = new GoogleGenAI({ apiKey })
   const response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash',
+    model: GEMINI_MODELS.transcription,
     contents: [{
       role: 'user',
       parts: [
