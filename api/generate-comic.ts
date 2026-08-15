@@ -1,6 +1,6 @@
 import OpenAI, { toFile } from 'openai'
 
-const COMIC_IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL || 'gpt-image-1'
+const COMIC_IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL || 'gpt-image-2'
 
 type VercelRequest = {
   method?: string
@@ -83,7 +83,10 @@ TEXT FIDELITY:
 
 QUALITY:
 - Render the image at high resolution with sharp, crisp details.
-- All text inside speech bubbles and caption boxes MUST be legible and easy to read.${languageInstruction}`
+- All text inside speech bubbles and caption boxes MUST be legible and easy to read.
+- Use large, clean comic lettering with strong contrast and generous spacing.
+- Never use decorative, distorted, pseudo-text, or unreadable lettering.
+- If the supplied text is long, use fewer words per bubble and distribute the exact supplied sentences across more panels; do not invent, alter, or misspell any words.${languageInstruction}`
 
   const refs = body.referenceImages ?? []
   if (refs.length >= 2) {
