@@ -22,7 +22,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const text = req.body?.text?.trim()
   const voiceId = req.body?.voiceId?.trim() || 'jfIS2w2yJi0grJZPyEsk'
   const fallbackVoiceId = 'JBFqnCBsd6RMkjVDRZzb'
-  const speed = Math.min(1.5, Math.max(0.75, Number(req.body?.speed) || 1))
+  const speed = Math.min(1.2, Math.max(0.7, Number(req.body?.speed) || 1))
 
   if (!apiKey) return res.status(500).json({ error: 'ELEVENLABS_API_KEY is not configured' })
   if (!text) return res.status(400).json({ error: 'Text is required' })

@@ -11,6 +11,7 @@ export async function generateElevenLabsAudio(
   signal?: AbortSignal
 ): Promise<PlaybackResult | null> {
   if (!text.trim()) return null
+  const apiSpeed = Math.min(1.2, Math.max(0.7, speed))
   const localApiKey = import.meta.env.DEV
     ? (import.meta.env.VITE_ELEVENLABS_API_KEY as string | undefined)
     : undefined
@@ -26,7 +27,7 @@ export async function generateElevenLabsAudio(
       },
       body: JSON.stringify(
         localApiKey
-          ? { text: text.trim(), model_id: 'eleven_multilingual_v2', output_format: 'mp3_44100_128', voice_settings: { speed } }
+          ? { text: text.trim(), model_id: 'eleven_multilingual_v2', output_format: 'mp3_44100_128', voice_settings: { speed: apiSpeed } }
           : { text: text.trim(), voiceId: requestedVoiceId, speed }
       ),
       signal
@@ -48,6 +49,7 @@ export async function generateElevenLabsAudio(
     return null
   }
   const audio = new Audio(audioUrl)
+  audio.playbackRate = speed
   let finished = false
   let resolveEnded: () => void = () => {}
   const whenEnded = new Promise<void>((resolve) => {
