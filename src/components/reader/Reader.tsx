@@ -8,6 +8,7 @@ import { ChevronLeft, ChevronRight, MousePointer2, Type, Pin, PinOff, Pencil, Tr
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { playBase64Audio } from '@/lib/audio'
+import { generateElevenLabsAudio } from '@/lib/elevenlabs'
 import {
   generateComicPage,
   generateAudio,
@@ -58,6 +59,8 @@ export function Reader({ book }: ReaderProps) {
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null)
   const geminiPlaybackStopRef = useRef<(() => void) | null>(null)
   const geminiPlaybackCancelledRef = useRef(false)
+  const elevenPlaybackStopRef = useRef<(() => void) | null>(null)
+  const elevenPlaybackCancelledRef = useRef(false)
   const browserPlaybackCancelledRef = useRef(false)
   const autoPlayNextPageRef = useRef(false)
   const togglePlaybackRef = useRef<() => void>(() => {})
@@ -484,14 +487,19 @@ export function Reader({ book }: ReaderProps) {
   }, [])
 
   const togglePlayback = () => {
-    // Só usa Gemini se o usuário escolheu e há chave; senão sempre browser (voz feminina).
-    const useGemini = ttsProvider === 'gemini' && !!effectiveGeminiKey
+    // APIs de voz têm prioridade; browser é fallback quando a chave não está configurada.
+    const activeTtsProvider = ttsProvider === 'browser' ? 'elevenlabs' : ttsProvider
+    const useGemini = activeTtsProvider === 'gemini' && !!effectiveGeminiKey
+    const useElevenLabs = activeTtsProvider === 'elevenlabs'
 
     // Ao iniciar qualquer reprodução, cancela a outra fonte para não ter duas vozes ao mesmo tempo.
     const cancelAllPlayback = () => {
       geminiPlaybackCancelledRef.current = true
       geminiPlaybackStopRef.current?.()
       geminiPlaybackStopRef.current = null
+      elevenPlaybackCancelledRef.current = true
+      elevenPlaybackStopRef.current?.()
+      elevenPlaybackStopRef.current = null
       setIsLoadingGeminiTts(false)
       if (synthRef.current) {
         synthRef.current.cancel()
@@ -500,7 +508,7 @@ export function Reader({ book }: ReaderProps) {
     }
 
     if (isPlaying || isPaused) {
-      if (useGemini) {
+      if (useGemini || useElevenLabs) {
         cancelAllPlayback()
         setIsPlaying(false)
         setIsPaused(false)
@@ -521,6 +529,7 @@ export function Reader({ book }: ReaderProps) {
     cancelAllPlayback()
     browserPlaybackCancelledRef.current = false
     geminiPlaybackCancelledRef.current = false
+    elevenPlaybackCancelledRef.current = false
 
     if (useGemini) {
       // Gemini TTS: chunk text, generate and play in sequence
@@ -562,6 +571,33 @@ export function Reader({ book }: ReaderProps) {
         setIsPaused(false)
       }
       runGeminiTts()
+      return
+    }
+
+    if (useElevenLabs) {
+      const runElevenLabsTts = async () => {
+        const raw = (currentContent || '').replace(/\s+/g, ' ').trim()
+        if (!raw) return
+        const chunks = raw.split(/(?<=[.!?])\s+/).map((s) => s.trim()).filter(Boolean)
+        setIsPlaying(true)
+        setIsLoadingGeminiTts(true)
+        for (const chunk of chunks) {
+          if (elevenPlaybackCancelledRef.current) break
+          const result = await generateElevenLabsAudio(chunk)
+          if (!result || elevenPlaybackCancelledRef.current) break
+          elevenPlaybackStopRef.current = result.stop
+          if (result.whenEnded) await result.whenEnded
+        }
+        elevenPlaybackStopRef.current = null
+        setIsLoadingGeminiTts(false)
+        setIsPlaying(false)
+        setIsPaused(false)
+      }
+      runElevenLabsTts().catch((error) => {
+        console.error('ElevenLabs TTS failed:', error)
+        setIsLoadingGeminiTts(false)
+        setIsPlaying(false)
+      })
       return
     }
 
@@ -774,7 +810,7 @@ export function Reader({ book }: ReaderProps) {
             if (!vocab) return null
             return (
               <div 
-                className="post-it-card fixed z-50 border shadow-xl rounded-xl p-4 w-80 transform -translate-x-1/2 transition-opacity"
+                className="post-it-card fixed z-50 max-h-[min(70vh,42rem)] w-[min(90vw,42rem)] overflow-y-auto border shadow-xl rounded-xl p-4 transform -translate-x-1/2 transition-opacity"
                 style={{ left: hoverPos.x, top: hoverPos.y, backgroundColor: 'var(--theme-postit-bg)', borderColor: 'var(--theme-postit-border)', color: 'var(--theme-postit-text)' }}
                 onMouseEnter={() => {
                   if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current)
@@ -815,7 +851,32 @@ export function Reader({ book }: ReaderProps) {
                       </ul>
                     </div>
                   )}
-                  {!vocab.explanation && (!vocab.examples || vocab.examples.length === 0) && (
+                  {vocab.grammarExamples && vocab.grammarExamples.length > 0 && (
+                    <div className="space-y-2 border-t pt-2" style={{ borderColor: 'var(--theme-postit-border)' }}>
+                      <span className="font-semibold text-[10px] uppercase tracking-wider" style={{ color: 'var(--theme-text-secondary)' }}>Formas de uso</span>
+                      {vocab.grammarExamples.map((example) => (
+                        <div key={example.form} className="rounded-lg p-2" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
+                          <span className="text-[10px] font-bold uppercase" style={{ color: 'var(--theme-accent)' }}>
+                            {example.form === 'affirmative' ? 'Afirmativa' : example.form === 'negative' ? 'Negativa' : 'Interrogativa'}
+                          </span>
+                          <p className="mt-1 text-xs font-medium">{example.english}</p>
+                          <p className="text-[11px] opacity-75">{example.portuguese}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {vocab.usageNote && (
+                    <p className="border-t pt-2 text-xs leading-relaxed" style={{ borderColor: 'var(--theme-postit-border)' }}>
+                      <strong>Nota: </strong>{vocab.usageNote}
+                    </p>
+                  )}
+                  {vocab.variantStory && (
+                    <div className="border-t pt-2" style={{ borderColor: 'var(--theme-postit-border)' }}>
+                      <span className="font-semibold text-[10px] uppercase tracking-wider" style={{ color: 'var(--theme-text-secondary)' }}>História paralela</span>
+                      <p className="mt-1 whitespace-pre-wrap text-xs leading-relaxed">{vocab.variantStory}</p>
+                    </div>
+                  )}
+                  {!vocab.explanation && (!vocab.examples || vocab.examples.length === 0) && (!vocab.grammarExamples || vocab.grammarExamples.length === 0) && !vocab.variantStory && (
                     <p className="text-xs italic" style={{ color: 'var(--theme-text-secondary)' }}>No explanation added. Click the edit icon to add one.</p>
                   )}
                 </div>
@@ -870,7 +931,32 @@ export function Reader({ book }: ReaderProps) {
                         </ul>
                       </div>
                     )}
-                    {!vocab.explanation && (!vocab.examples || vocab.examples.length === 0) && (
+                    {vocab.grammarExamples && vocab.grammarExamples.length > 0 && (
+                      <div className="space-y-2 border-t pt-2" style={{ borderColor: 'var(--theme-postit-border)' }}>
+                        <span className="font-semibold text-[10px] uppercase tracking-wider" style={{ color: 'var(--theme-text-secondary)' }}>Formas de uso</span>
+                        {vocab.grammarExamples.map((example) => (
+                          <div key={example.form} className="rounded-lg p-2" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
+                            <span className="text-[10px] font-bold uppercase" style={{ color: 'var(--theme-accent)' }}>
+                              {example.form === 'affirmative' ? 'Afirmativa' : example.form === 'negative' ? 'Negativa' : 'Interrogativa'}
+                            </span>
+                            <p className="mt-1 text-xs font-medium">{example.english}</p>
+                            <p className="text-[11px] opacity-75">{example.portuguese}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {vocab.usageNote && (
+                      <p className="border-t pt-2 text-xs leading-relaxed" style={{ borderColor: 'var(--theme-postit-border)' }}>
+                        <strong>Nota: </strong>{vocab.usageNote}
+                      </p>
+                    )}
+                    {vocab.variantStory && (
+                      <div className="border-t pt-2" style={{ borderColor: 'var(--theme-postit-border)' }}>
+                        <span className="font-semibold text-[10px] uppercase tracking-wider" style={{ color: 'var(--theme-text-secondary)' }}>História paralela</span>
+                        <p className="mt-1 whitespace-pre-wrap text-xs leading-relaxed">{vocab.variantStory}</p>
+                      </div>
+                    )}
+                    {!vocab.explanation && (!vocab.examples || vocab.examples.length === 0) && (!vocab.grammarExamples || vocab.grammarExamples.length === 0) && !vocab.variantStory && (
                       <p className="text-xs italic" style={{ color: 'var(--theme-text-secondary)' }}>No explanation added. Click the edit icon to add one.</p>
                     )}
                   </div>

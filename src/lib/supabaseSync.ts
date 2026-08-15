@@ -201,7 +201,7 @@ export async function fetchReaderSettings(supabase: SupabaseClient, userId: stri
   playbackRate: number
   voiceGender: 'female' | 'male'
   geminiApiKey: string | null
-  ttsProvider: 'browser' | 'gemini'
+  ttsProvider: 'browser' | 'gemini' | 'elevenlabs'
 } | null> {
   const { data, error } = await supabase.from('reader_settings').select('*').eq('user_id', userId).single()
   if (error || !data) return null
@@ -221,6 +221,6 @@ export async function fetchReaderSettings(supabase: SupabaseClient, userId: stri
     })(),
     voiceGender: (data.voice_gender as 'female' | 'male') ?? 'female',
     geminiApiKey: data.gemini_api_key ?? null,
-    ttsProvider: (data.tts_provider as 'browser' | 'gemini') ?? 'browser'
+    ttsProvider: (data.tts_provider as 'browser' | 'gemini' | 'elevenlabs') ?? 'elevenlabs'
   }
 }

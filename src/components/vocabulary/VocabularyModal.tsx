@@ -38,7 +38,8 @@ export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId 
   const [usageNote, setUsageNote] = useState('')
   const [variantStory, setVariantStory] = useState('')
   const [audioData, setAudioData] = useState<string | null>(null)
-  const [isGenerating, setIsGenerating] = useState(false)
+  const [isGeneratingExplanation, setIsGeneratingExplanation] = useState(false)
+  const [isGeneratingStory, setIsGeneratingStory] = useState(false)
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false)
   const [isAudioPlaying, setIsAudioPlaying] = useState(false)
   
@@ -80,7 +81,7 @@ export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId 
   }, [isOpen, vocabId, initialText])
 
   const handleExplainWithAI = async () => {
-    setIsGenerating(true)
+    setIsGeneratingExplanation(true)
     try {
       const result = await generateExplanation(text, 'B1', effectiveGeminiKey, bookLanguageCode)
       setExplanation(`${result.definition}\n\nPronunciation: ${result.ipa}`)
@@ -90,12 +91,12 @@ export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId 
     } catch (error) {
       console.error(error)
     } finally {
-      setIsGenerating(false)
+      setIsGeneratingExplanation(false)
     }
   }
 
   const handleGenerateVariantStory = async () => {
-    setIsGenerating(true)
+    setIsGeneratingStory(true)
     try {
       const result = await generateVariantStory(text, bookLanguageCode, effectiveGeminiKey)
       if (result) setVariantStory(result)
@@ -103,7 +104,7 @@ export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId 
     } catch (error) {
       console.error(error)
     } finally {
-      setIsGenerating(false)
+      setIsGeneratingStory(false)
     }
   }
 
@@ -290,10 +291,10 @@ export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId 
                 className="h-6 text-xs hover:bg-[var(--theme-accent)]/10"
                 style={{ color: 'var(--theme-accent)' }}
                 onClick={handleExplainWithAI}
-                disabled={isGenerating || !text.trim()}
+                disabled={isGeneratingExplanation || !text.trim()}
               >
                 <Sparkles className="w-3 h-3 mr-1" />
-                {isGenerating ? 'Gerando...' : 'Explicar com IA'}
+                {isGeneratingExplanation ? 'Gerando...' : 'Explicar com IA'}
               </Button>
             </div>
             {explanation.startsWith(API_KEY_REQUIRED_MESSAGE) && (
@@ -343,8 +344,8 @@ export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId 
                   <Label className="flex items-center gap-2"><WandSparkles className="h-4 w-4" style={{ color: 'var(--theme-accent)' }} /> Variante de história</Label>
                   <p className="mt-1 text-xs" style={{ color: 'var(--theme-text-secondary)' }}>Uma situação nova para fixar o termo</p>
                 </div>
-                <Button variant="ghost" size="sm" className="h-8 text-xs" style={{ color: 'var(--theme-accent)' }} onClick={handleGenerateVariantStory} disabled={isGenerating || !text.trim()}>
-                  <Sparkles className="mr-1 h-3 w-3" />{isGenerating ? 'Criando...' : 'Criar história'}
+                <Button variant="ghost" size="sm" className="h-8 text-xs" style={{ color: 'var(--theme-accent)' }} onClick={handleGenerateVariantStory} disabled={isGeneratingStory || !text.trim()}>
+                  <Sparkles className="mr-1 h-3 w-3" />{isGeneratingStory ? 'Criando...' : 'Criar história'}
                 </Button>
               </div>
               <Textarea value={variantStory} onChange={e => setVariantStory(e.target.value)} placeholder="Crie uma história curta com novos exemplos..." className="mt-3 min-h-[120px]" />

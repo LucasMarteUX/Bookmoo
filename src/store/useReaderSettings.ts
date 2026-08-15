@@ -16,8 +16,8 @@ interface ReaderSettingsState {
   bgTone: BgTone
   /** User's Gemini API key (non-admins only). Not persisted to localStorage; loaded from Supabase. */
   geminiApiKey: string | null
-  /** TTS for page reading: browser (SpeechSynthesis) or gemini (API, more natural). */
-  ttsProvider: 'browser' | 'gemini'
+  /** TTS for page reading: ElevenLabs, Gemini, or browser fallback. */
+  ttsProvider: 'browser' | 'gemini' | 'elevenlabs'
   setTheme: (theme: Theme) => void
   setFontSize: (size: number) => void
   setLineHeight: (height: number) => void
@@ -28,7 +28,7 @@ interface ReaderSettingsState {
   setFontFamily: (font: FontFamily) => void
   setBgTone: (tone: BgTone) => void
   setGeminiApiKey: (key: string | null) => void
-  setTtsProvider: (provider: 'browser' | 'gemini') => void
+  setTtsProvider: (provider: 'browser' | 'gemini' | 'elevenlabs') => void
 }
 
 export const useReaderSettings = create<ReaderSettingsState>()(
@@ -43,7 +43,7 @@ export const useReaderSettings = create<ReaderSettingsState>()(
       fontFamily: 'serif',
       bgTone: 'medium',
       geminiApiKey: null,
-      ttsProvider: 'browser',
+      ttsProvider: 'elevenlabs',
       setTheme: (theme) => set({ theme }),
       setFontSize: (fontSize) => set({ fontSize }),
       setLineHeight: (lineHeight) => set({ lineHeight }),
