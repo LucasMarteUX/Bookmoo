@@ -189,8 +189,12 @@ export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent
-        className="max-h-[92vh] max-w-5xl overflow-y-auto rounded-[2rem] p-4 sm:p-6"
-        style={{ cursor: isAudioPlaying ? 'pointer' : undefined }}
+        className="max-h-[92dvh] overflow-y-auto rounded-[2rem] p-4 sm:p-6 lg:p-8"
+        style={{
+          cursor: isAudioPlaying ? 'pointer' : undefined,
+          width: 'calc(100vw - 2rem)',
+          maxWidth: '64rem'
+        }}
       >
         <DialogHeader>
           <DialogTitle className="text-xl">{vocabId ? 'Editar vocabulário' : 'Adicionar vocabulário'}</DialogTitle>
@@ -199,8 +203,8 @@ export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId 
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 gap-6 pt-2 md:grid-cols-[minmax(220px,0.72fr)_minmax(0,1.28fr)]">
-          <div className="space-y-4">
+        <div className="grid grid-cols-1 gap-6 pt-2 md:grid-cols-[minmax(260px,0.8fr)_minmax(0,1.7fr)] lg:gap-8">
+          <div className="min-w-0 space-y-5">
             <div className="space-y-2">
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <Label className="shrink-0">Texto Selecionado</Label>
@@ -273,7 +277,7 @@ export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId 
           </div>
           </div>
 
-          <div className="space-y-4">
+          <div className="min-w-0 space-y-4">
             <div className="rounded-2xl p-4" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
