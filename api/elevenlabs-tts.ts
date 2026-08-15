@@ -1,5 +1,3 @@
-import { ELEVENLABS_CONFIG } from '../src/lib/elevenlabsConfig'
-
 type VercelRequest = {
   method?: string
   body?: { text?: string; voiceId?: string }
@@ -22,7 +20,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // already-configured Vercel variable without exposing it in the client bundle.
   const apiKey = process.env.ELEVENLABS_API_KEY || process.env.VITE_ELEVENLABS_API_KEY
   const text = req.body?.text?.trim()
-  const voiceId = req.body?.voiceId?.trim() || ELEVENLABS_CONFIG.voiceId
+  const voiceId = req.body?.voiceId?.trim() || 'jfIS2w2yJi0grJZPyEsk'
+  const modelId = 'eleven_v3'
+  const fallbackVoiceId = 'JBFqnCBsd6RMkjVDRZzb'
 
   if (!apiKey) return res.status(500).json({ error: 'ELEVENLABS_API_KEY is not configured' })
   if (!text) return res.status(400).json({ error: 'Text is required' })
@@ -36,15 +36,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     },
     body: JSON.stringify({
       text,
-      model_id: ELEVENLABS_CONFIG.modelId,
+      model_id: modelId,
       output_format: 'mp3_44100_128',
       voice_settings: { stability: 0.45, similarity_boost: 0.75, style: 0 }
     })
   })
   let elevenResponse = await requestVoice(voiceId)
-  if (elevenResponse.status === 402 && voiceId !== ELEVENLABS_CONFIG.fallbackVoiceId) {
+  if (elevenResponse.status === 402 && voiceId !== fallbackVoiceId) {
     console.warn('[TTS] primary voice unavailable; trying configured fallback voice')
-    elevenResponse = await requestVoice(ELEVENLABS_CONFIG.fallbackVoiceId)
+    elevenResponse = await requestVoice(fallbackVoiceId)
   }
 
   if (!elevenResponse.ok) {
