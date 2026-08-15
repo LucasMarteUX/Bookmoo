@@ -47,8 +47,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!error && data?.session) {
       setSession(data.session)
       setUser(data.session.user)
+      setLoading(false)
     }
-    return { error }
+    return { error: error ? new Error(error.message) : null }
   }
 
   const signUp = async (email: string, password: string) => {
@@ -57,12 +58,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!error && data?.session) {
       setSession(data.session)
       setUser(data.session.user)
+      setLoading(false)
     }
-    return { error }
+    return { error: error ? new Error(error.message) : null }
   }
 
   const signOut = async () => {
     if (supabase) await supabase.auth.signOut()
+    setSession(null)
+    setUser(null)
   }
 
   const isAdmin = !!user && ADMIN_EMAILS.includes(user.email ?? '')

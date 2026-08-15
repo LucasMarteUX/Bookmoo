@@ -26,6 +26,9 @@ export function Login() {
   const getLoginErrorMessage = (err: Error): string => {
     const msg = (err?.message ?? '').toLowerCase()
     const code = (err as { code?: string })?.code
+    if (msg.includes('failed to fetch') || msg.includes('network') || msg.includes('fetch failed')) {
+      return 'Não foi possível conectar ao Supabase. Verifique se o projeto ainda existe e se VITE_SUPABASE_URL no .env.local está correto.'
+    }
     if (code === 'invalid_credentials' || msg.includes('invalid login credentials') || msg.includes('invalid_credentials')) return t('loginErrorInvalidCredentials')
     if (code === 'email_not_confirmed' || msg.includes('email not confirmed') || msg.includes('email_not_confirmed')) return t('loginErrorEmailNotConfirmed')
     return err?.message || t('loginErrorGeneric')
@@ -42,7 +45,7 @@ export function Login() {
       setError(getLoginErrorMessage(error))
       return
     }
-    navigate('/', { replace: true })
+    // Não navegar aqui: setSession é assíncrono; o useEffect acima redireciona quando session existir.
   }
 
   return (

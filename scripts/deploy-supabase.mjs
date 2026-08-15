@@ -2,7 +2,7 @@
 /**
  * Deploy ReadLingo build (dist/) to Supabase Storage bucket "web".
  * Requires in .env.local:
- *   SUPABASE_URL=https://ywnmeacpvmcuhzhshpwz.supabase.co
+ *   SUPABASE_URL=https://SEU-PROJETO.supabase.co
  *   SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
  *
  * Run: node scripts/deploy-supabase.mjs

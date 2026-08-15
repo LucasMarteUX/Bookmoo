@@ -21,13 +21,15 @@ View your app in AI Studio: https://ai.studio/apps/6d14231d-4951-4d80-bf95-7ba99
 
 ## Deploy no Supabase (Storage)
 
-1. No [Supabase Dashboard](https://supabase.com/dashboard/project/ywnmeacpvmcuhzhshpwz/settings/api), em **Project Settings → API**, copie a **URL** do projeto e a chave **service_role** (secret).
-2. No `.env.local`, preencha:
-   - `SUPABASE_URL` (ex.: `https://ywnmeacpvmcuhzhshpwz.supabase.co`)
+1. Crie ou abra um projeto no [Supabase Dashboard](https://supabase.com/dashboard). Em **Project Settings → API**, copie a **URL** do projeto e a chave **service_role** (secret).
+2. No `.env.local` (nunca commite este arquivo), preencha:
+   - `SUPABASE_URL` (ex.: `https://SEU-PROJETO.supabase.co`)
    - `SUPABASE_SERVICE_ROLE_KEY` com a chave service_role.
-3. Gere o build e faça o deploy:
+   - `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` (mesma URL + chave anon/public) para login e sync no app.
+3. Aplique o schema descrito em `docs/SUPABASE_SCHEMA.md` (tabelas, RLS e buckets).
+4. Gere o build e faça o deploy:
    ```bash
    npm run build
    npm run deploy:supabase
    ```
-4. Abra o site: `https://ywnmeacpvmcuhzhshpwz.supabase.co/storage/v1/object/public/web/index.html`
+5. Abra o site: `https://SEU-PROJETO.supabase.co/storage/v1/object/public/web/index.html`

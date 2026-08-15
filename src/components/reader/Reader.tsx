@@ -1511,7 +1511,7 @@ function ComicReader({
   return (
     <div
       ref={rootRef}
-      className="fixed inset-0 z-50 flex flex-col bg-black"
+      className="fixed inset-0 z-50 flex h-[100dvh] max-h-[100dvh] min-h-0 flex-col overflow-hidden bg-black"
       onMouseMove={() => {
         if (!uiVisible) showUiTemporarily()
       }}
@@ -1546,7 +1546,7 @@ function ComicReader({
 
       {/* Content layer */}
       <div
-        className="flex-1 flex items-center justify-center overflow-hidden touch-pan-y"
+        className="min-h-0 flex-1 flex items-center justify-center overflow-hidden touch-pan-y"
         onClick={e => handleTapOrClick(e.clientX, e.clientY)}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
@@ -1561,16 +1561,16 @@ function ComicReader({
             transition: isPanning || zoom > 1 ? 'none' : 'transform 0.25s ease-out'
           }}
         >
-          <div className="flex items-center justify-center w-full h-full">
+          <div className="flex h-full min-h-0 w-full items-center justify-center">
             {currentImage && !isGeneratingComic ? (
               <div
-                className="relative group inline-block max-h-full"
+                className="relative group inline-block max-h-full max-w-full"
                 onClick={e => e.stopPropagation()}
               >
                 <img
                   src={isComicPageUrl(currentImage) ? currentImage : `data:image/jpeg;base64,${currentImage}`}
                   alt={`${t('comicPageAlt')} ${currentPage + 1}`}
-                  className="max-h-full w-auto max-w-full object-contain select-none block"
+                  className="block max-h-[calc(100dvh-10rem)] w-auto max-w-full select-none object-contain md:max-h-[calc(100dvh-11rem)]"
                   referrerPolicy="no-referrer"
                   draggable={false}
                 />
