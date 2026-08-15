@@ -6,7 +6,9 @@ export const ELEVENLABS_VOICE_ID =
 
 export async function generateElevenLabsAudio(
   text: string,
-  voiceId = ELEVENLABS_VOICE_ID
+  voiceId = ELEVENLABS_VOICE_ID,
+  speed = 1,
+  signal?: AbortSignal
 ): Promise<PlaybackResult | null> {
   if (!text.trim()) return null
   const localApiKey = import.meta.env.DEV
@@ -24,9 +26,10 @@ export async function generateElevenLabsAudio(
       },
       body: JSON.stringify(
         localApiKey
-          ? { text: text.trim(), model_id: 'eleven_multilingual_v2', output_format: 'mp3_44100_128' }
-          : { text: text.trim(), voiceId: requestedVoiceId }
-      )
+          ? { text: text.trim(), model_id: 'eleven_multilingual_v2', output_format: 'mp3_44100_128', voice_settings: { speed } }
+          : { text: text.trim(), voiceId: requestedVoiceId, speed }
+      ),
+      signal
     }
   )
   let response = await requestAudio(voiceId)
@@ -38,21 +41,40 @@ export async function generateElevenLabsAudio(
     throw new Error(`ElevenLabs HTTP ${response.status}`)
   }
 
-  const audio = new Audio(URL.createObjectURL(await response.blob()))
+  if (signal?.aborted) return null
+  const audioUrl = URL.createObjectURL(await response.blob())
+  if (signal?.aborted) {
+    URL.revokeObjectURL(audioUrl)
+    return null
+  }
+  const audio = new Audio(audioUrl)
+  let finished = false
+  let resolveEnded: () => void = () => {}
   const whenEnded = new Promise<void>((resolve) => {
-    audio.onended = () => {
-      URL.revokeObjectURL(audio.src)
-      resolve()
-    }
+    resolveEnded = resolve
   })
-  await audio.play()
+  const finish = () => {
+    if (finished) return
+    finished = true
+    URL.revokeObjectURL(audioUrl)
+    resolveEnded()
+  }
+  audio.onended = finish
+  try {
+    await audio.play()
+  } catch (error) {
+    finish()
+    throw error
+  }
 
   return {
     stop: () => {
       audio.pause()
       audio.currentTime = 0
-      URL.revokeObjectURL(audio.src)
+      finish()
     },
+    pause: () => audio.pause(),
+    resume: () => { void audio.play() },
     whenEnded
   }
 }

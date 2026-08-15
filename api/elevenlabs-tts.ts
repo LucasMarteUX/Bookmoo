@@ -1,6 +1,6 @@
 type VercelRequest = {
   method?: string
-  body?: { text?: string; voiceId?: string }
+  body?: { text?: string; voiceId?: string; speed?: number }
 }
 
 type VercelResponse = {
@@ -22,6 +22,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const text = req.body?.text?.trim()
   const voiceId = req.body?.voiceId?.trim() || 'jfIS2w2yJi0grJZPyEsk'
   const fallbackVoiceId = 'JBFqnCBsd6RMkjVDRZzb'
+  const speed = Math.min(1.5, Math.max(0.75, Number(req.body?.speed) || 1))
 
   if (!apiKey) return res.status(500).json({ error: 'ELEVENLABS_API_KEY is not configured' })
   if (!text) return res.status(400).json({ error: 'Text is required' })
@@ -36,7 +37,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     body: JSON.stringify({
       text,
       model_id: 'eleven_multilingual_v2',
-      output_format: 'mp3_44100_128'
+      output_format: 'mp3_44100_128',
+      voice_settings: { speed }
     })
   })
   let elevenResponse = await requestVoice(voiceId)

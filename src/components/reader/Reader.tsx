@@ -7,7 +7,7 @@ import { VocabularyModal } from '../vocabulary/VocabularyModal'
 import { ChevronLeft, ChevronRight, MousePointer2, Type, Pin, PinOff, Pencil, Trash2, Play, Image as ImageIcon, Loader2, Pause, Settings, X, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { playBase64Audio } from '@/lib/audio'
+import { playBase64Audio, type PlaybackResult } from '@/lib/audio'
 import { generateElevenLabsAudio } from '@/lib/elevenlabs'
 import {
   generateComicPage,
@@ -27,6 +27,24 @@ import { useTranslations, getGeneratingComicMessage } from '@/lib/i18n'
 
 interface ReaderProps {
   book: Book
+}
+
+function buildSpeechQueue(text: string): string[] {
+  const paragraphs = text.split(/\n{2,}/).map((paragraph) => paragraph.replace(/\s+/g, ' ').trim()).filter(Boolean)
+  const queue: string[] = []
+  for (const paragraph of paragraphs) {
+    const sentences = paragraph.split(/(?<=[.!?])\s+/).filter(Boolean)
+    let buffer = ''
+    for (const sentence of sentences.length ? sentences : [paragraph]) {
+      if (buffer && buffer.length + sentence.length + 1 > 480) {
+        queue.push(buffer)
+        buffer = ''
+      }
+      buffer = buffer ? `${buffer} ${sentence}` : sentence
+    }
+    if (buffer) queue.push(buffer)
+  }
+  return queue
 }
 
 export function Reader({ book }: ReaderProps) {
@@ -61,6 +79,12 @@ export function Reader({ book }: ReaderProps) {
   const geminiPlaybackCancelledRef = useRef(false)
   const elevenPlaybackStopRef = useRef<(() => void) | null>(null)
   const elevenPlaybackCancelledRef = useRef(false)
+  const speechSessionRef = useRef<{
+    generation: number
+    controller: AbortController | null
+    currentAudio: PlaybackResult | null
+    speechQueue: string[]
+  }>({ generation: 0, controller: null, currentAudio: null, speechQueue: [] })
   const browserPlaybackCancelledRef = useRef(false)
   const autoPlayNextPageRef = useRef(false)
   const togglePlaybackRef = useRef<() => void>(() => {})
@@ -483,8 +507,19 @@ export function Reader({ book }: ReaderProps) {
       if (synthRef.current) {
         synthRef.current.cancel()
       }
+      cancelSpeechSession()
     }
   }, [])
+
+  const cancelSpeechSession = () => {
+    const session = speechSessionRef.current
+    session.generation += 1
+    session.controller?.abort()
+    session.currentAudio?.stop()
+    session.controller = null
+    session.currentAudio = null
+    session.speechQueue = []
+  }
 
   const togglePlayback = () => {
     // APIs de voz têm prioridade; browser é fallback quando a chave não está configurada.
@@ -500,6 +535,7 @@ export function Reader({ book }: ReaderProps) {
       elevenPlaybackCancelledRef.current = true
       elevenPlaybackStopRef.current?.()
       elevenPlaybackStopRef.current = null
+      cancelSpeechSession()
       setIsLoadingGeminiTts(false)
       if (synthRef.current) {
         synthRef.current.cancel()
@@ -508,7 +544,17 @@ export function Reader({ book }: ReaderProps) {
     }
 
     if (isPlaying || isPaused) {
-      if (useGemini || useElevenLabs) {
+      if (useElevenLabs && speechSessionRef.current.currentAudio) {
+        if (isPaused) {
+          speechSessionRef.current.currentAudio.resume?.()
+          setIsPlaying(true)
+          setIsPaused(false)
+        } else {
+          speechSessionRef.current.currentAudio.pause?.()
+          setIsPlaying(false)
+          setIsPaused(true)
+        }
+      } else if (useGemini || useElevenLabs) {
         cancelAllPlayback()
         setIsPlaying(false)
         setIsPaused(false)
@@ -530,6 +576,12 @@ export function Reader({ book }: ReaderProps) {
     browserPlaybackCancelledRef.current = false
     geminiPlaybackCancelledRef.current = false
     elevenPlaybackCancelledRef.current = false
+    const speechSession = speechSessionRef.current
+    speechSession.generation += 1
+    const speechGeneration = speechSession.generation
+    speechSession.controller = new AbortController()
+    speechSession.currentAudio = null
+    speechSession.speechQueue = []
 
     if (useGemini) {
       // Gemini TTS: chunk text, generate and play in sequence
@@ -578,22 +630,30 @@ export function Reader({ book }: ReaderProps) {
       const runElevenLabsTts = async () => {
         const raw = (currentContent || '').replace(/\s+/g, ' ').trim()
         if (!raw) return
-        const chunks = raw.split(/(?<=[.!?])\s+/).map((s) => s.trim()).filter(Boolean)
+        const chunks = buildSpeechQueue(raw)
+        speechSession.speechQueue = [...chunks]
         setIsPlaying(true)
         setIsLoadingGeminiTts(true)
-        for (const chunk of chunks) {
-          if (elevenPlaybackCancelledRef.current) break
-          const result = await generateElevenLabsAudio(chunk)
-          if (!result || elevenPlaybackCancelledRef.current) break
+        for (const chunk of speechSession.speechQueue) {
+          if (speechSession.generation !== speechGeneration || speechSession.controller?.signal.aborted) break
+          const result = await generateElevenLabsAudio(chunk, undefined, playbackRate, speechSession.controller?.signal)
+          if (!result || speechSession.generation !== speechGeneration || speechSession.controller?.signal.aborted) break
+          speechSession.currentAudio = result
           elevenPlaybackStopRef.current = result.stop
           if (result.whenEnded) await result.whenEnded
+          speechSession.currentAudio = null
+          speechSession.speechQueue.shift()
         }
+        if (speechSession.generation !== speechGeneration) return
+        speechSession.controller = null
+        speechSession.speechQueue = []
         elevenPlaybackStopRef.current = null
         setIsLoadingGeminiTts(false)
         setIsPlaying(false)
         setIsPaused(false)
       }
       runElevenLabsTts().catch((error) => {
+        if (speechSession.controller?.signal.aborted) return
         console.error('ElevenLabs TTS failed:', error)
         setIsLoadingGeminiTts(false)
         setIsPlaying(false)
@@ -773,6 +833,7 @@ export function Reader({ book }: ReaderProps) {
   }, [ttsHighlightWordIndices, currentContent])
 
   const stopPlayback = () => {
+    cancelSpeechSession()
     geminiPlaybackCancelledRef.current = true
     browserPlaybackCancelledRef.current = true
     geminiPlaybackStopRef.current?.()
@@ -790,11 +851,9 @@ export function Reader({ book }: ReaderProps) {
     setPlaybackRate(newRate)
     
     if (isPlaying || isPaused) {
-      if (synthRef.current) synthRef.current.cancel()
-      setIsPlaying(false)
-      setIsPaused(false)
+      stopPlayback()
       setTimeout(() => {
-        togglePlayback()
+        togglePlaybackRef.current?.()
       }, 50)
     }
   }
@@ -1180,7 +1239,7 @@ export function Reader({ book }: ReaderProps) {
               sideOffset={8}
             >
               <div className="flex flex-col gap-0.5">
-                {[0.3, 0.5, 0.8, 1.0].map((r) => {
+                {[0.75, 1.0, 1.25, 1.5].map((r) => {
                   const isSelected = Math.abs(playbackRate - r) < 0.01
                   return (
                     <button
@@ -1813,7 +1872,7 @@ function ComicReader({
               <button
                 type="button"
                 onClick={() => {
-                  const speeds = [0.3, 0.5, 0.8, 1.0] as const
+                  const speeds = [0.75, 1.0, 1.25, 1.5] as const
                   const idx = speeds.findIndex(s => Math.abs(s - playbackRate) < 0.01)
                   const next = speeds[(idx + 1) % speeds.length]
                   onChangeRate(next)
