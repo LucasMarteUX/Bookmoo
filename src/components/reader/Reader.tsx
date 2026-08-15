@@ -1595,7 +1595,7 @@ function ComicReader({
       touchStartRef.current = { x: touch.clientX, y: touch.clientY, time: Date.now() }
       isSwipingRef.current = false
     } else if (e.touches.length === 2) {
-      const [t1, t2] = Array.from(e.touches)
+      const [t1, t2] = Array.from(e.touches) as [Touch, Touch]
       const dx = t2.clientX - t1.clientX
       const dy = t2.clientY - t1.clientY
       const dist = Math.hypot(dx, dy)
@@ -1605,7 +1605,8 @@ function ComicReader({
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (e.touches.length === 2 && pinchRef.current) {
-      const [t1, t2] = Array.from(e.touches)
+      e.preventDefault()
+      const [t1, t2] = Array.from(e.touches) as [Touch, Touch]
       const dx = t2.clientX - t1.clientX
       const dy = t2.clientY - t1.clientY
       const dist = Math.hypot(dx, dy)
@@ -1708,7 +1709,8 @@ function ComicReader({
 
       {/* Content layer */}
       <div
-        className="min-h-0 flex-1 flex items-center justify-center overflow-hidden touch-pan-y"
+        className="min-h-0 flex-1 flex items-center justify-center overflow-hidden"
+        style={{ touchAction: 'none', overscrollBehavior: 'contain' }}
         onClick={e => handleTapOrClick(e.clientX, e.clientY)}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
@@ -1716,26 +1718,37 @@ function ComicReader({
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        <div
-          className="relative flex items-center justify-center w-full h-full"
-          style={{
-            transform: `translate3d(${offsetX}px, ${offsetY}px, 0) scale(${zoom})`,
-            transition: isPanning || zoom > 1 ? 'none' : 'transform 0.25s ease-out'
-          }}
-        >
-          <div className="flex h-full min-h-0 w-full items-center justify-center">
+        <div className="flex h-full min-h-0 w-full items-center justify-center">
             {currentImage && !isGeneratingComic ? (
               <div
-                className="relative group inline-block max-h-full max-w-full"
+                className="group relative flex max-h-full max-w-full items-center justify-center"
                 onClick={e => e.stopPropagation()}
               >
-                <img
-                  src={isComicPageUrl(currentImage) ? currentImage : `data:image/jpeg;base64,${currentImage}`}
-                  alt={`${t('comicPageAlt')} ${currentPage + 1}`}
-                  className="block max-h-[calc(100dvh-10rem)] w-auto max-w-full select-none object-contain md:max-h-[calc(100dvh-11rem)]"
-                  referrerPolicy="no-referrer"
-                  draggable={false}
-                />
+                <div
+                  className="relative flex max-h-full max-w-full items-center justify-center will-change-transform"
+                  style={{
+                    transform: `translate3d(${offsetX}px, ${offsetY}px, 0) scale(${zoom})`,
+                    transition: isPanning || zoom > 1 ? 'none' : 'transform 0.25s ease-out'
+                  }}
+                  onDoubleClick={(e) => {
+                    e.stopPropagation()
+                    if (zoom > 1) {
+                      setZoom(1)
+                      setOffsetX(0)
+                      setOffsetY(0)
+                    } else {
+                      setZoom(2)
+                    }
+                  }}
+                >
+                  <img
+                    src={isComicPageUrl(currentImage) ? currentImage : `data:image/jpeg;base64,${currentImage}`}
+                    alt={`${t('comicPageAlt')} ${currentPage + 1}`}
+                    className="block max-h-[calc(100dvh-10rem)] w-auto max-w-full select-none object-contain md:max-h-[calc(100dvh-11rem)]"
+                    referrerPolicy="no-referrer"
+                    draggable={false}
+                  />
+                </div>
                 <div className="absolute top-2 right-2 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none group-hover:pointer-events-auto">
                   <button
                     type="button"
@@ -1837,7 +1850,6 @@ function ComicReader({
             >
               <ChevronRight className="w-4 h-4 text-white" />
             </button>
-          </div>
         </div>
       </div>
 

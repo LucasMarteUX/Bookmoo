@@ -118,9 +118,6 @@ export async function generateComicPage(
   legacyReferenceImage?: string,
   apiKey?: string | null
 ): Promise<string | null> {
-  const ai = getClient(apiKey)
-  if (!ai) return null
-
   const pageText = typeof options === 'string' ? options : options.pageText
   const bookTitle = typeof options === 'string' ? '' : options.bookTitle
   const bookContext = typeof options === 'string' ? (legacyBookContext ?? '') : options.bookContext
@@ -135,6 +132,36 @@ export async function generateComicPage(
     : ''
 
   const refs = referenceImages && referenceImages.length > 0 ? referenceImages : (referenceImage ? [referenceImage] : [])
+
+  // In the published app, keep the Gemini key on the server. Local Vite
+  // development keeps the direct path so the existing .env.local workflow
+  // remains useful.
+  const isPublishedBrowser = typeof window !== 'undefined'
+    && !['localhost', '127.0.0.1'].includes(window.location.hostname)
+  if (isPublishedBrowser) {
+    const response = await fetch('/api/generate-comic', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        pageText,
+        bookTitle,
+        bookContext,
+        referenceImages: refs,
+        comicStyleDoc,
+        comicCharacters,
+        searchContext,
+        languageCode
+      })
+    })
+    const payload = await response.json().catch(() => ({}))
+    if (!response.ok) {
+      throw new Error(payload.error || `Gemini request failed (${response.status})`)
+    }
+    return payload.image || null
+  }
+
+  const ai = getClient(apiKey)
+  if (!ai) return null
 
   try {
     const contextExcerpt = bookContext.trim().substring(0, 2000)
