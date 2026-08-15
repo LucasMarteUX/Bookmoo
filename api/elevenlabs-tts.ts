@@ -16,7 +16,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  const apiKey = process.env.ELEVENLABS_API_KEY
+  // Keep the canonical name server-side; the VITE_ fallback supports an
+  // already-configured Vercel variable without exposing it in the client bundle.
+  const apiKey = process.env.ELEVENLABS_API_KEY || process.env.VITE_ELEVENLABS_API_KEY
   const text = req.body?.text?.trim()
   const voiceId = req.body?.voiceId?.trim() || 'jfIS2w2yJi0grJZPyEsk'
 

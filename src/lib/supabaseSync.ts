@@ -203,7 +203,7 @@ export async function fetchReaderSettings(supabase: SupabaseClient, userId: stri
   geminiApiKey: string | null
   ttsProvider: 'browser' | 'gemini' | 'elevenlabs'
 } | null> {
-  const { data, error } = await supabase.from('reader_settings').select('*').eq('user_id', userId).single()
+  const { data, error } = await supabase.from('reader_settings').select('*').eq('user_id', userId).maybeSingle()
   if (error || !data) return null
   return {
     theme: (data.theme as 'light' | 'sepia' | 'dark') ?? 'dark',
