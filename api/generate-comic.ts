@@ -21,6 +21,13 @@ type VercelResponse = {
   json: (body: unknown) => void
 }
 
+function isQuotaError(error: unknown): boolean {
+  return typeof error === 'object'
+    && error !== null
+    && 'status' in error
+    && (error as { status?: number }).status === 429
+}
+
 function buildPrompt(body: NonNullable<VercelRequest['body']>) {
   const pageText = body.pageText?.trim() ?? ''
   const bookContext = body.bookContext?.trim() ?? ''
@@ -109,7 +116,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const response = await ai.models.generateContent({
       model: COMIC_IMAGE_MODEL,
       contents: { parts },
-      config: { imageConfig: { aspectRatio: '3:4', imageSize: '1K' } }
+      config: {
+        responseModalities: ['TEXT', 'IMAGE'],
+        imageConfig: { aspectRatio: '3:4', imageSize: '1K' }
+      }
     })
 
     const image = response.candidates?.[0]?.content?.parts?.find((part) => part.inlineData)?.inlineData?.data
@@ -117,6 +127,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({ image })
   } catch (error) {
     console.error('Gemini comic generation failed:', error)
-    return res.status(502).json({ error: error instanceof Error ? error.message : 'Gemini image generation failed' })
+    const message = error instanceof Error ? error.message : 'Gemini image generation failed'
+    return res.status(isQuotaError(error) ? 429 : 502).json({ error: message })
   }
 }
