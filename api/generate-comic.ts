@@ -1,5 +1,6 @@
 import { GoogleGenAI } from '@google/genai'
-import { GEMINI_MODELS } from '../src/lib/geminiConfig'
+
+const COMIC_IMAGE_MODEL = 'gemini-3.1-flash-image'
 
 type VercelRequest = {
   method?: string
@@ -106,7 +107,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     parts.push({ text: prompt })
 
     const response = await ai.models.generateContent({
-      model: GEMINI_MODELS.comicImage,
+      model: COMIC_IMAGE_MODEL,
       contents: { parts },
       config: { imageConfig: { aspectRatio: '3:4', imageSize: '1K' } }
     })
