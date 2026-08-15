@@ -102,7 +102,7 @@ export function vocabularyToRow(v: Vocabulary, userId: string) {
     status: v.status,
     explanation: v.explanation,
     examples: v.examples ?? [],
-    grammar_examples: v.grammarExamples ?? null,
+    grammar_examples: v.grammarExamples ?? [],
     usage_note: v.usageNote ?? null,
     variant_story: v.variantStory ?? null,
     audio_data: v.audioData ?? null
