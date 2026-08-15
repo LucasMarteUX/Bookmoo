@@ -1,5 +1,6 @@
 export interface PlaybackResult {
   stop: () => void
+  play?: () => Promise<void>
   pause?: () => void
   resume?: () => void
   /** Resolves when playback ends. */

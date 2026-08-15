@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { playBase64Audio, type PlaybackResult } from '@/lib/audio'
 import { generateElevenLabsAudio } from '@/lib/elevenlabs'
+import { ELEVENLABS_CONFIG } from '@/lib/elevenlabsConfig'
 import {
   generateComicPage,
   generateAudio,
@@ -36,7 +37,7 @@ function buildSpeechQueue(text: string): string[] {
     const sentences = paragraph.split(/(?<=[.!?])\s+/).filter(Boolean)
     let buffer = ''
     for (const sentence of sentences.length ? sentences : [paragraph]) {
-      if (buffer && buffer.length + sentence.length + 1 > 480) {
+      if (buffer && buffer.length + sentence.length + 1 > ELEVENLABS_CONFIG.maxChunkCharacters) {
         queue.push(buffer)
         buffer = ''
       }
@@ -45,6 +46,10 @@ function buildSpeechQueue(text: string): string[] {
     if (buffer) queue.push(buffer)
   }
   return queue
+}
+
+function ttsLog(...args: unknown[]) {
+  if (import.meta.env.DEV) console.debug('[TTS]', ...args)
 }
 
 export function Reader({ book }: ReaderProps) {
@@ -634,15 +639,27 @@ export function Reader({ book }: ReaderProps) {
         speechSession.speechQueue = [...chunks]
         setIsPlaying(true)
         setIsLoadingGeminiTts(true)
-        for (const chunk of speechSession.speechQueue) {
+        let nextAudioPromise: Promise<PlaybackResult | null> | null = null
+        for (let index = 0; index < speechSession.speechQueue.length; index++) {
+          const chunk = speechSession.speechQueue[index]
           if (speechSession.generation !== speechGeneration || speechSession.controller?.signal.aborted) break
-          const result = await generateElevenLabsAudio(chunk, undefined, playbackRate, speechSession.controller?.signal)
+          ttsLog(`chunk ${index + 1} generating`)
+          const result = nextAudioPromise
+            ? await nextAudioPromise
+            : await generateElevenLabsAudio(chunk, undefined, playbackRate, speechSession.controller?.signal)
           if (!result || speechSession.generation !== speechGeneration || speechSession.controller?.signal.aborted) break
+          ttsLog(`chunk ${index + 1} ready`)
           speechSession.currentAudio = result
           elevenPlaybackStopRef.current = result.stop
+          await result.play?.()
+          ttsLog(`chunk ${index + 1} playing`)
+          const nextChunk = speechSession.speechQueue[index + 1]
+          nextAudioPromise = nextChunk
+            ? generateElevenLabsAudio(nextChunk, undefined, playbackRate, speechSession.controller?.signal)
+            : null
           if (result.whenEnded) await result.whenEnded
           speechSession.currentAudio = null
-          speechSession.speechQueue.shift()
+          ttsLog(`chunk ${index + 1} ended`)
         }
         if (speechSession.generation !== speechGeneration) return
         speechSession.controller = null

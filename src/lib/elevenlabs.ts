@@ -1,8 +1,8 @@
 import type { PlaybackResult } from '@/lib/audio'
+import { ELEVENLABS_CONFIG } from '@/lib/elevenlabsConfig'
 
-export const ELEVENLABS_FALLBACK_VOICE_ID = 'JBFqnCBsd6RMkjVDRZzb'
-export const ELEVENLABS_VOICE_ID =
-  import.meta.env.VITE_ELEVENLABS_VOICE_ID || ELEVENLABS_FALLBACK_VOICE_ID
+export const ELEVENLABS_FALLBACK_VOICE_ID = ELEVENLABS_CONFIG.fallbackVoiceId
+export const ELEVENLABS_VOICE_ID = import.meta.env.VITE_ELEVENLABS_VOICE_ID || ELEVENLABS_CONFIG.voiceId
 
 export async function generateElevenLabsAudio(
   text: string,
@@ -11,7 +11,6 @@ export async function generateElevenLabsAudio(
   signal?: AbortSignal
 ): Promise<PlaybackResult | null> {
   if (!text.trim()) return null
-  const apiSpeed = Math.min(1.2, Math.max(0.7, speed))
   const localApiKey = import.meta.env.DEV
     ? (import.meta.env.VITE_ELEVENLABS_API_KEY as string | undefined)
     : undefined
@@ -27,7 +26,12 @@ export async function generateElevenLabsAudio(
       },
       body: JSON.stringify(
         localApiKey
-          ? { text: text.trim(), model_id: 'eleven_multilingual_v2', output_format: 'mp3_44100_128', voice_settings: { speed: apiSpeed } }
+          ? {
+              text: text.trim(),
+              model_id: ELEVENLABS_CONFIG.modelId,
+              output_format: 'mp3_44100_128',
+              voice_settings: { stability: 0.45, similarity_boost: 0.75, style: 0 }
+            }
           : { text: text.trim(), voiceId: requestedVoiceId, speed }
       ),
       signal
@@ -70,6 +74,7 @@ export async function generateElevenLabsAudio(
   }
 
   return {
+    play: () => audio.play(),
     stop: () => {
       audio.pause()
       audio.currentTime = 0
