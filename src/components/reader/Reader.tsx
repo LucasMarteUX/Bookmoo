@@ -233,12 +233,17 @@ export function Reader({ book }: ReaderProps) {
     let wordIndex = 0
     segments.forEach(seg => {
       if (seg.isVocab) {
-        const safeText = escapeHtml(seg.text)
-        const idx = wordIndex++
-        const isSelected = selectedRange && idx >= selectedRange[0] && idx <= selectedRange[1]
-        const selectedClass = isSelected ? 'border-b-2 border-[var(--theme-accent)] bg-[var(--theme-accent)]/10' : ''
-        const ttsClass = isTtsHighlight(idx) ? 'tts-current' : ''
-        finalHtml += `<span data-vocab-id="${seg.vocabId}" data-word-index="${idx}" class="vocab-${seg.status} relative group cursor-pointer ${selectedClass} ${ttsClass}">${safeText}</span>`
+        seg.text.split(/(\s+)/).forEach((part) => {
+          if (/^\s+$/.test(part)) {
+            finalHtml += escapeHtml(part)
+            return
+          }
+          const idx = wordIndex++
+          const isSelected = selectedRange && idx >= selectedRange[0] && idx <= selectedRange[1]
+          const selectedClass = isSelected ? 'border-b-2 border-[var(--theme-accent)] bg-[var(--theme-accent)]/10' : ''
+          const ttsClass = isTtsHighlight(idx) ? 'tts-current' : ''
+          finalHtml += `<span data-vocab-id="${seg.vocabId}" data-word-index="${idx}" class="vocab-${seg.status} relative group cursor-pointer ${selectedClass} ${ttsClass}">${escapeHtml(part)}</span>`
+        })
       } else {
         // Run regex on unescaped text, then escape the match and the spaces
         let lastIdx = 0;
@@ -768,6 +773,15 @@ export function Reader({ book }: ReaderProps) {
       utterance.pitch = 1
       if (preferredVoice) utterance.voice = preferredVoice
 
+      utterance.onboundary = (event) => {
+        if (useWords || event.name !== 'word') return
+        const phraseStart = phraseWordRanges[index]?.[0] ?? 0
+        const localWordIndex = text.slice(0, event.charIndex).trim()
+          ? text.slice(0, event.charIndex).trim().split(/\s+/).length
+          : 0
+        setTtsHighlightWordIndices(new Set([phraseStart + localWordIndex]))
+      }
+
       utterance.onend = () => {
         if (browserPlaybackCancelledRef.current) return
         index++
@@ -1266,14 +1280,11 @@ export function Reader({ book }: ReaderProps) {
                       onClick={() => handleRateChange(r)}
                       className={`px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-left ${!isSelected ? 'hover:bg-black/5 dark:hover:bg-white/5' : ''}`}
                       style={{
-                        color: isSelected ? 'rgba(0, 0, 0, 0.9)' : 'var(--theme-text)',
+                        color: 'var(--theme-text)',
                         backgroundColor: isSelected ? 'var(--theme-pastel-2)' : undefined
                       }}
                     >
-                      {r === 0.3 && t('speedVerySlow')}
-                      {r === 0.5 && t('speedSlowComfortable')}
-                      {r === 0.8 && t('speedSlow')}
-                      {r === 1.0 && t('speedNormal')}
+                      {r.toFixed(2)}x{r === 1 ? ` — ${t('speedNormal')}` : ''}
                     </button>
                   )
                 })}
