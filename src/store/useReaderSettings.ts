@@ -16,7 +16,7 @@ interface ReaderSettingsState {
   bgTone: BgTone
   /** User's Gemini API key (non-admins only). Not persisted to localStorage; loaded from Supabase. */
   geminiApiKey: string | null
-  /** TTS for page reading: ElevenLabs, Gemini, or browser fallback. */
+  /** TTS for page reading: browser is the default provider. */
   ttsProvider: 'browser' | 'gemini' | 'elevenlabs'
   setTheme: (theme: Theme) => void
   setFontSize: (size: number) => void
@@ -43,7 +43,7 @@ export const useReaderSettings = create<ReaderSettingsState>()(
       fontFamily: 'serif',
       bgTone: 'medium',
       geminiApiKey: null,
-      ttsProvider: 'elevenlabs',
+      ttsProvider: 'browser',
       setTheme: (theme) => set({ theme }),
       setFontSize: (fontSize) => set({ fontSize }),
       setLineHeight: (lineHeight) => set({ lineHeight }),
@@ -58,6 +58,13 @@ export const useReaderSettings = create<ReaderSettingsState>()(
     }),
     {
       name: 'lexis-reader-settings',
+      version: 2,
+      migrate: (persistedState) => {
+        if (persistedState && typeof persistedState === 'object') {
+          return { ...persistedState, ttsProvider: 'browser' }
+        }
+        return persistedState
+      },
       partialize: (state) => ({
         theme: state.theme,
         fontSize: state.fontSize,

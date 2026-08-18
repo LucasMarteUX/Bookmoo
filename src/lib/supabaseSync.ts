@@ -221,6 +221,6 @@ export async function fetchReaderSettings(supabase: SupabaseClient, userId: stri
     })(),
     voiceGender: (data.voice_gender as 'female' | 'male') ?? 'female',
     geminiApiKey: data.gemini_api_key ?? null,
-    ttsProvider: (data.tts_provider as 'browser' | 'gemini' | 'elevenlabs') ?? 'elevenlabs'
+    ttsProvider: (data.tts_provider as 'browser' | 'gemini' | 'elevenlabs') ?? 'browser'
   }
 }

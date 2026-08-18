@@ -63,7 +63,9 @@ export function useHydrateOnLogin() {
           setPlaybackRate(settings.playbackRate)
           setVoiceGender(settings.voiceGender)
           setGeminiApiKey(settings.geminiApiKey)
-          setTtsProvider(settings.ttsProvider)
+          // Keep browser speech as the product default after returning from
+          // the legacy ElevenLabs provider.
+          setTtsProvider('browser')
         }
       } catch (e) {
         console.error('[useHydrateOnLogin] error hydrating from Supabase', e)

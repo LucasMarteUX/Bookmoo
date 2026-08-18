@@ -529,8 +529,8 @@ export function Reader({ book }: ReaderProps) {
   }
 
   const togglePlayback = () => {
-    // APIs de voz têm prioridade; browser é fallback quando a chave não está configurada.
-    const activeTtsProvider = ttsProvider === 'browser' ? 'elevenlabs' : ttsProvider
+    // A narração padrão usa a voz nativa do navegador.
+    const activeTtsProvider = ttsProvider
     const useGemini = activeTtsProvider === 'gemini' && !!effectiveGeminiKey
     const useElevenLabs = activeTtsProvider === 'elevenlabs'
 
