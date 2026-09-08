@@ -1090,7 +1090,7 @@ export function Reader({ book }: ReaderProps) {
                       onClick={() => handleRateChange(r)}
                       className={`px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-left ${!isSelected ? 'hover:bg-black/5 dark:hover:bg-white/5' : ''}`}
                       style={{
-                        color: 'var(--theme-text)',
+                        color: isSelected ? 'var(--theme-pastel-text)' : 'var(--theme-text)',
                         backgroundColor: isSelected ? 'var(--theme-pastel-2)' : undefined
                       }}
                     >
