@@ -7,12 +7,8 @@ import { VocabularyModal } from '../vocabulary/VocabularyModal'
 import { ChevronLeft, ChevronRight, MousePointer2, Type, Pin, PinOff, Pencil, Trash2, Play, Image as ImageIcon, Loader2, Pause, Settings, X, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { playBase64Audio, type PlaybackResult } from '@/lib/audio'
-import { generateElevenLabsAudio } from '@/lib/elevenlabs'
-import { ELEVENLABS_CONFIG } from '@/lib/elevenlabsConfig'
 import {
   generateComicPage,
-  generateAudio,
   API_KEY_REQUIRED_MESSAGE,
   enrichComicPromptWithSearch,
   extractComicStyleAndCharacters,
@@ -30,34 +26,12 @@ interface ReaderProps {
   book: Book
 }
 
-function buildSpeechQueue(text: string): string[] {
-  const paragraphs = text.split(/\n{2,}/).map((paragraph) => paragraph.replace(/\s+/g, ' ').trim()).filter(Boolean)
-  const queue: string[] = []
-  for (const paragraph of paragraphs) {
-    const sentences = paragraph.split(/(?<=[.!?])\s+/).filter(Boolean)
-    let buffer = ''
-    for (const sentence of sentences.length ? sentences : [paragraph]) {
-      if (buffer && buffer.length + sentence.length + 1 > ELEVENLABS_CONFIG.maxChunkCharacters) {
-        queue.push(buffer)
-        buffer = ''
-      }
-      buffer = buffer ? `${buffer} ${sentence}` : sentence
-    }
-    if (buffer) queue.push(buffer)
-  }
-  return queue
-}
-
-function ttsLog(...args: unknown[]) {
-  if (import.meta.env.DEV) console.debug('[TTS]', ...args)
-}
-
 export function Reader({ book }: ReaderProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const { locale } = useLanguage()
   const { t } = useTranslations(locale)
-  const { theme, fontSize, lineHeight, showHighlights, playbackRate, setPlaybackRate, ttsProvider, fontFamily, setFontSize, setLineHeight, setFontFamily } = useReaderSettings()
+  const { theme, fontSize, lineHeight, showHighlights, playbackRate, setPlaybackRate, fontFamily, setFontSize, setLineHeight, setFontFamily } = useReaderSettings()
 
   const readerFontFamily = fontFamily === 'sans' ? '"Inter", ui-sans-serif, system-ui, sans-serif' : '"Playfair Display", ui-serif, Georgia, serif'
   const { updateBook } = useBookStore()
@@ -73,23 +47,12 @@ export function Reader({ book }: ReaderProps) {
   const [viewMode, setViewMode] = useState<'text' | 'comic'>('text')
   const [isGeneratingComic, setIsGeneratingComic] = useState(false)
   
-  // TTS State
+  // TTS State — native browser SpeechSynthesis only
   const [isPlaying, setIsPlaying] = useState(false)
   const [isPaused, setIsPaused] = useState(false)
-  const [isLoadingGeminiTts, setIsLoadingGeminiTts] = useState(false)
   const [ttsHighlightWordIndices, setTtsHighlightWordIndices] = useState<Set<number> | null>(null)
   const synthRef = useRef<SpeechSynthesis | null>(null)
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null)
-  const geminiPlaybackStopRef = useRef<(() => void) | null>(null)
-  const geminiPlaybackCancelledRef = useRef(false)
-  const elevenPlaybackStopRef = useRef<(() => void) | null>(null)
-  const elevenPlaybackCancelledRef = useRef(false)
-  const speechSessionRef = useRef<{
-    generation: number
-    controller: AbortController | null
-    currentAudio: PlaybackResult | null
-    speechQueue: string[]
-  }>({ generation: 0, controller: null, currentAudio: null, speechQueue: [] })
   const browserPlaybackCancelledRef = useRef(false)
   const autoPlayNextPageRef = useRef(false)
   const togglePlaybackRef = useRef<() => void>(() => {})
@@ -381,8 +344,16 @@ export function Reader({ book }: ReaderProps) {
     })
   }
 
-  const playAudio = (base64: string) => {
-    playBase64Audio(base64)
+  const speakVocabText = (text: string) => {
+    if (!text.trim() || typeof window === 'undefined' || !window.speechSynthesis) return
+    window.speechSynthesis.cancel()
+    const utterance = new SpeechSynthesisUtterance(text.trim())
+    utterance.lang = 'en-US'
+    utterance.rate = 0.9
+    const voices = window.speechSynthesis.getVoices()
+    const preferred = voices.find((v) => v.lang === 'en-US' || v.lang.startsWith('en'))
+    if (preferred) utterance.voice = preferred
+    window.speechSynthesis.speak(utterance)
   }
 
   const handleGenerateComic = async (opts?: { regenerate?: boolean }) => {
@@ -502,11 +473,10 @@ export function Reader({ book }: ReaderProps) {
     }
   }
 
-  // TTS Functions
+  // TTS Functions — browser SpeechSynthesis only
   useEffect(() => {
     synthRef.current = window.speechSynthesis
     
-    // Pre-load voices to ensure they are available when requested
     const loadVoices = () => {
       window.speechSynthesis.getVoices()
     }
@@ -516,61 +486,16 @@ export function Reader({ book }: ReaderProps) {
     }
 
     return () => {
+      browserPlaybackCancelledRef.current = true
       if (synthRef.current) {
         synthRef.current.cancel()
       }
-      cancelSpeechSession()
     }
   }, [])
 
-  const cancelSpeechSession = () => {
-    const session = speechSessionRef.current
-    session.generation += 1
-    session.controller?.abort()
-    session.currentAudio?.stop()
-    session.controller = null
-    session.currentAudio = null
-    session.speechQueue = []
-  }
-
   const togglePlayback = () => {
-    // A narração padrão usa a voz nativa do navegador.
-    const activeTtsProvider = ttsProvider
-    const useGemini = activeTtsProvider === 'gemini' && !!effectiveGeminiKey
-    const useElevenLabs = activeTtsProvider === 'elevenlabs'
-
-    // Ao iniciar qualquer reprodução, cancela a outra fonte para não ter duas vozes ao mesmo tempo.
-    const cancelAllPlayback = () => {
-      geminiPlaybackCancelledRef.current = true
-      geminiPlaybackStopRef.current?.()
-      geminiPlaybackStopRef.current = null
-      elevenPlaybackCancelledRef.current = true
-      elevenPlaybackStopRef.current?.()
-      elevenPlaybackStopRef.current = null
-      cancelSpeechSession()
-      setIsLoadingGeminiTts(false)
-      if (synthRef.current) {
-        synthRef.current.cancel()
-      }
-      browserPlaybackCancelledRef.current = true
-    }
-
     if (isPlaying || isPaused) {
-      if (useElevenLabs && speechSessionRef.current.currentAudio) {
-        if (isPaused) {
-          speechSessionRef.current.currentAudio.resume?.()
-          setIsPlaying(true)
-          setIsPaused(false)
-        } else {
-          speechSessionRef.current.currentAudio.pause?.()
-          setIsPlaying(false)
-          setIsPaused(true)
-        }
-      } else if (useGemini || useElevenLabs) {
-        cancelAllPlayback()
-        setIsPlaying(false)
-        setIsPaused(false)
-      } else if (synthRef.current) {
+      if (synthRef.current) {
         if (isPaused) {
           synthRef.current.resume()
           setIsPlaying(true)
@@ -584,123 +509,20 @@ export function Reader({ book }: ReaderProps) {
       return
     }
 
-    cancelAllPlayback()
-    browserPlaybackCancelledRef.current = false
-    geminiPlaybackCancelledRef.current = false
-    elevenPlaybackCancelledRef.current = false
-    const speechSession = speechSessionRef.current
-    speechSession.generation += 1
-    const speechGeneration = speechSession.generation
-    speechSession.controller = new AbortController()
-    speechSession.currentAudio = null
-    speechSession.speechQueue = []
-
-    if (useGemini) {
-      // Gemini TTS: chunk text, generate and play in sequence
-      const runGeminiTts = async () => {
-        const raw = (currentContent || '').replace(/\s+/g, ' ').trim()
-        if (!raw) return
-        const sentences = raw.split(/(?<=[.!?])\s+/).map((s) => s.trim()).filter(Boolean)
-        const chunks: string[] = []
-        const maxChunk = 400
-        let buf = ''
-        for (const s of sentences.length ? sentences : [raw]) {
-          if (buf.length + s.length + 1 <= maxChunk) {
-            buf = buf ? buf + ' ' + s : s
-          } else {
-            if (buf) chunks.push(buf)
-            buf = s.length <= maxChunk ? s : s.slice(0, maxChunk)
-          }
-        }
-        if (buf) chunks.push(buf)
-        if (chunks.length === 0) return
-
-        geminiPlaybackCancelledRef.current = false
-        setIsPlaying(true)
-        setIsLoadingGeminiTts(true)
-
-        for (const chunk of chunks) {
-          if (geminiPlaybackCancelledRef.current) break
-          const audio = await generateAudio(chunk, effectiveGeminiKey, book.languageCode)
-          if (!audio || geminiPlaybackCancelledRef.current) break
-          const result = await playBase64Audio(audio)
-          if (!result || geminiPlaybackCancelledRef.current) break
-          geminiPlaybackStopRef.current = result.stop
-          if (result.whenEnded) await result.whenEnded
-        }
-
-        geminiPlaybackStopRef.current = null
-        setIsLoadingGeminiTts(false)
-        setIsPlaying(false)
-        setIsPaused(false)
-      }
-      runGeminiTts()
-      return
-    }
-
-    if (useElevenLabs) {
-      const runElevenLabsTts = async () => {
-        const raw = (currentContent || '').replace(/\s+/g, ' ').trim()
-        if (!raw) return
-        const chunks = buildSpeechQueue(raw)
-        speechSession.speechQueue = [...chunks]
-        setIsPlaying(true)
-        setIsLoadingGeminiTts(true)
-        let nextAudioPromise: Promise<PlaybackResult | null> | null = null
-        for (let index = 0; index < speechSession.speechQueue.length; index++) {
-          const chunk = speechSession.speechQueue[index]
-          if (speechSession.generation !== speechGeneration || speechSession.controller?.signal.aborted) break
-          ttsLog(`chunk ${index + 1} generating`)
-          const result = nextAudioPromise
-            ? await nextAudioPromise
-            : await generateElevenLabsAudio(chunk, undefined, playbackRate, speechSession.controller?.signal)
-          if (!result || speechSession.generation !== speechGeneration || speechSession.controller?.signal.aborted) break
-          ttsLog(`chunk ${index + 1} ready`)
-          speechSession.currentAudio = result
-          elevenPlaybackStopRef.current = result.stop
-          await result.play?.()
-          ttsLog(`chunk ${index + 1} playing`)
-          const nextChunk = speechSession.speechQueue[index + 1]
-          nextAudioPromise = nextChunk
-            ? generateElevenLabsAudio(nextChunk, undefined, playbackRate, speechSession.controller?.signal)
-            : null
-          if (result.whenEnded) await result.whenEnded
-          speechSession.currentAudio = null
-          ttsLog(`chunk ${index + 1} ended`)
-        }
-        if (speechSession.generation !== speechGeneration) return
-        speechSession.controller = null
-        speechSession.speechQueue = []
-        elevenPlaybackStopRef.current = null
-        setIsLoadingGeminiTts(false)
-        setIsPlaying(false)
-        setIsPaused(false)
-      }
-      runElevenLabsTts().catch((error) => {
-        if (speechSession.controller?.signal.aborted) return
-        console.error('ElevenLabs TTS failed:', error)
-        setIsLoadingGeminiTts(false)
-        setIsPlaying(false)
-      })
-      return
-    }
-
-    // Browser SpeechSynthesis: uma única voz (feminina quando disponível)
     if (!synthRef.current) return
+    browserPlaybackCancelledRef.current = false
     synthRef.current.cancel()
     const normalized = (currentContent || '').replace(/\s+/g, ' ').trim()
     const rate = playbackRate
-    const isVerySlow = rate <= 0.3 // 0.3x: palavra a palavra, 0.4, 480ms
-    const useWords = rate <= 0.8 // 0.3, 0.5, 0.8 por palavra; 1.0 por frase (normal)
-    // 1.0x mais lento, com pausas praticamente inexistentes
+    const useWords = rate <= 0.8
     const effectiveRate =
       rate <= 0.3 ? 0.4
       : rate >= 1.0 ? 0.7
-      : 0.4 + (rate - 0.3) * (0.3 / 0.7) // 0.3→0.4, 0.8→~0.7
+      : 0.4 + (rate - 0.3) * (0.3 / 0.7)
     const effectivePauseMs =
       rate <= 0.3 ? 480
-      : rate >= 1.0 ? 60 // pausa quase imperceptível em 1.0x
-      : Math.round(480 - (rate - 0.3) * (360 / 0.7)) // interpola até perto de ~120ms
+      : rate >= 1.0 ? 60
+      : Math.round(480 - (rate - 0.3) * (360 / 0.7))
 
     const words = normalized ? normalized.split(/\s+/).filter(Boolean) : []
     const chunks: string[] = useWords
@@ -736,7 +558,6 @@ export function Reader({ book }: ReaderProps) {
     const PAUSE_MS = effectivePauseMs
     const totalPages = pages.length
 
-    browserPlaybackCancelledRef.current = false
     let index = 0
     const speakNext = () => {
       if (browserPlaybackCancelledRef.current) {
@@ -816,9 +637,8 @@ export function Reader({ book }: ReaderProps) {
   useEffect(() => {
     if (autoPlayNextPageRef.current && containerRef.current) {
       autoPlayNextPageRef.current = false
-      requestAnimationFrame(() => {
-        togglePlaybackRef.current?.()
-      })
+      const timer = setTimeout(() => togglePlaybackRef.current?.(), 300)
+      return () => clearTimeout(timer)
     }
   }, [currentPage])
 
@@ -866,12 +686,7 @@ export function Reader({ book }: ReaderProps) {
   }, [ttsHighlightWordIndices, currentContent])
 
   const stopPlayback = () => {
-    cancelSpeechSession()
-    geminiPlaybackCancelledRef.current = true
     browserPlaybackCancelledRef.current = true
-    geminiPlaybackStopRef.current?.()
-    geminiPlaybackStopRef.current = null
-    setIsLoadingGeminiTts(false)
     setTtsHighlightWordIndices(null)
     if (synthRef.current) {
       synthRef.current.cancel()
@@ -913,11 +728,9 @@ export function Reader({ book }: ReaderProps) {
                 <div className="flex justify-between items-start mb-2 gap-2">
                   <span className="font-bold text-base" style={{ color: 'var(--theme-postit-title)' }}>{vocab.text}</span>
                   <div className="flex items-center gap-1">
-                    {vocab.audioData && (
-                      <button onClick={(e) => { e.stopPropagation(); playAudio(vocab.audioData!); }} className="hover:text-[var(--theme-accent)] rounded p-1 transition-colors" style={{ color: 'var(--theme-text-secondary)', backgroundColor: 'var(--theme-bg-secondary)' }} title="Play Audio">
+                    <button onClick={(e) => { e.stopPropagation(); speakVocabText(vocab.text); }} className="hover:text-[var(--theme-accent)] rounded p-1 transition-colors" style={{ color: 'var(--theme-text-secondary)', backgroundColor: 'var(--theme-bg-secondary)' }} title="Play Audio">
                         <Play className="w-4 h-4" />
                       </button>
-                    )}
                     <button onClick={(e) => { e.stopPropagation(); handleEditVocab(vocab.id); }} className="hover:text-[var(--theme-accent)] rounded p-1 transition-colors" style={{ color: 'var(--theme-text-secondary)', backgroundColor: 'var(--theme-bg-secondary)' }} title="Edit">
                       <Pencil className="w-4 h-4" />
                     </button>
@@ -993,11 +806,9 @@ export function Reader({ book }: ReaderProps) {
                   <div className="flex justify-between items-start mb-2 gap-2">
                     <span className="font-bold text-base" style={{ color: 'var(--theme-postit-title)' }}>{vocab.text}</span>
                     <div className="flex items-center gap-1">
-                      {vocab.audioData && (
-                        <button onClick={(e) => { e.stopPropagation(); playAudio(vocab.audioData!); }} className="hover:text-[var(--theme-accent)] rounded p-1 transition-colors" style={{ color: 'var(--theme-text-secondary)', backgroundColor: 'var(--theme-bg-secondary)' }} title="Play Audio">
-                          <Play className="w-4 h-4" />
-                        </button>
-                      )}
+                      <button onClick={(e) => { e.stopPropagation(); speakVocabText(vocab.text); }} className="hover:text-[var(--theme-accent)] rounded p-1 transition-colors" style={{ color: 'var(--theme-text-secondary)', backgroundColor: 'var(--theme-bg-secondary)' }} title="Play Audio">
+                        <Play className="w-4 h-4" />
+                      </button>
                       <button onClick={(e) => { e.stopPropagation(); handleEditVocab(vocab.id); }} className="hover:text-[var(--theme-accent)] rounded p-1 transition-colors" style={{ color: 'var(--theme-text-secondary)', backgroundColor: 'var(--theme-bg-secondary)' }} title="Edit">
                         <Pencil className="w-4 h-4" />
                       </button>
@@ -1230,19 +1041,18 @@ export function Reader({ book }: ReaderProps) {
           
           <button
             onClick={togglePlayback}
-            disabled={isLoadingGeminiTts}
             className="flex items-center justify-center w-12 h-12 min-w-[48px] min-h-[48px] rounded-full transition-colors shrink-0"
             style={{
-              backgroundColor: isPlaying || isPaused || isLoadingGeminiTts ? 'var(--theme-primary)' : 'transparent',
-              color: isPlaying || isPaused || isLoadingGeminiTts ? 'var(--theme-primary-text)' : 'var(--theme-nav-text)'
+              backgroundColor: isPlaying || isPaused ? 'var(--theme-primary)' : 'transparent',
+              color: isPlaying || isPaused ? 'var(--theme-primary-text)' : 'var(--theme-nav-text)'
             }}
-            title={isLoadingGeminiTts ? t('generating') : isPlaying ? t('pause') : isPaused ? t('listen') : t('listen')}
-            aria-label={isLoadingGeminiTts ? t('generating') : isPlaying ? t('pause') : isPaused ? t('listen') : t('listen')}
+            title={isPlaying ? t('pause') : isPaused ? t('listen') : t('listen')}
+            aria-label={isPlaying ? t('pause') : isPaused ? t('listen') : t('listen')}
           >
-            {isLoadingGeminiTts ? <Loader2 className="w-4 h-4 animate-spin" /> : isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+            {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
           </button>
           
-          {(isPlaying || isPaused || isLoadingGeminiTts) && (
+          {(isPlaying || isPaused) && (
             <button
               onClick={stopPlayback}
               className="flex items-center justify-center w-12 h-12 min-w-[48px] min-h-[48px] rounded-full transition-colors hover:bg-[var(--theme-nav-hover)] shrink-0"
@@ -1449,7 +1259,7 @@ export function Reader({ book }: ReaderProps) {
           onStopPlayback={stopPlayback}
           isPlaying={isPlaying}
           isPaused={isPaused}
-          isLoadingTts={isLoadingGeminiTts}
+          isLoadingTts={false}
           playbackRate={playbackRate}
           onChangeRate={handleRateChange}
         />

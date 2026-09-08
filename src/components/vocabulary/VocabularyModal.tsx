@@ -1,13 +1,12 @@
-import { useState, useEffect, useRef } from 'react'
-import { Sparkles, Trash2, Volume2, Play, MousePointer2, BookOpenText, WandSparkles } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Sparkles, Trash2, Volume2, MousePointer2, BookOpenText, WandSparkles } from 'lucide-react'
 import { useVocabularyStore, VocabStatus, VocabType, GrammarExample } from '@/store/useVocabularyStore'
 import { useBookStore } from '@/store/useBookStore'
-import { generateExplanation, generateAudio, generateVariantStory, API_KEY_REQUIRED_MESSAGE } from '@/lib/ai'
+import { generateExplanation, generateVariantStory, API_KEY_REQUIRED_MESSAGE } from '@/lib/ai'
 import { useEffectiveGeminiKey } from '@/hooks/useEffectiveGeminiKey'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
 import { upsertVocabulary, deleteVocabularyRemote } from '@/lib/supabaseSync'
-import { playBase64Audio } from '@/lib/audio'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -40,18 +39,12 @@ export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId 
   const [audioData, setAudioData] = useState<string | null>(null)
   const [isGeneratingExplanation, setIsGeneratingExplanation] = useState(false)
   const [isGeneratingStory, setIsGeneratingStory] = useState(false)
-  const [isGeneratingAudio, setIsGeneratingAudio] = useState(false)
   const [isAudioPlaying, setIsAudioPlaying] = useState(false)
-  
-  const audioRef = useRef<{ stop: () => void; whenEnded?: Promise<void> } | null>(null)
 
   useEffect(() => {
     if (isOpen) {
+      window.speechSynthesis?.cancel()
       setIsAudioPlaying(false)
-      if (audioRef.current) {
-        audioRef.current.stop()
-        audioRef.current = null
-      }
       if (vocabId) {
         const vocab = vocabularies.find(v => v.id === vocabId)
         if (vocab) {
@@ -108,34 +101,22 @@ export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId 
     }
   }
 
-  const handleGenerateAudio = async () => {
-    setIsGeneratingAudio(true)
-    try {
-      const base64Audio = await generateAudio(text, effectiveGeminiKey, bookLanguageCode)
-      if (base64Audio) {
-        setAudioData(base64Audio)
-        playAudio(base64Audio)
-      } else {
-        alert(API_KEY_REQUIRED_MESSAGE)
-      }
-    } catch (error) {
-      console.error(error)
-    } finally {
-      setIsGeneratingAudio(false)
-    }
-  }
+  const speakText = () => {
+    const trimmed = text.trim()
+    if (!trimmed || typeof window === 'undefined' || !window.speechSynthesis) return
 
-  const playAudio = async (base64: string) => {
-    if (audioRef.current) {
-      audioRef.current.stop()
-      setIsAudioPlaying(false)
-    }
-    const result = await playBase64Audio(base64)
-    audioRef.current = result ?? null
-    if (result) {
-      setIsAudioPlaying(true)
-      result.whenEnded?.then(() => setIsAudioPlaying(false))
-    }
+    window.speechSynthesis.cancel()
+    const utterance = new SpeechSynthesisUtterance(trimmed)
+    const lang = bookLanguageCode?.startsWith('en') ? 'en-US' : (bookLanguageCode || 'en-US')
+    utterance.lang = lang.length === 2 ? `${lang}-${lang.toUpperCase()}` : lang
+    utterance.rate = 0.9
+    const voices = window.speechSynthesis.getVoices()
+    const preferred = voices.find((v) => v.lang === 'en-US' || v.lang.startsWith('en'))
+    if (preferred) utterance.voice = preferred
+    utterance.onstart = () => setIsAudioPlaying(true)
+    utterance.onend = () => setIsAudioPlaying(false)
+    utterance.onerror = () => setIsAudioPlaying(false)
+    window.speechSynthesis.speak(utterance)
   }
 
   const handleSave = () => {
@@ -214,19 +195,13 @@ export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId 
                 size="sm" 
                 className="h-6 text-xs hover:bg-[var(--theme-accent)]/10 shrink-0"
                 style={{ color: 'var(--theme-accent)' }}
-                onClick={() => audioData ? playAudio(audioData) : handleGenerateAudio()}
-                disabled={isGeneratingAudio || !text.trim()}
+                onClick={speakText}
+                disabled={!text.trim()}
               >
-                {isGeneratingAudio ? (
-                  'Gerando...'
-                ) : audioData ? (
-                  isAudioPlaying ? (
-                    <><MousePointer2 className="w-3 h-3 mr-1" /> Ouvir Áudio</>
-                  ) : (
-                    <><Play className="w-3 h-3 mr-1" /> Ouvir Áudio</>
-                  )
+                {isAudioPlaying ? (
+                  <><MousePointer2 className="w-3 h-3 mr-1" /> Ouvir</>
                 ) : (
-                  <><Volume2 className="w-3 h-3 mr-1" /> Gerar Áudio</>
+                  <><Volume2 className="w-3 h-3 mr-1" /> Ouvir</>
                 )}
               </Button>
             </div>
