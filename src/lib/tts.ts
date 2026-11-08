@@ -3,6 +3,8 @@
 // 2) Toca com HTMLAudioElement (um único player global: nunca dois áudios ao mesmo tempo)
 // 3) Se o serviço TTS falhar, cai para a voz nativa do navegador (fallback temporário).
 import { supabase } from '@/lib/supabase'
+import { activeKokoroVoice, kokoroAudioUrl, type WordTiming } from '@/lib/kokoro/engine'
+import { countWords, listWords, wordRegex } from '@/lib/wordTokens'
 
 export type TtsContext = 'word' | 'phrase' | 'reader' | 'lesson' | 'preview'
 
@@ -32,12 +34,16 @@ export interface SpeakOptions {
   /** Chamado quando a reprodução usa o fallback do navegador (útil para UI/telemetria). */
   onFallback?: (reason: string) => void
   signal?: AbortSignal
+  /** Força uma voz Kokoro específica (ex.: prévia). */
+  kokoroVoice?: string
+  /** Índice (0-based) da palavra sendo falada dentro do texto, para destaque palavra a palavra. */
+  onWord?: (wordIndex: number) => void
 }
 
 export interface SpeakHandle {
   /** Resolve quando o áudio termina (ou é interrompido). */
   done: Promise<void>
-  source: 'voicestudio' | 'browser'
+  source: 'kokoro' | 'voicestudio' | 'browser'
 }
 
 const POLL_INTERVAL_MS = 700
@@ -114,9 +120,23 @@ export async function getAudioUrl(text: string, opts: SpeakOptions = {}): Promis
   }
 }
 
+/**
+ * Velocidade escolhida pelo aluno → velocidade de geração do Kokoro (fala real: 0.5x dura o dobro de 1.0x).
+ * As pausas extras entre frases nas velocidades lentas ficam a cargo do Reader.
+ */
+export function kokoroSpeed(rate: number): number {
+  return Math.round(Math.min(1.5, Math.max(0.5, rate)) * 100) / 100
+}
+
 /** Pré-carrega (gera/aquece cache) sem tocar. Erros são ignorados. */
 export function prefetch(text: string, opts: SpeakOptions = {}) {
   if (!text.trim()) return
+  const kv = activeKokoroVoice()
+  if (kv && (opts.language ?? 'en').toLowerCase().startsWith('en')) {
+    kokoroAudioUrl(text.replace(/\s+/g, ' ').trim(), kv, kokoroSpeed(opts.rate ?? 1)).catch(() => {})
+    return
+  }
+  if (!isTtsConfigured()) return
   getAudioUrl(text, opts).then((url) => {
     const a = new Audio()
     a.preload = 'auto'
@@ -135,15 +155,150 @@ function speakWithBrowser(text: string, opts: SpeakOptions): Promise<void> {
     const voices = window.speechSynthesis.getVoices()
     const v = voices.find((x) => x.lang === u.lang) ?? voices.find((x) => x.lang.startsWith(lang.slice(0, 2)))
     if (v) u.voice = v
+    if (opts.onWord) {
+      opts.onWord(0)
+      u.onboundary = (ev) => {
+        if (ev.name !== 'word') return
+        opts.onWord!(countWords(text.slice(0, ev.charIndex)))
+      }
+    }
     u.onend = () => resolve()
     u.onerror = () => resolve()
     window.speechSynthesis.speak(u)
   })
 }
 
+/**
+ * Estimativa do início de cada palavra no áudio (fração de 0 a 1).
+ * O Kokoro não devolve alinhamento temporal, então ponderamos pelo tamanho da palavra
+ * e por pausas de pontuação. Fica próximo o bastante para o destaque acompanhar a fala.
+ */
+function wordStartFractions(text: string): number[] {
+  // Mesmas palavras que a tela numera (wordTokens); a pontuação entre elas vira pausa.
+  const matches = [...text.matchAll(wordRegex())]
+  const weights = matches.map((m, k) => {
+    const end = (m.index ?? 0) + m[0].length
+    const gap = text.slice(end, k + 1 < matches.length ? matches[k + 1].index : text.length)
+    const pause = /[.!?…]/.test(gap) ? 4 : /[,;:—–]/.test(gap) ? 2 : 0
+    return { speak: m[0].length + 1.5, pause }
+  })
+  const total = weights.reduce((s, w) => s + w.speak + w.pause, 0) || 1
+  const starts: number[] = []
+  let acc = 0
+  for (const w of weights) {
+    starts.push(acc / total)
+    acc += w.speak + w.pause
+  }
+  return starts
+}
+
+// Encerra a frase em reprodução. Chamado por stopSpeaking: é a ÚNICA forma, além do fim
+// real do áudio, de dar uma frase por terminada.
+let finishCurrent: (() => void) | null = null
+
+/**
+ * Converte os tempos reais por palavra falada (fonemas agrupados pelo Kokoro) para as palavras
+ * do texto como a tela as numera. Normalmente a contagem bate 1:1. Quando não bate (números
+ * lidos por extenso, siglas, hífens), alinha proporcionalmente por letras/fonemas, mantendo a ordem.
+ */
+function startsFromTimings(text: string, timings: WordTiming[]): number[] | undefined {
+  const words = listWords(text)
+  if (!words.length || !timings.length) return undefined
+  if (timings.length === words.length) return timings.map((t) => t.f)
+  const wLen = words.map((w) => w.length)
+  const wTot = wLen.reduce((a, b) => a + b, 0)
+  const gLen = timings.map((t) => Math.max(1, t.n))
+  const gTot = gLen.reduce((a, b) => a + b, 0)
+  const gStartPos: number[] = []
+  let acc = 0
+  for (const n of gLen) { gStartPos.push(acc / gTot); acc += n }
+  const out: number[] = []
+  let wAcc = 0
+  let j = 0
+  for (const len of wLen) {
+    const pos = wAcc / wTot
+    while (j + 1 < timings.length && gStartPos[j + 1] <= pos + 1e-6) j++
+    out.push(Math.max(out[out.length - 1] ?? 0, timings[j].f))
+    wAcc += len
+  }
+  return out
+}
+
+async function playUrl(url: string, rate: number, text?: string, onWord?: (i: number) => void, realStarts?: number[]): Promise<{ done: Promise<void> }> {
+  const a = getPlayer()
+  a.src = url
+  const mySrc = a.src
+  a.playbackRate = Math.min(1.5, Math.max(0.5, rate))
+  ;(a as HTMLAudioElement & { preservesPitch?: boolean }).preservesPitch = true
+  let raf = 0
+  const done = new Promise<void>((resolve) => {
+    let settled = false
+    const finish = () => {
+      if (settled) return
+      settled = true
+      cancelAnimationFrame(raf)
+      a.removeEventListener('ended', onEnded)
+      a.removeEventListener('error', onError)
+      if (finishCurrent === finish) finishCurrent = null
+      resolve()
+    }
+    // Não usamos 'emptied': ao parar a frase anterior o navegador agenda esse evento e ele
+    // chegava já com a frase nova tocando, encerrando-a na hora (o "pulo" depois do ponto final).
+    // Só aceitamos eventos que pertencem a ESTE áudio.
+    const onEnded = () => { if (a.src === mySrc && a.ended) finish() }
+    const onError = () => { if (a.src === mySrc && a.error) finish() }
+    a.addEventListener('ended', onEnded)
+    a.addEventListener('error', onError)
+    finishCurrent = finish
+  })
+  // Se o aluno pausou enquanto a frase era preparada, só começa quando ele retomar.
+  await waitWhilePaused()
+  if (a.src !== mySrc) return { done } // parado enquanto esperava
+  await a.play()
+  if (text && onWord) {
+    // Tempos reais do Kokoro quando disponíveis; senão, estimativa pelo tamanho das palavras.
+    const starts = realStarts ?? wordStartFractions(text)
+    let last = -1
+    const tick = () => {
+      // O player é compartilhado: se já está tocando outra frase, este observador encerra.
+      if (a.src !== mySrc) return
+      if (a.duration > 0 && Number.isFinite(a.duration)) {
+        // Pequena antecipação para o destaque não parecer atrasado.
+        const f = Math.min(1, (a.currentTime + 0.03) / a.duration)
+        let i = last < 0 ? 0 : last
+        while (i + 1 < starts.length && starts[i + 1] <= f) i++
+        if (i !== last) { last = i; onWord(i) }
+      }
+      // Continua observando também durante pausa; o loop termina em `finish`.
+      raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+  }
+  return { done }
+}
+
 /** Interrompe qualquer reprodução (VoiceStudio ou navegador). */
-export function stopSpeaking() {
+// ---------------------------------------------------------------------------
+// Pausa: enquanto pausado, nenhuma frase nova começa (inclusive a que está sendo gerada)
+// e o Reader espera antes de seguir para a próxima frase.
+// ---------------------------------------------------------------------------
+let paused = false
+let resumeWaiters: (() => void)[] = []
+function releaseWaiters() {
+  const w = resumeWaiters
+  resumeWaiters = []
+  w.forEach((f) => f())
+}
+export function waitWhilePaused(): Promise<void> {
+  return paused ? new Promise((r) => resumeWaiters.push(r)) : Promise.resolve()
+}
+
+/** Para o áudio atual sem mexer no estado de pausa (usado ao trocar de frase). */
+function haltPlayback() {
   currentToken++
+  const f = finishCurrent
+  finishCurrent = null
+  f?.()
   if (player) {
     player.pause()
     player.removeAttribute('src')
@@ -152,45 +307,67 @@ export function stopSpeaking() {
   if (typeof window !== 'undefined') window.speechSynthesis?.cancel()
 }
 
+/** Interrompe qualquer reprodução e sai do estado de pausa. */
+export function stopSpeaking() {
+  paused = false
+  haltPlayback()
+  releaseWaiters()
+}
+
 export function pauseSpeaking() {
+  paused = true
   if (player && !player.paused) player.pause()
-  else if (typeof window !== 'undefined') window.speechSynthesis?.pause()
+  if (typeof window !== 'undefined') window.speechSynthesis?.pause()
 }
 
 export function resumeSpeaking() {
-  if (player && player.src && player.paused) player.play().catch(() => {})
-  else if (typeof window !== 'undefined') window.speechSynthesis?.resume()
+  paused = false
+  releaseWaiters()
+  if (player && player.getAttribute('src') && player.paused && !player.ended) player.play().catch(() => {})
+  if (typeof window !== 'undefined') window.speechSynthesis?.resume()
 }
 
+/** VoiceStudio (servidor) só quando explicitamente habilitado. */
 export function isTtsConfigured() {
-  return !!supabase && import.meta.env.VITE_TTS_PROVIDER !== 'browser'
+  return !!supabase && import.meta.env.VITE_TTS_PROVIDER === 'voicestudio'
 }
+
 
 /**
  * Fala um texto. Interrompe o áudio anterior. Usa VoiceStudio; se indisponível, voz do navegador.
  */
 export async function speak(text: string, opts: SpeakOptions = {}): Promise<SpeakHandle> {
   const trimmed = text.replace(/\s+/g, ' ').trim()
-  stopSpeaking()
+  haltPlayback()
   const token = currentToken
   if (!trimmed) return { done: Promise.resolve(), source: 'browser' }
+
+  // 1) Voz local Kokoro (baixada pelo aluno), só para inglês.
+  const lang = (opts.language ?? 'en').toLowerCase()
+  const kokoroVoice = opts.kokoroVoice ?? activeKokoroVoice()
+  if (kokoroVoice && lang.startsWith('en')) {
+    try {
+      opts.onLoading?.(true)
+      // Velocidade aplicada na geração: fala mais lenta e natural, sem esticar o áudio.
+      const clip = await kokoroAudioUrl(trimmed, kokoroVoice, kokoroSpeed(opts.rate ?? 1), 'high')
+      opts.onLoading?.(false)
+      if (token !== currentToken) return { done: Promise.resolve(), source: 'kokoro' }
+      const starts = clip.words ? startsFromTimings(trimmed, clip.words) : undefined
+      return { ...(await playUrl(clip.url, 1, trimmed, opts.onWord, starts)), source: 'kokoro' }
+    } catch (e) {
+      opts.onLoading?.(false)
+      if (token !== currentToken) return { done: Promise.resolve(), source: 'kokoro' }
+      console.warn('[tts] Kokoro falhou, usando voz do navegador:', e)
+      opts.onFallback?.(String((e as Error)?.message ?? e))
+      return { done: speakWithBrowser(trimmed, opts), source: 'browser' }
+    }
+  }
 
   if (isTtsConfigured()) {
     try {
       const url = await getAudioUrl(trimmed, opts)
       if (token !== currentToken) return { done: Promise.resolve(), source: 'voicestudio' }
-      const a = getPlayer()
-      a.src = url
-      a.playbackRate = Math.min(1.5, Math.max(0.5, opts.rate ?? 1))
-      ;(a as HTMLAudioElement & { preservesPitch?: boolean }).preservesPitch = true
-      const done = new Promise<void>((resolve) => {
-        const finish = () => { a.removeEventListener('ended', finish); a.removeEventListener('error', finish); a.removeEventListener('emptied', finish); resolve() }
-        a.addEventListener('ended', finish)
-        a.addEventListener('error', finish)
-        a.addEventListener('emptied', finish)
-      })
-      await a.play()
-      return { done, source: 'voicestudio' }
+      return { ...(await playUrl(url, opts.rate ?? 1, trimmed, opts.onWord)), source: 'voicestudio' }
     } catch (e) {
       if ((e as Error)?.name === 'AbortError' || token !== currentToken) return { done: Promise.resolve(), source: 'voicestudio' }
       const reason = (e as Error)?.message ?? String(e)

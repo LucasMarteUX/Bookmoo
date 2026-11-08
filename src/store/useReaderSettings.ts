@@ -79,3 +79,11 @@ export const useReaderSettings = create<ReaderSettingsState>()(
     }
   )
 )
+
+/** Velocidades de narração (fala real; aplicadas na geração da voz Kokoro). */
+export const PLAYBACK_SPEEDS = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.25, 1.5] as const
+
+export function snapPlaybackRate(r: number): number {
+  if (!Number.isFinite(r)) return 1
+  return PLAYBACK_SPEEDS.reduce((best, s) => (Math.abs(s - r) < Math.abs(best - r) ? s : best), 1 as number)
+}

@@ -1,3 +1,4 @@
+import { snapPlaybackRate } from '@/store/useReaderSettings'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Book } from '@/store/useBookStore'
 import type { Vocabulary } from '@/store/useVocabularyStore'
@@ -210,15 +211,7 @@ export async function fetchReaderSettings(supabase: SupabaseClient, userId: stri
     fontSize: typeof data.font_size === 'number' ? data.font_size : 18,
     lineHeight: typeof data.line_height === 'number' ? data.line_height : 1.8,
     showHighlights: data.show_highlights !== false,
-    playbackRate: (() => {
-      const r = typeof data.playback_rate === 'number' ? data.playback_rate : 1
-      const valid = [0.3, 0.5, 0.8, 1.0]
-      if (valid.includes(r)) return r
-      if (r <= 0.4) return 0.3
-      if (r <= 0.65) return 0.5
-      if (r <= 0.9) return 0.8
-      return 1.0
-    })(),
+    playbackRate: snapPlaybackRate(typeof data.playback_rate === 'number' ? data.playback_rate : 1),
     voiceGender: (data.voice_gender as 'female' | 'male') ?? 'female',
     geminiApiKey: data.gemini_api_key ?? null,
     ttsProvider: (data.tts_provider as 'browser' | 'gemini' | 'elevenlabs') ?? 'browser'

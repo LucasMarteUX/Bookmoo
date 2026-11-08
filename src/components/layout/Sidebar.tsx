@@ -5,6 +5,7 @@ import { useReaderSettings, Theme } from '@/store/useReaderSettings'
 import { useLanguage, Locale } from '@/store/useLanguage'
 import { useTranslations } from '@/lib/i18n'
 import { StudyTimer } from '@/components/timer/StudyTimer'
+import { VoiceSelect } from './VoiceSelect'
 import { useAuth } from '@/contexts/AuthContext'
 
 interface SidebarProps {
@@ -141,6 +142,10 @@ export function Sidebar({ isMobileDrawer, onClose }: SidebarProps) {
               </button>
             ))}
           </div>
+        </div>
+
+        <div className="px-4">
+          <VoiceSelect />
         </div>
 
         <div className="px-4">

@@ -1,6 +1,6 @@
 import React, { useRef, useMemo, useState, useEffect } from 'react'
 import { Book, useBookStore } from '@/store/useBookStore'
-import { useReaderSettings } from '@/store/useReaderSettings'
+import { useReaderSettings, PLAYBACK_SPEEDS } from '@/store/useReaderSettings'
 import { useVocabularyStore } from '@/store/useVocabularyStore'
 import { FloatingAction } from './FloatingAction'
 import { VocabularyModal } from '../vocabulary/VocabularyModal'
@@ -18,7 +18,9 @@ import { useEffectiveGeminiKey } from '@/hooks/useEffectiveGeminiKey'
 import { useBookSync } from '@/hooks/useBookSync'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
-import { speak, stopSpeaking, pauseSpeaking, resumeSpeaking, prefetch } from '@/lib/tts'
+import { speak, stopSpeaking, pauseSpeaking, resumeSpeaking, prefetch, waitWhilePaused } from '@/lib/tts'
+import { activeKokoroVoice, cancelKokoroPrefetch, warmUpKokoro } from '@/lib/kokoro/engine'
+import { wordRegex, WORD_PATTERN } from '@/lib/wordTokens'
 import { uploadComicPage, getComicPageBase64, compressComicReference, isComicPageUrl } from '@/lib/comicStorage'
 import { useLanguage } from '@/store/useLanguage'
 import { useTranslations, getGeneratingComicMessage } from '@/lib/i18n'
@@ -51,8 +53,16 @@ export function Reader({ book }: ReaderProps) {
   // TTS State — native browser SpeechSynthesis only
   const [isPlaying, setIsPlaying] = useState(false)
   const [isPaused, setIsPaused] = useState(false)
+  const [isLoadingTts, setIsLoadingTts] = useState(false)
   const [ttsHighlightWordIndices, setTtsHighlightWordIndices] = useState<Set<number> | null>(null)
   const browserPlaybackCancelledRef = useRef(false)
+  // Cada narração recebe um id; qualquer laço com id antigo encerra sozinho (evita duas leituras simultâneas).
+  const playbackRunIdRef = useRef(0)
+  // Palavra que está sendo falada agora; usada para continuar dela ao trocar a velocidade.
+  const currentWordRef = useRef<number | null>(null)
+  // Ao trocar a velocidade com a leitura pausada, o próximo play continua desta palavra.
+  const resumeFromWordRef = useRef<number | null>(null)
+  const startPlaybackRef = useRef<(o?: { startWord?: number; rate?: number }) => void>(() => {})
   const autoPlayNextPageRef = useRef(false)
   const togglePlaybackRef = useRef<() => void>(() => {})
   const ttsHandRef = useRef<HTMLDivElement>(null)
@@ -83,6 +93,18 @@ export function Reader({ book }: ReaderProps) {
   const pages = book.pages || [book.content]
   const currentPage = book.currentPage || 0
   const currentContent = pages[currentPage] || ''
+  // Numeração única das palavras da página, pela posição no texto. A tela (data-word-index)
+  // e a narração usam esta mesma lista; assim o destaque não se desalinha mesmo quando o
+  // vocabulário recorta uma palavra ao meio (ex.: "it" dentro de "it's").
+  const pageWordTokens = useMemo(
+    () => [...currentContent.matchAll(wordRegex())].map((m) => ({ start: m.index!, end: m.index! + m[0].length })),
+    [currentContent],
+  )
+  const charToWord = useMemo(() => {
+    const arr = new Int32Array(currentContent.length).fill(-1)
+    pageWordTokens.forEach((t, i) => { for (let c = t.start; c < t.end; c++) arr[c] = i })
+    return arr
+  }, [currentContent, pageWordTokens])
 
   useEffect(() => {
     if (selectedRange && containerRef.current) {
@@ -192,15 +214,20 @@ export function Reader({ book }: ReaderProps) {
 
     const isTtsHighlight = (idx: number) => ttsHighlightWordIndices != null && ttsHighlightWordIndices.has(idx)
     let finalHtml = ''
-    let wordIndex = 0
+    let segOffset = 0 // posição do segmento dentro de currentContent
     segments.forEach(seg => {
+      const base = segOffset
+      segOffset += seg.text.length
       if (seg.isVocab) {
-        seg.text.split(/(\s+)/).forEach((part) => {
-          if (/^\s+$/.test(part)) {
-            finalHtml += escapeHtml(part)
+        let pos = 0
+        seg.text.split(new RegExp(`(${WORD_PATTERN})`, 'u')).forEach((part, k) => {
+          const at = pos
+          pos += part.length
+          if (k % 2 === 0) {
+            if (part) finalHtml += escapeHtml(part)
             return
           }
-          const idx = wordIndex++
+          const idx = charToWord[base + at] ?? -1
           const isSelected = selectedRange && idx >= selectedRange[0] && idx <= selectedRange[1]
           const selectedClass = isSelected ? 'border-b-2 border-[var(--theme-accent)] bg-[var(--theme-accent)]/10' : ''
           const ttsClass = isTtsHighlight(idx) ? 'tts-current' : ''
@@ -209,13 +236,13 @@ export function Reader({ book }: ReaderProps) {
       } else {
         // Run regex on unescaped text, then escape the match and the spaces
         let lastIdx = 0;
-        const regex = /([\p{L}\p{N}_]+(?:'[\p{L}\p{N}_]+)*)/gu;
+        const regex = wordRegex();
         let match;
         while ((match = regex.exec(seg.text)) !== null) {
           if (match.index > lastIdx) {
             finalHtml += escapeHtml(seg.text.substring(lastIdx, match.index));
           }
-          const idx = wordIndex++
+          const idx = charToWord[base + match.index] ?? -1
           const isSelected = selectedRange && idx >= selectedRange[0] && idx <= selectedRange[1]
           const selectedClass = isSelected ? 'border-b-2 border-[var(--theme-accent)] bg-[var(--theme-accent)]/10' : ''
           const ttsClass = isTtsHighlight(idx) ? 'tts-current' : ''
@@ -230,7 +257,7 @@ export function Reader({ book }: ReaderProps) {
     })
 
     return finalHtml
-  }, [currentContent, vocabularies, showHighlights, interactionMode, selectedRange, ttsHighlightWordIndices])
+  }, [currentContent, charToWord, vocabularies, showHighlights, interactionMode, selectedRange, ttsHighlightWordIndices])
 
   const handleContentClick = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement
@@ -469,62 +496,71 @@ export function Reader({ book }: ReaderProps) {
   useEffect(() => {
     return () => {
       browserPlaybackCancelledRef.current = true
+      playbackRunIdRef.current++
       stopSpeaking()
     }
   }, [])
 
-  const togglePlayback = () => {
-    if (isPlaying || isPaused) {
-      if (isPaused) {
-        resumeSpeaking()
-        setIsPlaying(true)
-        setIsPaused(false)
-      } else {
-        pauseSpeaking()
-        setIsPaused(true)
-        setIsPlaying(false)
-      }
-      return
+  // Frases montadas a partir da MESMA numeração de palavras da tela (pageWordTokens):
+  // cada trecho sabe exatamente quais índices de palavra ele cobre.
+  // `startWord` permite começar no meio de uma frase (ex.: ao trocar a velocidade).
+  type Chunk = { text: string; range: [number, number] }
+  const buildChunks = (rate: number, useWords: boolean, startWord?: number): Chunk[] => {
+    const startChar = startWord != null ? pageWordTokens[startWord]?.start ?? 0 : 0
+    if (useWords) {
+      return pageWordTokens
+        .map((t, i) => ({ text: currentContent.slice(t.start, t.end), range: [i, i + 1] as [number, number] }))
+        .filter((c) => c.range[0] >= (startWord ?? 0))
     }
+    // Em velocidades lentas também divide em vírgulas/ponto e vírgula: pausas curtas ajudam quem está aprendendo.
+    const splitter = rate <= 0.7 ? /(?<=[.!?;:,])\s+/g : /(?<=[.!?])\s+/g
+    const bounds: [number, number][] = []
+    let from = 0
+    for (const m of currentContent.matchAll(splitter)) {
+      bounds.push([from, m.index!])
+      from = m.index! + m[0].length
+    }
+    bounds.push([from, currentContent.length])
+    const out: Chunk[] = []
+    let wi = 0
+    for (const [a0, b] of bounds) {
+      if (b <= startChar) continue
+      const a = Math.max(a0, startChar)
+      const text = currentContent.slice(a, b).replace(/\s+/g, ' ').trim()
+      if (!text) continue
+      while (wi < pageWordTokens.length && pageWordTokens[wi].start < a) wi++
+      const start = wi
+      while (wi < pageWordTokens.length && pageWordTokens[wi].start < b) wi++
+      out.push({ text, range: [start, wi] })
+    }
+    return out
+  }
 
+  const narrationLanguage = (book.languageCode || 'en').slice(0, 2).toLowerCase()
+  const clampRate = (r: number) => Math.min(1.5, Math.max(0.5, r))
+
+  const startPlayback = (opts: { startWord?: number; rate?: number } = {}) => {
     browserPlaybackCancelledRef.current = false
+    resumeFromWordRef.current = null
+    const runId = ++playbackRunIdRef.current
+    const isStale = () => runId !== playbackRunIdRef.current || browserPlaybackCancelledRef.current
     stopSpeaking()
-    const normalized = (currentContent || '').replace(/\s+/g, ' ').trim()
-    const rate = playbackRate
-    // Velocidades lentas (≤0.3) leem palavra por palavra, como antes; demais leem por frase.
-    const useWords = rate <= 0.3
-    // Player HTML Audio com preservesPitch: 0.3→0.6, 0.5→0.75, 0.8→0.9, 1.0→1.0
-    const playerRate = rate <= 0.3 ? 0.6 : rate <= 0.5 ? 0.75 : rate <= 0.8 ? 0.9 : 1.0
-    const PAUSE_MS =
-      rate <= 0.3 ? 480
-      : rate >= 1.0 ? 60
-      : Math.round(480 - (rate - 0.3) * (360 / 0.7))
-    const language = (book.languageCode || 'en').slice(0, 2).toLowerCase()
+    const rate = opts.rate ?? playbackRate
+    // Sem voz Kokoro, a velocidade mínima lê palavra por palavra (como antes).
+    // Com Kokoro, lê por frase em fala lenta: palavras isoladas soam mal nesse modelo.
+    const useWords = rate <= 0.5 && !activeKokoroVoice()
+    // A velocidade escolhida é a velocidade real da fala.
+    const playerRate = clampRate(rate)
+    // Pausa entre frases: maior em velocidades lentas para dar tempo de assimilar.
+    const PAUSE_MS = rate <= 0.5 ? 650 : rate <= 0.6 ? 500 : rate <= 0.7 ? 380 : rate <= 0.8 ? 250 : rate <= 1.0 ? 120 : 60
+    const language = narrationLanguage
     const context = useWords ? 'word' as const : 'reader' as const
-
-    const words = normalized ? normalized.split(/\s+/).filter(Boolean) : []
-    const chunks: string[] = useWords
-      ? words
-      : (() => {
-          const segments = normalized ? normalized.split(/(?<=[.!?])\s+/).map((s) => s.trim()).filter(Boolean) : []
-          return segments.length > 0 ? segments : [normalized || '']
-        })()
-
-    const phraseWordRanges: [number, number][] = useWords
-      ? []
-      : (() => {
-          let wi = 0
-          return chunks.map((phrase) => {
-            const n = phrase.split(/\s+/).filter(Boolean).length
-            const start = wi
-            wi += n
-            return [start, wi] as [number, number]
-          })
-        })()
+    const chunks = buildChunks(rate, useWords, opts.startWord)
 
     const totalPages = pages.length
     const finish = (advance: boolean) => {
       setTtsHighlightWordIndices(null)
+      currentWordRef.current = null
       setIsPlaying(false)
       setIsPaused(false)
       if (advance && currentPage < totalPages - 1) {
@@ -532,37 +568,81 @@ export function Reader({ book }: ReaderProps) {
         autoPlayNextPageRef.current = true
       }
     }
+    const highlight = (i: number) => {
+      currentWordRef.current = i
+      setTtsHighlightWordIndices(new Set([i]))
+    }
 
     const run = async () => {
       for (let index = 0; index < chunks.length; index++) {
-        if (browserPlaybackCancelledRef.current) return finish(false)
-        const text = chunks[index]
+        // Pausado entre frases: espera o aluno retomar antes de seguir.
+        await waitWhilePaused()
+        if (isStale()) return
+        const { text, range } = chunks[index]
         if (!text) continue
-        if (useWords) {
-          setTtsHighlightWordIndices(new Set([index]))
-        } else {
-          const [start, end] = phraseWordRanges[index] ?? [0, 0]
-          setTtsHighlightWordIndices(new Set(Array.from({ length: end - start }, (_, i) => start + i)))
-        }
-        // Pré-carrega as próximas duas frases enquanto a atual toca.
-        for (const next of chunks.slice(index + 1, index + 3)) prefetch(next, { language, context })
+        const [phraseStart, phraseEnd] = range
+        highlight(phraseStart)
+        // Pré-carrega as próximas duas frases (mesma velocidade => mesmo cache) enquanto a atual toca.
+        for (const next of chunks.slice(index + 1, index + 3)) prefetch(next.text, { language, context, rate: playerRate })
         try {
-          const handle = await speak(text, { language, context, rate: playerRate })
+          const handle = await speak(text, {
+            language, context, rate: playerRate, onLoading: setIsLoadingTts,
+            // Destaque palavra a palavra: tempos reais do Kokoro (ou onboundary da voz do navegador).
+            onWord: useWords ? undefined : (i) => {
+              if (!isStale()) highlight(Math.min(phraseStart + i, Math.max(phraseStart, phraseEnd - 1)))
+            },
+          })
           await handle.done
         } catch {
-          return finish(false)
+          if (!isStale()) finish(false)
+          return
         }
-        if (browserPlaybackCancelledRef.current) return finish(false)
+        if (isStale()) return
         await new Promise((r) => setTimeout(r, PAUSE_MS))
       }
-      finish(true)
+      if (!isStale()) finish(true)
     }
 
     setIsPlaying(true)
     setIsPaused(false)
     void run()
   }
+  startPlaybackRef.current = startPlayback
+
+  const togglePlayback = () => {
+    if (isPlaying) {
+      pauseSpeaking()
+      setIsPaused(true)
+      setIsPlaying(false)
+      return
+    }
+    if (isPaused) {
+      resumeSpeaking()
+      setIsPlaying(true)
+      setIsPaused(false)
+      return
+    }
+    startPlayback({ startWord: resumeFromWordRef.current ?? undefined })
+  }
   togglePlaybackRef.current = togglePlayback
+
+  // Pré-carregamento: com uma voz Kokoro escolhida, carrega o motor e já gera as primeiras
+  // frases da página na velocidade atual, para o play começar praticamente na hora.
+  // Página nova: o "continuar desta palavra" da página anterior não vale mais.
+  useEffect(() => { resumeFromWordRef.current = null }, [currentPage])
+
+  useEffect(() => {
+    if (!activeKokoroVoice() || !narrationLanguage.startsWith('en')) return
+    warmUpKokoro()
+    // Durante a leitura o próprio laço já pré-carrega as próximas frases.
+    if (isPlaying || isPaused) return
+    const t = setTimeout(() => {
+      const first = buildChunks(playbackRate, false).slice(0, 2)
+      for (const c of first) prefetch(c.text, { language: narrationLanguage, context: 'reader', rate: clampRate(playbackRate) })
+    }, 400)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, currentContent, playbackRate])
 
   useEffect(() => {
     if (autoPlayNextPageRef.current && containerRef.current) {
@@ -597,7 +677,10 @@ export function Reader({ book }: ReaderProps) {
     const firstIdx = Math.min(...ttsHighlightWordIndices)
     const span = containerRef.current.querySelector(`span[data-word-index="${firstIdx}"]`) as HTMLElement | null
     if (span) {
-      span.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      // Só rola quando a palavra sai da faixa central da tela; rolar a cada palavra faz a página "pular".
+      const r = span.getBoundingClientRect()
+      const vh = window.innerHeight
+      if (r.top < vh * 0.15 || r.bottom > vh * 0.75) span.scrollIntoView({ behavior: 'smooth', block: 'center' })
     }
     updateTtsHandPosition()
     const onScroll = () => updateTtsHandPosition()
@@ -617,20 +700,26 @@ export function Reader({ book }: ReaderProps) {
 
   const stopPlayback = () => {
     browserPlaybackCancelledRef.current = true
+    playbackRunIdRef.current++
+    cancelKokoroPrefetch()
     setTtsHighlightWordIndices(null)
     stopSpeaking()
+    setIsLoadingTts(false)
     setIsPlaying(false)
     setIsPaused(false)
   }
 
   const handleRateChange = (newRate: number) => {
     setPlaybackRate(newRate)
-    
-    if (isPlaying || isPaused) {
+    const word = currentWordRef.current
+    if (isPlaying) {
+      // Continua da palavra em que estava, já na nova velocidade (não volta ao início).
       stopPlayback()
-      setTimeout(() => {
-        togglePlaybackRef.current?.()
-      }, 50)
+      startPlaybackRef.current({ startWord: word ?? undefined, rate: newRate })
+    } else if (isPaused) {
+      stopPlayback()
+      resumeFromWordRef.current = word
+      if (word != null) setTtsHighlightWordIndices(new Set([word]))
     }
   }
 
@@ -977,7 +1066,7 @@ export function Reader({ book }: ReaderProps) {
             title={isPlaying ? t('pause') : isPaused ? t('listen') : t('listen')}
             aria-label={isPlaying ? t('pause') : isPaused ? t('listen') : t('listen')}
           >
-            {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+            {isLoadingTts ? <Loader2 className="w-4 h-4 animate-spin" /> : isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
           </button>
           
           {(isPlaying || isPaused) && (
@@ -1000,7 +1089,7 @@ export function Reader({ book }: ReaderProps) {
                 title={t('speedLabel')}
                 aria-label={t('speedLabel')}
               >
-                {playbackRate.toFixed(1)}x
+                {playbackRate.toFixed(2).replace(/0$/, '')}x
               </button>
             </PopoverTrigger>
             <PopoverContent
@@ -1010,7 +1099,7 @@ export function Reader({ book }: ReaderProps) {
               sideOffset={8}
             >
               <div className="flex flex-col gap-0.5">
-                {[0.75, 1.0, 1.25, 1.5].map((r) => {
+                {PLAYBACK_SPEEDS.map((r) => {
                   const isSelected = Math.abs(playbackRate - r) < 0.01
                   return (
                     <button
@@ -1187,7 +1276,7 @@ export function Reader({ book }: ReaderProps) {
           onStopPlayback={stopPlayback}
           isPlaying={isPlaying}
           isPaused={isPaused}
-          isLoadingTts={false}
+          isLoadingTts={isLoadingTts}
           playbackRate={playbackRate}
           onChangeRate={handleRateChange}
         />
@@ -1652,7 +1741,7 @@ function ComicReader({
               <button
                 type="button"
                 onClick={() => {
-                  const speeds = [0.75, 1.0, 1.25, 1.5] as const
+                  const speeds = PLAYBACK_SPEEDS
                   const idx = speeds.findIndex(s => Math.abs(s - playbackRate) < 0.01)
                   const next = speeds[(idx + 1) % speeds.length]
                   onChangeRate(next)
