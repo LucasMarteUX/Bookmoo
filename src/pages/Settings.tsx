@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { User, Lock, Mail, Camera } from 'lucide-react'
+import { VoiceSettings } from '@/components/settings/VoiceSettings'
 
 export function Settings() {
   const { locale } = useLanguage()
@@ -239,6 +240,8 @@ export function Settings() {
                 </div>
               </div>
             </section>
+
+            <VoiceSettings />
           </>
         )}
       </div>

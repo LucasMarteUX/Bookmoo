@@ -6,6 +6,7 @@ import { generateExplanation, generateVariantStory, API_KEY_REQUIRED_MESSAGE } f
 import { useEffectiveGeminiKey } from '@/hooks/useEffectiveGeminiKey'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
+import { speak, stopSpeaking } from '@/lib/tts'
 import { upsertVocabulary, deleteVocabularyRemote } from '@/lib/supabaseSync'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -43,7 +44,7 @@ export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId 
 
   useEffect(() => {
     if (isOpen) {
-      window.speechSynthesis?.cancel()
+      stopSpeaking()
       setIsAudioPlaying(false)
       if (vocabId) {
         const vocab = vocabularies.find(v => v.id === vocabId)
@@ -101,22 +102,21 @@ export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId 
     }
   }
 
-  const speakText = () => {
+  const speakText = async () => {
     const trimmed = text.trim()
-    if (!trimmed || typeof window === 'undefined' || !window.speechSynthesis) return
-
-    window.speechSynthesis.cancel()
-    const utterance = new SpeechSynthesisUtterance(trimmed)
-    const lang = bookLanguageCode?.startsWith('en') ? 'en-US' : (bookLanguageCode || 'en-US')
-    utterance.lang = lang.length === 2 ? `${lang}-${lang.toUpperCase()}` : lang
-    utterance.rate = 0.9
-    const voices = window.speechSynthesis.getVoices()
-    const preferred = voices.find((v) => v.lang === 'en-US' || v.lang.startsWith('en'))
-    if (preferred) utterance.voice = preferred
-    utterance.onstart = () => setIsAudioPlaying(true)
-    utterance.onend = () => setIsAudioPlaying(false)
-    utterance.onerror = () => setIsAudioPlaying(false)
-    window.speechSynthesis.speak(utterance)
+    if (!trimmed) return
+    const lang = (bookLanguageCode || 'en').slice(0, 2).toLowerCase()
+    setIsAudioPlaying(true)
+    try {
+      const h = await speak(trimmed, {
+        language: lang,
+        context: trimmed.split(/\s+/).length <= 3 ? 'word' : 'phrase',
+        rate: 0.9,
+      })
+      await h.done
+    } finally {
+      setIsAudioPlaying(false)
+    }
   }
 
   const handleSave = () => {

@@ -18,6 +18,7 @@ import { useEffectiveGeminiKey } from '@/hooks/useEffectiveGeminiKey'
 import { useBookSync } from '@/hooks/useBookSync'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
+import { speak, stopSpeaking, pauseSpeaking, resumeSpeaking, prefetch } from '@/lib/tts'
 import { uploadComicPage, getComicPageBase64, compressComicReference, isComicPageUrl } from '@/lib/comicStorage'
 import { useLanguage } from '@/store/useLanguage'
 import { useTranslations, getGeneratingComicMessage } from '@/lib/i18n'
@@ -51,8 +52,6 @@ export function Reader({ book }: ReaderProps) {
   const [isPlaying, setIsPlaying] = useState(false)
   const [isPaused, setIsPaused] = useState(false)
   const [ttsHighlightWordIndices, setTtsHighlightWordIndices] = useState<Set<number> | null>(null)
-  const synthRef = useRef<SpeechSynthesis | null>(null)
-  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null)
   const browserPlaybackCancelledRef = useRef(false)
   const autoPlayNextPageRef = useRef(false)
   const togglePlaybackRef = useRef<() => void>(() => {})
@@ -345,15 +344,8 @@ export function Reader({ book }: ReaderProps) {
   }
 
   const speakVocabText = (text: string) => {
-    if (!text.trim() || typeof window === 'undefined' || !window.speechSynthesis) return
-    window.speechSynthesis.cancel()
-    const utterance = new SpeechSynthesisUtterance(text.trim())
-    utterance.lang = 'en-US'
-    utterance.rate = 0.9
-    const voices = window.speechSynthesis.getVoices()
-    const preferred = voices.find((v) => v.lang === 'en-US' || v.lang.startsWith('en'))
-    if (preferred) utterance.voice = preferred
-    window.speechSynthesis.speak(utterance)
+    if (!text.trim()) return
+    void speak(text.trim(), { language: 'en', context: text.trim().split(/\s+/).length <= 3 ? 'word' : 'phrase', rate: 0.9 })
   }
 
   const handleGenerateComic = async (opts?: { regenerate?: boolean }) => {
@@ -473,56 +465,42 @@ export function Reader({ book }: ReaderProps) {
     }
   }
 
-  // TTS Functions — browser SpeechSynthesis only
+  // TTS — camada centralizada (VoiceStudio via Supabase, fallback para voz do navegador em src/lib/tts.ts)
   useEffect(() => {
-    synthRef.current = window.speechSynthesis
-    
-    const loadVoices = () => {
-      window.speechSynthesis.getVoices()
-    }
-    loadVoices()
-    if (speechSynthesis.onvoiceschanged !== undefined) {
-      speechSynthesis.onvoiceschanged = loadVoices
-    }
-
     return () => {
       browserPlaybackCancelledRef.current = true
-      if (synthRef.current) {
-        synthRef.current.cancel()
-      }
+      stopSpeaking()
     }
   }, [])
 
   const togglePlayback = () => {
     if (isPlaying || isPaused) {
-      if (synthRef.current) {
-        if (isPaused) {
-          synthRef.current.resume()
-          setIsPlaying(true)
-          setIsPaused(false)
-        } else {
-          synthRef.current.pause()
-          setIsPaused(true)
-          setIsPlaying(false)
-        }
+      if (isPaused) {
+        resumeSpeaking()
+        setIsPlaying(true)
+        setIsPaused(false)
+      } else {
+        pauseSpeaking()
+        setIsPaused(true)
+        setIsPlaying(false)
       }
       return
     }
 
-    if (!synthRef.current) return
     browserPlaybackCancelledRef.current = false
-    synthRef.current.cancel()
+    stopSpeaking()
     const normalized = (currentContent || '').replace(/\s+/g, ' ').trim()
     const rate = playbackRate
-    const useWords = rate <= 0.8
-    const effectiveRate =
-      rate <= 0.3 ? 0.4
-      : rate >= 1.0 ? 0.7
-      : 0.4 + (rate - 0.3) * (0.3 / 0.7)
-    const effectivePauseMs =
+    // Velocidades lentas (≤0.3) leem palavra por palavra, como antes; demais leem por frase.
+    const useWords = rate <= 0.3
+    // Player HTML Audio com preservesPitch: 0.3→0.6, 0.5→0.75, 0.8→0.9, 1.0→1.0
+    const playerRate = rate <= 0.3 ? 0.6 : rate <= 0.5 ? 0.75 : rate <= 0.8 ? 0.9 : 1.0
+    const PAUSE_MS =
       rate <= 0.3 ? 480
       : rate >= 1.0 ? 60
       : Math.round(480 - (rate - 0.3) * (360 / 0.7))
+    const language = (book.languageCode || 'en').slice(0, 2).toLowerCase()
+    const context = useWords ? 'word' as const : 'reader' as const
 
     const words = normalized ? normalized.split(/\s+/).filter(Boolean) : []
     const chunks: string[] = useWords
@@ -544,93 +522,45 @@ export function Reader({ book }: ReaderProps) {
           })
         })()
 
-    const voices = synthRef.current.getVoices()
-    const enUS = voices.filter((v) => v.lang === 'en-US')
-    const enOther = voices.filter((v) => v.lang.startsWith('en') && v.lang !== 'en-US')
-    const pool = enUS.length > 0 ? enUS : enOther
-    const preferredVoice =
-      pool.length > 0
-        ? pool.find((v) => /Google US English(?!\s*Male)|Samantha|Zira|Karen/i.test(v.name)) ||
-          pool.find((v) => /Female|woman|Natural|Premium/i.test(v.name)) ||
-          pool[0]
-        : undefined
-
-    const PAUSE_MS = effectivePauseMs
     const totalPages = pages.length
-
-    let index = 0
-    const speakNext = () => {
-      if (browserPlaybackCancelledRef.current) {
-        setTtsHighlightWordIndices(null)
-        setIsPlaying(false)
-        setIsPaused(false)
-        return
+    const finish = (advance: boolean) => {
+      setTtsHighlightWordIndices(null)
+      setIsPlaying(false)
+      setIsPaused(false)
+      if (advance && currentPage < totalPages - 1) {
+        changePage(1)
+        autoPlayNextPageRef.current = true
       }
-      if (index >= chunks.length || !synthRef.current) {
-        setTtsHighlightWordIndices(null)
-        setIsPlaying(false)
-        setIsPaused(false)
-        if (currentPage < totalPages - 1) {
-          changePage(1)
-          autoPlayNextPageRef.current = true
+    }
+
+    const run = async () => {
+      for (let index = 0; index < chunks.length; index++) {
+        if (browserPlaybackCancelledRef.current) return finish(false)
+        const text = chunks[index]
+        if (!text) continue
+        if (useWords) {
+          setTtsHighlightWordIndices(new Set([index]))
+        } else {
+          const [start, end] = phraseWordRanges[index] ?? [0, 0]
+          setTtsHighlightWordIndices(new Set(Array.from({ length: end - start }, (_, i) => start + i)))
         }
-        return
-      }
-      const text = chunks[index]
-      if (!text) {
-        index++
-        speakNext()
-        return
-      }
-      if (useWords) {
-        setTtsHighlightWordIndices(new Set([index]))
-      } else {
-        const [start, end] = phraseWordRanges[index] ?? [0, 0]
-        setTtsHighlightWordIndices(new Set(Array.from({ length: end - start }, (_, i) => start + i)))
-      }
-      const utterance = new SpeechSynthesisUtterance(text)
-      utterance.lang = 'en-US'
-      utterance.rate = effectiveRate
-      utterance.pitch = 1
-      if (preferredVoice) utterance.voice = preferredVoice
-
-      utterance.onboundary = (event) => {
-        if (useWords || event.name !== 'word') return
-        const phraseStart = phraseWordRanges[index]?.[0] ?? 0
-        const localWordIndex = text.slice(0, event.charIndex).trim()
-          ? text.slice(0, event.charIndex).trim().split(/\s+/).length
-          : 0
-        setTtsHighlightWordIndices(new Set([phraseStart + localWordIndex]))
-      }
-
-      utterance.onend = () => {
-        if (browserPlaybackCancelledRef.current) return
-        index++
-        if (index >= chunks.length) {
-          setTtsHighlightWordIndices(null)
-          setIsPlaying(false)
-          setIsPaused(false)
-          if (currentPage < totalPages - 1) {
-            changePage(1)
-            autoPlayNextPageRef.current = true
-          }
-          return
+        // Pré-carrega as próximas duas frases enquanto a atual toca.
+        for (const next of chunks.slice(index + 1, index + 3)) prefetch(next, { language, context })
+        try {
+          const handle = await speak(text, { language, context, rate: playerRate })
+          await handle.done
+        } catch {
+          return finish(false)
         }
-        setTimeout(speakNext, PAUSE_MS)
+        if (browserPlaybackCancelledRef.current) return finish(false)
+        await new Promise((r) => setTimeout(r, PAUSE_MS))
       }
-      utterance.onerror = () => {
-        setTtsHighlightWordIndices(null)
-        setIsPlaying(false)
-        setIsPaused(false)
-      }
-
-      utteranceRef.current = utterance
-      synthRef.current.speak(utterance)
+      finish(true)
     }
 
     setIsPlaying(true)
     setIsPaused(false)
-    speakNext()
+    void run()
   }
   togglePlaybackRef.current = togglePlayback
 
@@ -688,9 +618,7 @@ export function Reader({ book }: ReaderProps) {
   const stopPlayback = () => {
     browserPlaybackCancelledRef.current = true
     setTtsHighlightWordIndices(null)
-    if (synthRef.current) {
-      synthRef.current.cancel()
-    }
+    stopSpeaking()
     setIsPlaying(false)
     setIsPaused(false)
   }
