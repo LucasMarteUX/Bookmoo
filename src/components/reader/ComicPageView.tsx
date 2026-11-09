@@ -324,26 +324,15 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
     const r = pageRect(panel.bounds, line.box)
     return { x: r.x * pageW, y: r.y * pageH, w: r.w * pageW, h: r.h * pageH }
   })()
-  const turnEase = [0.45, 0.05, 0.25, 1] as const
+  const turnEase = [0.32, 0.72, 0, 1] as const
+  // Troca de página como slideshow: avançar → a atual sai pela esquerda e a nova entra pela direita;
+  // voltar → o contrário. As duas deslizam juntas, dentro da moldura (nada é cortado de lado).
   const flipVariants = reduceMotion ? {
     under: { opacity: 0 }, shown: { opacity: 1, transition: { duration: 0.15 } }, turned: { opacity: 0, transition: { duration: 0.15 } },
   } : {
-    // A nova página começa por baixo, um pouco apagada, e "acende" enquanto a outra vira.
-    under: { opacity: 0.25, scale: 0.985, zIndex: 0, rotateY: 0 },
-    shown: { opacity: 1, scale: 1, zIndex: 1, rotateY: 0, transition: { duration: 0.6, ease: turnEase } },
-    turned: (d: number) => ({
-      rotateY: d > 0 ? -120 : 120, zIndex: 2, opacity: [1, 1, 0],
-      transformOrigin: d > 0 ? 'left center' : 'right center', transformPerspective: 1800,
-      transition: { duration: 0.62, ease: turnEase, opacity: { duration: 0.62, times: [0, 0.75, 1] } },
-    }),
-  }
-  // Sombra que escurece a página enquanto ela vira (do lado que se levanta).
-  const shadeVariants = {
-    under: { opacity: 0 }, shown: { opacity: 0 },
-    turned: (d: number) => ({
-      opacity: [0, 0.55], transition: { duration: 0.62, ease: turnEase },
-      background: d > 0 ? 'linear-gradient(90deg, rgba(0,0,0,0.05), rgba(0,0,0,0.55))' : 'linear-gradient(270deg, rgba(0,0,0,0.05), rgba(0,0,0,0.55))',
-    }),
+    under: (d: number) => ({ x: d > 0 ? '100%' : '-100%', opacity: 1 }),
+    shown: { x: 0, opacity: 1, transition: { duration: 0.42, ease: turnEase } },
+    turned: (d: number) => ({ x: d > 0 ? '-100%' : '100%', opacity: 1, transition: { duration: 0.42, ease: turnEase } }),
   }
 
   const toolbar = (
@@ -439,9 +428,8 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
         onTouchCancel={() => { swipe.current = null; pinch.current = null }}
         onDoubleClick={onDoubleClick}
       >
-        {/* Virada de página: a página atual gira presa na lombada (avançar: da direita para a esquerda;
-            voltar: da esquerda para a direita) e a próxima já está por baixo, sendo revelada. */}
-        <div className="relative mx-auto" style={{ width: pageW, height: pageH, transformStyle: 'preserve-3d' }}>
+        {/* Troca de página em slideshow (ver flipVariants). */}
+        <div className="relative mx-auto overflow-hidden rounded-sm shadow-2xl" style={{ width: pageW, height: pageH }}>
         <AnimatePresence initial={false} custom={direction}>
           <motion.div
             key={pageIndex}
@@ -454,8 +442,6 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
             style={{ backfaceVisibility: 'hidden' }}
             onClick={handleClick}
           >
-            {!reduceMotion && <motion.div aria-hidden className="absolute inset-0 z-50 pointer-events-none"
-              variants={shadeVariants} custom={direction} />}
             <img src={imageUrl} alt="" draggable={false} referrerPolicy="no-referrer"
               className={`absolute inset-0 w-full h-full ${editorial?.reflow ? 'invisible' : ''}`}
               onLoad={(e) => {
