@@ -201,3 +201,59 @@ export async function chooseCaptionAnchors(imageUrl: string, panels: PanelRect[]
   }
 }
 
+
+/** Recorta cada quadro (coordenadas 0–1 da página) e devolve JPEG base64 reduzido (sem prefixo). */
+export async function cropPanels(imageUrl: string, rects: PanelRect[], maxSide = 640): Promise<string[]> {
+  const img = await loadImage(imageUrl)
+  return rects.map(r => {
+    const sx = Math.max(0, r.x * img.naturalWidth), sy = Math.max(0, r.y * img.naturalHeight)
+    const sw = Math.min(img.naturalWidth - sx, r.w * img.naturalWidth), sh = Math.min(img.naturalHeight - sy, r.h * img.naturalHeight)
+    const scale = Math.min(1, maxSide / Math.max(sw, sh))
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.max(1, Math.round(sw * scale)); canvas.height = Math.max(1, Math.round(sh * scale))
+    canvas.getContext('2d')!.drawImage(img, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height)
+    return canvas.toDataURL('image/jpeg', 0.82).split(',')[1]
+  })
+}
+
+/** Mapa de pele da página (para não pôr selos/caixas sobre rostos, mesmo com detecção imprecisa). */
+export type SkinMap = { fraction: (x: number, y: number, w: number, h: number) => number }
+
+/** Tom de pele em ilustração: matiz laranja-rosado com saturação média. Paredes e papéis bege têm a
+ *  mesma matiz, mas saturação bem menor — por isso o corte de saturação. */
+function isSkinTone(r: number, g: number, b: number) {
+  const max = Math.max(r, g, b), min = Math.min(r, g, b)
+  if (max < 110 || max !== r || max === min) return false
+  const sat = (max - min) / max
+  const hue = (60 * (g - b)) / (max - min)
+  return hue >= 12 && hue <= 42 && sat >= 0.28 && sat <= 0.62
+}
+
+export async function skinMap(imageUrl: string): Promise<SkinMap> {
+  const img = await loadImage(imageUrl)
+  const W = 240, H = Math.max(1, Math.round(240 * img.naturalHeight / img.naturalWidth))
+  const canvas = document.createElement('canvas')
+  canvas.width = W; canvas.height = H
+  const ctx = canvas.getContext('2d', { willReadFrequently: true })!
+  ctx.drawImage(img, 0, 0, W, H)
+  const data = ctx.getImageData(0, 0, W, H).data
+  const integral = new Float64Array((W + 1) * (H + 1))
+  for (let y = 0; y < H; y++) {
+    let row = 0
+    for (let x = 0; x < W; x++) {
+      const p = (y * W + x) * 4
+      row += isSkinTone(data[p], data[p + 1], data[p + 2]) ? 1 : 0
+      integral[(y + 1) * (W + 1) + x + 1] = integral[y * (W + 1) + x + 1] + row
+    }
+  }
+  return {
+    /** Fração (0–1) de pixels de pele num retângulo em coordenadas 0–1 da página. */
+    fraction(x, y, w, h) {
+      const x0 = Math.max(0, Math.floor(x * W)), y0 = Math.max(0, Math.floor(y * H))
+      const x1 = Math.min(W, Math.ceil((x + w) * W)), y1 = Math.min(H, Math.ceil((y + h) * H))
+      if (x1 <= x0 || y1 <= y0) return 0
+      const s = integral[y1 * (W + 1) + x1] - integral[y0 * (W + 1) + x1] - integral[y1 * (W + 1) + x0] + integral[y0 * (W + 1) + x0]
+      return s / ((x1 - x0) * (y1 - y0))
+    },
+  }
+}

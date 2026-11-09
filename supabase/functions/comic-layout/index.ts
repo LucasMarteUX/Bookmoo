@@ -3,6 +3,7 @@
 import { corsHeaders, getUser, json, log } from '../_shared/tts.ts'
 import { AiError, bytesToB64, llmJson, pickProvider } from '../_shared/ai.ts'
 import { inspectComic } from './inspect.ts'
+import { locateFaces } from './faces.ts'
 import type { Segment } from '../_shared/comic.ts'
 
 type Box = { x: number; y: number; w: number; h: number; kind: 'speech' | 'caption' }
@@ -62,9 +63,19 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405)
   const user = await getUser(req)
   if (!user) return json({ error: 'unauthorized' }, 401)
-  const b = await req.json().catch(() => null) as { action?: string; imageUrl?: string; segments?: Segment[]; pageText?: string } | null
+  const b = await req.json().catch(() => null) as { action?: string; imageUrl?: string; segments?: Segment[]; pageText?: string; panels?: unknown } | null
   if (!b) return json({ error: 'invalid_json' }, 400)
   if (b.action === 'editorial-version') return json({ editorialVersion: 3 })
+
+  if (b.action === 'faces') {
+    try {
+      return json(await locateFaces(user.id, b as Record<string, unknown>))
+    } catch (e) {
+      const err = e instanceof AiError ? e : new AiError(String((e as Error).message))
+      log('comic-layout', 'faces_failed', { code: err.code })
+      return json({ error: err.code, detail: err.message }, err.status)
+    }
+  }
 
   if (b.action === 'inspect') {
     try {

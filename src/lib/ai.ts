@@ -190,6 +190,24 @@ export function inspectComicPage(generated: Pick<GeneratedComicPage, 'imageUrl' 
   })
 }
 
+/**
+ * Localiza os rostos quadro a quadro (recortes enviados à função) para os balões apontarem para
+ * quem fala. Devolve, por quadro, os rostos em coordenadas relativas ao próprio quadro.
+ */
+export async function locateComicFaces(imageUrl: string, panels: { bounds: Rect; cast: ComicCharacter[]; speakers: string[] }[]) {
+  const { cropPanels } = await import('@/lib/comicPanels')
+  const images = await cropPanels(imageUrl, panels.map(p => p.bounds))
+  const { faces } = await invoke<{ faces: { speakerId: string; face: Rect }[][] }>('comic-layout', {
+    action: 'faces',
+    panels: panels.map((p, i) => ({
+      image: images[i],
+      cast: p.cast.filter(c => c.id).slice(0, 8).map(c => ({ id: c.id, name: c.name, visualDescription: c.visualDescription })),
+      speakers: p.speakers,
+    })),
+  })
+  return faces
+}
+
 export function regenerateComicPanel(options: { bookId: string; page: number; panelId: string; mask: string; editRevision?: string }) {
   return invoke<{ imageUrl: string; generation: GenerationRecord }>('comic-generate', options)
 }

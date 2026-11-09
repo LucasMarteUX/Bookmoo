@@ -10,10 +10,11 @@ import { SpeakPractice } from '@/components/speak/SpeakPractice'
 import { DictationPractice } from '@/components/write/DictationPractice'
 import { Editor } from '@/components/editor/Editor'
 import { PageSizeDialog } from '@/components/book/PageSizeDialog'
+import { VoiceCastDialog } from '@/components/book/VoiceCastDialog'
 import { remapComics } from '@/lib/comicPersistence'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { BookOpen, CheckCircle2, FilePen, Keyboard, Headphones, Mic, Palette, PenLine, Rows3, XCircle } from 'lucide-react'
+import { BookOpen, Users, CheckCircle2, FilePen, Keyboard, Headphones, Mic, Palette, PenLine, Rows3, XCircle } from 'lucide-react'
 import { ToolButton, ToolGroup } from '@/components/ui/toolbar'
 import { useAuth } from '@/contexts/AuthContext'
 
@@ -30,6 +31,7 @@ export function BookPage() {
   const [saveError, setSaveError] = useState('')
   const [artOpen, setArtOpen] = useState(false)
   const [pageSizeOpen, setPageSizeOpen] = useState(false)
+  const [castOpen, setCastOpen] = useState(false)
   const [writeMode, setWriteMode] = useState<'dictation' | 'edit'>('dictation')
   // Altura do topo fixo: o painel de ferramentas da HQ gruda logo abaixo dele.
   const [headerH, setHeaderH] = useState(64)
@@ -106,6 +108,10 @@ export function BookPage() {
               label={locale === 'pt-BR' ? 'Tamanho da página' : 'Page length'}
               hint={locale === 'pt-BR' ? 'Escolha quanto texto vai em cada página (curta é melhor para HQ)' : 'Choose how much text goes on each page (short works best for comics)'}
               onClick={() => setPageSizeOpen(true)} />
+            <ToolButton icon={<Users className="w-4 h-4" />} compact
+              label={locale === 'pt-BR' ? 'Vozes' : 'Voices'}
+              hint={locale === 'pt-BR' ? 'Voz de cada personagem na leitura (mulher, homem, criança…)' : 'Each character’s voice when reading (woman, man, child…)'}
+              onClick={() => setCastOpen(true)} />
             <ToolButton icon={<Palette className="w-4 h-4" />} compact
               label={locale === 'pt-BR' ? 'Arte da HQ' : 'Comic art'}
               hint={locale === 'pt-BR' ? 'Estilo de desenho, referências visuais e personagens da HQ' : 'Drawing style, visual references and characters for the comic'}
@@ -141,6 +147,8 @@ export function BookPage() {
         )}
       </div>
 
+      <VoiceCastDialog book={book} open={castOpen} pt={locale === 'pt-BR'} onOpenChange={setCastOpen}
+        onSave={(doc) => updateBookAndSync(book.id, { comicStyleDoc: doc })} />
       <PageSizeDialog
         book={book}
         open={pageSizeOpen}

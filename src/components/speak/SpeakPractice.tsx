@@ -421,7 +421,7 @@ export function SpeakPractice({ book }: Props) {
       </div>
 
       {/* Barra flutuante: microfone, estado e navegação — mesma posição da barra do leitor */}
-      <div className="fixed left-2 right-2 md:left-64 md:right-8 md:bottom-8 z-40 flex flex-col items-center gap-2" style={{ bottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
+      <div className="fixed left-2 right-2 md:left-[var(--sidebar-w,16rem)] md:right-8 md:bottom-8 z-40 flex flex-col items-center gap-2" style={{ bottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
         <AnimatePresence>
           {sel && (
             <motion.div

@@ -9,7 +9,7 @@ import { generateImage } from '../_shared/ai.ts'
 import { sentenceSpans } from '../_shared/comic.ts'
 import { fullComicText } from '../_shared/comicText.ts'
 import type { ComicInspection, Dialogue } from '../_shared/comicEditorial.ts'
-import { letteringConflicts, overlaps, placeCompleteComic, placeDialogue, tailTip } from '../../../src/lib/comicLettering.ts'
+import { headRect, letteringConflicts, overlaps, placeCompleteComic, placeDialogue, placePanelBoxes, tailTip } from '../../../src/lib/comicLettering.ts'
 
 const excerpt = '“I know,” said Alice. “Then leave,” said Benoît. Silence filled the hall.'
 const model: ModelPlan = {
@@ -197,7 +197,7 @@ Deno.test('the image prompt translates lettering reservations into painted scene
   raw.beats![0].reservation = 'Draw a speech balloon placeholder here'
   raw.style!.lettering = 'A custom lettering treatment'
   const plan = resolvePlan(raw, {}, [], sentenceSpans(excerpt), excerpt, 0)
-  const prompt = imagePrompt(plan, composeRows(plan.beats), [], false)
+  const prompt = imagePrompt(plan, composeRows(plan.beats), [], 0)
   assert.match(prompt, /painted scenery/)
   assert.match(prompt, /Paint the entire scene, including the quieter areas/)
   assert.match(prompt, /Avoid blank patches/)
@@ -211,7 +211,7 @@ Deno.test('composition supports side-by-side frames and a tall frame beside stac
   const beats = [{ ...compact, framing: 'emotional close-up', importance: 'high' }, compact, compact]
   const rows = composeRows(beats)
   assert.equal(rows[0].rightStack, true)
-  assert.match(imagePrompt({ ...plan, beats }, rows, [], false), /tall left panel, then top right, then bottom right/)
+  assert.match(imagePrompt({ ...plan, beats }, rows, [], 0), /tall left panel, then top right, then bottom right/)
 })
 
 
@@ -258,7 +258,7 @@ Deno.test('opening author notes produce a bookplate instead of borrowing scenes 
   assert.equal(plan.beats.length, 1)
   assert.deepEqual(plan.beats[0].dialogue, [])
   assert.deepEqual(plan.beats[0].cast, [])
-  assert.doesNotMatch(imagePrompt(plan, composeRows(plan.beats), [], false), /They argue/)
+  assert.doesNotMatch(imagePrompt(plan, composeRows(plan.beats), [], 0), /They argue/)
 })
 
 Deno.test('a speaker attribution inside one sentence does not create two balloons', () => {
@@ -283,8 +283,10 @@ Deno.test('speech and narration remain inside the artwork even when a speaker ca
     panelId: line.panelId, bounds: { x: 0.03, y: 0.03, w: 0.94, h: 0.37 }, faces: [],
     free: [{ x: 0.03, y: 0.03, w: 0.94, h: 0.39 }],
   }] }
+  // Sem rosto localizado a fala ainda é encaixada (sem rabicho; o leitor mostra o nome de quem fala).
   const [placed] = placeDialogue(inspection, [line], (text, font) => text.length * font * 0.52).balloons
-  assert.equal(placed.box, null)
+  assert.ok(placed.box)
+  assert.equal(placed.targetAnchor, null)
   assert.equal(placed.text, line.text)
   const [inArt] = placeCompleteComic(inspection, [line], (text, font) => text.length * font * 0.52).balloons
   assert.ok(inArt.box)
@@ -304,7 +306,7 @@ Deno.test('complete lettering preserves the source narration and dialogue tags w
   assert.deepEqual(words(parts.map(({ start, end }) => text.slice(start, end)).join(' ')), words(text))
 })
 
-Deno.test('dense lettering opens room inside a crowded frame and keeps every original word', () => {
+Deno.test('dense lettering stays inside the frame over the art and keeps every original word', () => {
   const beat = resolve().beats[0]
   const text = 'The lantern lit the narrow hall while the footsteps drew nearer. '.repeat(28).trim()
   const [caption] = fullComicText(text, [{ ...beat, dialogue: [] }])
@@ -313,18 +315,16 @@ Deno.test('dense lettering opens room inside a crowded frame and keeps every ori
     faces: [{ speakerId: 'close-up', face: { x: 0.05, y: 0.03, w: 0.9, h: 0.94 } }], free: [],
   }] }
   const measure = (value: string, font: number) => value.length * font * 0.54
-  assert.equal(placeDialogue(inspection, [caption], measure).balloons[0].box, null)
-  const { balloons: [line], reflow, issues } = placeCompleteComic(inspection, [caption], measure)
-  assert.ok(reflow && line.box)
-  const frame = reflow.panels[0]
-  assert.equal(overlaps(frame.art, line.box), false)
-  assert.ok(line.box.y + line.box.h <= 1)
-  assert.ok(line.font >= 0.014)
+  const result = placeCompleteComic(inspection, [caption], measure)
+  const [line] = result.balloons
+  // Nunca mais encolhe a arte numa faixa lateral.
+  assert.equal(result.reflow, undefined)
+  assert.ok(line.box)
+  assert.ok(line.box.x >= 0 && line.box.y >= 0 && line.box.x + line.box.w <= 1.0001 && line.box.y + line.box.h <= 1.0001)
+  assert.ok(line.font >= 0.010)
   assert.equal(line.text, text)
   assert.equal(text.slice(line.charStart, line.charEnd), text)
-  assert.deepEqual(issues, [])
 })
-
 
 Deno.test('a cinematic-looking historical image is kept but flagged for review', async () => {
   const originalFetch = globalThis.fetch
@@ -365,4 +365,40 @@ Deno.test('a wrong panel count from vision falls back to the planned composition
     assert.ok(result.panels[0].bounds.x < result.panels[1].bounds.x)
     assert.ok(result.panels[2].bounds.y > result.panels[0].bounds.y)
   } finally { globalThis.fetch = originalFetch }
+})
+
+
+Deno.test('each line gets its own text box that keeps the text and stays off the whole head', () => {
+  const beat = resolve().beats[0]
+  const text = 'The duke frowned. “He’s two. Shouldn’t he be speaking?” Nurse nodded.'
+  const lines = fullComicText(text, [{ ...beat, dialogue: [] }]).map((line, i) => ({ ...line, readingOrder: i }))
+  const face = { x: 0.55, y: 0.25, w: 0.2, h: 0.35 }
+  const inspection: ComicInspection = { aspect: 2 / 3, issues: [], panels: [{
+    panelId: beat.id, bounds: { x: 0.02, y: 0.02, w: 0.96, h: 0.3 }, faces: [{ speakerId: 'duke', face }], free: [],
+  }] }
+  const { balloons } = placePanelBoxes(inspection, lines, (value, font) => value.length * font * 0.5)
+  assert.equal(balloons.length, lines.length)
+  for (const line of balloons) {
+    assert.ok(line.box)
+    assert.equal(overlaps(line.box, headRect(face)), false)
+  }
+  assert.deepEqual(balloons.map(line => line.text), lines.map(line => line.text))
+})
+
+Deno.test('ambiguous lines get a speaker from dialogue tags, split quotes, single cast and alternation', async () => {
+  const { resolveSpeakers } = await import('../../../src/lib/speakerResolution.ts')
+  const duke = { id: 'duke', name: 'Duke of Hastings', visualDescription: 'tall man' }
+  const nurse = { id: 'nurse', name: 'Nurse Hopkins', visualDescription: 'older woman' }
+  const text = '“He will be.” “Maybe,” she suggested, “he just doesn’t talk.” “I don’t know,” Nurse answered, wringing her hands. “What have you done to him?” “I haven’t done anything!”'
+  const quote = (q: string, panelId: string, i: number) => {
+    const start = text.indexOf(q)
+    return { id: `l${i}`, panelId, text: q, balloonType: 'speech' as const, attribution: 'ambiguous' as const, speakerId: null, speakerName: null,
+      emotion: '', delivery: '', charStart: start, charEnd: start + q.length, sourceSentenceIds: [], targetAnchor: null, preferredPosition: 'top-left' as const, readingOrder: i }
+  }
+  const lines = [quote('He will be.', 'p1', 0), quote('Maybe,', 'p2', 1), quote('he just doesn’t talk.', 'p2', 2),
+    { ...quote('I don’t know,', 'p3', 3), attribution: 'confirmed' as const, speakerId: 'nurse', speakerName: 'Nurse Hopkins' },
+    quote('What have you done to him?', 'p3', 4), quote('I haven’t done anything!', 'p3', 5)]
+  const beats = [{ id: 'p1', cast: ['duke'] }, { id: 'p2', cast: ['duke', 'nurse'] }, { id: 'p3', cast: ['duke', 'nurse'] }]
+  const out = resolveSpeakers(lines, beats, [duke, nurse], text)
+  assert.deepEqual(out.map(l => l.speakerId), ['duke', 'nurse', 'nurse', 'nurse', 'duke', 'nurse'])
 })

@@ -131,8 +131,8 @@ export function kokoroSpeed(rate: number): number {
 /** Pré-carrega (gera/aquece cache) sem tocar. Erros são ignorados. */
 export function prefetch(text: string, opts: SpeakOptions = {}) {
   if (!text.trim()) return
-  const kv = activeKokoroVoice()
-  if (kv && (opts.language ?? 'en').toLowerCase().startsWith('en')) {
+  const kv = opts.kokoroVoice ?? activeKokoroVoice()
+  if (kv && activeKokoroVoice() && (opts.language ?? 'en').toLowerCase().startsWith('en')) {
     kokoroAudioUrl(text.replace(/\s+/g, ' ').trim(), kv, kokoroSpeed(opts.rate ?? 1)).catch(() => {})
     return
   }
@@ -201,26 +201,57 @@ let finishCurrent: (() => void) | null = null
  * do texto como a tela as numera. Normalmente a contagem bate 1:1. Quando não bate (números
  * lidos por extenso, siglas, hífens), alinha proporcionalmente por letras/fonemas, mantendo a ordem.
  */
-function startsFromTimings(text: string, timings: WordTiming[]): number[] | undefined {
+/**
+ * Casa os blocos de som do Kokoro com as palavras da tela. O sintetizador às vezes junta palavrinhas
+ * ("a mere", "of the" viram um bloco) ou parte uma palavra (números). Alinhamento por programação
+ * dinâmica: cada bloco cobre 1–3 palavras, ou uma palavra ocupa 2 blocos, escolhendo a combinação em
+ * que o nº de fonemas bate com o tamanho das palavras. Dentro de um bloco com várias palavras, o
+ * tempo é dividido pelo tamanho de cada uma — o erro fica preso ao bloco e não se acumula.
+ */
+export function startsFromTimings(text: string, timings: WordTiming[]): number[] | undefined {
   const words = listWords(text)
   if (!words.length || !timings.length) return undefined
   if (timings.length === words.length) return timings.map((t) => t.f)
-  const wLen = words.map((w) => w.length)
-  const wTot = wLen.reduce((a, b) => a + b, 0)
-  const gLen = timings.map((t) => Math.max(1, t.n))
-  const gTot = gLen.reduce((a, b) => a + b, 0)
-  const gStartPos: number[] = []
-  let acc = 0
-  for (const n of gLen) { gStartPos.push(acc / gTot); acc += n }
-  const out: number[] = []
-  let wAcc = 0
-  let j = 0
-  for (const len of wLen) {
-    const pos = wAcc / wTot
-    while (j + 1 < timings.length && gStartPos[j + 1] <= pos + 1e-6) j++
-    out.push(Math.max(out[out.length - 1] ?? 0, timings[j].f))
-    wAcc += len
+  const W = words.length, G = timings.length
+  const est = words.map((w) => Math.max(1, w.replace(/['’]/g, '').length * 0.85))
+  const n = timings.map((t) => Math.max(1, t.n))
+  const fit = (phon: number, letters: number) => Math.abs(phon - letters) / Math.max(phon, letters)
+  const INF = 1e9
+  const dp = Array.from({ length: W + 1 }, () => new Array<number>(G + 1).fill(INF))
+  const back = Array.from({ length: W + 1 }, () => new Array<[number, number]>(G + 1).fill([0, 0]))
+  dp[0][0] = 0
+  for (let i = 0; i <= W; i++) for (let j = 0; j <= G; j++) {
+    if (dp[i][j] >= INF) continue
+    // k palavras -> 1 bloco
+    for (let k = 1; k <= 3 && i + k <= W && j + 1 <= G; k++) {
+      let sum = 0
+      for (let x = i; x < i + k; x++) sum += est[x]
+      const c = dp[i][j] + fit(n[j], sum) + (k - 1) * 0.12
+      if (c < dp[i + k][j + 1]) { dp[i + k][j + 1] = c; back[i + k][j + 1] = [k, 1] }
+    }
+    // 1 palavra -> 2 blocos (ex.: números por extenso)
+    if (i + 1 <= W && j + 2 <= G) {
+      const c = dp[i][j] + fit(n[j] + n[j + 1], est[i]) + 0.25
+      if (c < dp[i + 1][j + 2]) { dp[i + 1][j + 2] = c; back[i + 1][j + 2] = [1, 2] }
+    }
   }
+  if (dp[W][G] >= INF) return undefined
+  const out = new Array<number>(W).fill(0)
+  let i = W, j = G
+  while (i > 0 && j > 0) {
+    const [k, g] = back[i][j]
+    const g0 = j - g
+    const from = timings[g0].f
+    const to = g0 + g < G ? timings[g0 + g].f : Math.min(1, from + (1 - from) * 0.9)
+    if (k === 1) out[i - 1] = from
+    else {
+      const total = est.slice(i - k, i).reduce((a, b) => a + b, 0)
+      let acc = 0
+      for (let x = i - k; x < i; x++) { out[x] = from + (to - from) * (acc / total); acc += est[x] }
+    }
+    i -= k; j -= g
+  }
+  for (let x = 1; x < W; x++) out[x] = Math.max(out[x], out[x - 1])
   return out
 }
 
@@ -347,7 +378,8 @@ export async function speak(text: string, opts: SpeakOptions = {}): Promise<Spea
 
   // 1) Voz local Kokoro (baixada pelo aluno), só para inglês.
   const lang = (opts.language ?? 'en').toLowerCase()
-  const kokoroVoice = opts.kokoroVoice ?? activeKokoroVoice()
+  // Voz do personagem só quando o motor Kokoro já está instalado (senão segue a ordem normal).
+  const kokoroVoice = activeKokoroVoice() ? (opts.kokoroVoice ?? activeKokoroVoice()) : null
   if (kokoroVoice && lang.startsWith('en')) {
     try {
       opts.onLoading?.(true)

@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom'
-import { Home, BarChart2, BookMarked, LogOut, Sun, Moon, Coffee, Settings, Mic, Keyboard } from 'lucide-react'
+import { Home, BarChart2, BookMarked, LogOut, Sun, Moon, Coffee, Settings, Mic, Keyboard, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+import { useUiStore } from '@/store/useUiStore'
 import { Button } from '@/components/ui/button'
 import { useReaderSettings, Theme } from '@/store/useReaderSettings'
 import { useLanguage, Locale } from '@/store/useLanguage'
@@ -36,6 +37,58 @@ export function Sidebar({ isMobileDrawer, onClose }: SidebarProps) {
     onClick: onClose
   })
 
+  const { sidebarCollapsed, toggleSidebar } = useUiStore()
+
+  // Recolhida (só desktop): coluna estreita com os ícones das opções.
+  if (!isMobileDrawer && sidebarCollapsed) {
+    const items = [
+      { to: '/', icon: Home, label: t('home') },
+      { to: '/vocabulary', icon: BookMarked, label: t('vocabulary') },
+      { to: '/practice/speak', icon: Mic, label: locale === 'pt-BR' ? 'Falar' : 'Speak' },
+      { to: '/practice/write', icon: Keyboard, label: locale === 'pt-BR' ? 'Ditado' : 'Dictation' },
+      { to: '/stats', icon: BarChart2, label: t('stats') },
+    ]
+    const current = themes.find(item => item.id === theme) ?? themes[0]
+    const nextTheme = themes[(themes.indexOf(current) + 1) % themes.length]
+    const ThemeIcon = current.icon
+    const iconButton = 'w-11 h-11 rounded-[12px] grid place-items-center transition-colors hover:bg-[var(--theme-nav-hover)]'
+    return (
+      <aside className="w-[76px] flex flex-col items-center py-6 gap-2 z-20 fixed left-0 top-0 bottom-0 rounded-r-[24px] transition-colors duration-300"
+        style={{ backgroundColor: 'var(--theme-nav-bg)', color: 'var(--theme-nav-text)', borderRight: '1px solid var(--theme-border)' }}>
+        <button type="button" onClick={toggleSidebar} className={iconButton} title={locale === 'pt-BR' ? 'Expandir menu' : 'Expand menu'}
+          aria-label={locale === 'pt-BR' ? 'Expandir menu' : 'Expand menu'} style={{ color: 'var(--theme-nav-text-muted)' }}>
+          <PanelLeftOpen className="w-5 h-5" />
+        </button>
+        <Link to="/" className="text-xl font-bold mb-3" title="Bookmoo">B</Link>
+        <nav className="flex flex-col gap-1">
+          {items.map(({ to, icon: Icon, label }) => {
+            const active = location.pathname === to
+            return (
+              <Link key={to} to={to} title={label} aria-label={label} className={iconButton}
+                style={{ backgroundColor: active ? 'var(--theme-nav-active)' : 'transparent', color: active ? 'var(--theme-nav-text)' : 'var(--theme-nav-text-muted)' }}>
+                <Icon className="w-5 h-5" />
+              </Link>
+            )
+          })}
+        </nav>
+        <div className="mt-auto flex flex-col gap-1 items-center pt-3 border-t w-full" style={{ borderColor: 'var(--theme-border)' }}>
+          <button type="button" onClick={() => setTheme(nextTheme.id)} className={iconButton}
+            title={`${current.label} → ${nextTheme.label}`} aria-label={nextTheme.label} style={{ color: 'var(--theme-accent)' }}>
+            <ThemeIcon className="w-5 h-5" />
+          </button>
+          <Link to="/settings" title={t('settings')} aria-label={t('settings')} className={iconButton}
+            style={{ backgroundColor: location.pathname === '/settings' ? 'var(--theme-nav-active)' : 'transparent', color: 'var(--theme-nav-text-muted)' }}>
+            <Settings className="w-5 h-5" />
+          </Link>
+          <button type="button" onClick={() => signOut()} className={iconButton} title={t('logout')} aria-label={t('logout')}
+            style={{ color: 'var(--theme-nav-text-muted)' }}>
+            <LogOut className="w-5 h-5" />
+          </button>
+        </div>
+      </aside>
+    )
+  }
+
   const Wrapper = isMobileDrawer ? 'div' : 'aside'
   const wrapperClassName = isMobileDrawer
     ? 'w-full flex flex-col py-6 px-4 gap-6'
@@ -46,9 +99,16 @@ export function Sidebar({ isMobileDrawer, onClose }: SidebarProps) {
     <Wrapper className={wrapperClassName} style={wrapperStyle}>
       {!isMobileDrawer && (
         <div className="px-4 mb-4 flex flex-col gap-6">
-          <Link to="/" className="flex items-center gap-2 group">
-            <h1 className="text-2xl font-bold tracking-tight">Bookmoo</h1>
-          </Link>
+          <div className="flex items-center justify-between gap-2">
+            <Link to="/" className="flex items-center gap-2 group">
+              <h1 className="text-2xl font-bold tracking-tight">Bookmoo</h1>
+            </Link>
+            <button type="button" onClick={toggleSidebar} className="w-9 h-9 rounded-[10px] grid place-items-center transition-colors hover:bg-[var(--theme-nav-hover)]"
+              title={locale === 'pt-BR' ? 'Recolher menu' : 'Collapse menu'} aria-label={locale === 'pt-BR' ? 'Recolher menu' : 'Collapse menu'}
+              style={{ color: 'var(--theme-nav-text-muted)' }}>
+              <PanelLeftClose className="w-5 h-5" />
+            </button>
+          </div>
         </div>
       )}
 

@@ -123,6 +123,10 @@ export type EditorialLayout = {
   editRevision?: string
   appearance?: Pick<ArtDirection, 'lettering' | 'fonts'>
   quality?: 'validated' | 'needs-review'
+  /** 'lines' = caixas retangulares, uma por fala/narração, mostradas uma por vez (sem balões). */
+  lettering?: 'lines'
+  /** Posição escolhida pelo leitor para o selo de quem fala: chave "panelId:speakerId", canto superior esquerdo relativo ao quadro (0–1). */
+  speakerChips?: Record<string, Point>
 }
 
 export function cleanText(value: unknown, limit = 700) {

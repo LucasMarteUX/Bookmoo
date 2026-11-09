@@ -1,19 +1,20 @@
 import { forwardRef, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { Columns2, Loader2, Move, MoreVertical, Maximize2, Minimize2, MoreHorizontal, RectangleVertical, RefreshCw, Trash2, Wand2, ZoomIn, ZoomOut } from 'lucide-react'
+import { Columns2, Loader2, MessageSquareQuote, Move, MoreVertical, Maximize2, Minimize2, MoreHorizontal, RectangleVertical, RefreshCw, Trash2, Wand2, ZoomIn, ZoomOut } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import type { ComicLayout, ComicPanel } from '@/lib/ai'
 import { ComicLettering } from './ComicLettering'
 import { useComicBalloonEditor } from './useComicBalloonEditor'
-import { chooseCaptionAnchors, type CaptionAnchor } from '@/lib/comicPanels'
-import { browserMeasure, pageRect, placeCompleteComic } from '@/lib/comicLettering'
+import { chooseCaptionAnchors, skinMap, type CaptionAnchor, type SkinMap } from '@/lib/comicPanels'
+import { browserMeasure, pageRect, placePanelBoxes } from '@/lib/comicLettering'
 import { BalloonToolbar } from './BalloonToolbar'
+import { resolveSpeakers } from '@/lib/speakerResolution'
 import type { LetteringTheme, LetteringThemeId } from '@/lib/comicThemes'
 import { LetteringThemePicker } from './LetteringThemePicker'
 import { MenuItem, MenuSection, ToolButton, ToolGroup } from '@/components/ui/toolbar'
 import { createPortal } from 'react-dom'
 import { fullComicText } from '../../../supabase/functions/_shared/comicText'
-import type { EditorialLayout, Rect } from '../../../supabase/functions/_shared/comicEditorial'
+import type { Character, EditorialLayout, Rect } from '../../../supabase/functions/_shared/comicEditorial'
 
 export type ComicStage = 'prepare' | 'image' | 'layout' | null
 
@@ -31,6 +32,14 @@ interface Props {
   onGenerate: () => void
   onDelete: () => void
   onSaveLettering: (layout: EditorialLayout) => Promise<void>
+  /** Localiza os rostos de novo e refaz o encaixe dos balões (sem gerar outra imagem). */
+  onRelayout: () => void
+  /** Personagens do livro (para descobrir quem fala nas falas ambíguas). */
+  characters?: Character[]
+  /** Caractere da palavra sendo lida agora (anima o selo de quem fala). */
+  currentChar?: number | null
+  /** Toca a partir do início da fala de um personagem. */
+  onPlayLine?: (charStart: number) => void
   /** Lettering look (font, boxes, highlight) for this book. */
   letteringTheme: LetteringTheme
   /** null = automatic (detected from the art direction). */
@@ -146,16 +155,20 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
     if (layout?.v !== 3) return null
     const beats = layout.panels.map(panel => layout.beats.find(beat => beat.id === panel.panelId)
       ?? { id: panel.panelId, sourceSentenceIds: [], dialogue: [] })
-    const dialogue = fullComicText(sourceText, beats)
+    // Quem fala nas falas "ambíguas": marcação de diálogo, fala partida, cena com um só personagem, alternância.
+    const dialogue = resolveSpeakers(fullComicText(sourceText, beats), layout.beats, props.characters ?? [], sourceText)
     const saved = new Map(layout.balloons.map(line => [line.id, line]))
-    if (saved.size === dialogue.length && dialogue.every(line => {
+    // Layouts antigos com "faixa lateral" (arte encolhida + texto ao lado) são refeitos por cima da arte.
+    if (!layout.reflow && layout.lettering === 'lines' && saved.size === dialogue.length && dialogue.every(line => {
       const balloon = saved.get(line.id)
       return balloon?.box && balloon.text === line.text && balloon.charStart === line.charStart && balloon.charEnd === line.charEnd
-    })) return layout
-    const { balloons, reflow } = placeCompleteComic({ panels: layout.panels, aspect, issues: [] }, dialogue,
+    })) return { ...layout, balloons: resolveSpeakers(layout.balloons, layout.beats, props.characters ?? [], sourceText) as typeof layout.balloons }
+    // Páginas no formato antigo (balões/faixa) são refeitas como uma caixa por quadro.
+    const { balloons } = placePanelBoxes({ panels: layout.panels, aspect, issues: [] }, dialogue,
       browserMeasure(props.letteringTheme.font))
-    return { ...layout, balloons, reflow }
-  }, [layout, sourceText, aspect, props.letteringTheme.font])
+    const { reflow: _reflow, ...rest } = layout
+    return { ...rest, balloons, lettering: 'lines' as const }
+  }, [layout, sourceText, aspect, props.letteringTheme.font, props.characters])
 
   // Tamanho disponível (largura do leitor e altura da janela, descontando as barras).
   useLayoutEffect(() => {
@@ -175,6 +188,15 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
   const pageH = Math.round(pageW / displayAspect)
   const editor = useComicBalloonEditor(editorial, `${pageIndex}|${imageUrl}`, pageW, pageH, props.onSaveLettering, props.letteringTheme.font)
   const [moveMode, setMoveMode] = useState(false)
+  // Mapa de pele da arte: o selo de quem fala não pode cair sobre um rosto.
+  const [skin, setSkin] = useState<SkinMap | null>(null)
+  useEffect(() => {
+    setSkin(null)
+    if (!imageUrl) return
+    let alive = true
+    skinMap(imageUrl).then(map => { if (alive) setSkin(map) }).catch(() => {})
+    return () => { alive = false }
+  }, [imageUrl])
   // Clicar fora do balão (e da barra dele) fecha a barra.
   const selectedId = editor.selected?.id
   useEffect(() => {
@@ -198,7 +220,7 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
   }, [moveMode])
   const draft = editor.draft
   const displayedLettering = editorial && draft
-    ? { ...editorial, balloons: editorial.balloons.map(line => line.id === draft.id ? draft : line) }
+    ? { ...editorial, balloons: editorial.balloons.map(line => line.panelId === draft.panelId ? { ...line, box: draft.box, font: draft.font } : line) }
     : editorial
 
   useEffect(() => { setZoom(1); viewportRef.current?.scrollTo({ left: 0, top: 0 }) }, [pageIndex])
@@ -222,7 +244,7 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement
-      if (t?.closest('input, textarea, select, button, [contenteditable="true"]')) return
+      if (t?.closest?.('input, textarea, select, button, [contenteditable="true"]')) return
       if (e.key === 'ArrowRight') onNext()
       else if (e.key === 'ArrowLeft') onPrev()
     }
@@ -284,7 +306,7 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
   const handleClick = (e: React.MouseEvent) => {
     const target = e.target as Element
     // Clique no corpo do balão só seleciona (alças); fora dele, desmarca.
-    if (target.closest('[data-balloon-handle], [data-balloon-toolbar]') || editor.isGesturing()) return
+    if (target.closest('[data-balloon-handle], [data-balloon-toolbar], [data-speaker-chip]') || editor.isGesturing()) return
     if (!target.closest('[data-word-index]')) editor.select(null)
     if (suppressClick.current) { suppressClick.current = false; return }
     onContentClick(e)
@@ -338,8 +360,8 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
   const toolbar = (
     <div className="flex items-center gap-2 flex-wrap justify-end">
       <ToolGroup label={pt ? 'Ferramentas do quadrinho' : 'Comic tools'}>
-        {editorial && <ToolButton icon={<Move className="w-4 h-4" />} label={pt ? 'Mover balões' : 'Move balloons'} compact active={moveMode}
-          hint={pt ? 'Arraste qualquer balão, inclusive pelo texto. Esc para sair.' : 'Drag any balloon, even by its text. Esc to exit.'}
+        {editorial && <ToolButton icon={<Move className="w-4 h-4" />} label={pt ? 'Mover caixas' : 'Move boxes'} compact active={moveMode}
+          hint={pt ? 'Arraste qualquer caixa de texto, inclusive pelo texto. Esc para sair.' : 'Drag any text box, even by its text. Esc to exit.'}
           onClick={() => { setMoveMode(m => !m); if (moveMode) editor.select(null) }} />}
         {editorial && <LetteringThemePicker theme={props.letteringTheme} choice={props.letteringChoice}
           detected={props.letteringDetected} onChange={props.onLetteringThemeChange} pt={pt} />}
@@ -364,6 +386,9 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
             </MenuSection>
             <div className="h-px mx-2" style={{ backgroundColor: 'var(--theme-border-subtle)' }} />
             <MenuSection title={pt ? 'Esta página' : 'This page'}>
+              {editorial && <MenuItem icon={<MessageSquareQuote className="w-4 h-4" />} label={pt ? 'Reposicionar texto' : 'Reposition text'}
+                description={pt ? 'Localiza os rostos e reposiciona as caixas para não cobri-los. Não gera outra imagem.' : 'Finds the faces and moves the text boxes off them. No new image.'}
+                onClick={() => { setMenuOpen(false); props.onRelayout() }} />}
               <MenuItem icon={<RefreshCw className="w-4 h-4" />} label={labels.regenerate}
                 description={pt ? 'Desenha de novo, com outra composição. Usa sua chave de IA.' : 'Draws it again with a new composition. Uses your AI key.'}
                 onClick={() => { setMenuOpen(false); onGenerate() }} />
@@ -462,7 +487,9 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
               </div>
             ))}
             {displayedLettering && <ComicLettering layout={displayedLettering} width={pageW} height={pageH}
-              wordsHtml={wordsHtml} sourceText={sourceText} editor={editor} theme={props.letteringTheme} moveMode={moveMode} />}
+              wordsHtml={wordsHtml} sourceText={sourceText} editor={editor} theme={props.letteringTheme} moveMode={moveMode}
+              currentChar={props.currentChar} onPlayLine={props.onPlayLine} skinAt={skin?.fraction}
+              onMoveChip={(key, position) => { if (editorial) void props.onSaveLettering({ ...editorial, lettering: 'lines', speakerChips: { ...editorial.speakerChips, [key]: position } }).catch(() => {}) }} />}
             {selectedRect && editor.selected && (
               <BalloonToolbar box={selectedRect} pageW={pageW} pageH={pageH} type={editor.selected.balloonType}
                 saving={editor.saving} pt={pt} onFont={editor.changeFont} onType={editor.changeType} onClose={() => editor.select(null)} />

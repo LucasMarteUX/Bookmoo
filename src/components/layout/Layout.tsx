@@ -5,17 +5,21 @@ import { MobileHeader } from './MobileHeader'
 import { useReaderSettings } from '@/store/useReaderSettings'
 import { useHydrateOnLogin } from '@/hooks/useHydrateOnLogin'
 import { useGamification } from '@/hooks/useGamification'
+import { SIDEBAR_WIDTH, useUiStore } from '@/store/useUiStore'
+import type { CSSProperties } from 'react'
 
 export function Layout() {
   const { theme } = useReaderSettings()
   const location = useLocation()
   useHydrateOnLogin()
   useGamification()
+  const collapsed = useUiStore(state => state.sidebarCollapsed)
 
   const isBookPage = /^\/book\/[^/]+$/.test(location.pathname)
 
   return (
-    <div className={`min-h-screen flex flex-col theme-${theme}`}>
+    <div className={`min-h-screen flex flex-col theme-${theme}`}
+      style={{ '--sidebar-w': collapsed ? SIDEBAR_WIDTH.collapsed : SIDEBAR_WIDTH.expanded } as CSSProperties}>
       {/* Mobile: top navbar with logo + menu (desktop has no navbar) */}
       <div className="md:hidden">
         <MobileHeader />
@@ -26,7 +30,7 @@ export function Layout() {
           <Sidebar />
         </div>
         
-        <main className={`flex-1 md:ml-64 p-4 md:p-8 overflow-y-auto ${isBookPage ? 'pt-14 md:pt-0 pb-28 md:pb-8' : 'pb-24 md:pb-8'}`}>
+        <main className={`flex-1 md:ml-[var(--sidebar-w)] transition-[margin] duration-300 p-4 md:p-8 overflow-y-auto ${isBookPage ? 'pt-14 md:pt-0 pb-28 md:pb-8' : 'pb-24 md:pb-8'}`}>
           <Outlet />
         </main>
       </div>

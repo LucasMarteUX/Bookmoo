@@ -404,6 +404,51 @@
   .comic-caption .hover-word:hover { background: rgba(0, 0, 0, 0.08); }
   .comic-lettered-text .hover-word { border-radius: 0.25em; }
   .comic-lettered-text .hover-word:hover { background: color-mix(in srgb, var(--comic-hl-bg, #ffe066) 45%, transparent); }
+  /* Caixa única do quadrinho: uma linha por fala/narração; a fala leva o selo de quem fala. */
+  .comic-lettered-text .comic-line { margin: 0 0 0.42em; }
+  .comic-lettered-text .comic-line:last-child { margin-bottom: 0; }
+  .comic-lettered-text .comic-speaker {
+    display: inline-block; margin: 0 0.4em 0.1em 0; padding: 0.08em 0.55em 0.1em; border-radius: 999px;
+    background: var(--comic-badge-bg, #1d1a16); color: var(--comic-badge-fg, #fff);
+    font-size: 0.68em; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; line-height: 1.5;
+    vertical-align: 0.12em; white-space: nowrap;
+  }
+  /* Troca de fala no quadro: a caixa nova entra com um leve deslize. */
+  .comic-box-in { animation: comic-box-in 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.2); transform-box: fill-box; transform-origin: center; }
+  @keyframes comic-box-in { from { opacity: 0; transform: translateY(8px) scale(0.96); } to { opacity: 1; transform: none; } }
+  .comic-box-nav {
+    pointer-events: auto; display: inline-flex; align-items: center; justify-content: space-between; width: 100%;
+    border-radius: 999px; background: var(--chip-bg, #1d1a16); color: var(--chip-fg, #fff); font-weight: 700;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3); padding: 0 0.3em;
+  }
+  .comic-box-nav button { width: 1.6em; line-height: 1; font-size: 1.5em; cursor: pointer; opacity: 0.9; }
+  .comic-box-nav button:disabled { opacity: 0.3; cursor: default; }
+  /* Selo de quem fala, acima do rosto. Ondas animadas enquanto a fala dele está tocando. */
+  .comic-speaker-chip {
+    pointer-events: auto; display: inline-flex; align-items: center; gap: 0.35em; max-width: 100%;
+    padding: 0 0.75em 0 0.55em; border-radius: 999px; cursor: grab; white-space: nowrap; touch-action: none; user-select: none;
+    background: var(--chip-bg, #1d1a16); color: var(--chip-fg, #fff); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+    box-shadow: 0 2px 0 rgba(0,0,0,0.35), 0 4px 10px rgba(0,0,0,0.25); transition: transform 0.15s ease;
+  }
+  .comic-speaker-chip:hover { transform: translateY(-1px) scale(1.04); }
+  .comic-speaker-chip__name { overflow: hidden; text-overflow: ellipsis; }
+  .comic-speaker-chip .wave { opacity: 0.35; }
+  /* Quem tem a fala na caixa: cor de destaque, maior e com brilho. */
+  .comic-speaker-chip.is-current {
+    background: var(--chip-hl, #ffe066); color: var(--chip-hl-fg, #1d1a16); transform: scale(1.1); transform-origin: center;
+    box-shadow: 0 0 0 1.5px var(--chip-ring, #1d1a16), 0 0 12px 2px color-mix(in srgb, var(--chip-hl, #ffe066) 40%, transparent), 0 3px 8px rgba(0,0,0,0.25);
+    z-index: 2;
+  }
+  .comic-speaker-chip.is-current .wave { opacity: 0.8; }
+  /* Lendo agora: ondas de som animadas e um pulso em volta. */
+  .comic-speaker-chip.is-speaking { animation: speaker-pulse 1.2s ease-in-out infinite; }
+  .comic-speaker-chip.is-speaking .wave { animation: speaker-wave 0.9s ease-in-out infinite; }
+  .comic-speaker-chip.is-speaking .wave-2 { animation-delay: 0.18s; }
+  @keyframes speaker-wave { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
+  @keyframes speaker-pulse {
+    0%, 100% { box-shadow: 0 0 0 1.5px var(--chip-ring, #1d1a16), 0 0 10px 1px color-mix(in srgb, var(--chip-hl, #ffe066) 35%, transparent); }
+    50% { box-shadow: 0 0 0 1.5px var(--chip-ring, #1d1a16), 0 0 18px 4px color-mix(in srgb, var(--chip-hl, #ffe066) 55%, transparent); }
+  }
   /* Balões editáveis: contorno aparece ao passar o mouse (e fica no modo mover / selecionado). */
   .balloon-hover-ring { opacity: 0; transition: opacity 0.15s ease; }
   g[data-balloon-hit]:hover .balloon-hover-ring { opacity: 0.55; }

@@ -14,6 +14,7 @@ import { WORD_PATTERN } from '@/lib/wordTokens'
 import { sayWord } from '@/lib/sayWord'
 import { stopSpeaking } from '@/lib/tts'
 import { PointsEarned } from '@/components/stats/PointsEarned'
+import { VoiceRequiredDialog, needsVoiceInstall } from '@/components/reader/VoiceRequiredDialog'
 import { starsFor, usePracticeStore, wordList } from '@/store/usePracticeStore'
 
 type Grade = 'ok' | 'close' | 'bad' | 'skip'
@@ -85,6 +86,7 @@ export function DictationPractice({ book }: { book: Book }) {
   const words = useMemo(() => segments.filter(s => s.idx !== null).map(s => s.text), [segments])
 
   const [started, setStarted] = useState(false)
+  const [voiceDialog, setVoiceDialog] = useState(false)
   const [current, setCurrent] = useState(0)
   const [grades, setGrades] = useState<Grade[]>([])
   const [input, setInput] = useState('')
@@ -262,8 +264,10 @@ export function DictationPractice({ book }: { book: Book }) {
         </article>
       )}
 
+      <VoiceRequiredDialog open={voiceDialog} onOpenChange={setVoiceDialog} pt={locale === 'pt-BR'} onReady={() => setStarted(true)} />
+
       {/* Barra flutuante: campo de digitação e controles */}
-      <div className="fixed left-2 right-2 md:left-64 md:right-8 md:bottom-8 z-40 flex flex-col items-center gap-2" style={{ bottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
+      <div className="fixed left-2 right-2 md:left-[var(--sidebar-w,16rem)] md:right-8 md:bottom-8 z-40 flex flex-col items-center gap-2" style={{ bottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
         <AnimatePresence>
           {feedback && (
             <motion.div key={feedback.kind + (feedback.word ?? '')} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
@@ -287,7 +291,7 @@ export function DictationPractice({ book }: { book: Book }) {
             <ChevronLeft className="w-5 h-5" />
           </button>}
           {!started ? (
-            <button type="button" disabled={!words.length} onClick={() => setStarted(true)} className="btn-3d btn-3d--learned text-sm !px-5 !py-3">
+            <button type="button" disabled={!words.length} onClick={() => { if (needsVoiceInstall('en')) setVoiceDialog(true); else setStarted(true) }} className="btn-3d btn-3d--learned text-sm !px-5 !py-3">
               <Volume2 className="w-4 h-4" strokeWidth={3} /> {t.start}
             </button>
           ) : done ? (

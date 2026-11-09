@@ -208,11 +208,17 @@ export function placeDialogue(inspection: ComicInspection, dialogue: Dialogue[],
             const targetAnchor = speakerTarget(line, panel, box)
             if (targetAnchor && (inRect(box, targetAnchor) || tailCrosses(box, targetAnchor, line.balloonType, panelW, panelH, protectedArt))) continue
             const quiet = panel.free.some(r => x >= r.x && y >= r.y && x + w <= r.x + r.w && y + h <= r.y + r.h)
-            if (line.attribution === 'confirmed' && !targetAnchor) continue
-            if (!panel.faces.length && !quiet && line.balloonType !== 'caption') continue
-            const reach = targetAnchor ? Math.hypot(center.x - targetAnchor.x, center.y - targetAnchor.y) : 0
-            const cost = Math.hypot(center.x - preferred.x, center.y - preferred.y) + reach * 1.25 + w * h * 2 + w * 0.5
-              + (quiet ? 0 : 0.45) + (FONT - font) * 140
+            // Falante localizado: o balão quer ficar perto dele, de preferência acima/ao lado do rosto,
+            // com rabicho. Sem rabicho possível, ainda vale (com etiqueta do nome), mas custa mais.
+            const speakerFace = line.balloonType === 'caption' ? null
+              : panel.faces.find(face => face.speakerId === line.speakerId)?.face ?? null
+            const reach = targetAnchor ? Math.hypot(center.x - targetAnchor.x, center.y - targetAnchor.y)
+              : speakerFace ? Math.hypot(center.x - (speakerFace.x + speakerFace.w / 2), center.y - (speakerFace.y + speakerFace.h / 2)) : 0
+            const belowFace = speakerFace && center.y > speakerFace.y + speakerFace.h ? 0.35 : 0
+            const tailless = speakerFace && !targetAnchor && line.attribution === 'confirmed' ? 1.4 : 0
+            const cost = Math.hypot(center.x - preferred.x, center.y - preferred.y) * (speakerFace ? 0.4 : 1)
+              + reach * (speakerFace ? 2.2 : 1.25) + belowFace + tailless + w * h * 2 + w * 0.5
+              + (quiet ? 0 : 0.3) + (FONT - font) * 140
               + (caption && line.text.length < 450 ? Math.max(0, h - 0.5) * 2 : 0)
             candidates.push({ box, font, targetAnchor, cost })
           }
@@ -262,7 +268,6 @@ export function placeCompleteComic(inspection: ComicInspection, dialogue: Dialog
   balloons: PlacedDialogue[]; issues: string[]; reflow?: ComicReflow
 } {
   const result = placeDialogue(inspection, dialogue, measure)
-  const needsSpace = new Set<string>()
   const balloons = inspection.panels.flatMap(panel => {
     const lines = result.balloons.filter(line => line.panelId === panel.panelId)
     if (lines.every(line => line.box)) return lines
@@ -308,63 +313,26 @@ export function placeCompleteComic(inspection: ComicInspection, dialogue: Dialog
       }
     }
     candidates.sort((a, b) => a.faceOverlap - b.faceOverlap || a.score - b.score)
-    const best = candidates[0]
-    if (!best || best.faceOverlap) {
-      needsSpace.add(panel.panelId)
-      return lines
-    }
-    return best.balloons
+    if (candidates[0]) return candidates[0].balloons
+    // Último recurso: texto enorme para o quadro. Empilha em toda a largura com a menor letra,
+    // por cima da arte — nunca encolhe a ilustração nem descarta texto.
+    const font = 0.010
+    const heights = lines.map(line => {
+      const width = panelWidth * 0.93 * (line.balloonType === 'caption' ? 0.92 : 0.72)
+      return (lineCount(line.text, width, text => measure(text, font), true) * font * 1.24 + font) / panelHeight
+    })
+    const gap = 0.01
+    const total = heights.reduce((sum, h) => sum + h, gap * (lines.length - 1))
+    const scale = Math.min(1, (1 - 2 * MARGIN) / total)
+    let y = MARGIN
+    return lines.map((line, index) => {
+      const box = { x: MARGIN, y, w: 1 - 2 * MARGIN, h: heights[index] * scale }
+      y += box.h + gap * scale
+      return { ...line, box, font, targetAnchor: null }
+    })
   })
   const issues = result.issues.filter(issue => !issue.startsWith('lettering_overflow:'))
-  if (!needsSpace.size) return { balloons, issues }
-  return { ...expandComicFrames(inspection, balloons, needsSpace, measure), issues }
-}
-
-/** Open a lettering lane within crowded illustrated frames, keeping the original art intact. */
-function expandComicFrames(inspection: ComicInspection, balloons: PlacedDialogue[], needsSpace: Set<string>, measure: Measure) {
-  const gutter = 0.012
-  const frames = inspection.panels.map(panel => {
-    const lines = balloons.filter(line => line.panelId === panel.panelId)
-    const sourceHeight = panel.bounds.h / (panel.bounds.w * inspection.aspect)
-    const expanded = needsSpace.has(panel.panelId)
-    const artWidth = expanded ? 0.5 : Math.min(1, Math.max(panel.bounds.w, 0.85 / sourceHeight))
-    const artHeight = sourceHeight * artWidth
-    const laneX = artWidth + 0.025, laneWidth = 0.975 - laneX
-    let cursor = 0.025
-    const boxes = expanded ? lines.map(line => {
-      const caption = line.balloonType === 'caption'
-      const w = caption ? laneWidth : Math.min(laneWidth, Math.max(0.19, measure(line.text, DENSE_FONT) / 1.4))
-      const textWidth = w * (caption ? 0.92 : 0.72)
-      const count = lineCount(line.text, textWidth, text => measure(text, DENSE_FONT), true)
-      const h = Math.max(count * DENSE_FONT * 1.24 + 0.018, caption ? 0 : w / 3.4)
-      const box = { x: laneX, y: cursor, w, h }
-      cursor += h + gutter
-      return box
-    }) : []
-    const height = expanded ? Math.max(artHeight, cursor - gutter + 0.025) : artHeight
-    const art = { x: expanded ? 0 : (1 - artWidth) / 2, y: (height - artHeight) / (2 * height), w: artWidth, h: artHeight / height }
-    const faces = panel.faces.map(face => ({ ...face, face: pageRect(art, face.face) }))
-    const placed = lines.map((line, index) => {
-      if (!expanded) {
-        const target = line.targetAnchor
-        return { ...line, box: line.box && pageRect(art, line.box), targetAnchor: target && { x: art.x + target.x * art.w, y: art.y + target.y * art.h } }
-      }
-      const raw = boxes[index]
-      const box = { ...raw, y: raw.y / height, h: raw.h / height }
-      const target = speakerTarget(line, { ...panel, faces }, box)
-      const targetAnchor = target && !inRect(box, target) && !tailCrosses(box, target, line.balloonType, 1, height, faces.map(face => face.face)) ? target : null
-      return { ...line, box, font: DENSE_FONT, targetAnchor }
-    })
-    return { panelId: panel.panelId, height, art, placed }
-  })
-  const total = frames.reduce((sum, frame) => sum + frame.height + gutter, -gutter)
-  let y = 0
-  const panels = frames.map(({ panelId, height, art }) => {
-    const bounds = { x: 0, y: y / total, w: 1, h: height / total }
-    y += height + gutter
-    return { panelId, bounds, art }
-  })
-  return { balloons: frames.flatMap(frame => frame.placed), reflow: { aspect: 1 / total, panels } }
+  return { balloons, issues }
 }
 
 export function createPanelMask(width: number, height: number, panel: Rect) {
@@ -378,4 +346,75 @@ export function createPanelMask(width: number, height: number, panel: Rect) {
   context.clearRect(Math.round(panel.x * width) + margin, Math.round(panel.y * height) + margin,
     Math.round(panel.w * width) - 2 * margin, Math.round(panel.h * height) - 2 * margin)
   return canvas.toDataURL('image/png').split(',')[1]
+}
+
+// ---------------------------------------------------------------------------
+// Caixa única por quadro (modo atual): todo o texto do quadro numa caixa retangular, na ordem
+// de leitura; falas levam o selo com o nome de quem fala. Sem balões nem rabichos.
+// ---------------------------------------------------------------------------
+
+/** Altura do conteúdo (em unidades da largura da página) para uma caixa de largura `textWidth`. */
+function boxContentHeight(lines: Dialogue[], textWidthRaw: number, font: number, measure: Measure) {
+  // Folga: palavras do vocabulário aparecem como "pílulas" (padding e borda) e ocupam mais espaço.
+  const textWidth = textWidthRaw * 0.9
+  let total = 0
+  for (const line of lines) {
+    const speech = line.balloonType !== 'caption'
+    const text = speech ? `“${line.text}”` : line.text
+    const count = lineCount(text, textWidth, value => measure(value, font), true)
+    total += count * font * 1.28 + (speech && line.speakerName ? font * 1.45 : 0) + font * 0.45
+  }
+  return (total + font * 1.6) * 1.12
+}
+
+/**
+ * Uma caixa por fala/narração: cada linha do quadro ganha o próprio lugar (o leitor mostra uma
+ * por vez, na ordem). Desvia dos rostos (com margem para cabelo/chapéu) e do assunto principal.
+ */
+export function placePanelBoxes(inspection: ComicInspection, dialogue: Dialogue[], measure: Measure): {
+  balloons: PlacedDialogue[]; issues: string[]
+} {
+  const issues = [...inspection.issues]
+  const balloons: PlacedDialogue[] = []
+  const area = (a: Rect, b: Rect) => Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x))
+    * Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y))
+  for (const panel of inspection.panels) {
+    const lines = dialogue.filter(line => line.panelId === panel.panelId).sort((a, b) => a.readingOrder - b.readingOrder)
+    if (!lines.length) continue
+    const panelW = panel.bounds.w, panelH = panel.bounds.h / inspection.aspect
+    const faces = panel.faces.map(face => headRect(face.face))
+    const focus = panel.focus ?? []
+    // Uma posição só para o quadro (a caixa não "pula" entre falas): dimensionada pela maior fala.
+    const heightFor = (w: number, font: number) => Math.max(...lines.map(line => boxContentHeight([line], panelW * w * 0.9, font, measure))) / panelH
+    let best = null as { box: Rect; font: number; cost: number } | null
+    for (const font of [0.027, 0.024, 0.021, 0.018, 0.0155, 0.013, 0.011]) {
+      for (const w of [0.34, 0.42, 0.5, 0.6, 0.72, 0.88]) {
+        const h = heightFor(w, font)
+        if (h > 1 - 2 * MARGIN) continue
+        const steps = [0, 0.25, 0.5, 0.75, 1]
+        for (const tx of steps) for (const ty of steps) {
+          const box = { x: MARGIN + tx * (1 - 2 * MARGIN - w), y: MARGIN + ty * (1 - 2 * MARGIN - h), w, h }
+          const faceHit = faces.reduce((sum, f) => sum + area(box, f) / (f.w * f.h), 0)
+          const focusHit = focus.reduce((sum, f) => sum + area(box, f) / (f.w * f.h), 0)
+          const edge = Math.min(tx, 1 - tx) + Math.min(ty, 1 - ty)
+          const cost = faceHit * 30 + focusHit * 4 + edge * 0.5 + w * h * 0.6 + Math.max(0, w - 0.6) * 1.2 + (0.027 - font) * 150
+          if (!best || cost < best.cost) best = { box, font, cost }
+        }
+      }
+      if (best && best.cost < 1.8) break
+    }
+    if (!best) {
+      const font = 0.0105
+      const h = Math.min(1 - 2 * MARGIN, heightFor(0.94, font))
+      best = { box: { x: MARGIN, y: MARGIN, w: 1 - 2 * MARGIN, h }, font, cost: Infinity }
+      issues.push(`lettering_dense:${panel.panelId}`)
+    }
+    for (const line of lines) balloons.push({ ...line, box: best.box, font: best.font, targetAnchor: null })
+  }
+  return { balloons, issues }
+}
+
+/** Cabeça inteira a partir do rosto detectado (que costuma ir só da testa ao queixo): soma cabelo/chapéu. */
+export function headRect(face: Rect): Rect {
+  return { x: face.x - face.w * 0.18, y: face.y - face.h * 0.5, w: face.w * 1.36, h: face.h * 1.62 }
 }

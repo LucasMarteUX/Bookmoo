@@ -26,7 +26,7 @@ export function BalloonToolbar({ box, pageW, pageH, type, saving, pt, onFont, on
   onClose: () => void
 }) {
   const [typesOpen, setTypesOpen] = useState(false)
-  const W = 248
+  const W = 150
   const below = box.y + box.h + 72 < pageH
   const left = Math.max(8, Math.min(pageW - W - 8, box.x + box.w / 2 - W / 2))
   const top = below ? box.y + box.h + 20 : Math.max(8, box.y - (typesOpen ? 104 : 64))
@@ -34,7 +34,7 @@ export function BalloonToolbar({ box, pageW, pageH, type, saving, pt, onFont, on
   const current = KINDS.find(k => k.id === type) ?? KINDS[0]
   const btn = 'h-8 px-2.5 rounded-lg text-[13px] font-semibold inline-flex items-center justify-center gap-1.5 transition-colors hover:bg-white/10 disabled:opacity-40'
   return (
-    <div data-balloon-toolbar role="toolbar" aria-label={pt ? 'Editar balão' : 'Edit balloon'}
+    <div data-balloon-toolbar role="toolbar" aria-label={pt ? 'Editar caixa de texto' : 'Edit text box'}
       className="absolute z-40 rounded-xl border shadow-2xl text-white select-none"
       style={{ left, top, width: W, backgroundColor: 'rgba(22,22,26,0.96)', borderColor: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(8px)' }}
       onPointerDown={e => e.stopPropagation()} onClick={e => e.stopPropagation()}>
@@ -49,27 +49,10 @@ export function BalloonToolbar({ box, pageW, pageH, type, saving, pt, onFont, on
           <span className="text-[15px]">A</span><span className="opacity-60">+</span>
         </button>
         <span className="mx-1 h-5 w-px bg-white/15" />
-        <button type="button" className={`${btn} flex-1 justify-between`} disabled={saving} aria-expanded={typesOpen}
-          onClick={() => setTypesOpen(o => !o)} title={pt ? 'Tipo de balão' : 'Balloon type'}>
-          <span className="inline-flex items-center gap-1.5"><Glyph d={current.glyph} />{pt ? current.pt : current.en}</span>
-          <ChevronDown className={`w-3.5 h-3.5 opacity-60 transition-transform ${typesOpen ? 'rotate-180' : ''}`} />
-        </button>
-        <span className="mx-1 h-5 w-px bg-white/15" />
         <button type="button" className={btn} onClick={onClose} title={pt ? 'Concluir' : 'Done'} aria-label={pt ? 'Concluir' : 'Done'}>
           {saving ? <span className="w-3.5 h-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin" /> : <Check className="w-4 h-4" />}
         </button>
       </div>
-      {typesOpen && (
-        <div className="relative grid grid-cols-4 gap-1 px-1 pb-1">
-          {KINDS.map(kind => (
-            <button key={kind.id} type="button" disabled={saving} aria-pressed={kind.id === type}
-              onClick={() => { onType(kind.id); setTypesOpen(false) }}
-              className={`h-12 rounded-lg flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold transition-colors ${kind.id === type ? 'bg-white text-black' : 'hover:bg-white/10'}`}>
-              <Glyph d={kind.glyph} />{pt ? kind.pt : kind.en}
-            </button>
-          ))}
-        </div>
-      )}
     </div>
   )
 }

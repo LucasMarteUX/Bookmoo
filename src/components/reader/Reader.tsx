@@ -13,6 +13,7 @@ import {
   generateComicPage,
   prepareComicArt,
   inspectComicPage,
+  locateComicFaces,
   AiRequestError,
   isNoApiKeyError,
   aiErrorMessage,
@@ -20,14 +21,19 @@ import {
 import { getAiStatus, useAiStatus } from '@/lib/aiKeys'
 import { detectLetteringTheme, letteringThemeFor, type LetteringThemeId } from '@/lib/comicThemes'
 import { ToolButton, ToolGroup } from '@/components/ui/toolbar'
+import { VoiceRequiredDialog, needsVoiceInstall } from './VoiceRequiredDialog'
 import { XP, useXpStore } from '@/store/useXpStore'
 import { motion, useReducedMotion } from 'motion/react'
 import { ComicPageView, type ComicStage } from './ComicPageView'
 import { saveComicPage } from '@/lib/comicPersistence'
-import { browserMeasure, letteringFont, placeCompleteComic } from '@/lib/comicLettering'
+import { browserMeasure, placePanelBoxes } from '@/lib/comicLettering'
+import { resolveSpeakers } from '@/lib/speakerResolution'
+import { CHILD_SPEED, buildVoiceCast, defaultFemaleVoice, defaultMaleVoice, type VoiceSettings } from '@/lib/voiceCast'
+import { speechSpans } from '@/lib/speechSpans'
 import { fullComicText } from '../../../supabase/functions/_shared/comicText'
 import { detectPanels } from '@/lib/comicPanels'
-import type { EditorialLayout } from '../../../supabase/functions/_shared/comicEditorial'
+import type { EditorialLayout, PanelInspection, VisualBeat } from '../../../supabase/functions/_shared/comicEditorial'
+import type { ComicCharacter } from '@/store/useBookStore'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { useNavigate } from 'react-router-dom'
 import { useBookSync } from '@/hooks/useBookSync'
@@ -112,6 +118,8 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
   const updateVocabulary = useVocabularyStore(state => state.updateVocabulary)
   const [wordTip, setWordTip] = useState<WordTooltipState | null>(null)
   const [toolbarSlot, setToolbarSlot] = useState<HTMLDivElement | null>(null)
+  const [voiceDialogOpen, setVoiceDialogOpen] = useState(false)
+  const pendingPlaybackRef = useRef<{ startWord?: number; rate?: number } | null>(null)
   const reduceMotion = useReducedMotion()
   const lastPageRef = useRef(book.currentPage || 0)
   const pageDirection = (book.currentPage || 0) >= lastPageRef.current ? 1 : -1
@@ -447,6 +455,51 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
   }
 
   const comicOperation = useRef(false)
+  /** Troca os rostos de cada quadro pelos localizados no recorte (quando a visão encontrar algum). */
+  const withLocatedFaces = async (imageUrl: string, panels: PanelInspection[], beats: VisualBeat[], characters: ComicCharacter[]) => {
+    try {
+      const faces = await locateComicFaces(imageUrl, panels.map(panel => {
+        const beat = beats.find(b => b.id === panel.panelId)
+        return {
+          bounds: panel.bounds,
+          cast: characters.filter(c => c.id && beat?.cast.includes(c.id)),
+          speakers: [...new Set((beat?.dialogue ?? []).flatMap(line => line.speakerId ? [line.speakerId] : []))],
+        }
+      }))
+      return panels.map((panel, i) => faces[i]?.length ? { ...panel, faces: faces[i] } : panel)
+    } catch (error) {
+      console.warn('face pass failed', error)
+      return panels
+    }
+  }
+
+  // Reposiciona os balões de uma página pronta: localiza os rostos de novo e refaz o encaixe
+  // (sem gerar outra imagem). Custa só uma chamada de visão barata.
+  const handleRelayoutComic = async () => {
+    const pageIndex = currentPage
+    const layout = book.comicLayouts?.[pageIndex]
+    const image = book.comicPages?.[pageIndex]
+    if (comicOperation.current || layout?.v !== 3 || !image) return
+    comicOperation.current = true
+    setComicError(null)
+    setComicStage('layout')
+    try {
+      const img = new Image(); img.crossOrigin = 'anonymous'; img.src = image; await img.decode()
+      const aspect = img.naturalWidth / img.naturalHeight
+      const panels = await withLocatedFaces(image, layout.panels, layout.beats, book.comicCharacters ?? [])
+      const dialogue = resolveSpeakers(fullComicText(currentContent, layout.panels.map(panel => layout.beats.find(b => b.id === panel.panelId)
+        ?? { id: panel.panelId, sourceSentenceIds: [], dialogue: [] })), layout.beats, book.comicCharacters ?? [], currentContent)
+      const lettering = placePanelBoxes({ panels, aspect, issues: [] }, dialogue,
+        browserMeasure(letteringThemeFor(book.comicStyleDoc).font))
+      const { reflow: _old, ...rest } = layout
+      await saveComicPage(book, pageIndex, image, { ...rest, panels, balloons: lettering.balloons, issues: lettering.issues, lettering: 'lines', editRevision: crypto.randomUUID() })
+    } catch (error) {
+      setComicError({ page: pageIndex, message: aiErrorMessage(error) })
+    } finally {
+      comicOperation.current = false
+      setComicStage(null)
+    }
+  }
   const handleGenerateComic = async () => {
     if (comicOperation.current) return
     comicOperation.current = true
@@ -476,10 +529,12 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
         const aspect = img.naturalWidth / img.naturalHeight
         const rows = generated.generation.composition
         const measured = rows?.length && !rows.some(row => row.rightStack) ? await detectPanels(generated.imageUrl, rows, true) : null
-        const inspection = await inspectComicPage(generated, aspect, measured?.detected ? measured.panels : undefined)
-        const dialogue = fullComicText(pageText, generated.beats)
-        const lettering = placeCompleteComic(inspection, dialogue,
-          browserMeasure(letteringFont(generated.generation.style.fonts)))
+        const inspected = await inspectComicPage(generated, aspect, measured?.detected ? measured.panels : undefined)
+        // Segunda passada: rostos quadro a quadro, para o rabicho apontar para quem fala.
+        const inspection = { ...inspected, panels: await withLocatedFaces(generated.imageUrl, inspected.panels, generated.beats, generated.characters) }
+        const dialogue = resolveSpeakers(fullComicText(pageText, generated.beats), generated.beats, generated.characters, pageText)
+        const lettering = placePanelBoxes(inspection, dialogue,
+          browserMeasure(letteringThemeFor(generated.styleDoc ?? book.comicStyleDoc).font))
         lettering.issues.push(...(generated.editorialIssues ?? []))
         return { generated, inspection, lettering }
       }
@@ -495,7 +550,7 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
       const old = book.comicLayouts?.[pageIndex]
       const layout: EditorialLayout = {
         v: 3, panels: inspection.panels, beats: generated.beats, context: generated.context,
-        generation: generated.generation, ...lettering,
+        generation: generated.generation, ...lettering, lettering: 'lines',
         quality: lettering.issues.length ? 'needs-review' : 'validated',
         history: old?.v === 3 ? [...(old.history ?? []), old.generation] : undefined,
       }
@@ -563,7 +618,20 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
   // Frases montadas a partir da MESMA numeração de palavras da tela (pageWordTokens):
   // cada trecho sabe exatamente quais índices de palavra ele cobre.
   // `startWord` permite começar no meio de uma frase (ex.: ao trocar a velocidade).
-  type Chunk = { text: string; range: [number, number] }
+  type Chunk = { text: string; range: [number, number]; voice?: string; child?: boolean }
+  // Vozes por personagem nesta página: falas com falante resolvido (HQ ou pistas no texto).
+  const castDoc = (book.comicStyleDoc ?? {}) as VoiceSettings & { characterVoices?: boolean; narratorVoice?: string }
+  // Narrador: voz própria escolhida no elenco; senão, a voz da leitura.
+  const narratorVoice = castDoc.characterVoices !== false && castDoc.narratorVoice ? castDoc.narratorVoice : undefined
+  const voiceCastMap = useMemo(() => buildVoiceCast(book.comicCharacters ?? [], narratorVoice ?? activeKokoroVoice(), castDoc),
+    [book.comicCharacters, castDoc.femaleVoice, castDoc.maleVoice, castDoc.voiceRoles, narratorVoice])
+  const voiceSpans = useMemo(() => {
+    if (castDoc.characterVoices === false) return []
+    const narr = narratorVoice ?? activeKokoroVoice()
+    return speechSpans(currentContent, book.comicLayouts?.[currentPage], book.comicCharacters ?? [], voiceCastMap, narr,
+      { female: castDoc.femaleVoice ?? defaultFemaleVoice(narr), male: castDoc.maleVoice ?? defaultMaleVoice(narr) })
+  }, [currentContent, book.comicLayouts, currentPage, book.comicCharacters, voiceCastMap, castDoc.characterVoices, castDoc.femaleVoice, castDoc.maleVoice, narratorVoice])
+
   const buildChunks = (rate: number, useWords: boolean, startWord?: number): Chunk[] => {
     const startChar = startWord != null ? pageWordTokens[startWord]?.start ?? 0 : 0
     if (useWords) {
@@ -580,17 +648,26 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
       from = m.index! + m[0].length
     }
     bounds.push([from, currentContent.length])
+    // Falas dos personagens: corta também nas aspas, para cada fala sair na voz de quem fala.
+    const spans = voiceSpans
+    const cuts = bounds.flatMap(([a0, b]) => {
+      const points = [a0, b, ...spans.flatMap(sp => [sp.start, sp.end]).filter(x => x > a0 && x < b)]
+      const sortedPoints = [...new Set(points)].sort((x, y) => x - y)
+      return sortedPoints.slice(0, -1).map((x, i) => [x, sortedPoints[i + 1]] as [number, number])
+    })
     const out: Chunk[] = []
     let wi = 0
-    for (const [a0, b] of bounds) {
+    for (const [a0, b] of cuts) {
       if (b <= startChar) continue
       const a = Math.max(a0, startChar)
       const text = currentContent.slice(a, b).replace(/\s+/g, ' ').trim()
-      if (!text) continue
+      if (!text || !/[\p{L}\p{N}]/u.test(text)) continue
       while (wi < pageWordTokens.length && pageWordTokens[wi].start < a) wi++
       const start = wi
       while (wi < pageWordTokens.length && pageWordTokens[wi].start < b) wi++
-      out.push({ text, range: [start, wi] })
+      const mid = (a + b) / 2
+      const span = spans.find(sp => mid >= sp.start && mid < sp.end)
+      out.push({ text, range: [start, wi], voice: span?.voice ?? narratorVoice, child: span?.child })
     }
     return out
   }
@@ -599,6 +676,12 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
   const clampRate = (r: number) => Math.min(1.5, Math.max(0.5, r))
 
   const startPlayback = (opts: { startWord?: number; rate?: number } = {}) => {
+    // Sem voz instalada (livro em inglês): pede para instalar em vez de usar a voz do navegador.
+    if (needsVoiceInstall(narrationLanguage)) {
+      pendingPlaybackRef.current = opts
+      setVoiceDialogOpen(true)
+      return
+    }
     browserPlaybackCancelledRef.current = false
     resumeFromWordRef.current = null
     const runId = ++playbackRunIdRef.current
@@ -649,10 +732,11 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
         const [phraseStart, phraseEnd] = range
         highlight(phraseStart)
         // Pré-carrega as próximas duas frases (mesma velocidade => mesmo cache) enquanto a atual toca.
-        for (const next of chunks.slice(index + 1, index + 3)) prefetch(next.text, { language, context, rate: playerRate })
+        for (const next of chunks.slice(index + 1, index + 3)) prefetch(next.text, { language, context, rate: next.child ? Math.min(1.5, playerRate * CHILD_SPEED) : playerRate, kokoroVoice: next.voice })
         try {
           const handle = await speak(text, {
-            language, context, rate: playerRate, onLoading: setIsLoadingTts,
+            language, context, rate: chunks[index].child ? Math.min(1.5, playerRate * CHILD_SPEED) : playerRate, onLoading: setIsLoadingTts,
+            kokoroVoice: chunks[index].voice,
             // Destaque palavra a palavra: tempos reais do Kokoro (ou onboundary da voz do navegador).
             onWord: useWords ? undefined : (i) => {
               if (!isStale()) highlight(Math.min(phraseStart + i, Math.max(phraseStart, phraseEnd - 1)))
@@ -785,6 +869,28 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
     const raf = requestAnimationFrame(updateTtsHandPosition)
     return () => cancelAnimationFrame(raf)
   }, [ttsHighlightWordIndices, currentContent])
+
+  // Acompanha a leitura: enquanto toca, mantém a palavra lida na área visível (rolagem vertical e,
+  // na HQ com zoom, também horizontal dentro da página). Pausar, parar ou clicar numa palavra encerra.
+  const followWordRef = useRef(0)
+  useEffect(() => {
+    if (!isPlaying || !ttsHighlightWordIndices?.size) return
+    const index = [...ttsHighlightWordIndices][0]
+    const el = readerRootRef.current?.querySelector(`span[data-word-index="${index}"]`) as HTMLElement | null
+    if (!el) return
+    const r = el.getBoundingClientRect()
+    const vh = window.innerHeight, vw = window.innerWidth
+    // Só reposiciona quando a palavra sai da faixa confortável (evita a tela "tremendo" a cada palavra).
+    const viewport = el.closest('.overflow-auto') as HTMLElement | null
+    const vr = viewport?.getBoundingClientRect()
+    const outV = r.top < vh * 0.22 || r.bottom > vh * 0.72
+    const outH = vr ? r.left < vr.left + vr.width * 0.12 || r.right > vr.right - vr.width * 0.12 : r.left < 0 || r.right > vw
+    if (!outV && !outH) return
+    const now = performance.now()
+    if (now - followWordRef.current < 250) return
+    followWordRef.current = now
+    el.scrollIntoView({ block: outV ? 'center' : 'nearest', inline: outH ? 'center' : 'nearest', behavior: 'smooth' })
+  }, [ttsHighlightWordIndices, isPlaying])
 
   const stopPlayback = () => {
     browserPlaybackCancelledRef.current = true
@@ -1104,6 +1210,13 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
             onGenerate={handleGenerateComic}
             onDelete={handleDeleteComic}
             onSaveLettering={handleSaveLettering}
+            onRelayout={handleRelayoutComic}
+            characters={book.comicCharacters ?? []}
+            currentChar={(isPlaying || isPaused) && ttsHighlightWordIndices?.size ? pageWordTokens[[...ttsHighlightWordIndices][0]]?.start ?? null : null}
+            onPlayLine={(charStart) => {
+              const idx = pageWordTokens.findIndex(token => token.end > charStart)
+              if (idx >= 0) playFromWord(idx)
+            }}
             letteringTheme={letteringThemeFor(book.comicStyleDoc)}
             letteringDetected={detectLetteringTheme(book.comicStyleDoc)}
             toolbarSlot={toolbarSlot}
@@ -1131,7 +1244,7 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
       </div>
 
       {/* Floating Toolbar — no livro no mobile fica embaixo (BottomNav escondido) */}
-      <div className="fixed left-2 right-2 md:left-64 md:right-8 md:bottom-8 z-40 flex flex-col items-center" style={{ bottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
+      <div className="fixed left-2 right-2 md:left-[var(--sidebar-w,16rem)] md:right-8 md:bottom-8 z-40 flex flex-col items-center" style={{ bottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
         <div 
           className="backdrop-blur-md border p-1.5 md:p-2.5 rounded-full shadow-2xl flex items-center justify-between md:justify-center gap-0.5 md:gap-1.5 transition-colors w-full flex-nowrap md:w-auto"
           style={{ backgroundColor: 'var(--theme-nav-bg)', borderColor: 'var(--theme-border-subtle)' }}
@@ -1141,13 +1254,13 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
             type="button"
             onClick={() => changePage(-1)}
             disabled={currentPage === 0}
-            className="flex items-center justify-center w-12 h-12 min-w-[48px] min-h-[48px] rounded-full transition-colors shrink-0 disabled:opacity-40 hover:bg-[var(--theme-nav-hover)] md:px-4 md:w-auto"
+            className="flex items-center justify-center w-12 h-12 min-w-[48px] min-h-[48px] rounded-full transition-colors shrink-0 disabled:opacity-40 hover:bg-[var(--theme-nav-hover)] xl:px-4 xl:w-auto"
             style={{ color: 'var(--theme-nav-text)' }}
             title={t('previousPage')}
             aria-label={t('previousPage')}
           >
             <ChevronLeft className="w-5 h-5" />
-            <span className="hidden md:inline ml-2 text-sm font-medium">
+            <span className="hidden xl:inline ml-2 text-sm font-medium">
               {t('previousPage')}
             </span>
           </button>
@@ -1356,12 +1469,12 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
             type="button"
             onClick={() => changePage(1)}
             disabled={currentPage >= pages.length - 1}
-            className="flex items-center justify-center w-12 h-12 min-w-[48px] min-h-[48px] rounded-full transition-colors shrink-0 disabled:opacity-40 hover:bg-[var(--theme-nav-hover)] md:px-4 md:w-auto"
+            className="flex items-center justify-center w-12 h-12 min-w-[48px] min-h-[48px] rounded-full transition-colors shrink-0 disabled:opacity-40 hover:bg-[var(--theme-nav-hover)] xl:px-4 xl:w-auto"
             style={{ color: 'var(--theme-nav-text)' }}
             title={t('nextPage')}
             aria-label={t('nextPage')}
           >
-            <span className="hidden md:inline ml-2 text-sm font-medium">
+            <span className="hidden xl:inline ml-2 text-sm font-medium">
               {t('nextPage')}
             </span>
             <ChevronRight className="w-5 h-5 ml-1 md:ml-2" />
@@ -1388,6 +1501,9 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
         bookId={book.id}
         vocabId={vocabToEdit}
       />
+
+      <VoiceRequiredDialog open={voiceDialogOpen} onOpenChange={setVoiceDialogOpen} pt={locale === 'pt-BR'}
+        onReady={() => { const opts = pendingPlaybackRef.current; pendingPlaybackRef.current = null; if (opts) setTimeout(() => startPlaybackRef.current(opts), 300) }} />
 
       <WordTooltip
         state={wordTip}

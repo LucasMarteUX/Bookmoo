@@ -38,7 +38,7 @@ export function useComicBalloonEditor(layout: EditorialLayout | null, pageKey: s
   const commit = async (line: PlacedDialogue | null) => {
     if (!layout || !line || savingRef.current) return
     const original = layout.balloons.find(item => item.id === line.id)
-    if (!line.box || (original?.font === line.font && original?.balloonType === line.balloonType && JSON.stringify(original.box) === JSON.stringify(line.box))) {
+    if (!line.box || (original?.font === line.font && JSON.stringify(original.box) === JSON.stringify(line.box))) {
       setDraft(null)
       draftRef.current = null
       return
@@ -47,7 +47,9 @@ export function useComicBalloonEditor(layout: EditorialLayout | null, pageKey: s
     setSaving(true)
     setDraft(line)
     try {
-      await save({ ...layout, balloons: layout.balloons.map(item => item.id === line.id ? line : item) })
+      // Só posição e tamanho/letra vêm do editor (na caixa única o texto exibido junta várias linhas).
+      // A caixa do quadro é uma só para todas as falas: mover/redimensionar vale para o quadro inteiro.
+      await save({ ...layout, lettering: 'lines', balloons: layout.balloons.map(item => item.panelId === line.panelId ? { ...item, box: line.box, font: line.font } : item) })
     } catch {
       // The reader reports the save error and restores its last saved layout.
     } finally {

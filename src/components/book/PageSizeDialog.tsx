@@ -1,10 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Sparkles } from 'lucide-react'
 import type { Book } from '@/store/useBookStore'
 import { remapComics } from '@/lib/comicPersistence'
-import { PAGE_SIZES, inferPageSize, splitContentIntoPages, type PageSize } from '@/lib/utils'
+import { PAGE_SIZES, countWords, inferPageSize, splitContentIntoPages, type PageSize } from '@/lib/utils'
+import { ToolButton, ToolGroup } from '@/components/ui/toolbar'
 
 type Props = {
   book: Book
@@ -35,12 +36,40 @@ function repaginate(book: Book, size: PageSize) {
   return { pages: next, currentPage, comicPages, comicLayouts, kept }
 }
 
+/** Ajusta só a página atual: divide se estiver grande, ou junta com as seguintes se estiver pequena. */
+function resizeCurrent(book: Book, size: PageSize) {
+  const pages = book.pages.length ? [...book.pages] : [book.content]
+  const i = Math.min(book.currentPage, pages.length - 1)
+  const target = PAGE_SIZES[size]
+  const words = countWords(pages[i])
+  let change: { kind: 'split'; parts: number } | { kind: 'merge'; with: number } | { kind: 'none' } = { kind: 'none' }
+  if (words > target * 1.15) {
+    const parts = splitContentIntoPages(pages[i], target)
+    pages.splice(i, 1, ...parts)
+    change = { kind: 'split', parts: parts.length }
+  } else if (words < target * 0.6) {
+    let merged = pages[i], total = words, take = 0
+    while (i + take + 1 < pages.length && total + countWords(pages[i + take + 1]) <= target * 1.15) {
+      take++
+      merged = `${merged}\n\n${pages[i + take]}`
+      total += countWords(pages[i + take])
+    }
+    if (take) { pages.splice(i, take + 1, merged); change = { kind: 'merge', with: take } }
+  }
+  const { comicPages, comicLayouts, kept } = remapComics(book.pages, pages, book.comicPages, book.comicLayouts)
+  return { pages, currentPage: i, comicPages, comicLayouts, kept, change, words }
+}
+
 export function PageSizeDialog({ book, open, pt, onOpenChange, onApply }: Props) {
-  const current = useMemo(() => inferPageSize(book.pages), [book.pages])
+  const [scope, setScope] = useState<'book' | 'page'>('book')
+  const current = useMemo(() => scope === 'page' ? inferPageSize([book.pages[book.currentPage] ?? '']) : inferPageSize(book.pages), [book.pages, book.currentPage, scope])
   const [size, setSize] = useState<PageSize>(current)
+  useEffect(() => { setSize(current) }, [scope]) // eslint-disable-line react-hooks/exhaustive-deps
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  const preview = useMemo(() => repaginate(book, size), [book, size])
+  const pagePreview = useMemo(() => resizeCurrent(book, size), [book, size])
+  const preview = useMemo(() => scope === 'page' ? pagePreview : repaginate(book, size), [book, size, scope, pagePreview])
+  const unchanged = scope === 'page' ? pagePreview.change.kind === 'none' : size === current
   const comicCount = Object.keys(book.comicPages ?? {}).length
   const lost = comicCount - preview.kept
 
@@ -66,6 +95,12 @@ export function PageSizeDialog({ book, open, pt, onOpenChange, onApply }: Props)
             {pt ? 'Escolha quanto texto cabe em cada página do livro.' : 'Choose how much text goes on each page of the book.'}
           </DialogDescription>
         </DialogHeader>
+        <div className="flex justify-center">
+          <ToolGroup label={pt ? 'Aplicar em' : 'Apply to'}>
+            <ToolButton label={pt ? 'Livro inteiro' : 'Whole book'} active={scope === 'book'} onClick={() => setScope('book')} />
+            <ToolButton label={pt ? `Só esta página (${book.currentPage + 1})` : `This page only (${book.currentPage + 1})`} active={scope === 'page'} onClick={() => setScope('page')} />
+          </ToolGroup>
+        </div>
         <div className="space-y-2" role="radiogroup">
           {OPTIONS.map(option => {
             const [title, text] = pt ? option.pt : option.en
@@ -100,9 +135,15 @@ export function PageSizeDialog({ book, open, pt, onOpenChange, onApply }: Props)
           })}
         </div>
         <p className="text-sm" style={{ color: 'var(--theme-text-secondary)' }}>
-          {pt ? `O livro ficará com ${preview.pages.length} páginas (hoje: ${book.pages.length}).` : `The book will have ${preview.pages.length} pages (now: ${book.pages.length}).`}
+          {scope === 'page'
+            ? (pagePreview.change.kind === 'split'
+              ? (pt ? `Esta página tem ${pagePreview.words} palavras e vai virar ${pagePreview.change.parts} páginas.` : `This page has ${pagePreview.words} words and will become ${pagePreview.change.parts} pages.`)
+              : pagePreview.change.kind === 'merge'
+                ? (pt ? `Esta página tem ${pagePreview.words} palavras e vai juntar com a(s) ${pagePreview.change.with} seguinte(s).` : `This page has ${pagePreview.words} words and will merge with the next ${pagePreview.change.with}.`)
+                : (pt ? `Esta página já está nesse tamanho (${pagePreview.words} palavras).` : `This page is already this size (${pagePreview.words} words).`))
+            : (pt ? `O livro ficará com ${preview.pages.length} páginas (hoje: ${book.pages.length}).` : `The book will have ${preview.pages.length} pages (now: ${book.pages.length}).`)}
         </p>
-        {size !== current && lost > 0 && (
+        {!unchanged && lost > 0 && (
           <p className="text-sm rounded-xl p-3 bg-red-500/10 text-red-500">
             {pt
               ? `${lost} quadrinho(s) já gerado(s) deixam de corresponder ao texto das novas páginas e serão desvinculados deste livro.`
@@ -112,7 +153,7 @@ export function PageSizeDialog({ book, open, pt, onOpenChange, onApply }: Props)
         {error && <p className="text-sm text-red-500">{error}</p>}
         <div className="flex justify-end gap-2">
           <Button variant="ghost" onClick={() => onOpenChange(false)}>{pt ? 'Cancelar' : 'Cancel'}</Button>
-          <Button onClick={apply} disabled={saving || size === current}>
+          <Button onClick={apply} disabled={saving || unchanged}>
             {saving ? (pt ? 'Salvando…' : 'Saving…') : pt ? 'Aplicar' : 'Apply'}
           </Button>
         </div>
