@@ -1,3 +1,4 @@
+import { CommunityMosaic } from './CommunityMosaic'
 import { useState, useEffect } from 'react'
 import { Sparkles, Trash2, Volume2, BookOpenText, WandSparkles, Eye, EyeOff } from 'lucide-react'
 import { useVocabularyStore, VocabStatus, VocabType, GrammarExample } from '@/store/useVocabularyStore'
@@ -341,6 +342,8 @@ export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId 
               </div>
               <Textarea value={variantStory} onChange={e => setVariantStory(e.target.value)} placeholder={L.storyPh} className="mt-3 min-h-[120px]" />
             </div>
+
+            <CommunityMosaic text={text} lang={bookLanguageCode ?? 'en'} pt={locale === 'pt-BR'} />
 
             <div className="space-y-2">
               <Label>{L.examples}</Label>

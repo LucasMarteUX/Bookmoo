@@ -39,13 +39,13 @@ export function ActivityPanel({ pt }: { pt: boolean }) {
   })
 
   const byKind = useMemo(() => {
-    const out: Record<XpKind, number> = { speak: 0, write: 0, learned: 0, read: 0, recovered: 0 }
+    const out: Record<XpKind, number> = { speak: 0, write: 0, learned: 0, read: 0, recovered: 0, community: 0 }
     for (const e of events) { const k = kindOf(e.key); if (k in out) out[k] += e.amount }
     return out
   }, [events])
   const kindLabels: Record<XpKind, string> = pt
-    ? { speak: 'Falar', write: 'Ditado', learned: 'Palavras aprendidas', read: 'Páginas lidas', recovered: 'Bônus (palavras recuperadas)' }
-    : { speak: 'Speak', write: 'Dictation', learned: 'Words learned', read: 'Pages read', recovered: 'Bonus (recovered words)' }
+    ? { speak: 'Falar', write: 'Ditado', learned: 'Palavras aprendidas', read: 'Páginas lidas', recovered: 'Bônus (palavras recuperadas)', community: 'Mosaicos para a comunidade' }
+    : { speak: 'Speak', write: 'Dictation', learned: 'Words learned', read: 'Pages read', recovered: 'Bonus (recovered words)', community: 'Community mosaics' }
   const maxHour = Math.max(1, ...summary.byHour)
 
   const scroller = useRef<HTMLDivElement>(null)

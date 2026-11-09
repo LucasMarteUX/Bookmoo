@@ -2,8 +2,8 @@
 // Usa a chave do próprio usuário (Gemini preferido para texto/visão; OpenAI como alternativa).
 import { corsHeaders, getUser, json, log } from '../_shared/tts.ts'
 import { AiError, llmJson, llmText, pickProvider, type ImagePart } from '../_shared/ai.ts'
+import { explainTerm, sharedExamples, sharedExplain, sharedImages, sharedStory, storyForTerm } from '../_shared/vocab.ts'
 
-const LANG_NAMES: Record<string, string> = { pt: 'Portuguese', es: 'Spanish', fr: 'French', de: 'German', ja: 'Japanese', zh: 'Chinese', en: 'English' }
 const MAX_IMAGE_B64 = 5_500_000
 
 function imageFromDataUrl(dataUrl: unknown): ImagePart {
@@ -20,42 +20,19 @@ async function handle(userId: string, b: Body) {
     case 'explain': {
       const text = String(b.text ?? '').slice(0, 300)
       const level = ['A2', 'B1', 'B2'].includes(String(b.level)) ? String(b.level) : 'B1'
-      const langName = LANG_NAMES[String(b.languageCode ?? 'en')] ?? 'English'
       const { provider, key } = await pickProvider(userId, ['gemini', 'openai'])
-      const r = await llmJson<Record<string, unknown>>(provider, key, {
-        system: `You are a ${langName} teacher. Provide a simple definition in ${langName}, an intuitive phonetic spelling (e.g., AP-uhl for apple) instead of IPA, and exactly 3 example sentences in ${langName}.`,
-        prompt: `Explain clearly in ${langName} the meaning of "${text}".
-Level: ${level}
-Be concise.
-
-You are a language teacher focused on practical English for business and career. In addition to the definition and pronunciation, create exactly three practical examples using different business contexts:
-1. affirmative
-2. negative
-3. interrogative
-
-For each example, include the grammatical form, a distinct context, the sentence in English with the analyzed term wrapped in **, and a fluent Portuguese translation. Add a short usage note when the negative or interrogative form changes an auxiliary, verb tense, word order, or another grammatical element.
-
-Return JSON only with this exact shape:
-{"definition": string, "ipa": string, "examples": [string, string, string], "grammarExamples": [{"form": "affirmative"|"negative"|"interrogative", "context": string, "english": string, "portuguese": string}], "usageNote": string}`,
-      })
-      return {
-        definition: String(r.definition ?? 'No definition found.'),
-        ipa: String(r.ipa ?? ''),
-        examples: Array.isArray(r.examples) ? r.examples.map(String) : [],
-        grammarExamples: Array.isArray(r.grammarExamples) ? r.grammarExamples : [],
-        usageNote: String(r.usageNote ?? ''),
-      }
+      return await explainTerm(provider, key, text, level, String(b.languageCode ?? 'en'))
     }
     case 'variant-story': {
       const text = String(b.text ?? '').slice(0, 300)
-      const language = b.languageCode === 'pt' ? 'Portuguese' : "the learner's interface language"
       const { provider, key } = await pickProvider(userId, ['gemini', 'openai'])
-      const story = await llmText(provider, key, {
-        prompt: `Create a short parallel story for a language learner based on the English term "${text}".
-The story must be independent from any book context, use a fresh everyday or professional situation, and demonstrate the term naturally at least three times in different sentences. Write the story in ${language}, but keep the target term and its example sentences in English. Add a one-sentence title. Keep it between 80 and 130 words. Return plain text only.`,
-      })
-      return { story: story.trim() }
+      return { story: await storyForTerm(provider, key, text, String(b.languageCode ?? '')) }
     }
+    // Banco compartilhado de vocabulário: gera um item novo, salva para todos e devolve a linha.
+    case 'vocab-explain': return await sharedExplain(userId, b)
+    case 'vocab-story': return await sharedStory(userId, b)
+    case 'vocab-examples': return await sharedExamples(userId, b)
+    case 'vocab-images': return await sharedImages(userId, b)
     case 'search-context': {
       // Referências visuais via busca do Google: só existe no Gemini. Sem Gemini, devolve vazio.
       let picked

@@ -122,15 +122,22 @@ export function bytesToB64(bytes: Uint8Array) {
 }
 
 /** Gera uma página 2:3 (retrato). OpenAI em qualidade "medium": "low" ficava simples demais para uma HQ. */
-export async function generateImage(provider: Provider, key: string, prompt: string, refs: (ImagePart | ImageReference)[], mask?: Blob): Promise<{ bytes: Uint8Array; mime: string }> {
+export type ImageShape = { square?: boolean; quality?: 'low' | 'medium' | 'high'; mask?: Blob }
+
+/** Página 2:3 por padrão; `opts` aceita a máscara (edição de painel) ou formato quadrado/qualidade. */
+export async function generateImage(provider: Provider, key: string, prompt: string, refs: (ImagePart | ImageReference)[], opts?: Blob | ImageShape): Promise<{ bytes: Uint8Array; mime: string }> {
+  const shape: ImageShape = opts instanceof Blob ? { mask: opts } : opts ?? {}
+  const mask = shape.mask
+  const size = shape.square ? '1024x1024' : '1024x1536'
+  const quality = shape.quality ?? 'medium'
   if (provider === 'openai') {
     let r: Response
     if (refs.length > 0) {
       const form = new FormData()
       form.append('model', MODELS.openaiImage)
       form.append('prompt', prompt)
-      form.append('size', '1024x1536')
-      form.append('quality', 'medium')
+      form.append('size', size)
+      form.append('quality', quality)
       form.append('output_format', 'jpeg')
       if (mask) form.append('mask', mask, 'mask.png')
       refs.forEach((ref, i) => {
@@ -143,7 +150,7 @@ export async function generateImage(provider: Provider, key: string, prompt: str
       r = await fetch('https://api.openai.com/v1/images/generations', {
         method: 'POST',
         headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: MODELS.openaiImage, prompt, size: '1024x1536', quality: 'medium', output_format: 'jpeg', n: 1 }),
+        body: JSON.stringify({ model: MODELS.openaiImage, prompt, size, quality, output_format: 'jpeg', n: 1 }),
         signal: AbortSignal.timeout(140_000),
       })
     }
@@ -162,7 +169,7 @@ export async function generateImage(provider: Provider, key: string, prompt: str
   parts.push({ text: prompt })
   const j = await geminiGenerate(key, MODELS.geminiImage, {
     contents: [{ role: 'user', parts }],
-    generationConfig: { responseModalities: ['IMAGE'], imageConfig: { aspectRatio: '2:3' } },
+    generationConfig: { responseModalities: ['IMAGE'], imageConfig: { aspectRatio: shape.square ? '1:1' : '2:3' } },
   })
   const img = (j.candidates?.[0]?.content?.parts ?? []).find((p) => p.inlineData)?.inlineData
   if (!img) throw new AiError('no_image_returned')

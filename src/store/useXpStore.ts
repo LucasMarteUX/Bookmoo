@@ -5,7 +5,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
-export type XpKind = 'speak' | 'write' | 'learned' | 'read' | 'recovered'
+export type XpKind = 'speak' | 'write' | 'learned' | 'read' | 'recovered' | 'community'
 export interface XpEvent { key: string; amount: number; at: number }
 
 /** Regras de pontuação (fonte única, usada pelas telas e pelo histórico). */
@@ -16,6 +16,8 @@ export const XP = {
   readPage: 2,
   /** Palavra que tinha errado antes e agora acertou: 2 pontos (o dobro de uma palavra certa). */
   recoveredWord: 2,
+  /** Mosaico gerado para a comunidade (fica disponível para todos). */
+  communityImage: 5,
 } as const
 
 export const kindOf = (key: string) => key.split(':')[0] as XpKind
