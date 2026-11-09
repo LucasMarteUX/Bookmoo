@@ -1,3 +1,4 @@
+import { countWords, readingProgress, splitContentIntoPages } from '@/lib/utils'
 import { snapPlaybackRate } from '@/store/useReaderSettings'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Book } from '@/store/useBookStore'
@@ -14,10 +15,23 @@ export function bookFromRow(row: any): Book {
     }
   }
   const totalPages = typeof row.total_pages === 'number' && row.total_pages > 0 ? row.total_pages : undefined
-  const pages = Array.isArray(row.pages) ? row.pages : [row.content ?? '']
-  const progress = totalPages ? Math.min(100, Math.round((pages.length / totalPages) * 100)) : (typeof row.progress === 'number' ? row.progress * 100 : 0)
+  const savedPages: string[] = Array.isArray(row.pages) ? row.pages.filter((page: unknown) => typeof page === 'string') : []
+  const legacyContent = typeof row.content === 'string' ? row.content.trim() : ''
+  const hasComic = Object.keys(comicPagesNum).length > 0
+  const needsPagination = legacyContent && !hasComic && !row.word_count
+    && (savedPages.length === 0 || (savedPages.length === 1 && savedPages[0].trim() === legacyContent))
+  const pages = needsPagination ? splitContentIntoPages(legacyContent) : savedPages.length ? savedPages : legacyContent ? [legacyContent] : []
+  const currentPage = Number.isInteger(row.current_page) ? Math.max(0, Math.min(pages.length - 1, row.current_page)) : 0
+  const progress = readingProgress(currentPage, pages.length, totalPages)
   const comicStyleDoc = row.comic_style_doc && typeof row.comic_style_doc === 'object' ? row.comic_style_doc : undefined
   const comicCharacters = Array.isArray(row.comic_characters) ? row.comic_characters : undefined
+  const comicLayouts: Record<number, any> = {}
+  if (row.comic_layouts && typeof row.comic_layouts === 'object') {
+    for (const k of Object.keys(row.comic_layouts)) {
+      const n = parseInt(k, 10)
+      if (!Number.isNaN(n)) comicLayouts[n] = row.comic_layouts[k]
+    }
+  }
   return {
     id: row.id,
     title: row.title ?? '',
@@ -26,14 +40,15 @@ export function bookFromRow(row: any): Book {
     context: row.context ?? '',
     description: row.description ?? undefined,
     pages,
-    currentPage: typeof row.current_page === 'number' ? row.current_page : 0,
+    currentPage,
     progress,
     lastRead: row.last_read ? new Date(row.last_read).getTime() : Date.now(),
-    wordCount: typeof row.word_count === 'number' ? row.word_count : 0,
+    wordCount: row.word_count > 0 ? row.word_count : countWords(pages.join(' ')),
     totalPages,
     comicPages: Object.keys(comicPagesNum).length ? comicPagesNum : undefined,
     comicStyleDoc: comicStyleDoc ?? undefined,
     comicCharacters: comicCharacters ?? undefined,
+    comicLayouts: Object.keys(comicLayouts).length ? comicLayouts : undefined,
     pinnedVocabIds: Array.isArray(row.pinned_vocab_ids) ? row.pinned_vocab_ids : undefined,
     languageCode: row.language_code ?? undefined,
     coverData: row.cover_data ?? undefined
@@ -48,9 +63,7 @@ export function bookToRow(book: Book, userId: string) {
       comicPages[String(k)] = v
     }
   }
-  const progress = book.totalPages && book.totalPages > 0
-    ? Math.min(1, (book.pages?.length ?? 0) / book.totalPages)
-    : (book.progress ?? 0) / 100
+  const progress = readingProgress(book.currentPage, book.pages?.length ?? 0, book.totalPages) / 100
   return {
     id: book.id,
     user_id: userId,
@@ -68,6 +81,7 @@ export function bookToRow(book: Book, userId: string) {
     comic_pages: Object.keys(comicPages).length ? comicPages : null,
     comic_style_doc: book.comicStyleDoc ?? null,
     comic_characters: book.comicCharacters ?? null,
+    comic_layouts: book.comicLayouts ?? {},
     pinned_vocab_ids: book.pinnedVocabIds ?? [],
     language_code: book.languageCode ?? 'en',
     cover_data: book.coverData ?? null
@@ -117,8 +131,6 @@ export async function fetchBooks(supabase: SupabaseClient, userId: string): Prom
     .eq('user_id', userId)
     .order('last_read', { ascending: false })
 
-  console.log('[fetchBooks] raw response', { userId, data, error })
-
   if (error) {
     console.error('fetchBooks error', error)
     return []
@@ -162,8 +174,31 @@ export async function upsertBook(supabase: SupabaseClient, userId: string, book:
   }
 }
 
+/** Campo do app → colunas no banco. */
+const BOOK_FIELD_COLUMNS: Partial<Record<keyof Book, string[]>> = {
+  title: ['title'], author: ['author'], content: ['content'], context: ['context'], description: ['description'],
+  pages: ['pages', 'progress'], currentPage: ['current_page', 'progress'], progress: ['progress'], lastRead: ['last_read'],
+  wordCount: ['word_count'], totalPages: ['total_pages', 'progress'], comicPages: ['comic_pages'],
+  comicStyleDoc: ['comic_style_doc'], comicCharacters: ['comic_characters'], comicLayouts: ['comic_layouts'],
+  pinnedVocabIds: ['pinned_vocab_ids'], languageCode: ['language_code'], coverData: ['cover_data'],
+}
+
+/**
+ * Atualiza SÓ as colunas dos campos alterados. Evita que uma mudança pequena (ex.: última leitura)
+ * reenvie o livro inteiro a partir do cache local e apague dados que o cache não tem.
+ */
+export async function updateBookFields(supabase: SupabaseClient, userId: string, book: Book, fields: (keyof Book)[]): Promise<void> {
+  const row = bookToRow(book, userId) as Record<string, unknown>
+  const patch: Record<string, unknown> = {}
+  for (const f of fields) for (const col of BOOK_FIELD_COLUMNS[f] ?? []) patch[col] = row[col]
+  if (!Object.keys(patch).length) return
+  const { error } = await supabase.from('books').update(patch).eq('id', book.id).eq('user_id', userId)
+  if (error) throw error
+}
+
 export async function deleteBookRemote(supabase: SupabaseClient, userId: string, bookId: string): Promise<void> {
-  await supabase.from('books').delete().eq('id', bookId).eq('user_id', userId)
+  const { error } = await supabase.from('books').delete().eq('id', bookId).eq('user_id', userId)
+  if (error) throw error
 }
 
 export async function upsertVocabulary(supabase: SupabaseClient, userId: string, v: Vocabulary): Promise<void> {
@@ -201,8 +236,6 @@ export async function fetchReaderSettings(supabase: SupabaseClient, userId: stri
   showHighlights: boolean
   playbackRate: number
   voiceGender: 'female' | 'male'
-  geminiApiKey: string | null
-  ttsProvider: 'browser' | 'gemini' | 'elevenlabs'
 } | null> {
   const { data, error } = await supabase.from('reader_settings').select('*').eq('user_id', userId).maybeSingle()
   if (error || !data) return null
@@ -213,7 +246,5 @@ export async function fetchReaderSettings(supabase: SupabaseClient, userId: stri
     showHighlights: data.show_highlights !== false,
     playbackRate: snapPlaybackRate(typeof data.playback_rate === 'number' ? data.playback_rate : 1),
     voiceGender: (data.voice_gender as 'female' | 'male') ?? 'female',
-    geminiApiKey: data.gemini_api_key ?? null,
-    ttsProvider: (data.tts_provider as 'browser' | 'gemini' | 'elevenlabs') ?? 'browser'
   }
 }

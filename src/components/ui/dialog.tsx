@@ -21,9 +21,10 @@ export function Dialog({ open, onOpenChange, children }: { open: boolean, onOpen
 }
 
 export function DialogContent({ className, children, style, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  const { onOpenChange } = React.useContext(DialogContext)
   return (
     <div 
-      className={cn("z-50 grid w-full max-w-lg gap-4 p-6 sm:max-w-md animate-in fade-in-90 zoom-in-95", className)} 
+      className={cn("relative z-50 grid w-full max-w-lg gap-4 p-6 sm:max-w-md animate-in fade-in-90 zoom-in-95", className)} 
       style={{
         backgroundColor: 'var(--theme-card-bg)',
         color: 'var(--theme-text)',
@@ -33,6 +34,15 @@ export function DialogContent({ className, children, style, ...props }: React.HT
       }}
       {...props}
     >
+      <button
+        type="button"
+        onClick={() => onOpenChange(false)}
+        className="absolute right-4 top-4 w-9 h-9 rounded-full flex items-center justify-center transition-colors hover:bg-black/5 dark:hover:bg-white/10"
+        style={{ color: 'var(--theme-text-secondary)' }}
+        aria-label="Fechar"
+      >
+        <X className="w-5 h-5" />
+      </button>
       {children}
     </div>
   )

@@ -3,6 +3,7 @@ import { useVocabularyStore } from '@/store/useVocabularyStore'
 import { useLanguage } from '@/store/useLanguage'
 import { useTranslations } from '@/lib/i18n'
 import { Card } from '@/components/ui/card'
+import { PracticeStats } from '@/components/stats/PracticeStats'
 import { Clock, BookMarked, CheckCircle, AlertCircle, Star } from 'lucide-react'
 
 function formatTime(seconds: number) {
@@ -35,7 +36,9 @@ export function Stats() {
     <div className="max-w-6xl mx-auto space-y-8">
       <h1 className="text-3xl font-bold" style={{ color: 'var(--theme-text)' }}>{t('statsTitle')}</h1>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <PracticeStats pt={locale === 'pt-BR'} />
+
+      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
         <Card className="p-5 border transition-colors" style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-border)' }}>
           <div className="flex items-center gap-2 mb-2">
             <div className="p-2 bg-emerald-100 rounded-lg">

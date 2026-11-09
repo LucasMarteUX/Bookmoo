@@ -217,41 +217,110 @@
 }
 
 @layer utilities {
-  .vocab-learned {
-    background-color: var(--color-vocab-learned-bg);
-    border-bottom: 2px solid var(--color-vocab-learned-border);
-    color: var(--color-vocab-learned-text);
+  /* Palavras marcadas: "pílulas" 3D fofas (base sólida embaixo), nas cores de status. */
+  .vocab-learned, .vocab-review, .vocab-important {
     cursor: pointer;
-    transition: background-color 0.15s, border-color 0.15s;
-    border-radius: 8px;
-    padding: 2px 6px;
+    border-radius: 0.5em;
+    padding: 0.04em 0.34em 0.08em;
+    border: 1.5px solid var(--vb);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--vbg) 70%, white) 0%, var(--vbg) 100%);
+    color: var(--vt);
+    box-shadow: 0 0.16em 0 var(--vb), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+    transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s;
+    display: inline-block;
+    line-height: 1.25;
   }
-  .vocab-learned:hover {
-    background-color: #d4f0de;
+  .vocab-learned { --vb: var(--color-vocab-learned-border); --vbg: var(--color-vocab-learned-bg); --vt: var(--color-vocab-learned-text); }
+  .vocab-review { --vb: var(--color-vocab-review-border); --vbg: var(--color-vocab-review-bg); --vt: var(--color-vocab-review-text); }
+  .vocab-important { --vb: var(--color-vocab-important-border); --vbg: var(--color-vocab-important-bg); --vt: var(--color-vocab-important-text); }
+  .vocab-learned:hover, .vocab-review:hover, .vocab-important:hover { transform: translateY(-1px); filter: brightness(1.03); }
+  .vocab-pop { animation: vocab-pop 0.6s cubic-bezier(0.3, 1.7, 0.5, 1); }
+  @keyframes vocab-pop {
+    0% { transform: scale(1); }
+    35% { transform: scale(1.35) rotate(-3deg); }
+    60% { transform: scale(0.92) rotate(2deg); }
+    100% { transform: scale(1) rotate(0); }
   }
-  .vocab-review {
-    background-color: var(--color-vocab-review-bg);
-    border-bottom: 2px solid var(--color-vocab-review-border);
-    color: var(--color-vocab-review-text);
-    cursor: pointer;
-    transition: background-color 0.15s, border-color 0.15s;
-    border-radius: 8px;
-    padding: 2px 6px;
+
+  /* Botões estilo jogo "bala de vidro": pílula com borda interna clara, brilho especular no
+     canto, reflexo diagonal e base sólida que afunda ao clicar. */
+  .btn-3d {
+    --c: #4F7DF9;   /* cor principal */
+    --l: #8FB4FF;   /* topo claro */
+    --d: #2F56C8;   /* base / lábio inferior */
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4em;
+    font-family: 'Fredoka', system-ui, sans-serif;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    color: #fff;
+    padding: 0.55em 1.05em 0.6em;
+    border-radius: 999px;
+    border: 0;
+    background: linear-gradient(180deg, var(--l) 0%, var(--c) 58%, color-mix(in srgb, var(--c) 88%, black) 100%);
+    box-shadow:
+      inset 0 0 0 2px color-mix(in srgb, white 35%, transparent),
+      inset 0 3px 0 rgba(255, 255, 255, 0.45),
+      inset 0 -3px 0 rgba(0, 0, 0, 0.12),
+      0 4px 0 var(--d),
+      0 7px 12px rgba(0, 0, 0, 0.2);
+    text-shadow: 0 1px 0 color-mix(in srgb, var(--d) 70%, transparent);
+    transition: transform 0.08s ease, box-shadow 0.08s ease, filter 0.15s;
+    user-select: none;
   }
-  .vocab-review:hover {
-    background-color: #ffefcc;
+  /* brilho especular (bolinha + traço) no canto superior esquerdo */
+  .btn-3d::before {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    top: 18%;
+    left: 9%;
+    width: 0.55em;
+    height: 0.38em;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0.5em 0.05em 0 -0.08em rgba(255, 255, 255, 0.55);
+    transform: rotate(-25deg);
   }
-  .vocab-important {
-    background-color: var(--color-vocab-important-bg);
-    border-bottom: 2px solid var(--color-vocab-important-border);
-    color: var(--color-vocab-important-text);
-    cursor: pointer;
-    transition: background-color 0.15s, border-color 0.15s;
-    border-radius: 8px;
-    padding: 2px 6px;
+  /* reflexo diagonal de vidro */
+  .btn-3d::after {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    background:
+      linear-gradient(115deg, transparent 52%, rgba(255, 255, 255, 0.18) 52%, rgba(255, 255, 255, 0.18) 66%, transparent 66%),
+      radial-gradient(120% 70% at 50% 0%, rgba(255, 255, 255, 0.35), transparent 60%);
+    pointer-events: none;
   }
-  .vocab-important:hover {
-    background-color: #e0d8ff;
+  .btn-3d:hover { filter: brightness(1.06) saturate(1.05); }
+  .btn-3d:active, .btn-3d[aria-pressed='true'] {
+    transform: translateY(3px);
+    box-shadow:
+      inset 0 0 0 2px color-mix(in srgb, white 35%, transparent),
+      inset 0 3px 0 rgba(255, 255, 255, 0.35),
+      0 1px 0 var(--d),
+      0 2px 5px rgba(0, 0, 0, 0.18);
+  }
+  .btn-3d[aria-pressed='true'] { outline: 2.5px solid color-mix(in srgb, var(--c) 40%, white); outline-offset: 2px; }
+  .btn-3d--learned { --c: #34C46F; --l: #8EEDB0; --d: #1E8A4C; }
+  .btn-3d--review { --c: #FFAE2B; --l: #FFE08A; --d: #D07F00; }
+  .btn-3d--important { --c: #8A6BFF; --l: #C7B6FF; --d: #5A3FD1; }
+  .btn-3d--explain { --c: #4F7DF9; --l: #9DC0FF; --d: #2F56C8; }
+
+  /* +1 em 3D que salta sobre a palavra ao marcar como aprendida. */
+  .score-burst {
+    font-family: 'Fredoka', system-ui, sans-serif;
+    font-weight: 700;
+    font-size: 1.6rem;
+    color: #3AC77A;
+    -webkit-text-stroke: 1.5px #1d8a50;
+    text-shadow: 0 3px 0 #1d8a50, 0 6px 10px rgba(0, 0, 0, 0.25);
   }
 
   .tts-current {
@@ -264,6 +333,82 @@
   .tts-hand {
     filter: drop-shadow(0 1px 2px rgba(0,0,0,0.15));
   }
+
+  /* Legendas do quadrinho: desenhadas pelo app dentro de cada quadro (texto real, clicável).
+     Estilo de caixa de narração de HQ: branca, borda preta, letra condensada em negrito. */
+  .comic-caption {
+    z-index: 2;
+    background: #fffef8;
+    color: #111;
+    border: 0.14em solid #111;
+    padding: 0.32em 0.55em 0.38em;
+    font-family: 'Roboto Condensed', 'Arial Narrow', 'Helvetica Neue', sans-serif;
+    font-weight: 700;
+    line-height: 1.16;
+    letter-spacing: 0.005em;
+    text-align: left;
+    box-shadow: 0.12em 0.14em 0 rgba(0, 0, 0, 0.35);
+    overflow-wrap: break-word;
+    white-space: normal;
+  }
+  .comic-caption--speech {
+    border-radius: 1.2em;
+    padding: 0.5em 0.85em;
+    text-align: center;
+  }
+  .comic-caption--speech::after {
+    content: '';
+    position: absolute;
+    bottom: -0.7em;
+    right: 1.6em;
+    width: 0.9em;
+    height: 0.9em;
+    background: #fffef8;
+    border-right: 0.14em solid #111;
+    border-bottom: 0.14em solid #111;
+    transform: skewX(-25deg) rotate(35deg);
+  }
+  /* Fala no canto de baixo: o rabicho aponta para cima. */
+  .comic-caption--tail-top::after {
+    bottom: auto;
+    top: -0.7em;
+    border-right: 0;
+    border-bottom: 0;
+    border-left: 0.14em solid #111;
+    border-top: 0.14em solid #111;
+  }
+  .comic-caption .tts-current {
+    outline: 0.12em solid var(--theme-tts-ring);
+    outline-offset: 0.06em;
+    box-shadow: none;
+    border-radius: 0.2em;
+    background: color-mix(in srgb, var(--theme-tts-ring) 22%, transparent);
+  }
+  /* Palavra lida/selecionada no balão: pílula na cor do tema de lettering, com base 3D.
+     A margem negativa compensa o padding, então o texto não muda de lugar. */
+  .comic-lettered-text .tts-current {
+    outline: none;
+    background: var(--comic-hl-bg, #ffe066);
+    color: var(--comic-hl-text, inherit);
+    border-radius: 0.3em;
+    padding: 0 0.14em;
+    margin: 0 -0.14em;
+    box-shadow: 0 0 0 0.08em var(--comic-hl-ring, #e8590c), 0 0.13em 0 0.08em var(--comic-hl-ring, #e8590c);
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+    position: relative;
+    z-index: 1;
+    animation: comic-hl-in 0.18s ease-out;
+  }
+  @keyframes comic-hl-in { from { transform: translateY(0.06em) scale(0.92); } to { transform: none; } }
+  .comic-caption .hover-word:hover { background: rgba(0, 0, 0, 0.08); }
+  .comic-lettered-text .hover-word { border-radius: 0.25em; }
+  .comic-lettered-text .hover-word:hover { background: color-mix(in srgb, var(--comic-hl-bg, #ffe066) 45%, transparent); }
+  /* Balões editáveis: contorno aparece ao passar o mouse (e fica no modo mover / selecionado). */
+  .balloon-hover-ring { opacity: 0; transition: opacity 0.15s ease; }
+  g[data-balloon-hit]:hover .balloon-hover-ring { opacity: 0.55; }
+  .balloon-hover-ring.is-visible { opacity: 0.95; }
+  .reader-root:fullscreen { overflow: auto; background: var(--theme-bg); }
   .theme-dark .tts-hand {
     filter: drop-shadow(0 1px 2px rgba(0,0,0,0.4));
   }
@@ -305,5 +450,39 @@
   }
   .animate-comic-icon-float {
     animation: comic-icon-float 3s ease-in-out infinite;
+  }
+}
+
+/* Aba "Falar": palavras pintadas pela pronúncia reconhecida. */
+@layer utilities {
+  /* Sem padding: a palavra não pode ocupar mais espaço que no leitor (a linha quebraria
+     em outro lugar). O fundo "transborda" com box-shadow, que não afeta o layout. */
+  .speak-word {
+    border-radius: 0.2em;
+    transition: background-color 0.25s ease, box-shadow 0.25s ease, color 0.25s ease;
+  }
+  .speak-ok { --sk: #34C46F; }
+  .speak-close { --sk: #FFAE2B; }
+  .speak-bad { --sk: #F0524F; }
+  .speak-ok, .speak-close, .speak-bad {
+    background-color: color-mix(in srgb, var(--sk) 22%, transparent);
+    box-shadow: 0 0 0 0.08em color-mix(in srgb, var(--sk) 22%, transparent), inset 0 -0.12em 0 var(--sk);
+  }
+  .speak-bad { text-decoration: underline wavy color-mix(in srgb, var(--sk) 70%, transparent); text-underline-offset: 0.22em; text-decoration-thickness: 1px; }
+  .speak-next {
+    box-shadow: 0 0 0 2px var(--theme-primary);
+    animation: speak-next-pulse 1.1s ease-in-out infinite;
+  }
+  @keyframes speak-next-pulse {
+    0%, 100% { box-shadow: 0 0 0 2px color-mix(in srgb, var(--theme-primary) 80%, transparent); }
+    50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--theme-primary) 25%, transparent); }
+  }
+  .speak-selected { outline: 2px solid var(--theme-primary); outline-offset: 1px; }
+  .speak-chip { padding: 0.2em 0.6em; border-radius: 999px; color: var(--theme-text); cursor: pointer; }
+  .speak-chip:hover { filter: brightness(1.05); transform: translateY(-1px); }
+  .speak-mic-live { animation: speak-mic 1.4s ease-in-out infinite; }
+  @keyframes speak-mic {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255, 174, 43, 0.5); }
+    50% { box-shadow: 0 0 0 10px rgba(255, 174, 43, 0); }
   }
 }

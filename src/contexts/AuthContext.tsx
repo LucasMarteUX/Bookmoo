@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import type { User, Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
+import { resetAiStatus } from '@/lib/aiKeys'
 
 const ADMIN_EMAILS = ['lucasmarteux@gmail.com', 'lidiane.cristina40@gmail.com']
 
@@ -28,12 +29,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false)
       return
     }
+    let accountId: string | undefined
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-      setLoading(false)
-    })
-    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (accountId !== session?.user.id) {
+        accountId = session?.user.id
+        resetAiStatus()
+      }
       setSession(session)
       setUser(session?.user ?? null)
       setLoading(false)
@@ -64,6 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const signOut = async () => {
+    resetAiStatus()
     if (supabase) await supabase.auth.signOut()
     setSession(null)
     setUser(null)

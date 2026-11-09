@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { Home, Settings, BarChart2, BookMarked } from 'lucide-react'
+import { Home, Settings, BarChart2, BookMarked, Mic } from 'lucide-react'
 import { useLanguage } from '@/store/useLanguage'
 import { useTranslations } from '@/lib/i18n'
 
@@ -38,6 +38,19 @@ export function BottomNav() {
             <BookMarked className="w-6 h-6" />
           </div>
           <span className="text-[10px] font-medium uppercase tracking-tighter" style={{ color: location.pathname === '/vocabulary' ? 'var(--theme-nav-text)' : 'var(--theme-nav-text-muted)' }}>{t('vocabulary')}</span>
+        </Link>
+
+        <Link to="/practice/speak" className="flex flex-col items-center min-w-[44px] min-h-[44px] justify-center gap-0.5">
+          <div 
+            className="p-2 rounded-full transition-colors"
+            style={{
+              backgroundColor: location.pathname.startsWith('/practice') ? 'var(--theme-nav-active)' : 'transparent',
+              color: location.pathname.startsWith('/practice') ? 'var(--theme-nav-text)' : 'var(--theme-nav-text-muted)'
+            }}
+          >
+            <Mic className="w-6 h-6" />
+          </div>
+          <span className="text-[10px] font-medium uppercase tracking-tighter" style={{ color: location.pathname.startsWith('/practice') ? 'var(--theme-nav-text)' : 'var(--theme-nav-text-muted)' }}>{locale === 'pt-BR' ? 'Prática' : 'Practice'}</span>
         </Link>
 
         <Link to="/stats" className="flex flex-col items-center min-w-[44px] min-h-[44px] justify-center gap-0.5">

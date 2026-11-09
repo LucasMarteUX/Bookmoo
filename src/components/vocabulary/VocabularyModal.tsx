@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react'
-import { Sparkles, Trash2, Volume2, MousePointer2, BookOpenText, WandSparkles } from 'lucide-react'
+import { Sparkles, Trash2, Volume2, BookOpenText, WandSparkles, Eye, EyeOff } from 'lucide-react'
 import { useVocabularyStore, VocabStatus, VocabType, GrammarExample } from '@/store/useVocabularyStore'
 import { useBookStore } from '@/store/useBookStore'
-import { generateExplanation, generateVariantStory, API_KEY_REQUIRED_MESSAGE } from '@/lib/ai'
-import { useEffectiveGeminiKey } from '@/hooks/useEffectiveGeminiKey'
+import { generateExplanation, generateVariantStory, API_KEY_REQUIRED_MESSAGE, aiErrorMessage } from '@/lib/ai'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
 import { speak, stopSpeaking } from '@/lib/tts'
@@ -13,6 +12,32 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
+import { useLanguage } from '@/store/useLanguage'
+
+const TEXTS = {
+  'pt-BR': {
+    edit: 'Editar vocabulário', add: 'Adicionar vocabulário', subtitle: 'Estude o termo com exemplos reais, áudio e uma pequena história paralela.',
+    selected: 'Texto selecionado', listen: 'Ouvir', status: 'Status', learned: 'Aprendido', review: 'Revisão', important: 'Importante',
+    explanation: 'Explicação', explanationHint: 'Definição, pronúncia e formas de uso', generating: 'Gerando...', explainAi: 'Explicar com IA',
+    explanationPh: 'Adicione sua própria explicação ou use a IA...', practical: 'Aplicações práticas',
+    affirmative: 'Afirmativa', negative: 'Negativa', interrogative: 'Interrogativa', usage: 'Nota de uso: ',
+    showTranslation: 'Mostrar tradução', hideTranslation: 'Esconder tradução',
+    story: 'Variante de história', storyHint: 'Uma situação nova para fixar o termo', creating: 'Criando...', createStory: 'Criar história',
+    storyPh: 'Crie uma história curta com novos exemplos...', examples: 'Exemplos editáveis', examplesPh: 'Adicione exemplos (um por linha)...',
+    cancel: 'Cancelar', save: 'Salvar',
+  },
+  en: {
+    edit: 'Edit vocabulary', add: 'Add vocabulary', subtitle: 'Study the term with real examples, audio and a short parallel story.',
+    selected: 'Selected text', listen: 'Listen', status: 'Status', learned: 'Learned', review: 'Review', important: 'Important',
+    explanation: 'Explanation', explanationHint: 'Definition, pronunciation and usage', generating: 'Generating...', explainAi: 'Explain with AI',
+    explanationPh: 'Write your own explanation or use AI...', practical: 'Practical usage',
+    affirmative: 'Affirmative', negative: 'Negative', interrogative: 'Interrogative', usage: 'Usage note: ',
+    showTranslation: 'Show translation', hideTranslation: 'Hide translation',
+    story: 'Story variant', storyHint: 'A new situation to remember the term', creating: 'Creating...', createStory: 'Create story',
+    storyPh: 'Create a short story with new examples...', examples: 'Editable examples', examplesPh: 'Add examples (one per line)...',
+    cancel: 'Cancel', save: 'Save',
+  },
+} as const
 
 interface VocabularyModalProps {
   isOpen: boolean
@@ -25,7 +50,6 @@ interface VocabularyModalProps {
 export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId }: VocabularyModalProps) {
   const { vocabularies, addVocabulary, updateVocabulary, deleteVocabulary } = useVocabularyStore()
   const bookLanguageCode = useBookStore((s) => s.books.find((b) => b.id === bookId)?.languageCode)
-  const effectiveGeminiKey = useEffectiveGeminiKey()
   const { session, hasSupabase } = useAuth()
   const userId = session?.user?.id
   
@@ -40,6 +64,11 @@ export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId 
   const [audioData, setAudioData] = useState<string | null>(null)
   const [isGeneratingExplanation, setIsGeneratingExplanation] = useState(false)
   const [isGeneratingStory, setIsGeneratingStory] = useState(false)
+  const { locale } = useLanguage()
+  const L = TEXTS[locale === 'pt-BR' ? 'pt-BR' : 'en']
+  // Explicações no idioma do app (português ou inglês).
+  const explainLang = locale === 'pt-BR' ? 'pt' : 'en'
+  const [shownTranslations, setShownTranslations] = useState<Set<string>>(new Set())
   const [isAudioPlaying, setIsAudioPlaying] = useState(false)
 
   useEffect(() => {
@@ -77,7 +106,7 @@ export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId 
   const handleExplainWithAI = async () => {
     setIsGeneratingExplanation(true)
     try {
-      const result = await generateExplanation(text, 'B1', effectiveGeminiKey, bookLanguageCode)
+      const result = await generateExplanation(text, 'B1', explainLang)
       setExplanation(`${result.definition}\n\nPronunciation: ${result.ipa}`)
       setExamples(result.examples)
       setGrammarExamples(result.grammarExamples)
@@ -92,11 +121,11 @@ export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId 
   const handleGenerateVariantStory = async () => {
     setIsGeneratingStory(true)
     try {
-      const result = await generateVariantStory(text, bookLanguageCode, effectiveGeminiKey)
+      const result = await generateVariantStory(text, explainLang)
       if (result) setVariantStory(result)
-      else alert(API_KEY_REQUIRED_MESSAGE)
     } catch (error) {
       console.error(error)
+      alert(aiErrorMessage(error))
     } finally {
       setIsGeneratingStory(false)
     }
@@ -179,9 +208,9 @@ export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId 
         }}
       >
         <DialogHeader>
-          <DialogTitle className="text-xl">{vocabId ? 'Editar vocabulário' : 'Adicionar vocabulário'}</DialogTitle>
+          <DialogTitle className="text-xl">{vocabId ? L.edit : L.add}</DialogTitle>
           <DialogDescription>
-            Estude o termo com exemplos reais, áudio e uma pequena história paralela.
+            {L.subtitle}
           </DialogDescription>
         </DialogHeader>
 
@@ -189,7 +218,7 @@ export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId 
           <div className="min-w-0 space-y-5">
             <div className="space-y-2">
             <div className="flex items-center justify-between gap-2 flex-wrap">
-              <Label className="shrink-0">Texto Selecionado</Label>
+              <Label className="shrink-0">{L.selected}</Label>
               <Button 
                 variant="ghost" 
                 size="sm" 
@@ -198,11 +227,7 @@ export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId 
                 onClick={speakText}
                 disabled={!text.trim()}
               >
-                {isAudioPlaying ? (
-                  <><MousePointer2 className="w-3 h-3 mr-1" /> Ouvir</>
-                ) : (
-                  <><Volume2 className="w-3 h-3 mr-1" /> Ouvir</>
-                )}
+                <Volume2 className={`w-3 h-3 mr-1 ${isAudioPlaying ? 'animate-pulse' : ''}`} /> {L.listen}
               </Button>
             </div>
             <Input value={text} onChange={e => setText(e.target.value)} />
@@ -210,42 +235,17 @@ export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId 
 
             <div className="grid grid-cols-1 gap-4">
             <div className="space-y-2 min-w-0">
-              <Label>Tipo</Label>
-              <div className="flex p-0.5 rounded-lg border transition-colors min-w-0" style={{ backgroundColor: 'var(--theme-bg-secondary)', borderColor: 'var(--theme-border-subtle)' }}>
-                {(['word', 'phrase'] as const).map(t => (
-                  <button
-                    key={t}
-                    type="button"
-                    onClick={() => setType(t)}
-                    className="flex-1 min-w-0 px-2 py-1.5 text-xs font-medium rounded-md transition-all truncate"
-                    style={{
-                      backgroundColor: type === t ? 'var(--theme-bg)' : 'transparent',
-                      color: type === t ? 'var(--theme-text)' : 'var(--theme-text-secondary)',
-                      boxShadow: type === t ? '0 1px 2px rgba(0,0,0,0.05)' : 'none'
-                    }}
-                  >
-                    {t === 'word' ? 'Palavra' : 'Frase'}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-2 min-w-0">
-              <Label>Status</Label>
-              <div className="flex p-0.5 rounded-lg border transition-colors min-w-0" style={{ backgroundColor: 'var(--theme-bg-secondary)', borderColor: 'var(--theme-border-subtle)' }}>
+              <Label>{L.status}</Label>
+              <div className="flex gap-2 pb-1 min-w-0">
                 {(['learned', 'review', 'important'] as const).map(s => (
                   <button
                     key={s}
                     type="button"
                     onClick={() => setStatus(s)}
-                    className="flex-1 min-w-0 px-2 py-1.5 text-xs font-medium rounded-md transition-all truncate"
-                    style={{
-                      backgroundColor: status === s ? 'var(--theme-bg)' : 'transparent',
-                      color: status === s ? 'var(--theme-text)' : 'var(--theme-text-secondary)',
-                      boxShadow: status === s ? '0 1px 2px rgba(0,0,0,0.05)' : 'none'
-                    }}
+                    aria-pressed={status === s}
+                    className={`btn-3d btn-3d--${s} flex-1 min-w-0 text-xs truncate`}
                   >
-                    {s === 'learned' ? 'Aprendido' : s === 'review' ? 'Revisar' : 'Importante'}
+                    {L[s]}
                   </button>
                 ))}
               </div>
@@ -257,8 +257,8 @@ export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId 
             <div className="rounded-2xl p-4" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <Label>Explicação</Label>
-                <p className="mt-1 text-xs" style={{ color: 'var(--theme-text-secondary)' }}>Definição, pronúncia e formas de uso</p>
+                <Label>{L.explanation}</Label>
+                <p className="mt-1 text-xs" style={{ color: 'var(--theme-text-secondary)' }}>{L.explanationHint}</p>
               </div>
               <Button 
                 variant="ghost" 
@@ -269,7 +269,7 @@ export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId 
                 disabled={isGeneratingExplanation || !text.trim()}
               >
                 <Sparkles className="w-3 h-3 mr-1" />
-                {isGeneratingExplanation ? 'Gerando...' : 'Explicar com IA'}
+                {isGeneratingExplanation ? L.generating : L.explainAi}
               </Button>
             </div>
             {explanation.startsWith(API_KEY_REQUIRED_MESSAGE) && (
@@ -280,7 +280,7 @@ export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId 
             <Textarea 
               value={explanation} 
               onChange={e => setExplanation(e.target.value)}
-              placeholder="Adicione sua própria explicação ou use a IA..."
+              placeholder={L.explanationPh}
               className="min-h-[100px]"
             />
             </div>
@@ -289,25 +289,41 @@ export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId 
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <BookOpenText className="h-4 w-4" style={{ color: 'var(--theme-accent)' }} />
-                  <Label>Aplicações práticas</Label>
+                  <Label>{L.practical}</Label>
                 </div>
                 <div className="grid gap-3">
                   {grammarExamples.map((example) => (
                     <div key={example.form} className="rounded-2xl p-3" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
                       <div className="mb-2 flex items-center justify-between gap-2">
                         <span className="text-[10px] font-bold uppercase tracking-[0.16em]" style={{ color: 'var(--theme-accent)' }}>
-                          {example.form === 'affirmative' ? 'Afirmativa' : example.form === 'negative' ? 'Negativa' : 'Interrogativa'}
+                          {L[example.form]}
                         </span>
                         <span className="text-[11px]" style={{ color: 'var(--theme-text-secondary)' }}>{example.context}</span>
                       </div>
                       <p className="text-sm font-medium" style={{ color: 'var(--theme-text)' }}>{example.english}</p>
-                      <p className="mt-1 text-xs leading-relaxed" style={{ color: 'var(--theme-text-secondary)' }}>{example.portuguese}</p>
+                      {example.portuguese && (
+                        <div className="mt-1.5 flex items-start gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setShownTranslations((prev) => { const n = new Set(prev); if (n.has(example.form)) n.delete(example.form); else n.add(example.form); return n })}
+                            className="shrink-0 p-1 -m-1 rounded-md hover:bg-black/5 dark:hover:bg-white/10"
+                            style={{ color: 'var(--theme-text-secondary)' }}
+                            aria-label={shownTranslations.has(example.form) ? L.hideTranslation : L.showTranslation}
+                            title={shownTranslations.has(example.form) ? L.hideTranslation : L.showTranslation}
+                          >
+                            {shownTranslations.has(example.form) ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                          </button>
+                          {shownTranslations.has(example.form)
+                            ? <p className="text-xs leading-relaxed" style={{ color: 'var(--theme-text-secondary)' }}>{example.portuguese}</p>
+                            : <p className="text-xs italic select-none" style={{ color: 'var(--theme-text-secondary)', opacity: 0.6 }}>{L.showTranslation}</p>}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
                 {usageNote && (
                   <p className="rounded-xl border-l-2 px-3 py-2 text-xs leading-relaxed" style={{ borderColor: 'var(--theme-accent)', color: 'var(--theme-text-secondary)' }}>
-                    <strong style={{ color: 'var(--theme-text)' }}>Nota de uso: </strong>{usageNote}
+                    <strong style={{ color: 'var(--theme-text)' }}>{L.usage}</strong>{usageNote}
                   </p>
                 )}
               </div>
@@ -316,22 +332,22 @@ export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId 
             <div className="rounded-2xl p-4" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <Label className="flex items-center gap-2"><WandSparkles className="h-4 w-4" style={{ color: 'var(--theme-accent)' }} /> Variante de história</Label>
-                  <p className="mt-1 text-xs" style={{ color: 'var(--theme-text-secondary)' }}>Uma situação nova para fixar o termo</p>
+                  <Label className="flex items-center gap-2"><WandSparkles className="h-4 w-4" style={{ color: 'var(--theme-accent)' }} /> {L.story}</Label>
+                  <p className="mt-1 text-xs" style={{ color: 'var(--theme-text-secondary)' }}>{L.storyHint}</p>
                 </div>
                 <Button variant="ghost" size="sm" className="h-8 text-xs" style={{ color: 'var(--theme-accent)' }} onClick={handleGenerateVariantStory} disabled={isGeneratingStory || !text.trim()}>
-                  <Sparkles className="mr-1 h-3 w-3" />{isGeneratingStory ? 'Criando...' : 'Criar história'}
+                  <Sparkles className="mr-1 h-3 w-3" />{isGeneratingStory ? L.creating : L.createStory}
                 </Button>
               </div>
-              <Textarea value={variantStory} onChange={e => setVariantStory(e.target.value)} placeholder="Crie uma história curta com novos exemplos..." className="mt-3 min-h-[120px]" />
+              <Textarea value={variantStory} onChange={e => setVariantStory(e.target.value)} placeholder={L.storyPh} className="mt-3 min-h-[120px]" />
             </div>
 
             <div className="space-y-2">
-              <Label>Exemplos editáveis</Label>
+              <Label>{L.examples}</Label>
               <Textarea
                 value={examples.join('\n')}
                 onChange={e => setExamples(e.target.value.split('\n').map(s => s.trim()).filter(Boolean))}
-                placeholder="Adicione exemplos (um por linha)..."
+                placeholder={L.examplesPh}
                 className="min-h-[80px]"
               />
             </div>
@@ -345,7 +361,7 @@ export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId 
             </Button>
           )}
           <Button variant="outline" className="flex-1 rounded-2xl py-4" onClick={onClose}>
-            Cancelar
+            {L.cancel}
           </Button>
           <Button 
             className="flex-2 rounded-2xl py-4 px-8 shadow-xl transition-colors"
@@ -353,7 +369,7 @@ export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId 
             onClick={handleSave}
             disabled={!text.trim()}
           >
-            Salvar
+            {L.save}
           </Button>
         </div>
       </DialogContent>

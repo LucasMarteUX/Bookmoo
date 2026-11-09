@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { Home, BarChart2, BookMarked, LogOut, Sun, Moon, Coffee, Settings } from 'lucide-react'
+import { Home, BarChart2, BookMarked, LogOut, Sun, Moon, Coffee, Settings, Mic, Keyboard } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useReaderSettings, Theme } from '@/store/useReaderSettings'
 import { useLanguage, Locale } from '@/store/useLanguage'
@@ -79,6 +79,32 @@ export function Sidebar({ isMobileDrawer, onClose }: SidebarProps) {
               >
                 <BookMarked className="w-5 h-5 mr-3" />
                 {t('vocabulary')}
+              </Button>
+            </Link>
+            <Link {...linkProps('/practice/speak')}>
+              <Button 
+                variant="ghost" 
+                className="w-full justify-start rounded-[12px] px-4 py-5 transition-all"
+                style={{
+                  backgroundColor: location.pathname === '/practice/speak' ? 'var(--theme-nav-active)' : 'transparent',
+                  color: location.pathname === '/practice/speak' ? 'var(--theme-nav-text)' : 'var(--theme-nav-text-muted)'
+                }}
+              >
+                <Mic className="w-5 h-5 mr-3" />
+                {locale === 'pt-BR' ? 'Falar' : 'Speak'}
+              </Button>
+            </Link>
+            <Link {...linkProps('/practice/write')}>
+              <Button 
+                variant="ghost" 
+                className="w-full justify-start rounded-[12px] px-4 py-5 transition-all"
+                style={{
+                  backgroundColor: location.pathname === '/practice/write' ? 'var(--theme-nav-active)' : 'transparent',
+                  color: location.pathname === '/practice/write' ? 'var(--theme-nav-text)' : 'var(--theme-nav-text-muted)'
+                }}
+              >
+                <Keyboard className="w-5 h-5 mr-3" />
+                {locale === 'pt-BR' ? 'Ditado' : 'Dictation'}
               </Button>
             </Link>
             <Link {...linkProps('/stats')}>

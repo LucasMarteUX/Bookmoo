@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { User, Lock, Mail, Camera } from 'lucide-react'
 import { VoiceSettings } from '@/components/settings/VoiceSettings'
+import { AiConnections } from '@/components/settings/AiConnections'
 
 export function Settings() {
   const { locale } = useLanguage()
@@ -240,6 +241,8 @@ export function Settings() {
                 </div>
               </div>
             </section>
+
+            <AiConnections />
 
             <VoiceSettings />
           </>

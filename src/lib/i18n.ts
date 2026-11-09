@@ -92,6 +92,8 @@ const en = {
   exitFullscreen: 'Exit fullscreen',
   readTab: 'Read',
   writeTab: 'Write',
+  listenTab: 'Listen',
+  speakTab: 'Speak',
   speedLabel: 'Speech speed',
   speedVerySlow: '0.3x — Very slow',
   speedSlowComfortable: '0.5x — Slow & comfortable',
@@ -173,7 +175,7 @@ const en = {
   loading: 'Loading...',
   supabaseRequired: 'Account management requires Supabase. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to .env.local.',
 
-  noDefinition: 'Configure GEMINI_API_KEY in .env.local to use this feature.'
+  noDefinition: 'Connect your AI key (OpenAI or Gemini) in Settings to use this feature.'
 } as const
 
 const ptBr: Record<TranslationKey, string> = {
@@ -259,6 +261,8 @@ const ptBr: Record<TranslationKey, string> = {
   exitFullscreen: 'Sair da tela cheia',
   readTab: 'Ler',
   writeTab: 'Escrever',
+  listenTab: 'Escutar',
+  speakTab: 'Falar',
   speedLabel: 'Velocidade da fala',
   speedVerySlow: '0.3x — Muito lento',
   speedSlowComfortable: '0.5x — Lento confortável',
@@ -336,7 +340,7 @@ const ptBr: Record<TranslationKey, string> = {
   loginErrorGeneric: 'Não foi possível entrar. Tente novamente.',
   loading: 'Carregando...',
   supabaseRequired: 'A gestão da conta exige Supabase. Adicione VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no .env.local.',
-  noDefinition: 'Configure GEMINI_API_KEY no arquivo .env.local para usar esta função.'
+  noDefinition: 'Conecte sua chave de IA (OpenAI ou Gemini) em Configurações para usar esta função.'
 }
 
 const messages: Record<Locale, Record<TranslationKey, string>> = { en, 'pt-BR': ptBr }

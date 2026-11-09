@@ -2,7 +2,7 @@ import { useCallback } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
 import { useBookStore, type Book } from '@/store/useBookStore'
-import { upsertBook } from '@/lib/supabaseSync'
+import { updateBookFields } from '@/lib/supabaseSync'
 
 /** After updating the store, persist the book to Supabase if user is logged in. */
 export function useBookSync() {
@@ -17,7 +17,7 @@ export function useBookSync() {
         const book = useBookStore.getState().books.find((b) => b.id === id)
         if (book) {
           const merged = { ...book, ...updates }
-          upsertBook(supabase, userId, merged).catch((e) => console.error('Sync book update', e))
+          updateBookFields(supabase, userId, merged, Object.keys(updates) as (keyof Book)[]).catch((e) => console.error('Sync book update', e))
         }
       }
     },
@@ -31,7 +31,7 @@ export function useBookSync() {
         const book = useBookStore.getState().books.find((b) => b.id === id)
         if (book) {
           const merged = { ...book, ...updates }
-          await upsertBook(supabase, userId, merged)
+          await updateBookFields(supabase, userId, merged, Object.keys(updates) as (keyof Book)[])
         }
       }
       updateBook(id, updates)

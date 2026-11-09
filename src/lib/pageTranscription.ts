@@ -1,15 +1,8 @@
-export async function transcribePageImage(imageDataUrl: string, languageCode?: string): Promise<string> {
-  const response = await fetch('/api/transcribe-page', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ imageDataUrl, languageCode: languageCode || 'en' })
-  })
+import { transcribePageWithAi } from '@/lib/ai'
 
-  const payload = await response.json().catch(() => ({}))
-  if (!response.ok) {
-    throw new Error(payload.error || `Transcription failed (${response.status})`)
-  }
-  return String(payload.text || '').trim()
+/** Transcreve a foto de uma página usando a chave de IA do próprio usuário (Edge Function). */
+export async function transcribePageImage(imageDataUrl: string, languageCode?: string): Promise<string> {
+  return (await transcribePageWithAi(imageDataUrl, languageCode || 'en')).trim()
 }
 
 export async function preparePageImage(file: File): Promise<string> {

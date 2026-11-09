@@ -1,35 +1,51 @@
-import React, { useRef, useMemo, useState, useEffect } from 'react'
+import React, { useRef, useMemo, useState, useEffect, useCallback } from 'react'
 import { Book, useBookStore } from '@/store/useBookStore'
 import { useReaderSettings, PLAYBACK_SPEEDS } from '@/store/useReaderSettings'
-import { useVocabularyStore } from '@/store/useVocabularyStore'
+import { useVocabularyStore, type VocabStatus } from '@/store/useVocabularyStore'
+import { upsertVocabulary } from '@/lib/supabaseSync'
+import { WordTooltip, type WordTooltipState, type ScoreBurst } from './WordTooltip'
 import { FloatingAction } from './FloatingAction'
 import { VocabularyModal } from '../vocabulary/VocabularyModal'
-import { ChevronLeft, ChevronRight, MousePointer2, Type, Pin, PinOff, Pencil, Trash2, Play, Image as ImageIcon, Loader2, Pause, Settings, X, RefreshCw } from 'lucide-react'
+import { ChevronLeft, ChevronRight, MousePointer2, Type, Pin, PinOff, Pencil, Trash2, Play, Image as ImageIcon, Loader2, WandSparkles, Pause, Settings, X, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
   generateComicPage,
-  API_KEY_REQUIRED_MESSAGE,
-  enrichComicPromptWithSearch,
-  extractComicStyleAndCharacters,
-  detectNewCharactersInPageText
+  prepareComicArt,
+  inspectComicPage,
+  AiRequestError,
+  isNoApiKeyError,
+  aiErrorMessage,
 } from '@/lib/ai'
-import { useEffectiveGeminiKey } from '@/hooks/useEffectiveGeminiKey'
+import { getAiStatus, useAiStatus } from '@/lib/aiKeys'
+import { detectLetteringTheme, letteringThemeFor, type LetteringThemeId } from '@/lib/comicThemes'
+import { ToolButton, ToolGroup } from '@/components/ui/toolbar'
+import { motion, useReducedMotion } from 'motion/react'
+import { ComicPageView, type ComicStage } from './ComicPageView'
+import { saveComicPage } from '@/lib/comicPersistence'
+import { browserMeasure, letteringFont, placeCompleteComic } from '@/lib/comicLettering'
+import { fullComicText } from '../../../supabase/functions/_shared/comicText'
+import { detectPanels } from '@/lib/comicPanels'
+import type { EditorialLayout } from '../../../supabase/functions/_shared/comicEditorial'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import { useNavigate } from 'react-router-dom'
 import { useBookSync } from '@/hooks/useBookSync'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
 import { speak, stopSpeaking, pauseSpeaking, resumeSpeaking, prefetch, waitWhilePaused } from '@/lib/tts'
 import { activeKokoroVoice, cancelKokoroPrefetch, warmUpKokoro } from '@/lib/kokoro/engine'
 import { wordRegex, WORD_PATTERN } from '@/lib/wordTokens'
-import { uploadComicPage, getComicPageBase64, compressComicReference, isComicPageUrl } from '@/lib/comicStorage'
+import { isComicPageUrl } from '@/lib/comicStorage'
 import { useLanguage } from '@/store/useLanguage'
 import { useTranslations, getGeneratingComicMessage } from '@/lib/i18n'
 
 interface ReaderProps {
   book: Book
+  /** Aba "Escutar": começa a narração ao abrir. */
+  autoPlay?: boolean
 }
 
-export function Reader({ book }: ReaderProps) {
+export function Reader({ book, autoPlay = false }: ReaderProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const { locale } = useLanguage()
@@ -38,22 +54,29 @@ export function Reader({ book }: ReaderProps) {
 
   const readerFontFamily = fontFamily === 'sans' ? '"Inter", ui-sans-serif, system-ui, sans-serif' : '"Playfair Display", ui-serif, Georgia, serif'
   const { updateBook } = useBookStore()
-  const { updateBookAndSync, updateBookAndSyncAsync } = useBookSync()
+  const { updateBookAndSync } = useBookSync()
   const { session, hasSupabase } = useAuth()
   const userId = session?.user?.id ?? null
-  const effectiveGeminiKey = useEffectiveGeminiKey()
   
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [vocabToEdit, setVocabToEdit] = useState<string | null>(null)
   const [modalInitialText, setModalInitialText] = useState('')
   const [interactionMode, setInteractionMode] = useState<'hand' | 'text'>('hand')
   const [viewMode, setViewMode] = useState<'text' | 'comic'>('text')
-  const [isGeneratingComic, setIsGeneratingComic] = useState(false)
+  const [comicStage, setComicStage] = useState<ComicStage>(null)
+  const [comicError, setComicError] = useState<{ page: number; message: string } | null>(null)
+  const isGeneratingComic = comicStage !== null
+  const [showConnectApi, setShowConnectApi] = useState(false)
+  const connectApiShownRef = useRef(false)
+  const readerRootRef = useRef<HTMLDivElement>(null)
+  const { status: aiStatus } = useAiStatus()
+  const navigate = useNavigate()
   
   // TTS State — native browser SpeechSynthesis only
   const [isPlaying, setIsPlaying] = useState(false)
   const [isPaused, setIsPaused] = useState(false)
   const [isLoadingTts, setIsLoadingTts] = useState(false)
+  const isPlayingRef = useRef(false)
   const [ttsHighlightWordIndices, setTtsHighlightWordIndices] = useState<Set<number> | null>(null)
   const browserPlaybackCancelledRef = useRef(false)
   // Cada narração recebe um id; qualquer laço com id antigo encerra sozinho (evita duas leituras simultâneas).
@@ -84,6 +107,16 @@ export function Reader({ book }: ReaderProps) {
   // Make vocabularies reactive so the component re-renders when a new word is saved
   const vocabularies = useVocabularyStore(state => state.vocabularies).filter(v => v.bookId === book.id)
   const deleteVocabulary = useVocabularyStore(state => state.deleteVocabulary)
+  const addVocabulary = useVocabularyStore(state => state.addVocabulary)
+  const updateVocabulary = useVocabularyStore(state => state.updateVocabulary)
+  const [wordTip, setWordTip] = useState<WordTooltipState | null>(null)
+  const [toolbarSlot, setToolbarSlot] = useState<HTMLDivElement | null>(null)
+  const reduceMotion = useReducedMotion()
+  const lastPageRef = useRef(book.currentPage || 0)
+  const pageDirection = (book.currentPage || 0) >= lastPageRef.current ? 1 : -1
+  useEffect(() => { lastPageRef.current = book.currentPage || 0 }, [book.currentPage])
+  const [scoreBurst, setScoreBurst] = useState<ScoreBurst | null>(null)
+  const [popWordIdx, setPopWordIdx] = useState<number | null>(null)
 
   useEffect(() => {
     return () => {
@@ -171,19 +204,22 @@ export function Reader({ book }: ReaderProps) {
     setIsModalOpen(true)
   }
 
-  const contentWithHighlights = useMemo(() => {
+  // HTML das palavras de um trecho da página [charStart, charEnd). O modo texto usa a página inteira;
+  // os balões do quadrinho usam seus trechos. Mesmos índices (data-word-index), classes e cliques.
+  const buildWordsHtml = useCallback((charStart: number, charEnd: number) => {
     const escapeMap: Record<string, string> = {
       '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
     }
     const escapeHtml = (str: string) => str.replace(/[&<>"']/g, m => escapeMap[m] || m)
     const escapeRegExp = (string: string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
-    let segments = [{ text: currentContent, isVocab: false, vocabId: null as string | null, status: null as string | null }]
+    let segments = [{ text: currentContent.slice(charStart, charEnd), isVocab: false, vocabId: null as string | null, status: null as string | null }]
 
     if (showHighlights && vocabularies.length > 0) {
       const sortedVocab = [...vocabularies].sort((a, b) => b.text.length - a.text.length)
 
       sortedVocab.forEach(vocab => {
+        if (!vocab.text.trim()) return
         const newSegments: typeof segments = []
         const regex = new RegExp(`\\b(${escapeRegExp(vocab.text)})\\b`, 'gi')
         
@@ -214,7 +250,7 @@ export function Reader({ book }: ReaderProps) {
 
     const isTtsHighlight = (idx: number) => ttsHighlightWordIndices != null && ttsHighlightWordIndices.has(idx)
     let finalHtml = ''
-    let segOffset = 0 // posição do segmento dentro de currentContent
+    let segOffset = charStart // posição do segmento dentro de currentContent
     segments.forEach(seg => {
       const base = segOffset
       segOffset += seg.text.length
@@ -230,8 +266,8 @@ export function Reader({ book }: ReaderProps) {
           const idx = charToWord[base + at] ?? -1
           const isSelected = selectedRange && idx >= selectedRange[0] && idx <= selectedRange[1]
           const selectedClass = isSelected ? 'border-b-2 border-[var(--theme-accent)] bg-[var(--theme-accent)]/10' : ''
-          const ttsClass = isTtsHighlight(idx) ? 'tts-current' : ''
-          finalHtml += `<span data-vocab-id="${seg.vocabId}" data-word-index="${idx}" class="vocab-${seg.status} relative group cursor-pointer ${selectedClass} ${ttsClass}">${escapeHtml(part)}</span>`
+          const ttsClass = (isTtsHighlight(idx) ? 'tts-current' : '') + (idx === popWordIdx ? ' vocab-pop' : '')
+          finalHtml += `<span data-vocab-id="${escapeHtml(seg.vocabId ?? '')}" data-word-index="${idx}" class="vocab-${escapeHtml(seg.status ?? '')} relative group cursor-pointer ${selectedClass} ${ttsClass}">${escapeHtml(part)}</span>`
         })
       } else {
         // Run regex on unescaped text, then escape the match and the spaces
@@ -257,85 +293,117 @@ export function Reader({ book }: ReaderProps) {
     })
 
     return finalHtml
-  }, [currentContent, charToWord, vocabularies, showHighlights, interactionMode, selectedRange, ttsHighlightWordIndices])
+  }, [currentContent, charToWord, vocabularies, showHighlights, interactionMode, selectedRange, ttsHighlightWordIndices, popWordIdx])
+  const contentWithHighlights = useMemo(() => buildWordsHtml(0, currentContent.length), [buildWordsHtml, currentContent])
 
   const handleContentClick = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement
-    
-    // Check if clicked on a saved vocabulary FIRST, regardless of interaction mode
-    const vocabSpan = target.closest('span[data-vocab-id]')
-    if (vocabSpan) {
-      const id = vocabSpan.getAttribute('data-vocab-id')
-      if (id) {
-        handleEditVocab(id)
-        return // Stop processing, we handled the click
-      }
-    }
+    const wordSpan = target.closest('span[data-word-index]')
+    const idx = wordSpan ? parseInt(wordSpan.getAttribute('data-word-index') || '-1', 10) : -1
 
-    // If we are in text mode and didn't click a saved vocab, handle text selection
+    // Modo "Select Text": clicar estende a seleção (para salvar frases).
     if (interactionMode === 'text') {
-      const wordSpan = target.closest('span[data-word-index]')
-      if (wordSpan) {
-        const idx = parseInt(wordSpan.getAttribute('data-word-index') || '-1', 10)
-        if (idx >= 0) {
-          if (!selectedRange) {
-            setSelectedRange([idx, idx])
-          } else {
-            const [start, end] = selectedRange
-            if (idx < start) {
-              setSelectedRange([idx, end])
-            } else if (idx > end) {
-              setSelectedRange([start, idx])
-            } else {
-              setSelectedRange([idx, idx])
-            }
-          }
+      if (idx >= 0) {
+        if (!selectedRange) setSelectedRange([idx, idx])
+        else {
+          const [start, end] = selectedRange
+          if (idx < start) setSelectedRange([idx, end])
+          else if (idx > end) setSelectedRange([start, idx])
+          else setSelectedRange([idx, idx])
         }
       }
       return
     }
 
-    // If we are in hand mode and didn't click a saved vocab, handle new word selection
-    if (interactionMode === 'hand') {
-      const wordSpan = target.closest('span[data-word-index]')
-      if (wordSpan) {
-        const idx = parseInt(wordSpan.getAttribute('data-word-index') || '-1', 10)
-        if (idx >= 0) {
-          setSelectedRange([idx, idx])
-          const text = wordSpan.textContent || ''
-          handleAddVocab(text)
-        }
-      }
-    }
+    // Modo "Click Word": clicar seleciona a palavra, pausa a leitura nela e abre as opções
+    // acima dela (ouvir daqui, voltar, marcar status, explicação). Não há hover.
+    if (idx < 0 || !wordSpan) { setWordTip(null); return }
+    if (isPlaying || isPaused) stopPlayback()
+    resumeFromWordRef.current = idx
+    currentWordRef.current = idx
+    setTtsHighlightWordIndices(new Set([idx]))
+    const rect = wordSpan.getBoundingClientRect()
+    setWordTip({ idx, text: wordSpan.textContent || '', x: rect.left + rect.width / 2, y: rect.bottom, top: rect.top - 2 })
   }
 
-  const handleMouseOver = (e: React.MouseEvent) => {
-    const target = e.target as HTMLElement
-    const vocabSpan = target.closest('span[data-vocab-id]')
-    if (vocabSpan) {
-      if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current)
-      const id = vocabSpan.getAttribute('data-vocab-id')
-      if (id) {
-        const rect = vocabSpan.getBoundingClientRect()
-        setHoverPos({ x: rect.left + rect.width / 2, y: rect.bottom + 6 })
-        setHoveredVocabId(id)
-      }
+  const playFromWord = (idx: number) => {
+    setWordTip(null)
+    stopPlayback()
+    startPlaybackRef.current({ startWord: idx })
+  }
+  // "Voltar": recomeça do início da frase da palavra (ou da frase anterior, se ela já abre a frase).
+  const playFromSentenceStart = (idx: number) => {
+    const at = pageWordTokens[idx]?.start ?? 0
+    const sentenceStart = (before: number) => {
+      const head = currentContent.slice(0, before)
+      const match = [...head.matchAll(/[.!?…]["”’)\]]*\s+/gu)].at(-1)
+      return match ? match.index! + match[0].length : 0
+    }
+    let start = sentenceStart(at)
+    if (at - start < 2 && start > 0) start = sentenceStart(Math.max(0, start - 1))
+    const word = pageWordTokens.findIndex(token => token.start >= start)
+    playFromWord(word < 0 ? idx : word)
+  }
+
+  // Status rápido pelo tooltip: cria ou atualiza a palavra no vocabulário.
+  const vocabForText = (text: string) => {
+    const key = text.trim().toLowerCase()
+    return useVocabularyStore.getState().vocabularies.find((v) => v.bookId === book.id && v.text.trim().toLowerCase() === key)
+  }
+  const setWordStatus = (text: string, status: VocabStatus) => {
+    const existing = vocabForText(text)
+    let saved
+    if (existing) {
+      updateVocabulary(existing.id, { status })
+      saved = { ...existing, status }
     } else {
-      if (!target.closest('.post-it-card')) {
-        if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current)
-        hoverTimeoutRef.current = setTimeout(() => {
-          setHoveredVocabId(null)
-        }, 250)
+      saved = addVocabulary({ bookId: book.id, text: text.trim(), type: text.trim().includes(' ') ? 'phrase' : 'word', status, explanation: '', examples: [] })
+    }
+    // Pop na palavra e "+1" acima dela ao aprender.
+    if (wordTip) {
+      setPopWordIdx(wordTip.idx)
+      setTimeout(() => setPopWordIdx(null), 650)
+      if (status === 'learned' && existing?.status !== 'learned') {
+        setScoreBurst({ key: Date.now(), x: wordTip.x, y: wordTip.top - 84 })
+        setTimeout(() => setScoreBurst(null), 1100)
       }
     }
+    if (hasSupabase && supabase && userId) upsertVocabulary(supabase, userId, saved).catch((err) => console.error('Sync vocab', err))
   }
+  const openExplanation = (text: string) => {
+    setWordTip(null)
+    if (isPlaying) { pauseSpeaking(); setIsPaused(true); setIsPlaying(false) }
+    const existing = vocabForText(text)
+    if (existing) handleEditVocab(existing.id)
+    else handleAddVocab(text)
+  }
+
+  // O tooltip é fixo na tela: some ao rolar ou trocar de página.
+  // Fecha ao clicar fora (o clique numa palavra é tratado por handleContentClick) ou com Esc.
+  useEffect(() => {
+    if (!wordTip) return
+    const hide = () => setWordTip(null)
+    const onPointer = (e: PointerEvent) => {
+      const el = e.target as HTMLElement | null
+      if (el?.closest('.word-tooltip, span[data-word-index]')) return
+      hide()
+    }
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') hide() }
+    window.addEventListener('scroll', hide, true)
+    document.addEventListener('pointerdown', onPointer, true)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      window.removeEventListener('scroll', hide, true)
+      document.removeEventListener('pointerdown', onPointer, true)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [wordTip])
+  useEffect(() => { setWordTip(null) }, [currentPage, viewMode])
 
   const goToPage = (index: number) => {
     const newPage = Math.max(0, Math.min(pages.length - 1, index))
     if (newPage !== currentPage) {
-      const total = book.totalPages && book.totalPages > 0 ? book.totalPages : pages.length
-      const progress = total > 0 ? Math.min(100, Math.round((pages.length / total) * 100)) : (pages.length > 0 ? Math.round(((newPage + 1) / pages.length) * 100) : 0)
-      updateBookAndSync(book.id, { currentPage: newPage, progress, lastRead: Date.now() })
+      updateBookAndSync(book.id, { currentPage: newPage, lastRead: Date.now() })
       window.scrollTo({ top: 0, behavior: 'smooth' })
     }
   }
@@ -375,120 +443,108 @@ export function Reader({ book }: ReaderProps) {
     void speak(text.trim(), { language: 'en', context: text.trim().split(/\s+/).length <= 3 ? 'word' : 'phrase', rate: 0.9 })
   }
 
-  const handleGenerateComic = async (opts?: { regenerate?: boolean }) => {
-    const regenerate = opts?.regenerate === true
+  const comicOperation = useRef(false)
+  const handleGenerateComic = async () => {
+    if (comicOperation.current) return
+    comicOperation.current = true
+    const pageIndex = currentPage
+    setComicError(null)
+    const pageText = currentContent
     try {
-      // @ts-ignore
-      if (window.aistudio && !await window.aistudio.hasSelectedApiKey()) {
-        // @ts-ignore
-        await window.aistudio.openSelectKey()
+      const status = aiStatus ?? await getAiStatus().catch(() => null)
+      if (!status) throw new AiRequestError('ai_status_unavailable')
+      if (!status.openai.connected) { setShowConnectApi(true); return }
+      setComicStage('prepare')
+      const styleDoc = await prepareComicArt(book.id)
+      useBookStore.getState().updateBook(book.id, { comicStyleDoc: styleDoc })
+      const options = {
+        bookId: book.id, page: pageIndex, pageText, bookTitle: book.title,
+        bookContext: book.context?.trim() || book.pages.slice(0, 2).join('\n\n') || book.content,
+        priorContext: book.pages[pageIndex - 1]?.slice(-1500),
+        languageCode: book.languageCode,
       }
-      setIsGeneratingComic(true)
-
-      const bookContextForPrompt = (book.context && book.context.trim()) ? book.context : book.content
-      const pageKeys = book.comicPages ? Object.keys(book.comicPages).map(Number).sort((a, b) => a - b) : []
-      const firstPageIndex = pageKeys[0] ?? 0
-      const firstPageImage = book.comicPages?.[firstPageIndex]
-      const prevPageImage = currentPage > 0 ? book.comicPages?.[currentPage - 1] : undefined
-      const isFirstPage = !regenerate && pageKeys.length === 0
-
-      let searchContext = ''
-      if (!regenerate && isFirstPage) {
-        try {
-          searchContext = await enrichComicPromptWithSearch(book.title, bookContextForPrompt, currentContent, effectiveGeminiKey)
-        } catch (_) {
-          // optional: continue without search context
-        }
+      const generateAndInspect = async (replan?: string) => {
+        setComicStage('image')
+        const generated = await generateComicPage({ ...options, replan })
+        setComicStage('layout')
+        const img = new Image()
+        img.src = generated.imageUrl
+        await img.decode()
+        const aspect = img.naturalWidth / img.naturalHeight
+        const rows = generated.generation.composition
+        const measured = rows?.length && !rows.some(row => row.rightStack) ? await detectPanels(generated.imageUrl, rows, true) : null
+        const inspection = await inspectComicPage(generated, aspect, measured?.detected ? measured.panels : undefined)
+        const dialogue = fullComicText(pageText, generated.beats)
+        const lettering = placeCompleteComic(inspection, dialogue,
+          browserMeasure(letteringFont(generated.generation.style.fonts)))
+        lettering.issues.push(...(generated.editorialIssues ?? []))
+        return { generated, inspection, lettering }
       }
-
-      let comicStyleDoc = book.comicStyleDoc
-      let comicCharacters = book.comicCharacters ? [...book.comicCharacters] : []
-
-      if (!regenerate && !isFirstPage) {
-        try {
-          const newChars = await detectNewCharactersInPageText(currentContent, comicCharacters, effectiveGeminiKey)
-          if (newChars.length > 0) {
-            comicCharacters = [...comicCharacters, ...newChars.map(c => ({ ...c, firstPage: currentPage }))]
-            updateBookAndSync(book.id, { comicCharacters })
-          }
-        } catch (_) {
-          // optional: continue with existing characters
-        }
+      // The inspection never rejects finished art. Only a clearly off-style first render earns
+      // one more attempt; otherwise the page is kept and marked for review.
+      const first = await generateAndInspect()
+      const result = first.inspection.issues.includes('art_style_mismatch')
+        ? await generateAndInspect('The first render looked too realistic. Draw clean stylized faces with flat base colors and a single shadow shape. Use broad quiet background color fields. Reduce surface detail aggressively.')
+          .then(second => second.inspection.issues.includes('art_style_mismatch') ? first : second)
+          .catch(() => first)
+        : first
+      const { generated, inspection, lettering } = result
+      const old = book.comicLayouts?.[pageIndex]
+      const layout: EditorialLayout = {
+        v: 3, panels: inspection.panels, beats: generated.beats, context: generated.context,
+        generation: generated.generation, ...lettering,
+        quality: lettering.issues.length ? 'needs-review' : 'validated',
+        history: old?.v === 3 ? [...(old.history ?? []), old.generation] : undefined,
       }
-
-      const refsToConvert: string[] = []
-      if (firstPageImage) refsToConvert.push(firstPageImage)
-      if (prevPageImage && prevPageImage !== firstPageImage) refsToConvert.push(prevPageImage)
-      const referenceImages = await Promise.all(
-        refsToConvert.map(async (value) => compressComicReference(await getComicPageBase64(value)))
-      )
-
-      const comicImage = await generateComicPage(
-        {
-          pageText: currentContent,
-          bookTitle: book.title,
-          bookContext: bookContextForPrompt,
-          referenceImages: referenceImages.length > 0 ? referenceImages : undefined,
-          referenceImage: referenceImages[0],
-          comicStyleDoc,
-          comicCharacters: comicCharacters.length > 0 ? comicCharacters : undefined,
-          searchContext: searchContext || undefined,
-          languageCode: book.languageCode
-        },
-        undefined,
-        undefined,
-        effectiveGeminiKey
-      )
-
-      if (comicImage) {
-        const newComicPages = { ...(book.comicPages || {}) }
-        let valueToSave = comicImage
-        if (hasSupabase && supabase && userId) {
-          try {
-            const url = await uploadComicPage(supabase, userId, book.id, currentPage, comicImage)
-            valueToSave = url
-          } catch (e) {
-            console.warn('Comic Storage upload failed, saving base64 in row', e)
-          }
-        }
-        newComicPages[currentPage] = valueToSave
-        await updateBookAndSyncAsync(book.id, { comicPages: newComicPages })
-        setViewMode('comic')
-        // Extração de estilo/personagens em segundo plano; não deve afetar a UX
-        if (!regenerate && isFirstPage) {
-          extractComicStyleAndCharacters(comicImage, currentContent, effectiveGeminiKey)
-            .then((extracted) => {
-              if (extracted) {
-                updateBookAndSync(book.id, {
-                  comicStyleDoc: extracted.styleDoc,
-                  comicCharacters: extracted.characters.map(c => ({ ...c, firstPage: currentPage }))
-                })
-              }
-            })
-            .catch((e) => console.warn('Comic style extraction failed', e))
-        }
-      } else {
-        alert(API_KEY_REQUIRED_MESSAGE)
-      }
+      await saveComicPage(book, pageIndex, generated.imageUrl, layout, {
+        style: generated.styleDoc, styleRevision: generated.previousStyleRevision,
+        characters: generated.characters, previousCharacters: generated.previousCharacters,
+      })
     } catch (error) {
-      console.error("Failed to generate comic:", error)
-      // Só mostra erro se a geração falhou de fato; não mostrar se a imagem já foi salva
-      const bookNow = useBookStore.getState().books.find((b) => b.id === book.id)
-      const imageWasSaved = bookNow?.comicPages?.[currentPage] != null
-      if (!imageWasSaved) {
-        alert("Failed to generate comic. Please try again.")
-      }
+      console.error('Failed to generate comic:', error)
+      if (isNoApiKeyError(error)) setShowConnectApi(true)
+      else setComicError({ page: pageIndex, message: aiErrorMessage(error) })
     } finally {
-      setIsGeneratingComic(false)
+      comicOperation.current = false
+      setComicStage(null)
     }
   }
 
-  const handleDeleteComic = () => {
-    if (book.comicPages && book.comicPages[currentPage]) {
-      const newComicPages = { ...book.comicPages }
-      delete newComicPages[currentPage]
-      updateBookAndSync(book.id, { comicPages: newComicPages })
-      setViewMode('text')
+  const handleDeleteComic = async () => {
+    if (comicOperation.current || !book.comicPages?.[currentPage]) return
+    comicOperation.current = true
+    try { await saveComicPage(book, currentPage, null, null) }
+    catch (error) { console.error('Comic delete failed:', error); alert(aiErrorMessage(error)) }
+    finally { comicOperation.current = false }
+  }
+
+  const handleSaveLettering = async (layout: EditorialLayout) => {
+    const page = currentPage
+    try {
+      if (comicOperation.current) throw new AiRequestError('comic_save_conflict')
+      const latest = useBookStore.getState().books.find(item => item.id === book.id)
+      const saved = latest?.comicLayouts?.[page]
+      const image = latest?.comicPages?.[page]
+      if (!latest || !image || saved?.v !== 3 || saved.generation.id !== layout.generation.id || saved.editRevision !== layout.editRevision) {
+        throw new AiRequestError('comic_save_conflict')
+      }
+      comicOperation.current = true
+      setComicError(null)
+      try { await saveComicPage(latest, page, image, { ...layout, editRevision: crypto.randomUUID() }) }
+      finally { comicOperation.current = false }
+    } catch (error) {
+      setComicError({ page, message: aiErrorMessage(error) })
+      throw error
+    }
+  }
+
+  const openComicMode = async () => {
+    setViewMode('comic')
+    stopPlayback()
+    const status = aiStatus ?? await getAiStatus().catch(() => null)
+    if (status && !status?.openai?.connected && !connectApiShownRef.current) {
+      connectApiShownRef.current = true
+      setShowConnectApi(true)
     }
   }
 
@@ -570,6 +626,13 @@ export function Reader({ book }: ReaderProps) {
     }
     const highlight = (i: number) => {
       currentWordRef.current = i
+      // Marca a palavra na tela já neste quadro de animação; o React confirma logo depois.
+      // (Esperar o re-render da página inteira deixava o destaque um pouco atrás da voz.)
+      const root = readerRootRef.current
+      if (root) {
+        root.querySelectorAll('span.tts-current[data-word-index]').forEach(el => el.classList.remove('tts-current'))
+        root.querySelectorAll(`span[data-word-index="${i}"]`).forEach(el => el.classList.add('tts-current'))
+      }
       setTtsHighlightWordIndices(new Set([i]))
     }
 
@@ -625,6 +688,23 @@ export function Reader({ book }: ReaderProps) {
     startPlayback({ startWord: resumeFromWordRef.current ?? undefined })
   }
   togglePlaybackRef.current = togglePlayback
+  isPlayingRef.current = isPlaying
+
+  // Aba "Escutar": inicia a leitura em voz alta ao entrar. Ao voltar para "Ler", para a
+  // narração que o "Escutar" iniciou — em "Ler" nada toca sozinho.
+  const wasAutoPlayRef = useRef(autoPlay)
+  useEffect(() => {
+    if (autoPlay) {
+      wasAutoPlayRef.current = true
+      const t = setTimeout(() => { if (!isPlayingRef.current) startPlaybackRef.current({}) }, 500)
+      return () => clearTimeout(t)
+    }
+    if (wasAutoPlayRef.current) {
+      wasAutoPlayRef.current = false
+      stopPlayback()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoPlay])
 
   // Pré-carregamento: com uma voz Kokoro escolhida, carrega o motor e já gera as primeiras
   // frases da página na velocidade atual, para o play começar praticamente na hora.
@@ -676,6 +756,11 @@ export function Reader({ book }: ReaderProps) {
     }
     const firstIdx = Math.min(...ttsHighlightWordIndices)
     const span = containerRef.current.querySelector(`span[data-word-index="${firstIdx}"]`) as HTMLElement | null
+    if (viewMode === 'comic') {
+      // No quadrinho o destaque aparece dentro do balão; sem rolagem nem mãozinha.
+      if (ttsHandRef.current) ttsHandRef.current.style.display = 'none'
+      return
+    }
     if (span) {
       // Só rola quando a palavra sai da faixa central da tela; rolar a cada palavra faz a página "pular".
       const r = span.getBoundingClientRect()
@@ -690,7 +775,7 @@ export function Reader({ book }: ReaderProps) {
       window.removeEventListener('scroll', onScroll, true)
       window.removeEventListener('resize', onScroll)
     }
-  }, [ttsHighlightWordIndices])
+  }, [ttsHighlightWordIndices, viewMode])
 
   useEffect(() => {
     if (!ttsHighlightWordIndices?.size) return
@@ -889,44 +974,47 @@ export function Reader({ book }: ReaderProps) {
     )
   }
 
+  const comicImage = (() => {
+    const v = book.comicPages?.[currentPage]
+    return v ? (isComicPageUrl(v) ? v : `data:image/jpeg;base64,${v}`) : null
+  })()
+  // No modo HQ, página ainda sem quadrinho continua mostrando o texto (com o botão de gerar no topo).
+  const showComicPage = viewMode === 'comic' && !!comicImage
+
   return (
-    <div 
-      className={`min-h-full transition-colors duration-300 theme-${theme} pb-32`}
+    <div
+      ref={readerRootRef}
+      className={`reader-root min-h-full transition-colors duration-300 theme-${theme} pb-32`}
     >
-      <div className="max-w-[720px] mx-auto pt-6 md:pt-10 px-4 md:px-8">
-        <div className="mb-10 md:mb-16 flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4">
-          <h1 className="font-semibold tracking-tight mb-0" style={{ fontSize: '1.25em', fontFamily: 'var(--font-sans)' }}>
+      <div className={`${showComicPage ? 'max-w-[1400px]' : 'max-w-[720px]'} mx-auto pt-1 md:pt-10 px-4 md:px-8`}>
+        <div className={`mb-5 md:mb-12 flex flex-wrap justify-between items-center gap-3 ${viewMode === 'comic' ? 'sticky z-30 py-2 -mx-2 px-2 rounded-2xl' : ''}`}
+          style={viewMode === 'comic' ? { top: 'var(--reader-sticky-top, 76px)', backgroundColor: 'color-mix(in srgb, var(--theme-bg) 85%, transparent)', backdropFilter: 'blur(8px)' } : undefined}>
+          <h1 className="font-semibold tracking-tight mb-0 whitespace-nowrap overflow-hidden text-ellipsis max-w-full" style={{ fontSize: '1.25em', fontFamily: 'var(--font-sans)' }}>
             {book.title}
           </h1>
           
-          <div className="flex items-center gap-2 sm:gap-4 shrink-0">
-            {/* View Mode Tabs */}
-            <div className="flex flex-nowrap p-1 rounded-full border transition-colors" style={{ backgroundColor: 'var(--theme-bg-secondary)', borderColor: 'var(--theme-border-subtle)' }}>
-              <button
-                onClick={() => setViewMode('text')}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium transition-all min-h-[44px]"
-                style={{
-                  backgroundColor: viewMode === 'text' ? 'var(--theme-bg)' : 'transparent',
-                  color: viewMode === 'text' ? 'var(--theme-text)' : 'var(--theme-text-secondary)',
-                  boxShadow: viewMode === 'text' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none'
-                }}
-              >
-                <Type className="w-4 h-4 shrink-0" />
-                {t('text')}
-              </button>
-              <button
-                onClick={() => setViewMode('comic')}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium transition-all min-h-[44px]"
-                style={{
-                  backgroundColor: viewMode === 'comic' ? 'var(--theme-bg)' : 'transparent',
-                  color: viewMode === 'comic' ? 'var(--theme-text)' : 'var(--theme-text-secondary)',
-                  boxShadow: viewMode === 'comic' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none'
-                }}
-              >
-                <ImageIcon className="w-4 h-4 shrink-0" />
-                {t('comic')}
-              </button>
-            </div>
+          <div className="flex items-center gap-2 flex-wrap justify-end ml-auto min-w-0 max-w-full">
+            {/* Ferramentas da HQ (renderizadas pelo ComicPageView aqui, à esquerda do modo) */}
+            {showComicPage && <div ref={setToolbarSlot} className="flex items-center justify-end min-w-0 max-w-full" />}
+            {viewMode === 'comic' && !comicImage && (
+              <ToolGroup label={locale === 'pt-BR' ? 'Quadrinho' : 'Comic'}>
+                <ToolButton tone="primary" disabled={!!comicStage} onClick={handleGenerateComic}
+                  icon={comicStage ? <Loader2 className="w-4 h-4 animate-spin" /> : <WandSparkles className="w-4 h-4" />}
+                  label={comicStage
+                    ? (locale === 'pt-BR'
+                      ? { prepare: 'Preparando a arte…', image: 'Desenhando a página…', layout: 'Encaixando os balões…' }[comicStage]
+                      : { prepare: 'Preparing the art…', image: 'Drawing the page…', layout: 'Fitting balloons…' }[comicStage])
+                    : (locale === 'pt-BR' ? 'Gerar HQ desta página' : 'Generate comic for this page')}
+                  hint={locale === 'pt-BR' ? 'Desenha esta página como quadrinho, com o texto nos balões. Usa sua chave de IA.' : 'Draws this page as a comic with the text in balloons. Uses your AI key.'} />
+              </ToolGroup>
+            )}
+            {/* Modo de leitura */}
+            <ToolGroup label={locale === 'pt-BR' ? 'Modo de leitura' : 'Reading mode'}>
+              <ToolButton icon={<Type className="w-4 h-4" />} label={t('text')} compact active={viewMode === 'text'}
+                hint={locale === 'pt-BR' ? 'Ler só o texto' : 'Read the text only'} onClick={() => setViewMode('text')} />
+              <ToolButton icon={<ImageIcon className="w-4 h-4" />} label={t('comic')} compact active={viewMode === 'comic'}
+                hint={locale === 'pt-BR' ? 'Ler como história em quadrinhos' : 'Read as a comic'} onClick={openComicMode} />
+            </ToolGroup>
             {/* Settings (gear) next to tabs — mobile only */}
             <div className="md:hidden flex items-center">
               <Popover>
@@ -968,7 +1056,7 @@ export function Reader({ book }: ReaderProps) {
                       <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--theme-text-secondary)' }}>{t('fontType')}</p>
                       <div className="flex gap-2">
                         {(['serif', 'sans'] as const).map((f) => (
-                          <button key={f} type="button" onClick={() => setFontFamily(f)} className={`flex-1 py-2 px-3 rounded-xl text-sm font-medium transition-all ${fontFamily === f ? 'ring-2' : ''}`} style={{ backgroundColor: fontFamily === f ? 'var(--theme-primary)' : 'var(--theme-bg-secondary)', color: fontFamily === f ? 'var(--theme-primary-text)' : 'var(--theme-text-secondary)', ringColor: 'var(--theme-primary)' }}>{f === 'serif' ? t('serif') : t('sansSerif')}</button>
+                          <button key={f} type="button" onClick={() => setFontFamily(f)} className={`flex-1 py-2 px-3 rounded-xl text-sm font-medium transition-all ${fontFamily === f ? 'ring-2 ring-[var(--theme-primary)]' : ''}`} style={{ backgroundColor: fontFamily === f ? 'var(--theme-primary)' : 'var(--theme-bg-secondary)', color: fontFamily === f ? 'var(--theme-primary-text)' : 'var(--theme-text-secondary)' }}>{f === 'serif' ? t('serif') : t('sansSerif')}</button>
                         ))}
                       </div>
                     </div>
@@ -979,33 +1067,70 @@ export function Reader({ book }: ReaderProps) {
           </div>
         </div>
 
-        {viewMode === 'text' ? (
+        {!showComicPage ? (
           <>
-            <article 
+            {viewMode === 'comic' && comicError?.page === currentPage && (
+              <p role="alert" className="mb-4 text-sm rounded-xl px-3 py-2" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>{comicError.message}</p>
+            )}
+            {/* Troca de página no texto: avançar entra da direita, voltar entra da esquerda. */}
+            <motion.article
+              key={currentPage}
               ref={containerRef}
+              initial={reduceMotion ? { opacity: 0 } : { opacity: 0, x: pageDirection * 36 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: reduceMotion ? 0.12 : 0.32, ease: [0.22, 0.8, 0.28, 1] }}
               className={`whitespace-pre-wrap relative ${interactionMode === 'text' ? 'select-text' : 'select-none'}`}
               style={{ fontFamily: readerFontFamily, fontSize: `${fontSize}px`, lineHeight: lineHeight }}
               onClick={handleContentClick}
-              onMouseOver={handleMouseOver}
               dangerouslySetInnerHTML={{ __html: contentWithHighlights }}
             />
-            <div
-              ref={ttsHandRef}
-              className="tts-hand fixed z-50 pointer-events-none transition-all duration-150"
-              style={{ display: 'none' }}
-              aria-hidden
-            >
-              <MousePointer2 className="w-5 h-5" style={{ color: 'var(--theme-tts-hand)' }} strokeWidth={2.5} />
-            </div>
           </>
-        ) : null}
+        ) : (
+          <ComicPageView
+            ref={containerRef}
+            pageIndex={currentPage}
+            imageUrl={comicImage}
+            layout={book.comicLayouts?.[currentPage]}
+            wordsHtml={buildWordsHtml}
+            sourceText={currentContent}
+            locale={locale}
+            onContentClick={handleContentClick}
+            fullscreenTarget={() => readerRootRef.current}
+            stage={comicStage}
+            error={comicError?.page === currentPage ? comicError.message : undefined}
+            onGenerate={handleGenerateComic}
+            onDelete={handleDeleteComic}
+            onSaveLettering={handleSaveLettering}
+            letteringTheme={letteringThemeFor(book.comicStyleDoc)}
+            letteringDetected={detectLetteringTheme(book.comicStyleDoc)}
+            toolbarSlot={toolbarSlot}
+            letteringChoice={(book.comicStyleDoc?.letteringTheme as LetteringThemeId | undefined) ?? null}
+            onLetteringThemeChange={(id) => {
+              const { letteringTheme: _previous, ...rest } = book.comicStyleDoc ?? {}
+              updateBookAndSync(book.id, { comicStyleDoc: id ? { ...rest, letteringTheme: id } : rest })
+            }}
+            onPrev={() => { if (currentPage > 0) changePage(-1) }}
+            onNext={() => { if (currentPage < pages.length - 1) changePage(1) }}
+            labels={{
+              generate: locale === 'pt-BR' ? 'Gerar quadrinho desta página' : 'Generate comic for this page',
+              regenerate: locale === 'pt-BR' ? 'Regenerar página' : 'Regenerate page',
+              delete: locale === 'pt-BR' ? 'Excluir quadrinho' : 'Delete comic',
+              fitWidth: locale === 'pt-BR' ? 'Ajustar à largura' : 'Fit width',
+              fitPage: locale === 'pt-BR' ? 'Página inteira' : 'Fit page',
+              preparingArt: locale === 'pt-BR' ? 'Preparando a direção de arte…' : 'Preparing the art direction…',
+              generatingImage: locale === 'pt-BR' ? 'Desenhando a página…' : 'Drawing the page…',
+              generatingLayout: locale === 'pt-BR' ? 'Encaixando as legendas nos quadros…' : 'Fitting captions into the panels…',
+              empty: locale === 'pt-BR' ? 'Esta página ainda não tem quadrinho. Gere uma versão ilustrada com o texto real nos balões.' : 'This page has no comic yet. Generate an illustrated version with real text in the balloons.',
+            }}
+          />
+        )}
 
       </div>
 
       {/* Floating Toolbar — no livro no mobile fica embaixo (BottomNav escondido) */}
-      <div className="fixed bottom-4 left-2 right-2 md:left-64 md:right-8 md:bottom-8 z-40 flex flex-col items-center">
+      <div className="fixed left-2 right-2 md:left-64 md:right-8 md:bottom-8 z-40 flex flex-col items-center" style={{ bottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
         <div 
-          className="backdrop-blur-md border p-2.5 rounded-full shadow-2xl flex items-center justify-between md:justify-center gap-1 md:gap-1.5 transition-colors w-full flex-nowrap md:w-auto"
+          className="backdrop-blur-md border p-1.5 md:p-2.5 rounded-full shadow-2xl flex items-center justify-between md:justify-center gap-0.5 md:gap-1.5 transition-colors w-full flex-nowrap md:w-auto"
           style={{ backgroundColor: 'var(--theme-nav-bg)', borderColor: 'var(--theme-border-subtle)' }}
         >
           {/* Previous page — à esquerda no mobile; no desktop no fluxo central */}
@@ -1027,7 +1152,7 @@ export function Reader({ book }: ReaderProps) {
           <div className="flex items-center gap-0.5 md:gap-1 flex-1 justify-center min-w-0">
           <button
             onClick={() => setInteractionMode('hand')}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium transition-all min-h-[44px] shrink-0"
+            className="flex items-center gap-2 px-3 md:px-4 py-2.5 rounded-full text-sm font-medium transition-all min-h-[44px] min-w-[44px] justify-center shrink-0"
             style={{
               backgroundColor: interactionMode === 'hand' ? 'var(--theme-primary)' : 'transparent',
               color: interactionMode === 'hand' ? 'var(--theme-primary-text)' : 'var(--theme-nav-text-muted)'
@@ -1036,12 +1161,11 @@ export function Reader({ book }: ReaderProps) {
             aria-label={t('clickWord')}
           >
             <MousePointer2 className="w-4 h-4 shrink-0" />
-            <span className="md:hidden">{t('clickShort')}</span>
             <span className="hidden md:inline">{t('clickWord')}</span>
           </button>
           <button
             onClick={() => setInteractionMode('text')}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium transition-all min-h-[44px] shrink-0"
+            className="flex items-center gap-2 px-3 md:px-4 py-2.5 rounded-full text-sm font-medium transition-all min-h-[44px] min-w-[44px] justify-center shrink-0"
             style={{
               backgroundColor: interactionMode === 'text' ? 'var(--theme-primary)' : 'transparent',
               color: interactionMode === 'text' ? 'var(--theme-primary-text)' : 'var(--theme-nav-text-muted)'
@@ -1050,7 +1174,6 @@ export function Reader({ book }: ReaderProps) {
             aria-label={t('selectText')}
           >
             <Type className="w-4 h-4 shrink-0" />
-            <span className="md:hidden">{t('selectShort')}</span>
             <span className="hidden md:inline">{t('selectText')}</span>
           </button>
           
@@ -1084,7 +1207,7 @@ export function Reader({ book }: ReaderProps) {
           <Popover>
             <PopoverTrigger asChild>
               <button
-                className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-full text-sm font-bold transition-all hover:bg-[var(--theme-nav-hover)] min-h-[44px] shrink-0"
+                className="flex items-center justify-center gap-1.5 px-2.5 md:px-4 py-2.5 rounded-full text-sm font-bold transition-all hover:bg-[var(--theme-nav-hover)] min-h-[44px] shrink-0"
                 style={{ color: 'var(--theme-nav-text)' }}
                 title={t('speedLabel')}
                 aria-label={t('speedLabel')}
@@ -1119,7 +1242,7 @@ export function Reader({ book }: ReaderProps) {
             </PopoverContent>
           </Popover>
 
-          <div className="w-px h-6 rounded-full opacity-50 shrink-0" style={{ backgroundColor: 'var(--theme-nav-text-muted)' }} />
+          <div className="hidden md:block w-px h-6 rounded-full opacity-50 shrink-0" style={{ backgroundColor: 'var(--theme-nav-text-muted)' }} />
 
           {/* Settings — desktop only; on mobile the gear is next to Text/Comic tabs */}
           <div className="hidden md:block">
@@ -1198,12 +1321,11 @@ export function Reader({ book }: ReaderProps) {
                         type="button"
                         onClick={() => setFontFamily(f)}
                         className={`flex-1 py-2 px-3 rounded-xl text-sm font-medium transition-all ${
-                          fontFamily === f ? 'ring-2' : ''
+                          fontFamily === f ? 'ring-2 ring-[var(--theme-primary)]' : ''
                         }`}
                         style={{
                           backgroundColor: fontFamily === f ? 'var(--theme-primary)' : 'var(--theme-bg-secondary)',
                           color: fontFamily === f ? 'var(--theme-primary-text)' : 'var(--theme-text-secondary)',
-                          ringColor: 'var(--theme-primary)'
                         }}
                       >
                         {f === 'serif' ? t('serif') : t('sansSerif')}
@@ -1216,7 +1338,10 @@ export function Reader({ book }: ReaderProps) {
           </Popover>
           </div>
 
-          {/* Contador de página — desktop only, após Settings */}
+          {/* Contador de página (no celular, compacto) */}
+          <span className="flex items-center text-xs md:text-sm font-medium tabular-nums shrink-0 px-1 md:px-2" style={{ color: 'var(--theme-nav-text-muted)' }}>
+            <span className="md:hidden">{currentPage + 1}/{pages.length}</span>
+          </span>
           <span className="hidden md:flex items-center text-sm font-medium tabular-nums shrink-0 px-2" style={{ color: 'var(--theme-nav-text-muted)' }}>
             {currentPage + 1} / {pages.length}
           </span>
@@ -1261,499 +1386,43 @@ export function Reader({ book }: ReaderProps) {
         vocabId={vocabToEdit}
       />
 
-      {viewMode === 'comic' && (
-        <ComicReader
-          book={book}
-          pages={pages}
-          currentPage={currentPage}
-          goToPage={goToPage}
-          onExit={() => setViewMode('text')}
-          onGenerateComic={handleGenerateComic}
-          onDeleteComic={handleDeleteComic}
-          isGeneratingComic={isGeneratingComic}
-          t={t}
-          onTogglePlayback={togglePlayback}
-          onStopPlayback={stopPlayback}
-          isPlaying={isPlaying}
-          isPaused={isPaused}
-          isLoadingTts={isLoadingTts}
-          playbackRate={playbackRate}
-          onChangeRate={handleRateChange}
-        />
-      )}
-    </div>
-  )
-}
+      <WordTooltip
+        state={wordTip}
+        status={wordTip ? vocabForText(wordTip.text)?.status ?? null : null}
+        onStatus={(st) => wordTip && setWordStatus(wordTip.text, st)}
+        onExplain={() => wordTip && openExplanation(wordTip.text)}
+        onPlayFrom={() => wordTip && playFromWord(wordTip.idx)}
+        onBack={() => wordTip && playFromSentenceStart(wordTip.idx)}
+        burst={scoreBurst}
+        labels={locale === 'pt-BR'
+          ? { learned: 'Aprendido', review: 'Revisão', important: 'Importante', explain: 'Explicação', playFrom: 'Ouvir daqui', back: 'Voltar' }
+          : { learned: 'Learned', review: 'Review', important: 'Important', explain: 'Explain', playFrom: 'Play from here', back: 'Back' }}
+      />
 
-interface ComicReaderProps {
-  book: Book
-  pages: string[]
-  currentPage: number
-  goToPage: (index: number) => void
-  onExit: () => void
-  onGenerateComic: (opts?: { regenerate?: boolean }) => void
-  onDeleteComic: () => void
-  isGeneratingComic: boolean
-  t: (key: any) => string
-  onTogglePlayback: () => void
-  onStopPlayback: () => void
-  isPlaying: boolean
-  isPaused: boolean
-  isLoadingTts: boolean
-  playbackRate: number
-  onChangeRate: (rate: number) => void
-}
-
-function ComicReader({
-  book,
-  pages,
-  currentPage,
-  goToPage,
-  onExit,
-  onGenerateComic,
-  onDeleteComic,
-  isGeneratingComic,
-  t,
-  onTogglePlayback,
-  onStopPlayback,
-  isPlaying,
-  isPaused,
-  isLoadingTts,
-  playbackRate,
-  onChangeRate
-}: ComicReaderProps) {
-  const rootRef = useRef<HTMLDivElement | null>(null)
-  const [uiVisible, setUiVisible] = useState(true)
-  const [zoom, setZoom] = useState(1)
-  const [offsetX, setOffsetX] = useState(0)
-  const [offsetY, setOffsetY] = useState(0)
-  const [isPanning, setIsPanning] = useState(false)
-  const panStartRef = useRef<{ x: number; y: number; offsetX: number; offsetY: number } | null>(null)
-  const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null)
-  const isSwipingRef = useRef(false)
-  const pinchRef = useRef<{ dist: number; zoom: number } | null>(null)
-  const hideUiTimeoutRef = useRef<number | null>(null)
-
-  const showUiTemporarily = () => {
-    setUiVisible(true)
-    if (hideUiTimeoutRef.current) {
-      window.clearTimeout(hideUiTimeoutRef.current)
-    }
-    hideUiTimeoutRef.current = window.setTimeout(() => {
-      setUiVisible(false)
-    }, 2500)
-  }
-
-  useEffect(() => {
-    showUiTemporarily()
-    return () => {
-      if (hideUiTimeoutRef.current) {
-        window.clearTimeout(hideUiTimeoutRef.current)
-      }
-    }
-  }, [])
-
-  // Keyboard navigation and fullscreen toggle
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowRight') {
-        e.preventDefault()
-        goToPage(currentPage + 1)
-        showUiTemporarily()
-      } else if (e.key === 'ArrowLeft') {
-        e.preventDefault()
-        goToPage(currentPage - 1)
-        showUiTemporarily()
-      } else if (e.key === 'Escape') {
-        onExit()
-      }
-    }
-    window.addEventListener('keydown', handleKey)
-    return () => window.removeEventListener('keydown', handleKey)
-  }, [currentPage, goToPage, onExit])
-
-  const handleTapOrClick = (clientX: number, clientY: number) => {
-    const width = window.innerWidth
-    const zone = clientX / width
-
-    if (zone < 0.25) {
-      goToPage(currentPage - 1)
-    } else if (zone > 0.75) {
-      goToPage(currentPage + 1)
-    } else {
-      showUiTemporarily()
-    }
-  }
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (zoom <= 1) return
-    setIsPanning(true)
-    panStartRef.current = {
-      x: e.clientX,
-      y: e.clientY,
-      offsetX,
-      offsetY
-    }
-  }
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isPanning || !panStartRef.current) {
-      if (!uiVisible) {
-        showUiTemporarily()
-      }
-      return
-    }
-    const dx = e.clientX - panStartRef.current.x
-    const dy = e.clientY - panStartRef.current.y
-    setOffsetX(panStartRef.current.offsetX + dx)
-    setOffsetY(panStartRef.current.offsetY + dy)
-  }
-
-  const handleMouseUp = () => {
-    setIsPanning(false)
-    panStartRef.current = null
-  }
-
-  const handleWheel = (e: React.WheelEvent) => {
-    if (e.ctrlKey || e.metaKey) {
-      e.preventDefault()
-      const delta = -e.deltaY * 0.001
-      setZoom(prev => {
-        const next = Math.min(3, Math.max(1, prev + delta))
-        if (next === 1) {
-          setOffsetX(0)
-          setOffsetY(0)
-        }
-        return next
-      })
-    }
-  }
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (e.touches.length === 1) {
-      const touch = e.touches[0]
-      touchStartRef.current = { x: touch.clientX, y: touch.clientY, time: Date.now() }
-      isSwipingRef.current = false
-    } else if (e.touches.length === 2) {
-      const [t1, t2] = Array.from(e.touches) as [Touch, Touch]
-      const dx = t2.clientX - t1.clientX
-      const dy = t2.clientY - t1.clientY
-      const dist = Math.hypot(dx, dy)
-      pinchRef.current = { dist, zoom }
-    }
-  }
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (e.touches.length === 2 && pinchRef.current) {
-      e.preventDefault()
-      const [t1, t2] = Array.from(e.touches) as [Touch, Touch]
-      const dx = t2.clientX - t1.clientX
-      const dy = t2.clientY - t1.clientY
-      const dist = Math.hypot(dx, dy)
-      const diff = dist - pinchRef.current.dist
-      setZoom(() => {
-        const next = Math.min(3, Math.max(1, pinchRef.current!.zoom + diff * 0.005))
-        if (next === 1) {
-          setOffsetX(0)
-          setOffsetY(0)
-        }
-        return next
-      })
-      return
-    }
-
-    if (e.touches.length === 1 && touchStartRef.current && zoom <= 1) {
-      const touch = e.touches[0]
-      const dx = touch.clientX - touchStartRef.current.x
-      const dy = touch.clientY - touchStartRef.current.y
-      if (Math.abs(dx) > 30 && Math.abs(dx) > Math.abs(dy)) {
-        isSwipingRef.current = true
-      }
-    }
-  }
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (pinchRef.current && e.touches.length < 2) {
-      pinchRef.current = null
-    }
-
-    if (!touchStartRef.current || e.changedTouches.length === 0) {
-      touchStartRef.current = null
-      return
-    }
-
-    const touch = e.changedTouches[0]
-    const dx = touch.clientX - touchStartRef.current.x
-    const dy = touch.clientY - touchStartRef.current.y
-    const dt = Date.now() - touchStartRef.current.time
-
-    if (zoom > 1) {
-      touchStartRef.current = null
-      return
-    }
-
-    if (isSwipingRef.current && Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) && dt < 500) {
-      if (dx < 0) {
-        goToPage(currentPage + 1)
-      } else {
-        goToPage(currentPage - 1)
-      }
-    } else if (dt < 250 && Math.abs(dx) < 10 && Math.abs(dy) < 10) {
-      handleTapOrClick(touch.clientX, touch.clientY)
-    }
-
-    touchStartRef.current = null
-    isSwipingRef.current = false
-  }
-
-  const currentImage = book.comicPages?.[currentPage]
-
-  const totalPages = pages.length
-  const progress = totalPages > 0 ? (currentPage + 1) / totalPages : 0
-
-  return (
-    <div
-      ref={rootRef}
-      className="fixed inset-0 z-50 flex h-[100dvh] max-h-[100dvh] min-h-0 flex-col overflow-hidden bg-black"
-      onMouseMove={() => {
-        if (!uiVisible) showUiTemporarily()
-      }}
-      onWheel={handleWheel}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseUp}
-    >
-      {/* Top bar (sempre ocupa espaço; só muda opacidade/pointer-events) */}
-      <div
-        className={
-          uiVisible
-            ? 'pointer-events-auto opacity-100 transition-opacity duration-200'
-            : 'pointer-events-none opacity-0 transition-opacity duration-200'
-        }
-      >
-        <div className="flex items-center justify-between px-4 md:px-8 py-3 md:py-4 text-xs md:text-sm font-medium text-white bg-black/60 backdrop-blur-sm">
-          <div className="flex items-center gap-2 w-8 md:w-9" />
-          <span className="truncate px-4 text-center">
-            {book.title} — {t('page')} {currentPage + 1}
-          </span>
-          <button
-            type="button"
-            onClick={onExit}
-            className="flex items-center justify-center w-8 h-8 md:w-9 md:h-9 rounded-full bg-white/10 hover:bg-white/20"
-            title={t('exitFullscreen')}
-            aria-label={t('exitFullscreen')}
-          >
-            <X className="w-3 h-3 md:w-4 md:h-4" />
-          </button>
-        </div>
-      </div>
-
-      {/* Content layer */}
-      <div
-        className="min-h-0 flex-1 flex items-center justify-center overflow-hidden"
-        style={{ touchAction: 'none', overscrollBehavior: 'contain' }}
-        onClick={e => handleTapOrClick(e.clientX, e.clientY)}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-      >
-        <div className="flex h-full min-h-0 w-full items-center justify-center">
-            {currentImage && !isGeneratingComic ? (
-              <div
-                className="group relative flex max-h-full max-w-full items-center justify-center"
-                onClick={e => e.stopPropagation()}
-              >
-                <div
-                  className="relative flex max-h-full max-w-full items-center justify-center will-change-transform"
-                  style={{
-                    transform: `translate3d(${offsetX}px, ${offsetY}px, 0) scale(${zoom})`,
-                    transition: isPanning || zoom > 1 ? 'none' : 'transform 0.25s ease-out'
-                  }}
-                  onDoubleClick={(e) => {
-                    e.stopPropagation()
-                    if (zoom > 1) {
-                      setZoom(1)
-                      setOffsetX(0)
-                      setOffsetY(0)
-                    } else {
-                      setZoom(2)
-                    }
-                  }}
-                >
-                  <img
-                    src={isComicPageUrl(currentImage) ? currentImage : `data:image/jpeg;base64,${currentImage}`}
-                    alt={`${t('comicPageAlt')} ${currentPage + 1}`}
-                    className="block max-h-[calc(100dvh-10rem)] w-auto max-w-full select-none object-contain md:max-h-[calc(100dvh-11rem)]"
-                    referrerPolicy="no-referrer"
-                    draggable={false}
-                  />
-                </div>
-                <div className="absolute top-2 right-2 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none group-hover:pointer-events-auto">
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); onGenerateComic({ regenerate: true }) }}
-                    disabled={isGeneratingComic}
-                    className="flex items-center justify-center w-8 h-8 rounded-full bg-black/60 hover:bg-black/80 text-white disabled:opacity-50 shadow-lg"
-                    title={t('regenerateComic')}
-                    aria-label={t('regenerateComic')}
-                  >
-                    {isGeneratingComic ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); onDeleteComic() }}
-                    className="flex items-center justify-center w-8 h-8 rounded-full bg-red-600/90 hover:bg-red-600 text-white shadow-lg"
-                    title={t('deleteComicPage')}
-                    aria-label={t('deleteComicPage')}
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-full max-w-full px-4">
-                <div
-                  className="relative flex flex-col items-center justify-center rounded-2xl text-center max-w-md w-full py-8 px-6 border border-white/10 bg-black/30 backdrop-blur-sm min-h-[320px]"
-                >
-                  {isGeneratingComic ? (
-                    <div className="flex flex-col items-center gap-6">
-                      <div className="relative">
-                        <div className="w-16 h-16 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <ImageIcon className="w-6 h-6 text-white/80" />
-                        </div>
-                      </div>
-                      <p className="text-sm md:text-base text-white/95 font-medium leading-relaxed max-w-xs">
-                        {getGeneratingComicMessage(book.languageCode)}
-                      </p>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="mb-6 flex items-center justify-center animate-comic-icon-float">
-                        <svg width="120" height="100" viewBox="0 0 120 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-white/90" aria-hidden>
-                          <rect x="8" y="10" width="48" height="38" rx="4" stroke="currentColor" strokeWidth="2" fill="none" opacity="0.9" />
-                          <rect x="64" y="10" width="48" height="38" rx="4" stroke="currentColor" strokeWidth="2" fill="none" opacity="0.7" />
-                          <rect x="8" y="52" width="48" height="38" rx="4" stroke="currentColor" strokeWidth="2" fill="none" opacity="0.7" />
-                          <rect x="64" y="52" width="48" height="38" rx="4" stroke="currentColor" strokeWidth="2" fill="none" opacity="0.5" />
-                          <path d="M20 28 L36 28 M20 34 L32 34" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" opacity="0.8" />
-                          <path d="M76 28 L92 28 M76 34 L88 34" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" opacity="0.6" />
-                        </svg>
-                      </div>
-                      <h3 className="text-lg font-semibold text-white mb-2">
-                        {t('comicEmptyTitle')}
-                      </h3>
-                      <p className="text-sm text-white/80 leading-relaxed mb-6 max-w-sm">
-                        {t('comicEmptyDescription')}
-                      </p>
-                      <Button
-                        type="button"
-                        onClick={() => onGenerateComic()}
-                        disabled={isGeneratingComic}
-                        className="flex items-center gap-2 px-6 py-3 rounded-xl bg-white text-black hover:bg-white/90 font-medium shadow-lg"
-                      >
-                        <ImageIcon className="w-5 h-5" />
-                        <span>{t('comicEmptyCta')}</span>
-                      </Button>
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Side controls (left/right) */}
-          <div
-            className={
-              uiVisible
-                ? 'opacity-100 transition-opacity duration-200'
-                : 'opacity-0 pointer-events-none transition-opacity duration-200'
-            }
-          >
-            <button
-              type="button"
-              onClick={() => goToPage(currentPage - 1)}
-              disabled={currentPage === 0}
-              className="absolute left-2 md:left-6 top-1/2 -translate-y-1/2 flex items-center justify-center w-9 h-9 md:w-10 md:h-10 rounded-full bg-black/40 hover:bg-black/60 border border-white/30 disabled:opacity-40"
-              title={t('previousPage')}
-              aria-label={t('previousPage')}
+      <Dialog open={showConnectApi} onOpenChange={setShowConnectApi}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{locale === 'pt-BR' ? 'Conecte sua API' : 'Connect your API'}</DialogTitle>
+            <DialogDescription>
+              {locale === 'pt-BR'
+                ? 'Para gerar quadrinhos, conecte sua própria chave da OpenAI em Configurações. Os custos vão para a sua conta no provedor, e a chave fica guardada cifrada no servidor.'
+                : 'To generate comics, connect your own OpenAI key in Settings. Usage is billed to your provider account, and the key is stored encrypted on the server.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" className="rounded-xl" onClick={() => setShowConnectApi(false)}>
+              {locale === 'pt-BR' ? 'Agora não' : 'Not now'}
+            </Button>
+            <Button
+              className="rounded-xl"
+              style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}
+              onClick={() => { setShowConnectApi(false); navigate('/settings') }}
             >
-              <ChevronLeft className="w-4 h-4 text-white" />
-            </button>
-            <button
-              type="button"
-              onClick={() => goToPage(currentPage + 1)}
-              disabled={currentPage >= totalPages - 1}
-              className="absolute right-2 md:right-6 top-1/2 -translate-y-1/2 flex items-center justify-center w-9 h-9 md:w-10 md:h-10 rounded-full bg-black/40 hover:bg-black/60 border border-white/30 disabled:opacity-40"
-              title={t('nextPage')}
-              aria-label={t('nextPage')}
-            >
-              <ChevronRight className="w-4 h-4 text-white" />
-            </button>
-        </div>
-      </div>
-
-      {/* Bottom controls: progresso + TTS no modo Comic (sempre com mesma altura) */}
-      <div
-        className={
-          uiVisible
-            ? 'pointer-events-auto opacity-100 transition-opacity duration-200'
-            : 'pointer-events-none opacity-0 transition-opacity duration-200'
-        }
-      >
-        <div className="px-4 md:px-8 pb-4 md:pb-6">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-3 text-[11px] md:text-xs text-white/80 max-w-3xl mx-auto">
-            <div className="flex flex-col items-center md:items-start gap-1">
-              <span>
-                {t('page')} {currentPage + 1} / {totalPages}
-              </span>
-              <div className="w-full max-w-xs h-0.5 bg-white/15 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-white"
-                  style={{ width: `${progress * 100}%` }}
-                />
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={onTogglePlayback}
-                disabled={isLoadingTts}
-                className="flex items-center justify-center w-9 h-9 rounded-full border border-white/30 bg-white/10 hover:bg-white/20 disabled:opacity-50"
-              >
-                {isLoadingTts ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : isPlaying ? (
-                  <Pause className="w-4 h-4" />
-                ) : (
-                  <Play className="w-4 h-4" />
-                )}
-              </button>
-              {(isPlaying || isPaused || isLoadingTts) && (
-                <button
-                  type="button"
-                  onClick={onStopPlayback}
-                  className="flex items-center justify-center w-9 h-9 rounded-full border border-white/30 bg-white/5 hover:bg-white/15"
-                >
-                  <div className="w-2.5 h-2.5 bg-white rounded-sm" />
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => {
-                  const speeds = PLAYBACK_SPEEDS
-                  const idx = speeds.findIndex(s => Math.abs(s - playbackRate) < 0.01)
-                  const next = speeds[(idx + 1) % speeds.length]
-                  onChangeRate(next)
-                }}
-                className="px-3 py-1 rounded-full border border-white/25 bg-white/5 hover:bg-white/15 text-[11px] md:text-xs"
-              >
-                {playbackRate.toFixed(1)}x
-              </button>
-            </div>
+              {locale === 'pt-BR' ? 'Ir para Configurações' : 'Go to Settings'}
+            </Button>
           </div>
-        </div>
-      </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

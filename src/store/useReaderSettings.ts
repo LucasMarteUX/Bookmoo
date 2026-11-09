@@ -14,10 +14,6 @@ interface ReaderSettingsState {
   voiceGender: 'female' | 'male'
   fontFamily: FontFamily
   bgTone: BgTone
-  /** User's Gemini API key (non-admins only). Not persisted to localStorage; loaded from Supabase. */
-  geminiApiKey: string | null
-  /** TTS for page reading: browser is the default provider. */
-  ttsProvider: 'browser' | 'gemini' | 'elevenlabs'
   setTheme: (theme: Theme) => void
   setFontSize: (size: number) => void
   setLineHeight: (height: number) => void
@@ -27,8 +23,6 @@ interface ReaderSettingsState {
   setVoiceGender: (gender: 'female' | 'male') => void
   setFontFamily: (font: FontFamily) => void
   setBgTone: (tone: BgTone) => void
-  setGeminiApiKey: (key: string | null) => void
-  setTtsProvider: (provider: 'browser' | 'gemini' | 'elevenlabs') => void
 }
 
 export const useReaderSettings = create<ReaderSettingsState>()(
@@ -42,8 +36,6 @@ export const useReaderSettings = create<ReaderSettingsState>()(
       voiceGender: 'male',
       fontFamily: 'serif',
       bgTone: 'medium',
-      geminiApiKey: null,
-      ttsProvider: 'browser',
       setTheme: (theme) => set({ theme }),
       setFontSize: (fontSize) => set({ fontSize }),
       setLineHeight: (lineHeight) => set({ lineHeight }),
@@ -52,16 +44,16 @@ export const useReaderSettings = create<ReaderSettingsState>()(
       setPlaybackRate: (playbackRate) => set({ playbackRate }),
       setVoiceGender: (voiceGender) => set({ voiceGender }),
       setFontFamily: (fontFamily) => set({ fontFamily }),
-      setBgTone: (bgTone) => set({ bgTone }),
-      setGeminiApiKey: (geminiApiKey) => set({ geminiApiKey }),
-      setTtsProvider: (ttsProvider) => set({ ttsProvider })
+      setBgTone: (bgTone) => set({ bgTone })
     }),
     {
       name: 'lexis-reader-settings',
-      version: 2,
+      version: 3,
+      // v3: remove campos legados (chave Gemini e provedor de TTS) do armazenamento local.
       migrate: (persistedState) => {
         if (persistedState && typeof persistedState === 'object') {
-          return { ...persistedState, ttsProvider: 'browser' }
+          const { ttsProvider: _t, geminiApiKey: _g, ...rest } = persistedState as Record<string, unknown>
+          return rest
         }
         return persistedState
       },
@@ -73,8 +65,7 @@ export const useReaderSettings = create<ReaderSettingsState>()(
         playbackRate: state.playbackRate,
         voiceGender: state.voiceGender,
         fontFamily: state.fontFamily,
-        bgTone: state.bgTone,
-        ttsProvider: state.ttsProvider
+        bgTone: state.bgTone
       })
     }
   )

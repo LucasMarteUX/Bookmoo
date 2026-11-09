@@ -224,6 +224,8 @@ function startsFromTimings(text: string, timings: WordTiming[]): number[] | unde
   return out
 }
 
+const HIGHLIGHT_LEAD_S = 0.12
+
 async function playUrl(url: string, rate: number, text?: string, onWord?: (i: number) => void, realStarts?: number[]): Promise<{ done: Promise<void> }> {
   const a = getPlayer()
   a.src = url
@@ -263,8 +265,9 @@ async function playUrl(url: string, rate: number, text?: string, onWord?: (i: nu
       // O player é compartilhado: se já está tocando outra frase, este observador encerra.
       if (a.src !== mySrc) return
       if (a.duration > 0 && Number.isFinite(a.duration)) {
-        // Pequena antecipação para o destaque não parecer atrasado.
-        const f = Math.min(1, (a.currentTime + 0.03) / a.duration)
+        // Antecipa ~120 ms (em tempo real, por isso multiplica pela velocidade): é o tempo de
+        // perceber o destaque. Sem isso a palavra acende quando já está sendo dita.
+        const f = Math.min(1, (a.currentTime + HIGHLIGHT_LEAD_S * a.playbackRate) / a.duration)
         let i = last < 0 ? 0 : last
         while (i + 1 < starts.length && starts[i + 1] <= f) i++
         if (i !== last) { last = i; onWord(i) }

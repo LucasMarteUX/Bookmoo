@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
+import { isComicPageUrl, uploadComicPage } from '@/lib/comicStorage'
 import { useAuth } from '@/contexts/AuthContext'
 import { useBookStore } from '@/store/useBookStore'
 import { useVocabularyStore } from '@/store/useVocabularyStore'
@@ -9,7 +10,8 @@ import {
   fetchBooks,
   fetchVocabulary,
   fetchStudyDays,
-  fetchReaderSettings
+  fetchReaderSettings,
+  updateBookFields
 } from '@/lib/supabaseSync'
 
 /** When Supabase is configured and user is logged in, load books, vocabulary, study_days and reader_settings and hydrate stores. */
@@ -26,10 +28,10 @@ export function useHydrateOnLogin() {
     setShowHighlights,
     setPlaybackRate,
     setVoiceGender,
-    setGeminiApiKey,
-    setTtsProvider
   } = useReaderSettings()
   const hydratedRef = useRef<string | null>(null)
+  const currentUserRef = useRef<string | null>(null)
+  currentUserRef.current = userId
 
   useEffect(() => {
     if (!userId) {
@@ -39,8 +41,10 @@ export function useHydrateOnLogin() {
     if (!hasSupabase || !supabase) return
     if (hydratedRef.current === userId) return
     hydratedRef.current = userId
-
-    let cancelled = false
+    // Não cancelamos o resultado na limpeza do efeito: no modo de desenvolvimento (StrictMode) o
+    // efeito roda, é limpo e roda de novo; cancelar descartava os dados e o app ficava só com o
+    // cache local. Só descartamos se o usuário logado mudou nesse meio-tempo.
+    const forUser = userId
     ;(async () => {
       try {
         const [books, vocab, study, settings] = await Promise.all([
@@ -49,10 +53,25 @@ export function useHydrateOnLogin() {
           fetchStudyDays(supabase, userId),
           fetchReaderSettings(supabase, userId)
         ])
-        if (cancelled) return
+        if (currentUserRef.current !== forUser) return
 
         console.log('[useHydrateOnLogin] fetched books', books)
         setBooks(books)
+        // Migração: páginas de quadrinho antigas salvas em base64 dentro do registro do livro
+        // vão para o Storage (o registro fica leve e carrega em qualquer navegador).
+        void (async () => {
+          for (const b of books) {
+            const entries = Object.entries(b.comicPages ?? {})
+            if (!entries.some(([, v]) => !isComicPageUrl(v))) continue
+            const pagesNow: Record<number, string> = {}
+            for (const [k, v] of entries) {
+              pagesNow[Number(k)] = isComicPageUrl(v) ? v : await uploadComicPage(supabase!, userId, b.id, Number(k), v).catch(() => v)
+            }
+            const updated = { ...b, comicPages: pagesNow }
+            useBookStore.getState().updateBook(b.id, { comicPages: pagesNow })
+            await updateBookFields(supabase!, userId, updated, ['comicPages']).catch((e) => console.warn('[migrate comics]', e))
+          }
+        })()
         setVocabularies(vocab)
         setStudyState(study.total, study.daily)
         if (settings) {
@@ -62,17 +81,10 @@ export function useHydrateOnLogin() {
           setShowHighlights(settings.showHighlights)
           setPlaybackRate(settings.playbackRate)
           setVoiceGender(settings.voiceGender)
-          setGeminiApiKey(settings.geminiApiKey)
-          // Keep browser speech as the product default after returning from
-          // the legacy ElevenLabs provider.
-          setTtsProvider('browser')
         }
       } catch (e) {
         console.error('[useHydrateOnLogin] error hydrating from Supabase', e)
       }
     })()
-    return () => {
-      cancelled = true
-    }
-  }, [hasSupabase, userId, setBooks, setVocabularies, setStudyState, setTheme, setFontSize, setLineHeight, setShowHighlights, setPlaybackRate, setVoiceGender, setGeminiApiKey, setTtsProvider])
+  }, [hasSupabase, userId, setBooks, setVocabularies, setStudyState, setTheme, setFontSize, setLineHeight, setShowHighlights, setPlaybackRate, setVoiceGender])
 }

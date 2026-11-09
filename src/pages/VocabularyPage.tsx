@@ -7,7 +7,7 @@ import { VocabularyModal } from '@/components/vocabulary/VocabularyModal'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Play, Pencil, Trash2, BookOpen } from 'lucide-react'
-import { playBase64Audio } from '@/lib/audio'
+import { speak } from '@/lib/tts'
 
 export function VocabularyPage() {
   const { locale } = useLanguage()
@@ -131,12 +131,12 @@ export function VocabularyPage() {
                   )}
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  {v.audioData && (
+                  {(
                     <Button
                       variant="ghost"
                       size="icon"
                       className="rounded-full"
-                      onClick={() => playBase64Audio(v.audioData!)}
+                      onClick={() => { void speak(v.text, { language: 'en', context: v.text.trim().split(/\s+/).length <= 3 ? 'word' : 'phrase', rate: 0.9 }) }}
                       title={t('listenAudio')}
                     >
                       <Play className="w-4 h-4" style={{ color: 'var(--theme-text-secondary)' }} />

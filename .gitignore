@@ -6,3 +6,9 @@ coverage/
 *.log
 .env*
 !.env.example
+.vercel
+
+# Ferramentas locais (worktrees de sessões, editor, CLI do Supabase)
+.claude/
+.cursor/
+supabase/.temp/

@@ -1,22 +1,13 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { persist, createJSONStorage } from 'zustand/middleware'
 import { v4 as uuidv4 } from 'uuid'
-import { splitContentIntoPages } from '@/lib/utils'
+import { countWords, readingProgress, splitContentIntoPages } from '@/lib/utils'
+import type { ComicLayout } from '@/lib/ai'
 
-/** Style doc extracted from the first comic page for consistent generation. */
-export interface ComicStyleDoc {
-  colors?: string
-  lineStyle?: string
-  aesthetics?: string
-  fonts?: string
-}
+import type { Character, StyleDocument } from '../../supabase/functions/_shared/comicEditorial'
 
-/** Character documented for consistent appearance across comic pages. */
-export interface ComicCharacter {
-  name: string
-  visualDescription: string
-  firstPage?: number
-}
+export type ComicStyleDoc = StyleDocument
+export type ComicCharacter = Character
 
 export interface Book {
   id: string
@@ -33,9 +24,11 @@ export interface Book {
   progress: number
   lastRead: number
   wordCount: number
-  /** Target number of pages for progress bar (progress = pages.length / totalPages). */
+  /** Target number of pages for progress bar (reading progress uses the current page). */
   totalPages?: number
   comicPages?: Record<number, string>
+  /** Posição dos balões (texto real por cima da imagem) por página. Páginas antigas não têm. */
+  comicLayouts?: Record<number, ComicLayout>
   /** Style extracted from first comic page (colors, lineStyle, aesthetics, fonts). */
   comicStyleDoc?: ComicStyleDoc
   /** Characters documented for consistent drawing across pages. */
@@ -54,7 +47,7 @@ interface BookState {
    * `content` here is optional initial full text used para IA (quadrinhos),
    * não gera páginas automaticamente. Páginas são criadas depois no Editor.
    */
-  addBook: (title: string, content: string, opts?: { languageCode?: string; coverData?: string; description?: string; totalPages?: number; author?: string }) => Book
+  addBook: (title: string, content: string, opts?: { languageCode?: string; coverData?: string; description?: string; totalPages?: number; author?: string; pages?: string[] }) => Book
   updateBook: (id: string, updates: Partial<Book>) => void
   deleteBook: (id: string) => void
   setCurrentBook: (id: string | null) => void
@@ -69,10 +62,9 @@ export const useBookStore = create<BookState>()(
       currentBookId: null,
       addBook: (title, content, opts = {}) => {
         const { languageCode = 'en', coverData, description, totalPages, author } = opts
-        // Novos livros começam sem páginas; o usuário cria a primeira página depois no Editor.
-        const pages: string[] = []
         const fullText = (content || '').trim()
-        const wordCount = 0
+        const pages = opts.pages ?? (fullText ? splitContentIntoPages(fullText) : [])
+        const wordCount = countWords(pages.join(' '))
         const targetPages = totalPages && totalPages > 0 ? totalPages : undefined
         const progress = 0
         const newBook: Book = {
@@ -107,12 +99,9 @@ export const useBookStore = create<BookState>()(
             
             // Recalculate word count if pages changed
             if (updates.pages) {
-              updated.wordCount = updated.pages.join(' ').split(/\s+/).length
+              updated.wordCount = countWords(updated.pages.join(' '))
             }
-            // Recalculate progress from totalPages if set
-            if (updated.totalPages != null && updated.totalPages > 0) {
-              updated.progress = Math.min(100, Math.round((updated.pages.length / updated.totalPages) * 100))
-            }
+            updated.progress = readingProgress(updated.currentPage, updated.pages.length, updated.totalPages)
             return updated
           }
           return b
@@ -129,7 +118,23 @@ export const useBookStore = create<BookState>()(
       }))
     }),
     {
-      name: 'lexis-books'
+      name: 'lexis-books',
+      // localStorage tem ~5 MB: imagens em base64 estouravam o limite e o carregamento falhava
+      // (ex.: no Chrome). Guardamos localmente só URLs; o resto fica no Supabase.
+      storage: createJSONStorage(() => ({
+        getItem: (k) => { try { return localStorage.getItem(k) } catch { return null } },
+        setItem: (k, v) => { try { localStorage.setItem(k, v) } catch (e) { console.warn('[books] cache local cheio; seguindo só com o Supabase', e) } },
+        removeItem: (k) => { try { localStorage.removeItem(k) } catch { /* ignore */ } },
+      })),
+      partialize: (state) => ({
+        ...state,
+        books: state.books.map((b) => ({
+          ...b,
+          comicPages: b.comicPages
+            ? Object.fromEntries(Object.entries(b.comicPages).filter(([, v]) => /^https?:\/\//.test(v)))
+            : undefined,
+        })),
+      }),
     }
   )
 )

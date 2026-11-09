@@ -8,6 +8,7 @@ import { Dashboard } from '@/pages/Dashboard'
 import { BookPage } from '@/pages/BookPage'
 import { VocabularyPage } from '@/pages/VocabularyPage'
 import { Stats } from '@/pages/Stats'
+import { PracticePage } from '@/pages/PracticePage'
 import { Settings } from '@/pages/Settings'
 import { Login } from '@/pages/Login'
 import { SignUp } from '@/pages/SignUp'
@@ -40,6 +41,7 @@ export default function App() {
             <Route path="book/:id" element={<BookPage />} />
             <Route path="vocabulary" element={<VocabularyPage />} />
             <Route path="stats" element={<Stats />} />
+            <Route path="practice/:kind" element={<PracticePage />} />
             <Route path="settings" element={<Settings />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
