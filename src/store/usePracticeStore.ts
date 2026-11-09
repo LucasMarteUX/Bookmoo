@@ -30,6 +30,20 @@ export interface PracticeWords { ok: string[]; close: string[]; bad: string[]; s
 /** Normaliza para agrupar estatísticas: minúsculas e apóstrofo reto, sem repetir. */
 export const wordList = (list: string[]) => [...new Set(list.map(w => w.toLowerCase().replace(/[’‘]/g, "'")))]
 
+/**
+ * Palavras que o aluno errou (ou quase) em tentativas anteriores do mesmo tipo e agora acertou:
+ * valem pontos em dobro, como recompensa por ter aprendido.
+ */
+export function recoveredWords(session: Pick<PracticeSession, 'kind' | 'createdAt' | 'words'>, sessions: PracticeSession[]) {
+  if (!session.words) return []
+  const missedBefore = new Set<string>()
+  for (const s of sessions) {
+    if (s.kind !== session.kind || s.createdAt >= session.createdAt) continue
+    for (const w of s.words ? [...s.words.bad, ...s.words.close, ...s.words.skipped] : s.missed) missedBefore.add(w)
+  }
+  return session.words.ok.filter(w => missedBefore.has(w))
+}
+
 export function starsFor(accuracy: number) {
   return accuracy >= 95 ? 3 : accuracy >= 80 ? 2 : accuracy >= 60 ? 1 : 0
 }

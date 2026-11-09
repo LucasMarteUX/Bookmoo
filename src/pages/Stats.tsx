@@ -4,6 +4,7 @@ import { useLanguage } from '@/store/useLanguage'
 import { useTranslations } from '@/lib/i18n'
 import { Card } from '@/components/ui/card'
 import { PracticeStats } from '@/components/stats/PracticeStats'
+import { ActivityPanel } from '@/components/stats/ActivityPanel'
 import { Clock, BookMarked, CheckCircle, AlertCircle, Star } from 'lucide-react'
 
 function formatTime(seconds: number) {
@@ -35,6 +36,8 @@ export function Stats() {
   return (
     <div className="max-w-6xl mx-auto space-y-8">
       <h1 className="text-3xl font-bold" style={{ color: 'var(--theme-text)' }}>{t('statsTitle')}</h1>
+
+      <ActivityPanel pt={locale === 'pt-BR'} />
 
       <PracticeStats pt={locale === 'pt-BR'} />
 

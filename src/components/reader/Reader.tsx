@@ -20,6 +20,7 @@ import {
 import { getAiStatus, useAiStatus } from '@/lib/aiKeys'
 import { detectLetteringTheme, letteringThemeFor, type LetteringThemeId } from '@/lib/comicThemes'
 import { ToolButton, ToolGroup } from '@/components/ui/toolbar'
+import { XP, useXpStore } from '@/store/useXpStore'
 import { motion, useReducedMotion } from 'motion/react'
 import { ComicPageView, type ComicStage } from './ComicPageView'
 import { saveComicPage } from '@/lib/comicPersistence'
@@ -403,6 +404,8 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
   const goToPage = (index: number) => {
     const newPage = Math.max(0, Math.min(pages.length - 1, index))
     if (newPage !== currentPage) {
+      // Avançar conta a página lida (uma vez por página de cada livro).
+      if (newPage > currentPage) useXpStore.getState().award(`read:${book.id}:${currentPage}`, XP.readPage)
       updateBookAndSync(book.id, { currentPage: newPage, lastRead: Date.now() })
       window.scrollTo({ top: 0, behavior: 'smooth' })
     }

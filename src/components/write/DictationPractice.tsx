@@ -3,7 +3,7 @@
 // de novo, mostra a resposta e segue. No fim: % de acerto, estrelas e palavras para treinar.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { ChevronLeft, ChevronRight, Keyboard, RotateCcw, SkipForward, Snail, Star, Volume2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Keyboard, RotateCcw, SkipForward, Snail, Square, Star, Volume2 } from 'lucide-react'
 import type { Book } from '@/store/useBookStore'
 import { useBookSync } from '@/hooks/useBookSync'
 import { useLanguage } from '@/store/useLanguage'
@@ -13,6 +13,7 @@ import { supabase } from '@/lib/supabase'
 import { WORD_PATTERN } from '@/lib/wordTokens'
 import { sayWord } from '@/lib/sayWord'
 import { stopSpeaking } from '@/lib/tts'
+import { PointsEarned } from '@/components/stats/PointsEarned'
 import { starsFor, usePracticeStore, wordList } from '@/store/usePracticeStore'
 
 type Grade = 'ok' | 'close' | 'bad' | 'skip'
@@ -43,18 +44,18 @@ const T = {
   'pt-BR': {
     title: 'Ditado', intro: 'Ouça a palavra e digite. O app repete normal e depois devagar. Acertou, vai para a próxima.',
     start: 'Começar ditado', placeholder: 'Digite a palavra que ouviu…', hear: 'Ouvir', slow: 'Devagar', skip: 'Não sei',
-    tryAgain: 'Quase! Tente de novo.', spelling: 'Quase! Escreve-se assim:', hintApostrophe: 'tem apóstrofo ( ’ )', hintHyphen: 'palavras ligadas por hífen ( - )', answer: 'Era', of: 'de', words: 'palavras', accuracy: 'de acerto',
+    stop: 'Parar', tryAgain: 'Quase! Tente de novo.', spelling: 'Quase! Escreve-se assim:', hintApostrophe: 'tem apóstrofo ( ’ )', hintHyphen: 'palavras ligadas por hífen ( - )', answer: 'Era', of: 'de', words: 'palavras', accuracy: 'de acerto',
     right: 'certas', close: 'na 2ª tentativa', wrong: 'erros', practice: 'Palavras para treinar', none: 'Nenhuma. Perfeito!',
     again: 'Fazer de novo', next: 'Próxima página', prev: 'Página anterior', page: 'Página', empty: 'Esta página não tem palavras.',
-    medals: ['Continue treinando!', 'Bom trabalho!', 'Muito bem!', 'Incrível!'], hint: 'Enter confirma · Esc ouve de novo',
+    medals: ['Continue treinando!', 'Bom trabalho!', 'Muito bem!', 'Incrível!'], hint: 'Enter confirma · Esc ouve de novo · Parar encerra sem salvar',
   },
   en: {
     title: 'Dictation', intro: 'Listen to the word and type it. It repeats at normal speed, then slowly. Get it right to move on.',
     start: 'Start dictation', placeholder: 'Type the word you heard…', hear: 'Hear', slow: 'Slowly', skip: "Don't know",
-    tryAgain: 'Close! Try again.', spelling: 'Almost! It is spelled:', hintApostrophe: 'has an apostrophe ( ’ )', hintHyphen: 'words joined by a hyphen ( - )', answer: 'It was', of: 'of', words: 'words', accuracy: 'accuracy',
+    stop: 'Stop', tryAgain: 'Close! Try again.', spelling: 'Almost! It is spelled:', hintApostrophe: 'has an apostrophe ( ’ )', hintHyphen: 'words joined by a hyphen ( - )', answer: 'It was', of: 'of', words: 'words', accuracy: 'accuracy',
     right: 'right', close: 'on 2nd try', wrong: 'wrong', practice: 'Words to practice', none: 'None. Perfect!',
     again: 'Do it again', next: 'Next page', prev: 'Previous page', page: 'Page', empty: 'This page has no words.',
-    medals: ['Keep practicing!', 'Good job!', 'Great work!', 'Amazing!'], hint: 'Enter checks · Esc repeats',
+    medals: ['Keep practicing!', 'Good job!', 'Great work!', 'Amazing!'], hint: 'Enter checks · Esc repeats · Stop ends without saving',
   },
 }
 
@@ -92,6 +93,8 @@ export function DictationPractice({ book }: { book: Book }) {
   const [burst, setBurst] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
   const loop = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Avanço agendado depois de mostrar a resposta; o Parar cancela.
+  const pending = useRef<ReturnType<typeof setTimeout> | null>(null)
   const done = started && current >= words.length
 
   const stopLoop = () => { if (loop.current) clearTimeout(loop.current); loop.current = null }
@@ -111,6 +114,7 @@ export function DictationPractice({ book }: { book: Book }) {
 
   const reset = useCallback(() => {
     stopLoop(); stopSpeaking()
+    if (pending.current) { clearTimeout(pending.current); pending.current = null }
     setStarted(false); setCurrent(0); setGrades([]); setInput(''); setSecondTry(false); setFeedback(null)
   }, [])
   useEffect(() => { reset() }, [page, book.id, reset])
@@ -137,7 +141,7 @@ export function DictationPractice({ book }: { book: Book }) {
     if (loose(input) === loose(word)) {
       stopLoop()
       setFeedback({ kind: 'spelling', word })
-      setTimeout(() => { setFeedback(null); advance('close') }, 1500)
+      pending.current = setTimeout(() => { pending.current = null; setFeedback(null); advance('close') }, 1500)
       return
     }
     if (!secondTry && similarity(loose(input), loose(word)) >= 0.5) { setSecondTry(true); setFeedback({ kind: 'retry' }); setInput(''); play(current); return }
@@ -148,7 +152,7 @@ export function DictationPractice({ book }: { book: Book }) {
     stopLoop()
     setFeedback({ kind: 'answer', word })
     sayWord(word, true)
-    setTimeout(() => { setFeedback(null); advance(skipped ? 'skip' : 'bad') }, 1600)
+    pending.current = setTimeout(() => { pending.current = null; setFeedback(null); advance(skipped ? 'skip' : 'bad') }, 1600)
   }
 
   // Ao terminar a página, grava o resultado para as estatísticas.
@@ -221,6 +225,7 @@ export function DictationPractice({ book }: { book: Book }) {
               </p>
             </div>
           </div>
+          <PointsEarned kind="write" bookId={book.id} page={page} pt={locale === 'pt-BR'} />
           <div className="mt-4 pt-3 border-t" style={{ borderColor: 'var(--theme-border-subtle)' }}>
             <p className="text-sm font-semibold mb-2" style={{ color: 'var(--theme-text)' }}>{t.practice}</p>
             {missed.length ? (
@@ -309,6 +314,10 @@ export function DictationPractice({ book }: { book: Book }) {
               <button type="button" onClick={() => giveUp(true)} disabled={feedback?.kind === 'answer' || feedback?.kind === 'spelling'} title={t.skip}
                 className="h-10 px-3 rounded-full inline-flex items-center gap-1 text-xs font-semibold hover:bg-[var(--theme-nav-hover)] disabled:opacity-40" style={{ color: 'var(--theme-nav-text)' }}>
                 <SkipForward className="w-4 h-4" /> <span className="hidden sm:inline">{t.skip}</span>
+              </button>
+              <button type="button" onClick={reset} title={t.stop} aria-label={t.stop}
+                className="h-10 w-10 sm:w-auto sm:px-3 rounded-full inline-flex items-center justify-center gap-1 text-xs font-semibold hover:bg-[var(--theme-nav-hover)]" style={{ color: '#e5484d' }}>
+                <Square className="w-3.5 h-3.5" fill="currentColor" /> <span className="hidden sm:inline">{t.stop}</span>
               </button>
             </div>
           )}

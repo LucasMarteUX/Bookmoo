@@ -13,6 +13,7 @@ import { upsertBook, updateBookFields, deleteBookRemote, fetchBooks } from '@/li
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { BookCardSkeleton } from '@/components/BookCardSkeleton'
+import { XpBadge } from '@/components/stats/XpBadge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -221,6 +222,7 @@ export function Dashboard() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h1 className="text-2xl md:text-4xl font-bold tracking-tight" style={{ color: 'var(--theme-text)' }}>{t(greetingKey)}</h1>
         <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+        <XpBadge pt={locale === 'pt-BR'} />
         <input ref={epubInputRef} type="file" accept=".epub,application/epub+zip" className="hidden" onChange={handleEpubChange} />
         <Button
           variant="outline"
@@ -308,7 +310,7 @@ export function Dashboard() {
         
         {isLoadingBooks && books.length === 0 ? (
           <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-            {Array.from({ length: 6 }).map((_, i) => (
+            {Array.from({ length: 8 }).map((_, i) => (
               <BookCardSkeleton key={i} />
             ))}
           </div>
@@ -341,16 +343,24 @@ export function Dashboard() {
                   <button type="button" className="absolute inset-0 z-10 rounded-[16px] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[var(--theme-primary)]"
                     aria-label={locale === 'pt-BR' ? `Abrir ${book.title}` : `Open ${book.title}`}
                     onClick={() => handleOpenBook(book.id)} />
-                  {book.coverData && (
-                    <div className="w-full aspect-[4/3] overflow-hidden rounded-t-[16px] bg-[var(--theme-bg-secondary)]">
-                      <img src={book.coverData} alt="" className="w-full h-full object-cover object-top" />
-                    </div>
-                  )}
+                  {/* Capa inteira, no formato de livro (2:3), sem cortar. Sem capa: placeholder no mesmo tamanho. */}
+                  <div className="relative w-full aspect-[2/3] overflow-hidden rounded-t-[16px] flex items-center justify-center" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
+                    {book.coverData
+                      ? <>
+                          {/* Fundo: a própria capa desfocada preenche as sobras quando a proporção não é 2:3 */}
+                          <img src={book.coverData} alt="" aria-hidden decoding="async" className="absolute inset-0 w-full h-full object-cover scale-110 blur-xl opacity-70" />
+                          <img src={book.coverData} alt="" decoding="async" className="relative w-full h-full object-contain drop-shadow-md" />
+                        </>
+                      : <div className="flex flex-col items-center gap-2 px-4 text-center">
+                          <BookOpen className="w-8 h-8 opacity-40" style={{ color: 'var(--theme-text)' }} />
+                          <span className="text-sm font-semibold line-clamp-3 opacity-60" style={{ color: 'var(--theme-text)' }}>{book.title}</span>
+                        </div>}
+                  </div>
                   <div className="p-3 flex flex-col">
                     <div className="flex items-start gap-1.5 mb-1.5">
                       <span className="text-lg leading-tight rounded-full shrink-0" title={langName}>{langFlag}</span>
                       <div className="min-w-0 flex-1">
-                        <h3 className={`text-sm md:text-[15px] font-bold leading-snug line-clamp-2 ${book.coverData ? '' : 'pr-16'}`} style={{ color: 'var(--theme-text)' }} title={book.title}>{book.title}</h3>
+                        <h3 className={`text-sm md:text-[15px] font-bold leading-snug line-clamp-2 `} style={{ color: 'var(--theme-text)' }} title={book.title}>{book.title}</h3>
                         {book.author && (
                           <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--theme-text-secondary)' }}>{book.author}</p>
                         )}

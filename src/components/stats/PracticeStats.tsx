@@ -135,11 +135,24 @@ export function PracticeStats({ pt, fixedKind }: { pt: boolean; fixedKind?: Prac
 
           <div className="rounded-2xl border p-4" style={card}>
             <p className="text-sm font-semibold mb-3" style={{ color: 'var(--theme-text)' }}>{pt ? 'Evolução (últimas tentativas)' : 'Progress (latest attempts)'}</p>
-            <div className="flex items-end gap-1.5 h-28">
-              {recent.map(s => (
-                <div key={s.id} className="flex-1 min-w-[6px] rounded-t-md" title={`${s.bookTitle} · ${pt ? 'pág.' : 'p.'} ${s.page + 1} · ${s.accuracy}%`}
-                  style={{ height: `${Math.max(6, s.accuracy)}%`, backgroundColor: scoreColor(s.accuracy), opacity: s.kind === 'speak' ? 1 : 0.7 }} />
+            <div className="relative h-36 pl-8">
+              {/* Linhas de referência */}
+              {[100, 50, 0].map(v => (
+                <div key={v} className="absolute left-0 right-0 flex items-center gap-2" style={{ bottom: `calc(${v}% * 0.78 + 22px)` }}>
+                  <span className="w-6 text-right text-[10px] tabular-nums" style={{ color: 'var(--theme-text-secondary)' }}>{v}</span>
+                  <span className="flex-1 border-t border-dashed" style={{ borderColor: 'var(--theme-border-subtle)' }} />
+                </div>
               ))}
+              <div className="absolute inset-0 left-8 flex items-end gap-2 overflow-x-auto">
+                {recent.map(s => (
+                  <div key={s.id} className="flex flex-col items-center justify-end h-full shrink-0 w-7"
+                    title={`${s.bookTitle} · ${pt ? 'pág.' : 'p.'} ${s.page + 1} · ${s.accuracy}%`}>
+                    <span className="text-[10px] font-semibold tabular-nums mb-0.5" style={{ color: scoreColor(s.accuracy) }}>{s.accuracy}</span>
+                    <div className="w-full rounded-t-md" style={{ height: `calc(${Math.max(3, s.accuracy)}% * 0.78)`, backgroundColor: scoreColor(s.accuracy), opacity: s.kind === 'speak' ? 1 : 0.75 }} />
+                    <span className="h-[22px] pt-1 text-[10px] tabular-nums" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? 'p.' : 'p.'}{s.page + 1}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 

@@ -4,11 +4,13 @@ import { BottomNav } from './BottomNav'
 import { MobileHeader } from './MobileHeader'
 import { useReaderSettings } from '@/store/useReaderSettings'
 import { useHydrateOnLogin } from '@/hooks/useHydrateOnLogin'
+import { useGamification } from '@/hooks/useGamification'
 
 export function Layout() {
   const { theme } = useReaderSettings()
   const location = useLocation()
   useHydrateOnLogin()
+  useGamification()
 
   const isBookPage = /^\/book\/[^/]+$/.test(location.pathname)
 

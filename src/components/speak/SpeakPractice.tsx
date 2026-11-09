@@ -12,6 +12,7 @@ import { ToolButton } from '@/components/ui/toolbar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { sayWord } from '@/lib/sayWord'
 import { usePracticeStore, wordList } from '@/store/usePracticeStore'
+import { PointsEarned } from '@/components/stats/PointsEarned'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
 import { useBookSync } from '@/hooks/useBookSync'
@@ -383,6 +384,9 @@ export function SpeakPractice({ book }: Props) {
 
         {score && result && (
           <ScorePanel score={score} s={s} practiceWords={practiceWords} onPick={(i) => { setSelected(i); setSlowNext(!sayWord(result.words[i].expected)) }} />
+        )}
+        {score && result && (
+          <div className="-mt-6 mb-8"><PointsEarned kind="speak" bookId={book.id} page={currentPage} pt={locale === 'pt-BR'} /></div>
         )}
 
         {pageWords.length === 0 ? (
