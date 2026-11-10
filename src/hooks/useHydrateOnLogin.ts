@@ -13,6 +13,7 @@ import {
   fetchReaderSettings,
   updateBookFields
 } from '@/lib/supabaseSync'
+import { fetchBookLinks } from '@/lib/catalog'
 
 /** When Supabase is configured and user is logged in, load books, vocabulary, study_days and reader_settings and hydrate stores. */
 export function useHydrateOnLogin() {
@@ -57,6 +58,10 @@ export function useHydrateOnLogin() {
 
         console.log('[useHydrateOnLogin] fetched books', books)
         setBooks(books)
+        void fetchBookLinks(userId).then(links => {
+          if (currentUserRef.current !== forUser) return
+          for (const link of links) useBookStore.getState().updateBook(link.bookId, { catalogId: link.catalogId, imageMode: link.imageMode })
+        }).catch(() => {})
         // Migração: páginas de quadrinho antigas salvas em base64 dentro do registro do livro
         // vão para o Storage (o registro fica leve e carrega em qualquer navegador).
         void (async () => {

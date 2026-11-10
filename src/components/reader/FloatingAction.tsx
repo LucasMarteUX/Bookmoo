@@ -1,31 +1,37 @@
-import { Plus } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { BookOpenText, Pin, Plus } from 'lucide-react'
 
-interface FloatingActionProps {
+/** Barra que aparece sobre uma frase marcada: salvar, anotar ou pedir explicação. */
+export function FloatingAction({
+  rect, pt, onSave, onNote, onExplain,
+}: {
   rect: DOMRect
-  onAdd: () => void
-}
-
-export function FloatingAction({ rect, onAdd }: FloatingActionProps) {
+  pt: boolean
+  onSave: () => void
+  onNote: () => void
+  onExplain: () => void
+}) {
+  const stop = (e: React.MouseEvent, fn: () => void) => {
+    e.preventDefault()
+    e.stopPropagation()
+    fn()
+  }
+  const item = 'h-8 px-2.5 inline-flex items-center gap-1.5 rounded-lg text-[13px] font-medium hover:bg-[var(--theme-nav-hover)]'
   return (
-    <div 
-      className="fixed z-50 flex items-center justify-center transform -translate-x-1/2 -translate-y-full pb-2"
-      style={{
-        left: rect.left + rect.width / 2,
-        top: rect.top - 10
-      }}
+    <div
+      className="fixed z-50 -translate-x-1/2 -translate-y-full pb-2"
+      style={{ left: rect.left + rect.width / 2, top: rect.top - 6 }}
     >
-      <Button 
-        onMouseDown={(e) => {
-          e.preventDefault() // Prevents the selection from being cleared
-          e.stopPropagation()
-          onAdd()
-        }}
-        className="floating-action-btn bg-[#00160a] text-white hover:bg-[#00160a]/90 rounded-full px-4 py-2 shadow-xl flex items-center gap-2 h-auto"
-      >
-        <Plus className="w-4 h-4" />
-        <span className="text-sm font-medium">Adicionar Vocabulário</span>
-      </Button>
+      <div className="elevated flex items-center gap-0.5 rounded-xl p-1" style={{ color: 'var(--theme-text)' }}>
+        <button type="button" className={item} onMouseDown={e => stop(e, onSave)}>
+          <Plus className="w-3.5 h-3.5" />{pt ? 'Salvar frase' : 'Save phrase'}
+        </button>
+        <button type="button" className={item} onMouseDown={e => stop(e, onNote)}>
+          <Pin className="w-3.5 h-3.5" />{pt ? 'Nota' : 'Note'}
+        </button>
+        <button type="button" className={`${item} px-3`} style={{ backgroundColor: 'var(--theme-pastel-2)', color: 'var(--theme-pastel-text)' }} onMouseDown={e => stop(e, onExplain)}>
+          <BookOpenText className="w-3.5 h-3.5" />{pt ? 'Explicar' : 'Explain'}
+        </button>
+      </div>
     </div>
   )
 }

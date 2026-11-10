@@ -27,6 +27,10 @@ interface Props {
   sourceText: string
   wordsHtml: (charStart: number, charEnd: number) => string
   onContentClick: (e: React.MouseEvent) => void
+  pinMode?: boolean
+  comicPins?: { id: string; x: number; y: number; note: string }[]
+  onPlacePin?: (x: number, y: number) => void
+  onOpenPin?: (id: string) => void
   stage: ComicStage
   error?: string
   onGenerate: () => void
@@ -157,13 +161,25 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
       ?? { id: panel.panelId, sourceSentenceIds: [], dialogue: [] })
     // Quem fala nas falas "ambíguas": marcação de diálogo, fala partida, cena com um só personagem, alternância.
     const dialogue = resolveSpeakers(fullComicText(sourceText, beats), layout.beats, props.characters ?? [], sourceText)
-    const saved = new Map(layout.balloons.map(line => [line.id, line]))
-    // Layouts antigos com "faixa lateral" (arte encolhida + texto ao lado) são refeitos por cima da arte.
-    if (!layout.reflow && layout.lettering === 'lines' && saved.size === dialogue.length && dialogue.every(line => {
-      const balloon = saved.get(line.id)
-      return balloon?.box && balloon.text === line.text && balloon.charStart === line.charStart && balloon.charEnd === line.charEnd
-    })) return { ...layout, balloons: resolveSpeakers(layout.balloons, layout.beats, props.characters ?? [], sourceText) as typeof layout.balloons }
-    // Páginas no formato antigo (balões/faixa) são refeitas como uma caixa por quadro.
+    const savedBox = new Map<string, { box: NonNullable<(typeof layout.balloons)[number]['box']>; font?: number }>()
+    for (const balloon of layout.balloons) {
+      if (balloon.box && !savedBox.has(balloon.panelId)) savedBox.set(balloon.panelId, { box: balloon.box, font: balloon.font })
+    }
+    // Caixa já gravada fica. Recalcular só quando a página nunca teve posição salva
+    // (formato antigo ou faixa lateral). Um texto ou falante diferente não apaga o lugar.
+    if (!layout.reflow && layout.lettering === 'lines' && savedBox.size > 0) {
+      const missing = dialogue.filter(line => !savedBox.has(line.panelId))
+      const placed = missing.length
+        ? placePanelBoxes({ panels: layout.panels, aspect, issues: [] }, missing, browserMeasure(props.letteringTheme.font)).balloons
+        : []
+      const placedBox = new Map(placed.filter(line => line.box).map(line => [line.panelId, { box: line.box!, font: line.font }]))
+      const balloons = dialogue.map(line => {
+        const saved = layout.balloons.find(item => item.id === line.id)
+        const box = savedBox.get(line.panelId) ?? placedBox.get(line.panelId)
+        return { ...line, box: box?.box ?? null, font: saved?.font ?? box?.font ?? 0.021, targetAnchor: saved?.targetAnchor ?? line.targetAnchor }
+      })
+      return { ...layout, balloons, lettering: 'lines' as const }
+    }
     const { balloons } = placePanelBoxes({ panels: layout.panels, aspect, issues: [] }, dialogue,
       browserMeasure(props.letteringTheme.font))
     const { reflow: _reflow, ...rest } = layout
@@ -174,7 +190,10 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
   useLayoutEffect(() => {
     const el = viewportRef.current
     if (!el) return
-    const measure = () => setBox({ w: el.clientWidth, h: window.innerHeight - (isFullscreen ? 120 : 230) })
+    const measure = () => {
+      const next = { w: el.clientWidth, h: window.innerHeight - (isFullscreen ? 120 : 230) }
+      setBox(prev => (prev.w === next.w && prev.h === next.h ? prev : next))
+    }
     measure()
     const ro = new ResizeObserver(measure)
     ro.observe(el)
@@ -227,16 +246,16 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
 
   const setZoomClamped = useCallback((z: number) => setZoom(Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, z))), [])
 
-  // Ctrl/⌘ + roda (ou pinça no trackpad) aproxima; rolagem normal continua rolando.
+  // Pinça (o navegador marca como Ctrl) aproxima. Listener passivo: a rolagem
+  // normal não espera o JavaScript, então a página não trava.
   useEffect(() => {
     const el = viewportRef.current
     if (!el) return
     const onWheel = (e: WheelEvent) => {
       if (!e.ctrlKey && !e.metaKey) return
-      e.preventDefault()
       setZoom((z) => Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, z * (e.deltaY < 0 ? 1.1 : 1 / 1.1))))
     }
-    el.addEventListener('wheel', onWheel, { passive: false })
+    el.addEventListener('wheel', onWheel, { passive: true })
     return () => el.removeEventListener('wheel', onWheel)
   }, [imageUrl])
 
@@ -305,10 +324,16 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
 
   const handleClick = (e: React.MouseEvent) => {
     const target = e.target as Element
+    if (target.closest('[data-story-pin]')) return
     // Clique no corpo do balão só seleciona (alças); fora dele, desmarca.
     if (target.closest('[data-balloon-handle], [data-balloon-toolbar], [data-speaker-chip]') || editor.isGesturing()) return
     if (!target.closest('[data-word-index]')) editor.select(null)
     if (suppressClick.current) { suppressClick.current = false; return }
+    if (props.pinMode && props.onPlacePin && !target.closest('[data-word-index]')) {
+      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+      props.onPlacePin((e.clientX - rect.left) / rect.width, (e.clientY - rect.top) / rect.height)
+      return
+    }
     onContentClick(e)
   }
   const onDoubleClick = (e: React.MouseEvent) => {
@@ -494,6 +519,14 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
               <BalloonToolbar box={selectedRect} pageW={pageW} pageH={pageH} type={editor.selected.balloonType}
                 saving={editor.saving} pt={pt} onFont={editor.changeFont} onType={editor.changeType} onClose={() => editor.select(null)} />
             )}
+            {(props.comicPins ?? []).map(pin => (
+              <button key={pin.id} type="button" data-story-pin title={pin.note}
+                className="absolute z-20 w-6 h-6 -translate-x-1/2 -translate-y-full rounded-full text-[13px] shadow"
+                style={{ left: pin.x * pageW, top: pin.y * pageH, backgroundColor: 'var(--theme-pastel-3)', color: 'var(--theme-pastel-text)' }}
+                onClick={event => { event.stopPropagation(); props.onOpenPin?.(pin.id) }}>
+                📌
+              </button>
+            ))}
             {panels.map((p, i) => (
               <Caption key={i} index={i} panel={p} anchor={anchorFor(i)} html={wordsHtml(p.charStart, p.charEnd)} pageW={pageW} pageH={pageH} />
             ))}

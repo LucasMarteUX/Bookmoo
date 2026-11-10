@@ -2,7 +2,7 @@
 // Usa a chave do próprio usuário (Gemini preferido para texto/visão; OpenAI como alternativa).
 import { corsHeaders, getUser, json, log } from '../_shared/tts.ts'
 import { AiError, llmJson, llmText, pickProvider, type ImagePart } from '../_shared/ai.ts'
-import { explainTerm, sharedExamples, sharedExplain, sharedImages, sharedStory, storyForTerm } from '../_shared/vocab.ts'
+import { explainTerm, glossTerm, sharedExamples, sharedExplain, sharedImages, sharedStory, storyForTerm } from '../_shared/vocab.ts'
 
 const MAX_IMAGE_B64 = 5_500_000
 
@@ -22,6 +22,11 @@ async function handle(userId: string, b: Body) {
       const level = ['A2', 'B1', 'B2'].includes(String(b.level)) ? String(b.level) : 'B1'
       const { provider, key } = await pickProvider(userId, ['gemini', 'openai'])
       return await explainTerm(provider, key, text, level, String(b.languageCode ?? 'en'))
+    }
+    case 'gloss': {
+      const text = String(b.text ?? '').slice(0, 120)
+      const { provider, key } = await pickProvider(userId, ['gemini', 'openai'])
+      return { gloss: await glossTerm(provider, key, text, String(b.languageCode ?? 'pt')) }
     }
     case 'variant-story': {
       const text = String(b.text ?? '').slice(0, 300)

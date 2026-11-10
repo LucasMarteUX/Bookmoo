@@ -28,12 +28,12 @@ export function VoiceRequiredDialog({ open, onOpenChange, pt, onReady }: {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Volume2 className="w-5 h-5" style={{ color: 'var(--theme-accent)' }} />
-            {pt ? 'Instale uma voz primeiro' : 'Install a voice first'}
+            {pt ? 'Baixe uma voz para executar áudios' : 'Download a voice to play audio'}
           </DialogTitle>
           <DialogDescription>
             {pt
-              ? 'Para ouvir a leitura com pronúncia natural, escolha uma voz. Ela é baixada uma vez (cerca de 90 MB na primeira) e depois funciona até sem internet.'
-              : 'To hear natural pronunciation, pick a voice. It downloads once (about 90 MB the first time) and then works even offline.'}
+              ? 'Sem uma voz baixada, o áudio não toca. Ela fica salva neste aparelho e não pede de novo. No celular a versão é leve, para o Chrome não fechar a página.'
+              : 'Audio does not play until a voice is downloaded. It stays on this device. On a phone the lighter version is used so Chrome does not close the page.'}
           </DialogDescription>
         </DialogHeader>
         <div className="rounded-2xl border p-3 space-y-2" style={{ borderColor: 'var(--theme-border-subtle)', backgroundColor: 'var(--theme-bg-secondary)' }}>

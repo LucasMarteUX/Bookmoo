@@ -14,7 +14,8 @@ import { WORD_PATTERN } from '@/lib/wordTokens'
 import { sayWord } from '@/lib/sayWord'
 import { stopSpeaking } from '@/lib/tts'
 import { PointsEarned } from '@/components/stats/PointsEarned'
-import { VoiceRequiredDialog, needsVoiceInstall } from '@/components/reader/VoiceRequiredDialog'
+import { needsVoiceInstall } from '@/components/reader/VoiceRequiredDialog'
+import { askVoiceOnce } from '@/lib/voiceGate'
 import { starsFor, usePracticeStore, wordList } from '@/store/usePracticeStore'
 
 type Grade = 'ok' | 'close' | 'bad' | 'skip'
@@ -86,7 +87,6 @@ export function DictationPractice({ book }: { book: Book }) {
   const words = useMemo(() => segments.filter(s => s.idx !== null).map(s => s.text), [segments])
 
   const [started, setStarted] = useState(false)
-  const [voiceDialog, setVoiceDialog] = useState(false)
   const [current, setCurrent] = useState(0)
   const [grades, setGrades] = useState<Grade[]>([])
   const [input, setInput] = useState('')
@@ -210,20 +210,20 @@ export function DictationPractice({ book }: { book: Book }) {
         <motion.section initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6 rounded-3xl border p-5" style={surface}>
           <div className="flex flex-col sm:flex-row items-center gap-5">
             <div className="text-center">
-              <div className="text-4xl font-bold tabular-nums" style={{ color: 'var(--theme-text)', fontFamily: "'Fredoka', system-ui" }}>{accuracy}%</div>
-              <div className="text-[11px] uppercase tracking-wider" style={{ color: 'var(--theme-text-secondary)' }}>{t.accuracy}</div>
+              <div className="text-4xl font-bold tabular-nums" style={{ color: 'var(--theme-text)', fontFamily: 'var(--font-sans)' }}>{accuracy}%</div>
+              <div className="text-[11px]" style={{ color: 'var(--theme-text-secondary)' }}>{t.accuracy}</div>
             </div>
             <div className="flex-1 space-y-2 text-center sm:text-left">
               <div className="flex items-center justify-center sm:justify-start gap-1">
                 {[0, 1, 2].map(i => (
                   <motion.span key={i} initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.3 + i * 0.15, type: 'spring', stiffness: 500, damping: 15 }}>
-                    <Star className="w-7 h-7" fill={i < stars ? '#FFC83D' : 'none'} stroke={i < stars ? '#E0A800' : 'var(--theme-text-secondary)'} />
+                    <Star className="w-7 h-7" fill={i < stars ? 'var(--pastel-amber-bd)' : 'none'} stroke={i < stars ? 'var(--pastel-amber-fg)' : 'var(--theme-text-secondary)'} />
                   </motion.span>
                 ))}
-                <span className="ml-2 font-semibold" style={{ color: 'var(--theme-text)', fontFamily: "'Fredoka', system-ui" }}>{t.medals[stars]}</span>
+                <span className="ml-2 font-semibold" style={{ color: 'var(--theme-text)', fontFamily: 'var(--font-sans)' }}>{t.medals[stars]}</span>
               </div>
               <p className="text-sm" style={{ color: 'var(--theme-text-secondary)' }}>
-                <b style={{ color: '#34C46F' }}>{ok}</b> {t.right} · <b style={{ color: '#E59A12' }}>{close}</b> {t.close} · <b style={{ color: '#F0524F' }}>{bad}</b> {t.wrong}
+                <b style={{ color: 'var(--pastel-green-fg)' }}>{ok}</b> {t.right} · <b style={{ color: 'var(--pastel-amber-fg)' }}>{close}</b> {t.close} · <b style={{ color: 'var(--pastel-rose-fg)' }}>{bad}</b> {t.wrong}
               </p>
             </div>
           </div>
@@ -264,7 +264,6 @@ export function DictationPractice({ book }: { book: Book }) {
         </article>
       )}
 
-      <VoiceRequiredDialog open={voiceDialog} onOpenChange={setVoiceDialog} pt={locale === 'pt-BR'} onReady={() => setStarted(true)} />
 
       {/* Barra flutuante: campo de digitação e controles */}
       <div className="fixed left-2 right-2 md:left-[var(--sidebar-w,16rem)] md:right-8 md:bottom-8 z-40 flex flex-col items-center gap-2" style={{ bottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
@@ -291,7 +290,7 @@ export function DictationPractice({ book }: { book: Book }) {
             <ChevronLeft className="w-5 h-5" />
           </button>}
           {!started ? (
-            <button type="button" disabled={!words.length} onClick={() => { if (needsVoiceInstall('en')) setVoiceDialog(true); else setStarted(true) }} className="btn-3d btn-3d--learned text-sm !px-5 !py-3">
+            <button type="button" disabled={!words.length} onClick={() => { if (needsVoiceInstall('en')) askVoiceOnce(); else setStarted(true) }} className="btn-3d btn-3d--learned text-sm !px-5 !py-3">
               <Volume2 className="w-4 h-4" strokeWidth={3} /> {t.start}
             </button>
           ) : done ? (
@@ -313,14 +312,14 @@ export function DictationPractice({ book }: { book: Book }) {
                   if (e.key === 'Enter') { e.preventDefault(); check() }
                   else if (e.key === 'Escape') { e.preventDefault(); play(current) }
                 }}
-                className="h-11 min-w-0 flex-1 md:w-72 rounded-full border px-4 text-base outline-none focus:ring-2 focus:ring-[var(--theme-accent,#7756c6)]"
-                style={{ backgroundColor: 'var(--theme-bg)', borderColor: secondTry ? '#FFAE2B' : 'var(--theme-border-subtle)', color: 'var(--theme-text)' }} />
+                className="h-11 min-w-0 flex-1 md:w-72 rounded-full border px-4 text-base outline-none focus:ring-2 focus:ring-[var(--theme-accent,#55534E)]"
+                style={{ backgroundColor: 'var(--theme-bg)', borderColor: secondTry ? 'var(--pastel-amber-bd)' : 'var(--theme-border-subtle)', color: 'var(--theme-text)' }} />
               <button type="button" onClick={() => giveUp(true)} disabled={feedback?.kind === 'answer' || feedback?.kind === 'spelling'} title={t.skip}
                 className="h-10 px-3 rounded-full inline-flex items-center gap-1 text-xs font-semibold hover:bg-[var(--theme-nav-hover)] disabled:opacity-40" style={{ color: 'var(--theme-nav-text)' }}>
                 <SkipForward className="w-4 h-4" /> <span className="hidden sm:inline">{t.skip}</span>
               </button>
               <button type="button" onClick={reset} title={t.stop} aria-label={t.stop}
-                className="h-10 w-10 sm:w-auto sm:px-3 rounded-full inline-flex items-center justify-center gap-1 text-xs font-semibold hover:bg-[var(--theme-nav-hover)]" style={{ color: '#e5484d' }}>
+                className="h-10 w-10 sm:w-auto sm:px-3 rounded-full inline-flex items-center justify-center gap-1 text-xs font-semibold hover:bg-[var(--theme-nav-hover)]" style={{ color: 'var(--pastel-rose-fg)' }}>
                 <Square className="w-3.5 h-3.5" fill="currentColor" /> <span className="hidden sm:inline">{t.stop}</span>
               </button>
             </div>

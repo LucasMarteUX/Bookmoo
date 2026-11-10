@@ -100,6 +100,7 @@ export function vocabularyFromRow(row: any): Vocabulary {
     examples: Array.isArray(row.examples) ? row.examples : [],
     grammarExamples: Array.isArray(row.grammar_examples) ? row.grammar_examples : undefined,
     usageNote: row.usage_note ?? undefined,
+    personalNote: row.personal_note ?? undefined,
     variantStory: row.variant_story ?? undefined,
     audioData: row.audio_data ?? undefined,
     createdAt: row.created_at ? new Date(row.created_at).getTime() : Date.now()
@@ -119,6 +120,7 @@ export function vocabularyToRow(v: Vocabulary, userId: string) {
     examples: v.examples ?? [],
     grammar_examples: v.grammarExamples ?? [],
     usage_note: v.usageNote ?? null,
+    personal_note: v.personalNote ?? null,
     variant_story: v.variantStory ?? null,
     audio_data: v.audioData ?? null
   }
@@ -202,8 +204,12 @@ export async function deleteBookRemote(supabase: SupabaseClient, userId: string,
 }
 
 export async function upsertVocabulary(supabase: SupabaseClient, userId: string, v: Vocabulary): Promise<void> {
-  const row = vocabularyToRow(v, userId)
-  const { error } = await supabase.from('vocabulary').upsert(row, { onConflict: 'id' })
+  const row = vocabularyToRow(v, userId) as Record<string, unknown>
+  let { error } = await supabase.from('vocabulary').upsert(row, { onConflict: 'id' })
+  if (error && /column/i.test(error.message)) {
+    for (const key of ['grammar_examples', 'usage_note', 'variant_story', 'personal_note']) delete row[key]
+    ;({ error } = await supabase.from('vocabulary').upsert(row, { onConflict: 'id' }))
+  }
   if (error) {
     console.error('upsertVocabulary error', error)
     throw error

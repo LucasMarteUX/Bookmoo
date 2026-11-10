@@ -119,6 +119,16 @@ Return JSON only with this exact shape:
   }
 }
 
+/** Tradução curta do termo, em poucas palavras, para revelar no cartão. */
+export async function glossTerm(provider: Provider, key: string, text: string, languageCode: string): Promise<string> {
+  const langName = LANG_NAMES[languageCode] ?? 'Portuguese'
+  const out = await llmText(provider, key, {
+    system: `You translate English expressions into ${langName} for language learners. Reply with only the short translation, no quotes and no explanation.`,
+    prompt: `Translate this English word or expression into ${langName} in a few words: "${text.slice(0, 120)}"`,
+  })
+  return scrub(out, 160)
+}
+
 export async function storyForTerm(provider: Provider, key: string, text: string, languageCode: string, avoid: string[] = []): Promise<string> {
   const language = languageCode === 'pt' ? 'Portuguese' : "the learner's interface language"
   const avoidHint = avoid.length
@@ -203,14 +213,10 @@ export async function sharedExamples(userId: string, b: Body) {
 }
 
 const IMAGE_CONCEPTS = [
-  'a clear, literal everyday scene that shows the meaning',
-  'a memorable visual metaphor that helps remember the meaning',
-  'a workplace or business situation where the term is used',
-  'a playful cartoon mnemonic with exaggerated, funny details',
-  'a minimalist icon-like composition with one strong symbol',
-  'a before-and-after split scene that contrasts the meaning',
-  'a cozy hand-drawn storybook scene',
-  'a bold paper-cut collage style association',
+  'at home, a quiet everyday moment',
+  'at work or school, in the middle of the task',
+  'outdoors, in a park, street or on a trip',
+  'with friends, sharing the moment around a table',
 ]
 
 /** Gera um mosaico de HQ (quadrado, qualidade baixa) com usos do termo e salva no Storage + galeria do termo. */
@@ -235,11 +241,11 @@ export async function sharedImages(userId: string, b: Body) {
 
   const jobs = Array.from({ length: n }, (_, i) => IMAGE_CONCEPTS[(have + i) % IMAGE_CONCEPTS.length]).map(async (concept) => {
     // Mosaico de HQ (padrão do sistema, igual para toda a comunidade): 4 quadros com usos diferentes.
-    const prompt = `Square comic-strip mosaic for language learners studying the ${langName} term "${term}"${meaning ? ` (meaning: ${meaning})` : ''}.
-Layout: a 2x2 grid of four equal panels separated by clean white gutters, each panel with a thin black border.
-Each panel shows a DIFFERENT real-life situation where someone uses or experiences "${term}" (for example: at home, at work, outdoors, with friends), so together they illustrate the range of its meaning. Variation for this mosaic: ${concept}.
-Style: minimalist comic illustration — clean confident black ink outlines, flat colors from a limited soft palette (cream, sky blue, coral, mustard, sage), simple backgrounds, expressive simple faces, no gradients or photorealism.
-Strictly no text, letters, speech balloons, captions or words anywhere. No real or famous people, no logos or brands, nothing violent or adult.`
+    const prompt = `Square mosaic for language learners studying the ${langName} term "${term}"${meaning ? ` (meaning: ${meaning})` : ''}.
+Layout: a 2x2 grid of four equal panels, separated by thin clean gutters. Each panel is one complete scene.
+Each panel shows a DIFFERENT real-life situation where someone uses or experiences "${term}", so the four scenes together show the range of its meaning. Emphasize this setting in one of the panels: ${concept}. The other three stay clearly different (home, work or school, outdoors, with friends).
+Style: high-quality Pixar-style 3D animated characters. Expressive large eyes, charming facial features, soft rounded shapes, stylized proportions, detailed textures, vibrant yet harmonious colors, cinematic lighting, soft shadows, subtle subsurface scattering, global illumination, beautiful depth of field, polished 3D rendering, warm atmosphere, professional animated feature film quality. Keep each character recognizable within their own panel.
+Strictly no text, letters, speech balloons, captions, watermarks or words anywhere. No real or famous people, no logos or brands, nothing violent or adult.`
     const img = await generateImage(provider, key, prompt, [], { square: true, quality: 'low' })
     if (img.bytes.length > 5_000_000) throw new AiError('image_too_large', 413, 'image_too_large')
     const ext = img.mime === 'image/png' ? 'png' : img.mime === 'image/webp' ? 'webp' : 'jpg'

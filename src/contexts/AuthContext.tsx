@@ -3,7 +3,7 @@ import type { User, Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import { resetAiStatus } from '@/lib/aiKeys'
 
-const ADMIN_EMAILS = ['lucasmarteux@gmail.com', 'lidiane.cristina40@gmail.com']
+const ADMIN_EMAILS = ['lucasmarteux@gmail.com']
 
 interface AuthContextValue {
   user: User | null
@@ -14,6 +14,7 @@ interface AuthContextValue {
   hasSupabase: boolean
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>
+  signInWithGoogle: () => Promise<{ error: Error | null }>
   signOut: () => Promise<void>
 }
 
@@ -64,6 +65,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: error ? new Error(error.message) : null }
   }
 
+  // Google: o Supabase redireciona para o Google e volta para o app já com a sessão.
+  const signInWithGoogle = async () => {
+    if (!supabase) return { error: new Error('Supabase não configurado') }
+    const { error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } })
+    return { error: error ? new Error(error.message) : null }
+  }
+
   const signOut = async () => {
     resetAiStatus()
     if (supabase) await supabase.auth.signOut()
@@ -82,6 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     hasSupabase,
     signIn,
     signUp,
+    signInWithGoogle,
     signOut
   }
 

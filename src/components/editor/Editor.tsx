@@ -112,7 +112,7 @@ export function Editor({ book, onSave, onCancel }: EditorProps) {
             size="sm"
             onClick={handleDeletePage}
             disabled={pages.length <= 1}
-            className="gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30"
+            className="gap-2 text-[var(--pastel-rose-fg)] hover:text-[var(--pastel-rose-fg)] hover:bg-[var(--pastel-rose-bg)] "
           >
             <Trash2 className="w-4 h-4" />
             Excluir Página
@@ -131,7 +131,7 @@ export function Editor({ book, onSave, onCancel }: EditorProps) {
       </div>
       <div className="flex justify-end gap-3">
         {saveError && (
-          <p className="mr-auto self-center max-w-[22rem] text-right text-xs text-red-600" role="alert">
+          <p className="mr-auto self-center max-w-[22rem] text-right text-xs text-[var(--pastel-rose-fg)]" role="alert">
             {saveError}
           </p>
         )}
@@ -231,7 +231,7 @@ function PageImageDialog({
             </div>
           </div>
         )}
-        {error && <p className="mt-4 rounded-xl bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950/30 dark:text-red-200">{error}</p>}
+        {error && <p className="mt-4 rounded-xl bg-red-50 p-3 text-sm text-[var(--pastel-rose-fg)] dark:bg-red-950/30 dark:text-red-200">{error}</p>}
       </div>
     </div>
   )

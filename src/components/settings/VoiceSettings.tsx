@@ -61,11 +61,11 @@ export function VoiceSettings() {
 
   return (
     <section className="space-y-4">
-      <h2 className="text-xl font-semibold flex items-center gap-2" style={{ color: 'var(--theme-text)' }}>
+      <h2 className="text-[15px] font-semibold flex items-center gap-2 mb-3" style={{ color: 'var(--theme-text)' }}>
         <Mic className="w-5 h-5" />
         Voz de leitura
       </h2>
-      <div className="p-6 rounded-3xl border transition-colors space-y-5" style={{ backgroundColor: 'var(--theme-bg-secondary)', borderColor: 'var(--theme-border-subtle)' }}>
+      <div className="p-5 rounded-2xl border transition-colors space-y-5" style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-border)' }}>
         <p className="text-sm" style={{ color: 'var(--theme-text-secondary)' }}>
           Escolha uma voz em inglês para narrar seus livros e quadrinhos. Livros em outros idiomas usam a voz do navegador. A voz roda no seu próprio aparelho:
           {state.modelReady
@@ -78,18 +78,18 @@ export function VoiceSettings() {
             Este navegador não suporta as vozes. A voz padrão do navegador continuará sendo usada.
           </p>
         )}
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-[var(--pastel-rose-fg)]">{error}</p>}
 
         <div className="flex flex-wrap gap-2">
           {FILTERS.map((f) => (
             <button
               key={f.id}
               onClick={() => setFilter(f.id)}
-              className="px-3 py-1 rounded-full text-sm border transition-colors"
+              className="h-8 px-3 rounded-lg text-[13px] font-medium border transition-colors hover:bg-[var(--theme-nav-hover)]"
               style={{
-                borderColor: 'var(--theme-border-subtle)',
-                backgroundColor: filter === f.id ? 'var(--theme-primary)' : 'transparent',
-                color: filter === f.id ? 'var(--theme-primary-text)' : 'var(--theme-text)',
+                borderColor: filter === f.id ? 'var(--theme-text-secondary)' : 'var(--theme-border)',
+                backgroundColor: filter === f.id ? 'var(--theme-nav-active)' : 'transparent',
+                color: filter === f.id ? 'var(--theme-text)' : 'var(--theme-text-secondary)',
               }}
             >
               {f.label}
@@ -105,14 +105,13 @@ export function VoiceSettings() {
             return (
               <li
                 key={v.id}
-                className="flex items-center gap-3 p-3 rounded-2xl border transition-colors"
+                className="flex items-center gap-3 p-3 rounded-xl border transition-colors"
                 style={{
-                  borderColor: active ? 'var(--theme-primary)' : 'var(--theme-border-subtle)',
-                  borderWidth: active ? 2 : 1,
-                  backgroundColor: 'var(--theme-bg)',
+                  borderColor: active ? 'var(--pastel-green-bd)' : 'var(--theme-border)',
+                  backgroundColor: active ? 'var(--pastel-green-bg)' : 'var(--theme-card-bg)',
                 }}
               >
-                <VoiceAvatar voice={v} />
+                <VoiceAvatar voice={v} size={44} />
                 <button
                   role="radio"
                   aria-checked={active}
@@ -122,7 +121,7 @@ export function VoiceSettings() {
                 >
                   <div className="font-semibold flex items-center gap-1.5" style={{ color: 'var(--theme-text)' }}>
                     {v.name}
-                    {active && <Check className="w-4 h-4" style={{ color: 'var(--theme-primary)' }} aria-label="Selecionada" />}
+                    {active && <Check className="w-4 h-4" style={{ color: 'var(--pastel-green-fg)' }} aria-label="Selecionada" />}
                   </div>
                   <div className="text-xs" style={{ color: 'var(--theme-text-secondary)' }}>
                     {v.accent === 'US' ? 'Inglês americano' : 'Inglês britânico'} · {v.gender === 'female' ? 'Feminina' : 'Masculina'}
@@ -130,17 +129,17 @@ export function VoiceSettings() {
                   </div>
                   {isDownloading && (
                     <div className="mt-2 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--theme-border-subtle)' }}>
-                      <div className="h-full transition-all" style={{ width: `${Math.round(downloading.progress * 100)}%`, backgroundColor: 'var(--theme-primary)' }} />
+                      <div className="h-full transition-all" style={{ width: `${Math.round(downloading.progress * 100)}%`, backgroundColor: 'var(--theme-text-secondary)' }} />
                     </div>
                   )}
                 </button>
 
                 {downloaded ? (
                   <div className="flex items-center gap-1">
-                    <button onClick={() => preview(v)} className="p-2 rounded-full hover:bg-[var(--theme-nav-hover)]" aria-label={`Ouvir ${v.name}`} style={{ color: 'var(--theme-text)' }}>
+                    <button onClick={() => preview(v)} className="p-2 rounded-lg hover:bg-[var(--theme-nav-hover)]" aria-label={`Ouvir ${v.name}`} style={{ color: 'var(--theme-text)' }}>
                       {previewing === v.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Volume2 className="w-4 h-4" />}
                     </button>
-                    <button onClick={() => removeKokoroVoice(v.id)} className="p-2 rounded-full hover:bg-[var(--theme-nav-hover)]" aria-label={`Remover ${v.name}`} style={{ color: 'var(--theme-text-secondary)' }}>
+                    <button onClick={() => removeKokoroVoice(v.id)} className="p-2 rounded-lg hover:bg-[var(--theme-nav-hover)]" aria-label={`Remover ${v.name}`} style={{ color: 'var(--theme-text-secondary)' }}>
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
@@ -148,8 +147,8 @@ export function VoiceSettings() {
                   <button
                     onClick={() => download(v)}
                     disabled={!supported || !!downloading}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-semibold disabled:opacity-50"
-                    style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}
+                    className="h-8 flex items-center gap-1.5 px-3 rounded-lg border text-[13px] font-medium transition-colors hover:bg-[var(--theme-nav-hover)] disabled:opacity-50"
+                    style={{ borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }}
                     aria-label={`Baixar ${v.name}`}
                   >
                     {isDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}

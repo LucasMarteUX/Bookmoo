@@ -22,6 +22,8 @@ export interface Vocabulary {
   examples: string[]
   grammarExamples?: GrammarExample[]
   usageNote?: string
+  /** Anotação livre, do jeito da pessoa. */
+  personalNote?: string
   variantStory?: string
   audioData?: string
   createdAt: number

@@ -69,7 +69,7 @@ export function VoiceCastDialog({ book, open, pt, onOpenChange, onSave }: {
 
         <label className="flex min-w-0 items-center justify-between gap-3 rounded-2xl border p-3 cursor-pointer" style={{ borderColor: 'var(--theme-border-subtle)' }}>
           <span className="text-sm font-medium" style={{ color: 'var(--theme-text)' }}>{pt ? 'Falas com voz de homem e de mulher' : 'Male and female voices for dialogue'}</span>
-          <input type="checkbox" className="shrink-0 w-5 h-5 accent-[var(--theme-accent,#7756c6)]" checked={enabled} onChange={e => save({ characterVoices: e.target.checked })} />
+          <input type="checkbox" className="shrink-0 w-5 h-5 accent-[var(--theme-accent,#55534E)]" checked={enabled} onChange={e => save({ characterVoices: e.target.checked })} />
         </label>
 
         <div className="min-w-0 space-y-2">

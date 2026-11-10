@@ -103,6 +103,10 @@ export function BookPage() {
         </ToolGroup>
 
         <div className="flex items-center gap-3">
+          {/* Contagem de palavras à esquerda das ferramentas do livro. */}
+          <span className="hidden lg:inline-flex items-center gap-1.5 h-8 text-[12.5px] font-medium tabular-nums" style={{ color: 'var(--theme-text-secondary)' }}>
+            {book.wordCount.toLocaleString(locale)} {t('words')}
+          </span>
           <ToolGroup label={locale === 'pt-BR' ? 'Configurar livro' : 'Book setup'}>
             <ToolButton icon={<Rows3 className="w-4 h-4" />} compact
               label={locale === 'pt-BR' ? 'Tamanho da página' : 'Page length'}
@@ -117,9 +121,6 @@ export function BookPage() {
               hint={locale === 'pt-BR' ? 'Estilo de desenho, referências visuais e personagens da HQ' : 'Drawing style, visual references and characters for the comic'}
               onClick={() => setArtOpen(true)} />
           </ToolGroup>
-          <div className="hidden lg:block text-xs font-medium tabular-nums" style={{ color: 'var(--theme-text-secondary)' }}>
-            {book.wordCount.toLocaleString(locale)} {t('words')}
-          </div>
         </div>
       </div>
 
@@ -171,7 +172,7 @@ export function BookPage() {
               {saveFeedback === 'success' ? (
                 <CheckCircle2 className="h-5 w-5 text-emerald-600" />
               ) : (
-                <XCircle className="h-5 w-5 text-red-600" />
+                <XCircle className="h-5 w-5 text-[var(--pastel-rose-fg)]" />
               )}
               {saveFeedback === 'success' ? 'Conteúdo salvo' : 'Falha ao salvar'}
             </DialogTitle>

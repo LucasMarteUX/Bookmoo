@@ -86,6 +86,12 @@ export async function generateExplanation(
   }
 }
 
+/** Tradução curta do termo para o idioma da pessoa. */
+export async function translateTerm(text: string, targetLanguageCode = 'pt'): Promise<string> {
+  const r = await aiText<{ gloss: string }>('gloss', { text, languageCode: targetLanguageCode })
+  return (r.gloss || '').trim()
+}
+
 export async function generateVariantStory(text: string, targetLanguageCode?: string): Promise<string | null> {
   if (!text.trim()) return null
   const r = await aiText<{ story: string }>("variant-story", { text, languageCode: targetLanguageCode })

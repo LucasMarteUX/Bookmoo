@@ -12,11 +12,18 @@ import { PracticePage } from '@/pages/PracticePage'
 import { Settings } from '@/pages/Settings'
 import { Login } from '@/pages/Login'
 import { SignUp } from '@/pages/SignUp'
+import { LegalPage } from '@/pages/legal/LegalPage'
+import { Gallery } from '@/pages/Gallery'
+import { AdminPage } from '@/pages/Admin'
+import { Community, PublicProfile } from '@/pages/Community'
 
 function ThemeToBody() {
   const { theme } = useReaderSettings()
   useEffect(() => {
     document.body.className = `theme-${theme} font-sans antialiased transition-colors duration-300`
+    // O <html> também recebe o tema: sem isso, o fundo branco padrão aparece nas bordas (rolagem elástica, cantos).
+    document.documentElement.classList.remove('theme-light', 'theme-sepia', 'theme-dark')
+    document.documentElement.classList.add(`theme-${theme}`)
   }, [theme])
   return null
 }
@@ -29,6 +36,9 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<SignUp />} />
+          <Route path="/terms" element={<LegalPage doc="terms" />} />
+          <Route path="/privacy" element={<LegalPage doc="privacy" />} />
+          <Route path="/faq" element={<LegalPage doc="faq" />} />
           <Route
             path="/"
             element={
@@ -43,6 +53,11 @@ export default function App() {
             <Route path="stats" element={<Stats />} />
             <Route path="practice/:kind" element={<PracticePage />} />
             <Route path="settings" element={<Settings />} />
+            <Route path="gallery" element={<Gallery />} />
+            <Route path="gallery/:id" element={<Gallery />} />
+            <Route path="community" element={<Community />} />
+            <Route path="profile/:userId" element={<PublicProfile />} />
+            <Route path="admin" element={<AdminPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

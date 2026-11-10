@@ -186,6 +186,6 @@ export function ComicBookSettings({ book, userId, pt }: { book: Book; userId?: s
         </li>)}
       </ol>
     </fieldset>
-    <p role={failure ? 'alert' : 'status'} className={failure ? 'text-red-600 text-sm' : 'text-sm'}>{message}</p>
+    <p role={failure ? 'alert' : 'status'} className={failure ? 'text-[var(--pastel-rose-fg)] text-sm' : 'text-sm'}>{message}</p>
   </section>
 }

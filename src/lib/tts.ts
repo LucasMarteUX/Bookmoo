@@ -4,6 +4,7 @@
 // 3) Se o serviço TTS falhar, cai para a voz nativa do navegador (fallback temporário).
 import { supabase } from '@/lib/supabase'
 import { activeKokoroVoice, kokoroAudioUrl, type WordTiming } from '@/lib/kokoro/engine'
+import { askVoiceOnce } from '@/lib/voiceGate'
 import { countWords, listWords, wordRegex } from '@/lib/wordTokens'
 
 export type TtsContext = 'word' | 'phrase' | 'reader' | 'lesson' | 'preview'
@@ -121,8 +122,8 @@ export async function getAudioUrl(text: string, opts: SpeakOptions = {}): Promis
 }
 
 /**
- * Velocidade escolhida pelo aluno → velocidade de geração do Kokoro (fala real: 0.5x dura o dobro de 1.0x).
- * As pausas extras entre frases nas velocidades lentas ficam a cargo do Reader.
+ * A voz é sempre gravada na velocidade natural. Pedir para o modelo falar a 0.6x
+ * estica os sons e deixa a voz abafada. O devagar acontece só na hora de tocar.
  */
 export function kokoroSpeed(rate: number): number {
   return Math.round(Math.min(1.5, Math.max(0.5, rate)) * 100) / 100
@@ -133,7 +134,7 @@ export function prefetch(text: string, opts: SpeakOptions = {}) {
   if (!text.trim()) return
   const kv = opts.kokoroVoice ?? activeKokoroVoice()
   if (kv && activeKokoroVoice() && (opts.language ?? 'en').toLowerCase().startsWith('en')) {
-    kokoroAudioUrl(text.replace(/\s+/g, ' ').trim(), kv, kokoroSpeed(opts.rate ?? 1)).catch(() => {})
+    kokoroAudioUrl(text.replace(/\s+/g, ' ').trim(), kv, 1).catch(() => {})
     return
   }
   if (!isTtsConfigured()) return
@@ -142,30 +143,6 @@ export function prefetch(text: string, opts: SpeakOptions = {}) {
     a.preload = 'auto'
     a.src = url
   }).catch(() => {})
-}
-
-function speakWithBrowser(text: string, opts: SpeakOptions): Promise<void> {
-  return new Promise((resolve) => {
-    if (typeof window === 'undefined' || !window.speechSynthesis) return resolve()
-    window.speechSynthesis.cancel()
-    const u = new SpeechSynthesisUtterance(text)
-    const lang = (opts.language ?? 'en').toLowerCase()
-    u.lang = lang === 'en' ? 'en-US' : lang
-    u.rate = Math.min(1.2, Math.max(0.4, (opts.rate ?? 1) * 0.9))
-    const voices = window.speechSynthesis.getVoices()
-    const v = voices.find((x) => x.lang === u.lang) ?? voices.find((x) => x.lang.startsWith(lang.slice(0, 2)))
-    if (v) u.voice = v
-    if (opts.onWord) {
-      opts.onWord(0)
-      u.onboundary = (ev) => {
-        if (ev.name !== 'word') return
-        opts.onWord!(countWords(text.slice(0, ev.charIndex)))
-      }
-    }
-    u.onend = () => resolve()
-    u.onerror = () => resolve()
-    window.speechSynthesis.speak(u)
-  })
 }
 
 /**
@@ -261,8 +238,10 @@ async function playUrl(url: string, rate: number, text?: string, onWord?: (i: nu
   const a = getPlayer()
   a.src = url
   const mySrc = a.src
-  a.playbackRate = Math.min(1.5, Math.max(0.5, rate))
-  ;(a as HTMLAudioElement & { preservesPitch?: boolean }).preservesPitch = true
+  a.playbackRate = kokoroSpeed(rate)
+  const pitched = a as HTMLAudioElement & { preservesPitch?: boolean; webkitPreservesPitch?: boolean }
+  pitched.preservesPitch = true
+  pitched.webkitPreservesPitch = true
   let raf = 0
   const done = new Promise<void>((resolve) => {
     let settled = false
@@ -368,33 +347,35 @@ export function isTtsConfigured() {
 
 
 /**
- * Fala um texto. Interrompe o áudio anterior. Usa VoiceStudio; se indisponível, voz do navegador.
+ * Fala um texto com a voz baixada. Nunca usa a voz do navegador.
+ * Sem voz instalada, pede o aviso uma única vez e não toca nada.
  */
 export async function speak(text: string, opts: SpeakOptions = {}): Promise<SpeakHandle> {
   const trimmed = text.replace(/\s+/g, ' ').trim()
   haltPlayback()
   const token = currentToken
-  if (!trimmed) return { done: Promise.resolve(), source: 'browser' }
+  if (!trimmed) return { done: Promise.resolve(), source: 'kokoro' }
 
-  // 1) Voz local Kokoro (baixada pelo aluno), só para inglês.
   const lang = (opts.language ?? 'en').toLowerCase()
-  // Voz do personagem só quando o motor Kokoro já está instalado (senão segue a ordem normal).
   const kokoroVoice = activeKokoroVoice() ? (opts.kokoroVoice ?? activeKokoroVoice()) : null
+  if (lang.startsWith('en') && !kokoroVoice && !isTtsConfigured()) {
+    askVoiceOnce()
+    return { done: Promise.resolve(), source: 'kokoro' }
+  }
   if (kokoroVoice && lang.startsWith('en')) {
     try {
       opts.onLoading?.(true)
-      // Velocidade aplicada na geração: fala mais lenta e natural, sem esticar o áudio.
-      const clip = await kokoroAudioUrl(trimmed, kokoroVoice, kokoroSpeed(opts.rate ?? 1), 'high')
+      const clip = await kokoroAudioUrl(trimmed, kokoroVoice, 1, 'high')
       opts.onLoading?.(false)
       if (token !== currentToken) return { done: Promise.resolve(), source: 'kokoro' }
       const starts = clip.words ? startsFromTimings(trimmed, clip.words) : undefined
-      return { ...(await playUrl(clip.url, 1, trimmed, opts.onWord, starts)), source: 'kokoro' }
+      return { ...(await playUrl(clip.url, opts.rate ?? 1, trimmed, opts.onWord, starts)), source: 'kokoro' }
     } catch (e) {
       opts.onLoading?.(false)
       if (token !== currentToken) return { done: Promise.resolve(), source: 'kokoro' }
-      console.warn('[tts] Kokoro falhou, usando voz do navegador:', e)
+      console.warn('[tts] A voz baixada não respondeu:', e)
       opts.onFallback?.(String((e as Error)?.message ?? e))
-      return { done: speakWithBrowser(trimmed, opts), source: 'browser' }
+      return { done: Promise.resolve(), source: 'kokoro' }
     }
   }
 
@@ -406,13 +387,13 @@ export async function speak(text: string, opts: SpeakOptions = {}): Promise<Spea
     } catch (e) {
       if ((e as Error)?.name === 'AbortError' || token !== currentToken) return { done: Promise.resolve(), source: 'voicestudio' }
       const reason = (e as Error)?.message ?? String(e)
-      // Evita martelar um serviço fora do ar: 30s de cooldown em erros de rede/servidor.
       if (!/text_too_long|empty_text|rate_limited/.test(reason)) serviceDownUntil = Date.now() + 30_000
-      console.warn('[tts] VoiceStudio indisponível, usando voz do navegador:', reason)
+      console.warn('[tts] VoiceStudio indisponível:', reason)
       opts.onFallback?.(reason)
     }
   }
-  return { done: speakWithBrowser(trimmed, opts), source: 'browser' }
+  askVoiceOnce()
+  return { done: Promise.resolve(), source: 'kokoro' }
 }
 
 // ---------------------------------------------------------------------------

@@ -1,8 +1,7 @@
 import { useStudyTimer, PRESET_SECONDS } from '@/hooks/useStudyTimer'
 import { useLanguage } from '@/store/useLanguage'
 import { useTranslations } from '@/lib/i18n'
-import { Play, Pause, Square } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Pause, Play, Square, Timer } from 'lucide-react'
 
 function formatTime(seconds: number) {
   const h = Math.floor(seconds / 3600)
@@ -12,18 +11,11 @@ function formatTime(seconds: number) {
   return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
 }
 
+/** Sessão de estudo (cronômetro) em uma linha: tempo, iniciar/pausar, parar e duração. */
 export function StudyTimer() {
   const { locale } = useLanguage()
   const { t } = useTranslations(locale)
-  const {
-    isRunning,
-    selectedDuration,
-    setSelectedDuration,
-    start,
-    pause,
-    stop,
-    displaySeconds
-  } = useStudyTimer()
+  const { isRunning, selectedDuration, setSelectedDuration, start, pause, stop, displaySeconds } = useStudyTimer()
 
   const presetOptions = [
     { value: PRESET_SECONDS['10min'], label: t('preset10min') },
@@ -31,94 +23,37 @@ export function StudyTimer() {
     { value: PRESET_SECONDS['30min'], label: t('preset30min') },
     { value: PRESET_SECONDS['1h'], label: t('preset1h') },
     { value: PRESET_SECONDS['2h'], label: t('preset2h') },
-    { value: null, label: t('presetUnlimited') }
+    { value: null, label: t('presetUnlimited') },
   ]
+  const iconBtn = 'w-7 h-7 grid place-items-center rounded-md transition-colors hover:bg-[var(--theme-nav-active)]'
 
   return (
-    <div
-      className="flex flex-col gap-3"
-      style={{ color: 'var(--theme-nav-text)' }}
-    >
-      <span
-        className="text-[10px] leading-none font-bold uppercase tracking-tighter"
-        style={{ color: 'var(--theme-nav-text-muted)' }}
-      >
-        {t('readingTime')}
-      </span>
-
-      <div className="flex flex-col gap-2">
-        <div
-          className="flex items-center justify-between gap-2 rounded-xl border py-2.5 px-3 transition-colors"
-          style={{ backgroundColor: 'var(--theme-bg-secondary)', borderColor: 'var(--theme-border-subtle)' }}
-        >
-          <span className="text-sm font-semibold tabular-nums" style={{ color: 'var(--theme-text)' }}>
-            {formatTime(displaySeconds)}
-          </span>
-          <div className="flex items-center gap-1">
-            {!isRunning ? (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={start}
-                className="w-8 h-8 p-0 rounded-full transition-colors hover:bg-[var(--theme-nav-hover)]"
-                style={{ color: 'var(--theme-accent)' }}
-                title={t('listen')}
-                aria-label={t('listen')}
-              >
-                <Play className="w-4 h-4" />
-              </Button>
-            ) : (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={pause}
-                className="w-8 h-8 p-0 rounded-full transition-colors hover:bg-[var(--theme-nav-hover)]"
-                style={{ color: 'var(--theme-accent)' }}
-                title={t('pause')}
-                aria-label={t('pause')}
-              >
-                <Pause className="w-4 h-4" />
-              </Button>
-            )}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={stop}
-              className="w-8 h-8 p-0 rounded-full transition-colors hover:bg-[var(--theme-nav-hover)]"
-              style={{ color: 'var(--theme-nav-text-muted)' }}
-              title={t('stop')}
-              aria-label={t('stop')}
-            >
-              <Square className="w-4 h-4" />
-            </Button>
-          </div>
+    <div className="rounded-lg border px-2.5 py-2" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-card-bg)' }}>
+      <div className="flex items-center gap-2">
+        <span className={`grid place-items-center w-7 h-7 rounded-md ${isRunning ? 'animate-pulse' : ''}`}
+          style={{ backgroundColor: isRunning ? 'color-mix(in srgb, var(--theme-accent) 14%, transparent)' : 'var(--theme-bg-secondary)', color: isRunning ? 'var(--theme-accent)' : 'var(--theme-nav-text-muted)' }}>
+          <Timer className="w-4 h-4" />
+        </span>
+        <div className="min-w-0 flex-1 leading-tight">
+          <p className="text-[11.5px]" style={{ color: 'var(--theme-nav-text-muted)' }}>{t('readingTime')}</p>
+          <p className="text-[14px] font-semibold tabular-nums" style={{ color: 'var(--theme-text)' }}>{formatTime(displaySeconds)}</p>
         </div>
-
-        <div className="flex flex-col gap-1">
-          <label className="text-[10px] font-medium uppercase tracking-tighter" style={{ color: 'var(--theme-nav-text-muted)' }}>
-            {t('duration')}
-          </label>
-          <select
-            value={selectedDuration ?? 'unlimited'}
-            onChange={(e) => {
-              const v = e.target.value
-              setSelectedDuration(v === 'unlimited' ? null : Number(v))
-            }}
-            className="w-full text-xs rounded-lg border py-2 px-3 appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-0"
-            style={{
-              backgroundColor: 'var(--theme-bg-secondary)',
-              borderColor: 'var(--theme-border-subtle)',
-              color: 'var(--theme-text)'
-            }}
-          >
-            {presetOptions.map((opt) => (
-              <option key={opt.value ?? 'unlimited'} value={opt.value ?? 'unlimited'}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </div>
+        <button type="button" onClick={isRunning ? pause : start} className={iconBtn}
+          style={{ color: 'var(--theme-text)' }} title={isRunning ? t('pause') : t('listen')} aria-label={isRunning ? t('pause') : t('listen')}>
+          {isRunning ? <Pause className="w-3.5 h-3.5" fill="currentColor" /> : <Play className="w-3.5 h-3.5" fill="currentColor" />}
+        </button>
+        <button type="button" onClick={stop} className={iconBtn} style={{ color: 'var(--theme-nav-text-muted)' }} title={t('stop')} aria-label={t('stop')}>
+          <Square className="w-3 h-3" fill="currentColor" />
+        </button>
       </div>
+      <select value={selectedDuration ?? 'unlimited'} aria-label={t('duration')}
+        onChange={(e) => { const v = e.target.value; setSelectedDuration(v === 'unlimited' ? null : Number(v)) }}
+        className="mt-2 w-full h-7 text-[12px] rounded-md px-2 cursor-pointer focus:outline-none"
+        style={{ backgroundColor: 'var(--theme-bg-secondary)', color: 'var(--theme-text-secondary)' }}>
+        {presetOptions.map((opt) => (
+          <option key={opt.value ?? 'unlimited'} value={opt.value ?? 'unlimited'}>{t('duration')}: {opt.label}</option>
+        ))}
+      </select>
     </div>
   )
 }

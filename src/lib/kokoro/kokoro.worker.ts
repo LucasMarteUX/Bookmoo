@@ -89,7 +89,15 @@ let ttsPromise: Promise<KokoroTTS> | null = null
 
 // WebGPU + fp32: qualidade total e geração rápida (recomendação do kokoro-js).
 // Sem WebGPU: WASM + q8 (menor, porém com perda de qualidade e mais lento).
+function smallDevice() {
+  const nav = navigator as Navigator & { deviceMemory?: number }
+  if (typeof nav.deviceMemory === 'number' && nav.deviceMemory > 0 && nav.deviceMemory <= 4) return true
+  return /Android|iPhone|iPad|Mobile/i.test(nav.userAgent)
+}
+
 async function pickBackend(): Promise<{ device: 'webgpu' | 'wasm'; dtype: 'fp32' | 'q8' }> {
+  // No celular a voz completa (centenas de MB) fecha a página do Chrome. A versão leve cabe e fica salva.
+  if (smallDevice()) return { device: 'wasm', dtype: 'q8' }
   try {
     const gpu = (navigator as Navigator & { gpu?: { requestAdapter(): Promise<unknown> } }).gpu
     if (gpu && (await gpu.requestAdapter())) return { device: 'webgpu', dtype: 'fp32' }

@@ -11,7 +11,7 @@ import { sayWord } from '@/lib/sayWord'
 import { ToolButton, ToolGroup } from '@/components/ui/toolbar'
 
 const card = { backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-border)' }
-const scoreColor = (a: number) => a >= 80 ? '#34C46F' : a >= 60 ? '#E59A12' : '#F0524F'
+const scoreColor = (a: number) => a >= 80 ? 'var(--pastel-green-fg)' : a >= 60 ? 'var(--pastel-amber-fg)' : 'var(--pastel-rose-fg)'
 
 export function PracticeStats({ pt, fixedKind }: { pt: boolean; fixedKind?: PracticeKind }) {
   const sessions = usePracticeStore(s => s.sessions)
@@ -124,7 +124,7 @@ export function PracticeStats({ pt, fixedKind }: { pt: boolean; fixedKind?: Prac
               [pt ? 'Tentativas' : 'Attempts', String(filtered.length), 'var(--theme-text)'],
               [pt ? 'Média' : 'Average', `${avg}%`, scoreColor(avg)],
               [pt ? 'Melhor nota' : 'Best score', `${best}%`, scoreColor(best)],
-              [pt ? 'Estrelas' : 'Stars', `★ ${stars}`, '#E0A800'],
+              [pt ? 'Estrelas' : 'Stars', `★ ${stars}`, 'var(--pastel-amber-fg)'],
             ].map(([k, v, c]) => (
               <div key={k} className="rounded-2xl border p-4" style={card}>
                 <div className="text-sm" style={{ color: 'var(--theme-nav-text-muted)' }}>{k}</div>
@@ -139,7 +139,7 @@ export function PracticeStats({ pt, fixedKind }: { pt: boolean; fixedKind?: Prac
               {/* Linhas de referência */}
               {[100, 50, 0].map(v => (
                 <div key={v} className="absolute left-0 right-0 flex items-center gap-2" style={{ bottom: `calc(${v}% * 0.78 + 22px)` }}>
-                  <span className="w-6 text-right text-[10px] tabular-nums" style={{ color: 'var(--theme-text-secondary)' }}>{v}</span>
+                  <span className="w-6 text-right text-[11.5px] tabular-nums" style={{ color: 'var(--theme-text-secondary)' }}>{v}</span>
                   <span className="flex-1 border-t border-dashed" style={{ borderColor: 'var(--theme-border-subtle)' }} />
                 </div>
               ))}
@@ -147,9 +147,9 @@ export function PracticeStats({ pt, fixedKind }: { pt: boolean; fixedKind?: Prac
                 {recent.map(s => (
                   <div key={s.id} className="flex flex-col items-center justify-end h-full shrink-0 w-7"
                     title={`${s.bookTitle} · ${pt ? 'pág.' : 'p.'} ${s.page + 1} · ${s.accuracy}%`}>
-                    <span className="text-[10px] font-semibold tabular-nums mb-0.5" style={{ color: scoreColor(s.accuracy) }}>{s.accuracy}</span>
+                    <span className="text-[11.5px] font-semibold tabular-nums mb-0.5" style={{ color: scoreColor(s.accuracy) }}>{s.accuracy}</span>
                     <div className="w-full rounded-t-md" style={{ height: `calc(${Math.max(3, s.accuracy)}% * 0.78)`, backgroundColor: scoreColor(s.accuracy), opacity: s.kind === 'speak' ? 1 : 0.75 }} />
-                    <span className="h-[22px] pt-1 text-[10px] tabular-nums" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? 'p.' : 'p.'}{s.page + 1}</span>
+                    <span className="h-[22px] pt-1 text-[11.5px] tabular-nums" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? 'p.' : 'p.'}{s.page + 1}</span>
                   </div>
                 ))}
               </div>
@@ -164,9 +164,9 @@ export function PracticeStats({ pt, fixedKind }: { pt: boolean; fixedKind?: Prac
               </p>
               <ToolGroup label={pt ? 'Resultado' : 'Result'}>
                 {([
-                  ['ok', kind === 'write' ? (pt ? 'Digitou certo' : 'Typed right') : (pt ? 'Falou certo' : 'Said right'), '#34C46F'],
-                  ['close', pt ? 'Quase' : 'Close', '#E59A12'],
-                  ['bad', kind === 'write' ? (pt ? 'Digitou errado' : 'Typed wrong') : (pt ? 'Falou errado' : 'Said wrong'), '#F0524F'],
+                  ['ok', kind === 'write' ? (pt ? 'Digitou certo' : 'Typed right') : (pt ? 'Falou certo' : 'Said right'), 'var(--pastel-green-fg)'],
+                  ['close', pt ? 'Quase' : 'Close', 'var(--pastel-amber-fg)'],
+                  ['bad', kind === 'write' ? (pt ? 'Digitou errado' : 'Typed wrong') : (pt ? 'Falou errado' : 'Said wrong'), 'var(--pastel-rose-fg)'],
                   ['skipped', kind === 'write' ? (pt ? 'Pulou' : 'Skipped') : (pt ? 'Não falou' : 'Not said'), 'var(--theme-text-secondary)'],
                 ] as const).map(([key, text, color]) => (
                   <ToolButton key={key} active={bank === key} onClick={() => setBank(key)}
@@ -200,7 +200,7 @@ export function PracticeStats({ pt, fixedKind }: { pt: boolean; fixedKind?: Prac
                     <Plus className="w-3.5 h-3.5" strokeWidth={3} /> {pt ? `Revisar ${picked.size}` : `Review ${picked.size}`}
                   </button>
                 )}
-                {added > 0 && <span className="text-xs inline-flex items-center gap-1" style={{ color: '#34C46F' }}><Check className="w-3.5 h-3.5" /> {pt ? `${added} na revisão` : `${added} added`}</span>}
+                {added > 0 && <span className="text-xs inline-flex items-center gap-1" style={{ color: 'var(--pastel-green-fg)' }}><Check className="w-3.5 h-3.5" /> {pt ? `${added} na revisão` : `${added} added`}</span>}
               </div>
               <p className="text-xs mb-3" style={{ color: 'var(--theme-text-secondary)' }}>
                 {pt ? 'Toque no alto-falante para ouvir; marque as palavras para mandá-las à revisão do vocabulário.' : 'Tap the speaker to listen; select words to send them to vocabulary review.'}
@@ -208,13 +208,13 @@ export function PracticeStats({ pt, fixedKind }: { pt: boolean; fixedKind?: Prac
               {missed.length ? (
                 <div className="flex flex-wrap gap-2">
                   {missed.map(([w, n]) => (
-                    <span key={w} className={`inline-flex items-center rounded-full border text-sm overflow-hidden ${picked.has(w) ? 'ring-2 ring-[var(--theme-accent,#7756c6)]' : ''}`}
+                    <span key={w} className={`inline-flex items-center rounded-full border text-sm overflow-hidden ${picked.has(w) ? 'ring-2 ring-[var(--theme-accent,#55534E)]' : ''}`}
                       style={{ borderColor: 'var(--theme-border-subtle)', backgroundColor: 'var(--theme-bg-secondary)' }}>
                       <button type="button" onClick={() => sayWord(w)} className="pl-2.5 pr-1 py-1 hover:opacity-70" aria-label={pt ? `Ouvir ${w}` : `Hear ${w}`}>
                         <Volume2 className="w-3.5 h-3.5" style={{ color: 'var(--theme-text-secondary)' }} />
                       </button>
                       <button type="button" onClick={() => togglePick(w)} className="pr-2.5 py-1 inline-flex items-center gap-1.5" style={{ color: 'var(--theme-text)' }}>
-                        {w} <span className="text-[11px] tabular-nums rounded-full px-1.5" style={{ backgroundColor: 'color-mix(in srgb, #F0524F 18%, transparent)', color: '#C2312E' }}>{n}×</span>
+                        {w} <span className="text-[11px] tabular-nums rounded-full px-1.5" style={{ backgroundColor: 'color-mix(in srgb, #CF6B5F 18%, transparent)', color: 'var(--pastel-rose-fg)' }}>{n}×</span>
                       </button>
                     </span>
                   ))}
@@ -232,7 +232,7 @@ export function PracticeStats({ pt, fixedKind }: { pt: boolean; fixedKind?: Prac
                       {p.bookTitle} <span style={{ color: 'var(--theme-text-secondary)' }}>· {pt ? 'pág.' : 'p.'} {p.page + 1}</span>
                     </span>
                     <span className="hidden sm:inline text-xs" style={{ color: 'var(--theme-text-secondary)' }}>{p.tries}×</span>
-                    <span className="inline-flex">{[0, 1, 2].map(i => <Star key={i} className="w-3.5 h-3.5" fill={i < p.stars ? '#FFC83D' : 'none'} stroke={i < p.stars ? '#E0A800' : 'var(--theme-text-secondary)'} />)}</span>
+                    <span className="inline-flex">{[0, 1, 2].map(i => <Star key={i} className="w-3.5 h-3.5" fill={i < p.stars ? 'var(--pastel-amber-bd)' : 'none'} stroke={i < p.stars ? 'var(--pastel-amber-fg)' : 'var(--theme-text-secondary)'} />)}</span>
                     <span className="w-24 text-right tabular-nums font-semibold" style={{ color: scoreColor(p.last) }}>
                       {p.last}% <span className="text-xs font-normal" style={{ color: 'var(--theme-text-secondary)' }}>({pt ? 'máx' : 'best'} {p.best})</span>
                     </span>

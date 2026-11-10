@@ -1,115 +1,254 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Eye, EyeOff } from 'lucide-react'
+import { AnimatePresence, motion } from 'motion/react'
+import { Eye, EyeOff, Moon, Sun } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useLanguage } from '@/store/useLanguage'
 import { useTranslations } from '@/lib/i18n'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { useReaderSettings } from '@/store/useReaderSettings'
 
-export function Login() {
-  const { signIn, session, loading: authLoading } = useAuth()
+type Mode = 'login' | 'signup'
+
+/** Guarda o aceite dos termos até o perfil existir (o perfil grava a data no primeiro login). */
+export const TERMS_KEY = 'bookmoo-terms-accepted-at'
+function rememberTermsAccepted() {
+  try { localStorage.setItem(TERMS_KEY, new Date().toISOString()) } catch { /* modo privado: segue sem guardar */ }
+}
+
+// Painel da esquerda: ilustrações em preto e branco que trocam devagar, como um onboarding.
+const SLIDES = [
+  { src: '/illustrations/reading.svg', pt: ['Leia o que você ama', 'Aprenda um idioma com livros de verdade, palavra por palavra.'], en: ['Read what you love', 'Learn a language with real books, one word at a time.'] },
+  { src: '/illustrations/chatting.svg', pt: ['Fale sem medo', 'Treine a pronúncia e ouça cada frase no seu ritmo.'], en: ['Speak with confidence', 'Practice pronunciation and hear every sentence at your pace.'] },
+  { src: '/illustrations/meditation.svg', pt: ['Um pouco por dia', 'Sequências, revisões e o seu progresso num só lugar.'], en: ['A little every day', 'Streaks, reviews and your progress in one place.'] },
+]
+
+function GoogleIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="w-[18px] h-[18px]" aria-hidden>
+      <path fill="#4285F4" d="M23.5 12.27c0-.82-.07-1.6-.2-2.36H12v4.47h6.46a5.53 5.53 0 0 1-2.4 3.62v3h3.88c2.27-2.09 3.56-5.17 3.56-8.73Z" />
+      <path fill="#34A853" d="M12 24c3.24 0 5.96-1.07 7.94-2.9l-3.88-3c-1.08.72-2.45 1.15-4.06 1.15-3.12 0-5.77-2.1-6.71-4.94H1.28v3.1A12 12 0 0 0 12 24Z" />
+      <path fill="#FBBC05" d="M5.29 14.31a7.2 7.2 0 0 1 0-4.62v-3.1H1.28a12 12 0 0 0 0 10.82l4.01-3.1Z" />
+      <path fill="#EA4335" d="M12 4.75c1.76 0 3.34.6 4.59 1.8l3.44-3.44A11.5 11.5 0 0 0 12 0 12 12 0 0 0 1.28 6.59l4.01 3.1C6.23 6.85 8.88 4.75 12 4.75Z" />
+    </svg>
+  )
+}
+
+export function Login({ mode = 'login' }: { mode?: Mode }) {
+  const { signIn, signUp, signInWithGoogle, session, loading: authLoading } = useAuth()
   const { locale } = useLanguage()
   const { t } = useTranslations(locale)
+  const pt = locale === 'pt-BR'
+  const { theme, setTheme } = useReaderSettings()
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirm, setConfirm] = useState('')
+  const [accepted, setAccepted] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [message, setMessage] = useState('')
+  const [loading, setLoading] = useState<'email' | 'google' | null>(null)
+  const [slide, setSlide] = useState(0)
+  const signup = mode === 'signup'
 
   useEffect(() => {
-    if (!authLoading && session) navigate('/', { replace: true })
+    // Em desenvolvimento, ?preview mostra a tela mesmo logado (para revisar o visual).
+    const preview = import.meta.env.DEV && new URLSearchParams(window.location.search).has('preview')
+    if (!authLoading && session && !preview) navigate('/', { replace: true })
   }, [authLoading, session, navigate])
 
-  const getLoginErrorMessage = (err: Error): string => {
+  useEffect(() => { setError(''); setMessage('') }, [mode])
+
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    const id = window.setInterval(() => setSlide(s => (s + 1) % SLIDES.length), 6000)
+    return () => window.clearInterval(id)
+  }, [])
+
+  const errorMessage = (err: Error): string => {
     const msg = (err?.message ?? '').toLowerCase()
     const code = (err as { code?: string })?.code
-    if (msg.includes('failed to fetch') || msg.includes('network') || msg.includes('fetch failed')) {
-      return 'Não foi possível conectar ao Supabase. Verifique se o projeto ainda existe e se VITE_SUPABASE_URL no .env.local está correto.'
-    }
-    if (code === 'invalid_credentials' || msg.includes('invalid login credentials') || msg.includes('invalid_credentials')) return t('loginErrorInvalidCredentials')
-    if (code === 'email_not_confirmed' || msg.includes('email not confirmed') || msg.includes('email_not_confirmed')) return t('loginErrorEmailNotConfirmed')
+    if (msg.includes('failed to fetch') || msg.includes('network')) return pt ? 'Sem conexão com o servidor. Tente de novo em instantes.' : 'Could not reach the server. Try again shortly.'
+    if (code === 'invalid_credentials' || msg.includes('invalid login credentials')) return t('loginErrorInvalidCredentials')
+    if (code === 'email_not_confirmed' || msg.includes('email not confirmed')) return t('loginErrorEmailNotConfirmed')
+    if (msg.includes('provider is not enabled') || msg.includes('unsupported provider')) return pt ? 'O login com Google ainda não está ativado.' : 'Google sign-in is not enabled yet.'
+    if (msg.includes('already registered')) return pt ? 'Este e-mail já tem conta. Entre com ele.' : 'This email already has an account. Sign in instead.'
+    if (msg.includes('password should be')) return pt ? 'A senha precisa ter pelo menos 6 caracteres.' : 'Password must be at least 6 characters.'
     return err?.message || t('loginErrorGeneric')
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError('')
-    setLoading(true)
-    const normalizedEmail = email.trim().toLowerCase()
-    const { error } = await signIn(normalizedEmail, password)
-    setLoading(false)
-    if (error) {
-      setError(getLoginErrorMessage(error))
-      return
-    }
-    // Não navegar aqui: setSession é assíncrono; o useEffect acima redireciona quando session existir.
+    setError(''); setMessage('')
+    if (signup && password !== confirm) { setError(pt ? 'As senhas não são iguais.' : 'Passwords do not match.'); return }
+    if (signup && !accepted) { setError(pt ? 'Para criar a conta, aceite os Termos e a Política de Privacidade.' : 'To create an account, accept the Terms and Privacy Policy.'); return }
+    if (signup) rememberTermsAccepted()
+    setLoading('email')
+    const normalized = email.trim().toLowerCase()
+    const { error } = signup ? await signUp(normalized, password) : await signIn(normalized, password)
+    setLoading(null)
+    if (error) { setError(errorMessage(error)); return }
+    if (signup) setMessage(pt ? 'Conta criada! Se pedirmos, confirme pelo link que enviamos ao seu e-mail.' : 'Account created! If asked, confirm with the link we sent to your email.')
   }
 
+  const google = async () => {
+    setError(''); setMessage('')
+    if (signup && !accepted) { setError(pt ? 'Para criar a conta, aceite os Termos e a Política de Privacidade.' : 'To create an account, accept the Terms and Privacy Policy.'); return }
+    // Entrar com Google também é aceite (o aviso aparece abaixo do botão).
+    rememberTermsAccepted()
+    setLoading('google')
+    const { error } = await signInWithGoogle()
+    if (error) { setLoading(null); setError(errorMessage(error)) }
+  }
+
+  const current = SLIDES[slide]
+  const [title, subtitle] = pt ? current.pt : current.en
+  const field = 'w-full h-11 rounded-lg border px-3 text-[15px] outline-none transition-colors bg-[var(--theme-bg)] border-[var(--theme-border)] text-[var(--theme-text)] placeholder:text-[var(--theme-text-secondary)]/70 focus:border-[var(--theme-text)]'
+
   return (
-    <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: 'var(--theme-bg)' }}>
-      <div className="w-full max-w-sm space-y-8">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold" style={{ color: 'var(--theme-text)' }}>Bookmoo</h1>
-          <p className="mt-2 text-sm" style={{ color: 'var(--theme-text-secondary)' }}>{t('loginTagline')}</p>
+    <div className="min-h-dvh flex gap-4 lg:gap-6 p-4 lg:p-6" style={{ backgroundColor: 'var(--theme-bg)' }}>
+      {/* 70%: ilustração */}
+      <aside className="hidden lg:flex basis-[70%] shrink-0 flex-col rounded-[28px] p-10 relative overflow-hidden"
+        style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
+        <div className="flex items-center gap-2">
+          <span className="grid place-items-center w-8 h-8 rounded-lg text-sm font-bold" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>B</span>
+          <span className="text-lg font-semibold tracking-tight" style={{ color: 'var(--theme-text)' }}>Bookmoo</span>
         </div>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email">E-mail</Label>
-            <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="seu@email.com"
-              required
-              className="rounded-xl"
-            />
+        <div className="flex-1 grid place-items-center py-8">
+          <AnimatePresence mode="wait">
+            <motion.img key={current.src} src={current.src} alt="" className="illo w-full max-w-[520px] max-h-[52vh] object-contain"
+              initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.45 }} />
+          </AnimatePresence>
+        </div>
+        <div className="flex items-end justify-between gap-8">
+          <AnimatePresence mode="wait">
+            <motion.div key={slide} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="max-w-md">
+              <h2 className="text-[34px] leading-[1.1] font-semibold tracking-tight" style={{ color: 'var(--theme-text)' }}>{title}</h2>
+              <p className="mt-3 text-base" style={{ color: 'var(--theme-text-secondary)' }}>{subtitle}</p>
+            </motion.div>
+          </AnimatePresence>
+          <div className="flex gap-1.5 pb-2" role="tablist" aria-label={pt ? 'Destaques' : 'Highlights'}>
+            {SLIDES.map((s, i) => (
+              <button key={s.src} type="button" role="tab" aria-selected={i === slide} aria-label={`${i + 1}`} onClick={() => setSlide(i)}
+                className="h-1.5 rounded-full transition-all"
+                style={{ width: i === slide ? 22 : 6, backgroundColor: i === slide ? 'var(--theme-text)' : 'var(--theme-border)' }} />
+            ))}
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">Senha</Label>
-            <div className="relative">
-              <Input
-                id="password"
-                type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-                className="rounded-xl pr-10"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-md transition-colors hover:bg-black/5 focus:outline-none focus:ring-2 focus:ring-offset-0"
-                style={{ color: 'var(--theme-text-secondary)' }}
-                aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
-              >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
+        </div>
+      </aside>
+
+      {/* 30%: entrar / criar conta */}
+      <main className="flex-1 min-w-0 flex flex-col">
+        <div className="flex justify-between items-center lg:justify-end">
+          <span className="lg:hidden flex items-center gap-2">
+            <span className="grid place-items-center w-7 h-7 rounded-lg text-xs font-bold" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>B</span>
+            <span className="font-semibold" style={{ color: 'var(--theme-text)' }}>Bookmoo</span>
+          </span>
+          <button type="button" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            className="w-9 h-9 rounded-lg grid place-items-center transition-colors hover:bg-[var(--theme-nav-hover)]"
+            style={{ color: 'var(--theme-text-secondary)' }}
+            aria-label={theme === 'dark' ? (pt ? 'Modo claro' : 'Light mode') : (pt ? 'Modo escuro' : 'Dark mode')}>
+            {theme === 'dark' ? <Sun className="w-[18px] h-[18px]" /> : <Moon className="w-[18px] h-[18px]" />}
+          </button>
+        </div>
+
+        <div className="flex-1 grid place-items-center py-8">
+          <div className="w-full max-w-[360px]">
+            <img src="/illustrations/reading.svg" alt="" className="illo lg:hidden w-44 mx-auto mb-6" />
+            <h1 className="text-[28px] font-semibold tracking-tight" style={{ color: 'var(--theme-text)' }}>
+              {signup ? (pt ? 'Crie sua conta' : 'Create your account') : (pt ? 'Bem-vindo de volta' : 'Welcome back')}
+            </h1>
+            <p className="mt-1.5 text-[15px]" style={{ color: 'var(--theme-text-secondary)' }}>
+              {signup ? (pt ? 'Comece a aprender lendo seus livros.' : 'Start learning by reading your books.') : t('loginTagline')}
+            </p>
+
+            <button type="button" onClick={google} disabled={loading !== null}
+              className="mt-7 w-full h-11 rounded-lg border flex items-center justify-center gap-2.5 text-[15px] font-medium transition-colors hover:bg-[var(--theme-nav-hover)] disabled:opacity-60"
+              style={{ borderColor: 'var(--theme-border)', color: 'var(--theme-text)', backgroundColor: 'var(--theme-bg)' }}>
+              <GoogleIcon />
+              {loading === 'google' ? (pt ? 'Abrindo o Google…' : 'Opening Google…') : (pt ? 'Continuar com Google' : 'Continue with Google')}
+            </button>
+
+            <div className="my-6 flex items-center gap-3 text-xs" style={{ color: 'var(--theme-text-secondary)' }}>
+              <span className="h-px flex-1" style={{ backgroundColor: 'var(--theme-border)' }} />
+              {pt ? 'ou com e-mail' : 'or with email'}
+              <span className="h-px flex-1" style={{ backgroundColor: 'var(--theme-border)' }} />
             </div>
+
+            <form onSubmit={submit} className="space-y-3">
+              <label className="block">
+                <span className="block text-[13px] font-medium mb-1.5" style={{ color: 'var(--theme-text)' }}>E-mail</span>
+                <input type="email" autoComplete="email" required value={email} onChange={e => setEmail(e.target.value)}
+                  placeholder={pt ? 'voce@email.com' : 'you@email.com'} className={field} />
+              </label>
+              <label className="block">
+                <span className="block text-[13px] font-medium mb-1.5" style={{ color: 'var(--theme-text)' }}>{pt ? 'Senha' : 'Password'}</span>
+                <span className="relative block">
+                  <input type={showPassword ? 'text' : 'password'} autoComplete={signup ? 'new-password' : 'current-password'} required minLength={6}
+                    value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" className={`${field} pr-10`} />
+                  <button type="button" onClick={() => setShowPassword(v => !v)}
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 grid place-items-center rounded-md hover:bg-[var(--theme-nav-hover)]"
+                    style={{ color: 'var(--theme-text-secondary)' }} aria-label={showPassword ? (pt ? 'Ocultar senha' : 'Hide password') : (pt ? 'Mostrar senha' : 'Show password')}>
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </span>
+              </label>
+              {signup && (
+                <label className="block">
+                  <span className="block text-[13px] font-medium mb-1.5" style={{ color: 'var(--theme-text)' }}>{pt ? 'Confirmar senha' : 'Confirm password'}</span>
+                  <input type={showPassword ? 'text' : 'password'} autoComplete="new-password" required minLength={6}
+                    value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="••••••••" className={field} />
+                </label>
+              )}
+
+              {signup && (
+                <label className="flex items-start gap-2.5 pt-1 cursor-pointer select-none">
+                  <input type="checkbox" checked={accepted} onChange={e => setAccepted(e.target.checked)}
+                    className="mt-0.5 w-4 h-4 shrink-0 accent-[var(--theme-text)]" />
+                  <span className="text-[13px] leading-snug" style={{ color: 'var(--theme-text-secondary)' }}>
+                    {pt ? 'Li e aceito os ' : 'I have read and accept the '}
+                    <Link to="/terms" target="_blank" className="underline underline-offset-2" style={{ color: 'var(--theme-text)' }}>{pt ? 'Termos de uso' : 'Terms of use'}</Link>
+                    {pt ? ', a ' : ', the '}
+                    <Link to="/privacy" target="_blank" className="underline underline-offset-2" style={{ color: 'var(--theme-text)' }}>{pt ? 'Política de privacidade' : 'Privacy policy'}</Link>
+                    {pt ? ' e o ' : ' and the '}
+                    <Link to="/faq" target="_blank" className="underline underline-offset-2" style={{ color: 'var(--theme-text)' }}>FAQ</Link>.
+                  </span>
+                </label>
+              )}
+              {error && <p role="alert" className="text-sm text-[var(--pastel-rose-fg)]">{error}</p>}
+              {message && <p role="status" className="text-sm" style={{ color: 'var(--theme-text-secondary)' }}>{message}</p>}
+
+              <button type="submit" disabled={loading !== null}
+                className="!mt-5 w-full h-11 rounded-lg text-[15px] font-medium transition-opacity hover:opacity-90 disabled:opacity-60"
+                style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
+                {loading === 'email'
+                  ? (signup ? (pt ? 'Criando conta…' : 'Creating account…') : (pt ? 'Entrando…' : 'Signing in…'))
+                  : (signup ? (pt ? 'Criar conta' : 'Create account') : (pt ? 'Entrar' : 'Sign in'))}
+              </button>
+            </form>
+
+            <p className="mt-6 text-center text-sm" style={{ color: 'var(--theme-text-secondary)' }}>
+              {signup ? (pt ? 'Já tem conta?' : 'Already have an account?') : (pt ? 'Ainda não tem conta?' : 'No account yet?')}{' '}
+              <Link to={signup ? '/login' : '/signup'} className="font-medium underline underline-offset-4" style={{ color: 'var(--theme-text)' }}>
+                {signup ? (pt ? 'Entrar' : 'Sign in') : (pt ? 'Criar conta' : 'Create account')}
+              </Link>
+            </p>
+            {!signup && (
+              <p className="mt-3 text-center text-[12px] leading-snug" style={{ color: 'var(--theme-text-secondary)' }}>
+                {pt ? 'Ao continuar, você concorda com os ' : 'By continuing, you agree to the '}
+                <Link to="/terms" className="underline underline-offset-2">{pt ? 'Termos' : 'Terms'}</Link>
+                {pt ? ' e a ' : ' and the '}
+                <Link to="/privacy" className="underline underline-offset-2">{pt ? 'Privacidade' : 'Privacy policy'}</Link>.
+              </p>
+            )}
+            <nav className="mt-8 flex justify-center gap-4 text-[12.5px]" style={{ color: 'var(--theme-text-secondary)' }}>
+              <Link to="/faq" className="hover:underline">FAQ</Link>
+              <Link to="/terms" className="hover:underline">{pt ? 'Termos' : 'Terms'}</Link>
+              <Link to="/privacy" className="hover:underline">{pt ? 'Privacidade' : 'Privacy'}</Link>
+            </nav>
           </div>
-          {error && (
-            <p className="text-sm text-red-600">{error}</p>
-          )}
-          <Button
-            type="submit"
-            className="w-full rounded-xl h-12"
-            style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}
-            disabled={loading}
-          >
-            {loading ? 'Entrando...' : 'Entrar'}
-          </Button>
-        </form>
-        <p className="text-center text-sm" style={{ color: 'var(--theme-text-secondary)' }}>
-          Não tem conta?{' '}
-          <Link to="/signup" className="font-medium underline" style={{ color: 'var(--theme-primary)' }}>
-            Cadastrar
-          </Link>
-        </p>
-      </div>
+        </div>
+      </main>
     </div>
   )
 }

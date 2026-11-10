@@ -1,18 +1,54 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type ReactNode } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
-import { useLanguage } from '@/store/useLanguage'
+import { useLanguage, type Locale } from '@/store/useLanguage'
+import { useReaderSettings, type Theme } from '@/store/useReaderSettings'
+import { useUiStore } from '@/store/useUiStore'
 import { useTranslations } from '@/lib/i18n'
-import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { User, Lock, Mail, Camera } from 'lucide-react'
+import { Camera, Coffee, KeyRound, Lock, Moon, Palette, Sparkles, Sun, User, Volume2 } from 'lucide-react'
 import { VoiceSettings } from '@/components/settings/VoiceSettings'
 import { AiConnections } from '@/components/settings/AiConnections'
+import { ProfileSection } from '@/components/settings/ProfileSection'
+
+/** Seção de configurações: título com ícone e um cartão com as linhas. */
+function Section({ id, icon, title, description, children }: { id: string; icon: ReactNode; title: string; description?: string; children: ReactNode }) {
+  return (
+    <section id={id} className="scroll-mt-8">
+      <div className="mb-3">
+        <h2 className="flex items-center gap-2 text-[15px] font-semibold" style={{ color: 'var(--theme-text)' }}>{icon}{title}</h2>
+        {description && <p className="mt-1 text-[13.5px]" style={{ color: 'var(--theme-text-secondary)' }}>{description}</p>}
+      </div>
+      <div className="rounded-2xl border divide-y" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-card-bg)' }}>{children}</div>
+    </section>
+  )
+}
+
+/** Linha: rótulo e explicação à esquerda, controle à direita (empilha no celular). */
+function Row({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
+  return (
+    <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-6 px-5 py-4" style={{ borderColor: 'var(--theme-border)' }}>
+      <div className="sm:w-[42%] shrink-0">
+        <p className="text-[14px] font-medium" style={{ color: 'var(--theme-text)' }}>{label}</p>
+        {hint && <p className="mt-0.5 text-[12.5px] leading-snug" style={{ color: 'var(--theme-text-secondary)' }}>{hint}</p>}
+      </div>
+      <div className="flex-1 min-w-0">{children}</div>
+    </div>
+  )
+}
+
+function Feedback({ state, ok, error }: { state: 'success' | 'error' | null; ok: string; error: string }) {
+  if (!state) return null
+  return <p className="mt-2 text-[12.5px]" style={{ color: state === 'success' ? 'var(--pastel-green-fg)' : 'var(--pastel-rose-fg)' }}>{state === 'success' ? ok : error}</p>
+}
 
 export function Settings() {
-  const { locale } = useLanguage()
+  const { locale, setLocale } = useLanguage()
   const { t } = useTranslations(locale)
+  const pt = locale === 'pt-BR'
+  const { theme, setTheme } = useReaderSettings()
+  const { dailyGoalMinutes, setDailyGoalMinutes } = useUiStore()
   const { hasSupabase, user, loading } = useAuth()
   const [displayName, setDisplayName] = useState(user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? '')
   const [displayNameSaving, setDisplayNameSaving] = useState(false)
@@ -35,7 +71,6 @@ export function Settings() {
   }, [user])
 
   const userEmail = user?.email ?? ''
-
   const canChangeEmail = newEmail.trim() && confirmNewEmail.trim() && newEmail === confirmNewEmail && newEmail !== userEmail
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -45,208 +80,166 @@ export function Settings() {
     const ext = file.name.split('.').pop() ?? 'jpg'
     const path = `${user.id}/avatar.${ext}`
     const { error: uploadError } = await supabase.storage.from('avatars').upload(path, file, { upsert: true })
-    if (uploadError) {
-      setAvatarUploading(false)
-      return
-    }
+    if (uploadError) { setAvatarUploading(false); return }
     const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path)
     const { error: updateError } = await supabase.auth.updateUser({ data: { avatar_url: publicUrl } })
     setAvatarUploading(false)
     if (!updateError) setAvatarUrl(publicUrl)
   }
 
+  const nav = [
+    { id: 'appearance', label: pt ? 'Aparência' : 'Appearance', icon: Palette },
+    { id: 'profile', label: pt ? 'Perfil' : 'Profile', icon: User },
+    { id: 'account', label: t('account'), icon: User },
+    { id: 'security', label: pt ? 'Segurança' : 'Security', icon: Lock },
+    { id: 'ai', label: pt ? 'Conexões de IA' : 'AI connections', icon: Sparkles },
+    { id: 'voices', label: pt ? 'Vozes' : 'Voices', icon: Volume2 },
+  ]
+  const themes: { id: Theme; label: string; icon: typeof Sun }[] = [
+    { id: 'light', label: t('day'), icon: Sun }, { id: 'sepia', label: t('afternoon'), icon: Coffee }, { id: 'dark', label: t('night'), icon: Moon },
+  ]
+  const segmented = (on: boolean) => ({
+    backgroundColor: on ? 'var(--theme-card-bg)' : 'transparent',
+    color: on ? 'var(--theme-text)' : 'var(--theme-text-secondary)',
+    boxShadow: on ? '0 1px 2px rgba(0,0,0,0.1)' : undefined,
+  })
+
   return (
-    <div className="max-w-2xl mx-auto space-y-12 py-8 px-0">
+    <div className="max-w-5xl mx-auto">
       <header className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight mb-2" style={{ color: 'var(--theme-text)' }}>
-          {t('settingsTitle')}
-        </h1>
-        <p className="text-base" style={{ color: 'var(--theme-text-secondary)' }}>
-          {t('settingsAccountSubtitle')}
-        </p>
+        <h1 className="font-display text-[34px] md:text-[40px] leading-[1.05]" style={{ color: 'var(--theme-text)' }}>{t('settingsTitle')}</h1>
+        <p className="mt-2 text-[14.5px]" style={{ color: 'var(--theme-text-secondary)' }}>{t('settingsAccountSubtitle')}</p>
       </header>
 
-      <div className="space-y-8">
-        {loading && (
-          <p className="text-sm py-6" style={{ color: 'var(--theme-text-secondary)' }}>{t('loading')}</p>
-        )}
+      <div className="grid md:grid-cols-[190px_minmax(0,1fr)] gap-8">
+        <nav className="hidden md:flex flex-col gap-0.5 sticky top-8 self-start" aria-label={t('settingsTitle')}>
+          {nav.map(({ id, label, icon: Icon }) => (
+            <a key={id} href={`#${id}`} className="flex items-center gap-2.5 h-8 px-2 rounded-md text-[13.5px] transition-colors hover:bg-[var(--theme-nav-hover)]"
+              style={{ color: 'var(--theme-text-secondary)' }}
+              onClick={e => { e.preventDefault(); document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' }) }}>
+              <Icon className="w-4 h-4" />{label}
+            </a>
+          ))}
+        </nav>
 
-        {!loading && !hasSupabase && (
-          <div className="p-6 rounded-3xl border" style={{ backgroundColor: 'var(--theme-bg-secondary)', borderColor: 'var(--theme-border-subtle)' }}>
-            <p className="text-sm" style={{ color: 'var(--theme-text-secondary)' }}>{t('supabaseRequired')}</p>
-          </div>
-        )}
+        <div className="space-y-10 min-w-0">
+          <Section id="appearance" icon={<Palette className="w-4 h-4" />} title={pt ? 'Aparência' : 'Appearance'}>
+            <Row label={pt ? 'Tema' : 'Theme'} hint={pt ? 'Vale para o app e para a leitura.' : 'Applies to the app and the reader.'}>
+              <div className="inline-grid grid-cols-3 gap-1 p-0.5 rounded-lg" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
+                {themes.map(({ id, label, icon: Icon }) => (
+                  <button key={id} type="button" onClick={() => setTheme(id)} aria-pressed={theme === id}
+                    className="h-8 px-3 rounded-md inline-flex items-center justify-center gap-1.5 text-[13px] font-medium transition-colors" style={segmented(theme === id)}>
+                    <Icon className="w-3.5 h-3.5" />{label}
+                  </button>
+                ))}
+              </div>
+            </Row>
+            <Row label={t('language')} hint={pt ? 'Idioma da interface e das explicações.' : 'Interface and explanation language.'}>
+              <div className="inline-grid grid-cols-2 gap-1 p-0.5 rounded-lg" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
+                {([['en', 'English'], ['pt-BR', 'Português']] as [Locale, string][]).map(([id, label]) => (
+                  <button key={id} type="button" onClick={() => setLocale(id)} aria-pressed={locale === id}
+                    className="h-8 px-3 rounded-md text-[13px] font-medium transition-colors" style={segmented(locale === id)}>{label}</button>
+                ))}
+              </div>
+            </Row>
+            <Row label={pt ? 'Meta diária' : 'Daily goal'} hint={pt ? 'Minutos de estudo por dia, mostrados na página inicial.' : 'Study minutes per day, shown on the home page.'}>
+              <div className="inline-grid grid-cols-4 gap-1 p-0.5 rounded-lg" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
+                {[10, 15, 30, 60].map(m => (
+                  <button key={m} type="button" onClick={() => setDailyGoalMinutes(m)} aria-pressed={dailyGoalMinutes === m}
+                    className="h-8 px-3 rounded-md text-[13px] font-medium tabular-nums transition-colors" style={segmented(dailyGoalMinutes === m)}>{m} min</button>
+                ))}
+              </div>
+            </Row>
+          </Section>
 
-        {!loading && hasSupabase && !user && (
-          <div className="p-6 rounded-3xl border" style={{ backgroundColor: 'var(--theme-bg-secondary)', borderColor: 'var(--theme-border-subtle)' }}>
-            <p className="text-sm" style={{ color: 'var(--theme-text-secondary)' }}>{t('signInToManageAccount')}</p>
-          </div>
-        )}
+          {loading && <p className="text-sm" style={{ color: 'var(--theme-text-secondary)' }}>{t('loading')}</p>}
+          {!loading && !hasSupabase && (
+            <p className="rounded-2xl border p-5 text-sm" style={{ borderColor: 'var(--theme-border)', color: 'var(--theme-text-secondary)' }}>{t('supabaseRequired')}</p>
+          )}
+          {!loading && hasSupabase && !user && (
+            <p className="rounded-2xl border p-5 text-sm" style={{ borderColor: 'var(--theme-border)', color: 'var(--theme-text-secondary)' }}>{t('signInToManageAccount')}</p>
+          )}
 
-        {!loading && hasSupabase && user && (
-          <>
-            <section className="space-y-4">
-              <h2 className="text-xl font-semibold flex items-center gap-2" style={{ color: 'var(--theme-text)' }}>
-                <User className="w-5 h-5" />
-                {t('account')}
-              </h2>
-              <div className="p-6 rounded-3xl border transition-colors space-y-6" style={{ backgroundColor: 'var(--theme-bg-secondary)', borderColor: 'var(--theme-border-subtle)' }}>
-                {/* Foto de perfil */}
-                <div className="flex items-center gap-4">
-                  <div className="w-20 h-20 rounded-full border-2 flex items-center justify-center overflow-hidden" style={{ borderColor: 'var(--theme-border-subtle)', backgroundColor: 'var(--theme-bg)' }}>
-                    {avatarUrl ? (
-                      <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      <User className="w-10 h-10" style={{ color: 'var(--theme-nav-text-muted)' }} />
-                    )}
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium" style={{ color: 'var(--theme-text)' }}>{t('profilePhoto')}</Label>
-                    <label className="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium cursor-pointer transition-colors" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
+          {!loading && hasSupabase && user && (
+            <>
+              <ProfileSection pt={pt} />
+              <Section id="account" icon={<User className="w-4 h-4" />} title={t('account')}>
+                <Row label={t('profilePhoto')}>
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-full border flex items-center justify-center overflow-hidden" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg-secondary)' }}>
+                      {avatarUrl ? <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
+                        : <span className="text-[18px] font-semibold" style={{ color: 'var(--theme-text)' }}>{(userEmail || 'B').charAt(0).toUpperCase()}</span>}
+                    </div>
+                    <label className="h-9 px-3.5 inline-flex items-center gap-1.5 rounded-lg border text-[13.5px] font-medium cursor-pointer transition-colors hover:bg-[var(--theme-nav-hover)]"
+                      style={{ borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }}>
                       <Camera className="w-4 h-4" />
                       {avatarUploading ? t('saving') : t('uploadPhoto')}
                       <input type="file" accept="image/*" className="sr-only" onChange={handleAvatarChange} disabled={avatarUploading} />
                     </label>
                   </div>
-                </div>
-
-                {/* Nome */}
-                <div className="space-y-2">
-                  <Label style={{ color: 'var(--theme-text)' }}>{t('yourName')}</Label>
-                  <Input
-                    value={displayName}
-                    onChange={(e) => { setDisplayName(e.target.value); setDisplayNameMessage(null) }}
-                    placeholder={t('yourName')}
-                    className="rounded-xl"
-                  />
-                </div>
-                {displayNameMessage === 'success' && <p className="text-sm text-green-600">{t('nameUpdated')}</p>}
-                {displayNameMessage === 'error' && <p className="text-sm text-red-600">{t('nameError')}</p>}
-                <Button
-                  className="rounded-xl"
-                  style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}
-                  disabled={displayNameSaving}
-                  onClick={async () => {
-                    if (!supabase) return
-                    setDisplayNameSaving(true)
-                    setDisplayNameMessage(null)
-                    const { error } = await supabase.auth.updateUser({ data: { full_name: displayName } })
-                    setDisplayNameSaving(false)
-                    setDisplayNameMessage(error ? 'error' : 'success')
-                  }}
-                >
-                  {displayNameSaving ? t('saving') : t('saveName')}
-                </Button>
-
-                {/* Email: exibição + troca */}
-                <div className="space-y-4">
-                  <Label className="flex items-center gap-2" style={{ color: 'var(--theme-text)' }}>
-                    <Mail className="w-4 h-4" />
-                    {t('email')}
-                  </Label>
-                  <p className="text-sm py-1" style={{ color: 'var(--theme-text-secondary)' }}>{userEmail || '—'}</p>
-                  <div className="space-y-2">
-                    <Label style={{ color: 'var(--theme-text)' }}>{t('newEmail')}</Label>
-                    <Input
-                      type="email"
-                      value={newEmail}
-                      onChange={(e) => { setNewEmail(e.target.value); setEmailMessage(null) }}
-                      placeholder="novo@email.com"
-                      className="rounded-xl"
-                    />
+                </Row>
+                <Row label={t('yourName')}>
+                  <div className="flex gap-2">
+                    <Input value={displayName} onChange={(e) => { setDisplayName(e.target.value); setDisplayNameMessage(null) }} placeholder={t('yourName')} />
+                    <Button variant="outline" className="h-10 shrink-0" disabled={displayNameSaving}
+                      onClick={async () => {
+                        if (!supabase) return
+                        setDisplayNameSaving(true); setDisplayNameMessage(null)
+                        const { error } = await supabase.auth.updateUser({ data: { full_name: displayName } })
+                        setDisplayNameSaving(false)
+                        setDisplayNameMessage(error ? 'error' : 'success')
+                      }}>
+                      {displayNameSaving ? t('saving') : (pt ? 'Salvar' : 'Save')}
+                    </Button>
                   </div>
+                  <Feedback state={displayNameMessage} ok={t('nameUpdated')} error={t('nameError')} />
+                </Row>
+                <Row label={t('email')} hint={userEmail || '—'}>
                   <div className="space-y-2">
-                    <Label style={{ color: 'var(--theme-text)' }}>{t('confirmEmail')}</Label>
-                    <Input
-                      type="email"
-                      value={confirmNewEmail}
-                      onChange={(e) => { setConfirmNewEmail(e.target.value); setEmailMessage(null) }}
-                      placeholder="novo@email.com"
-                      className="rounded-xl"
-                    />
+                    <Input type="email" value={newEmail} onChange={(e) => { setNewEmail(e.target.value); setEmailMessage(null) }} placeholder={t('newEmail')} />
+                    <Input type="email" value={confirmNewEmail} onChange={(e) => { setConfirmNewEmail(e.target.value); setEmailMessage(null) }} placeholder={t('confirmEmail')} />
+                    <Button variant="outline" disabled={!canChangeEmail || emailSaving}
+                      onClick={async () => {
+                        if (!supabase || !canChangeEmail) return
+                        setEmailSaving(true); setEmailMessage(null)
+                        const { error } = await supabase.auth.updateUser({ email: newEmail.trim() })
+                        setEmailSaving(false)
+                        setEmailMessage(error ? 'error' : 'success')
+                        if (!error) { setNewEmail(''); setConfirmNewEmail('') }
+                      }}>
+                      {emailSaving ? t('saving') : t('changeEmailButton')}
+                    </Button>
+                    <Feedback state={emailMessage} ok={t('emailUpdated')} error={t('emailUpdateError')} />
                   </div>
-                  {emailMessage === 'success' && <p className="text-sm text-green-600">{t('emailUpdated')}</p>}
-                  {emailMessage === 'error' && <p className="text-sm text-red-600">{t('emailUpdateError')}</p>}
-                  <Button
-                    className="rounded-xl"
-                    style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}
-                    disabled={!canChangeEmail || emailSaving}
-                    onClick={async () => {
-                      if (!supabase || !canChangeEmail) return
-                      setEmailSaving(true)
-                      setEmailMessage(null)
-                      const { error } = await supabase.auth.updateUser({ email: newEmail.trim() })
-                      setEmailSaving(false)
-                      setEmailMessage(error ? 'error' : 'success')
-                      if (!error) {
-                        setNewEmail('')
-                        setConfirmNewEmail('')
-                      }
-                    }}
-                  >
-                    {emailSaving ? t('saving') : t('changeEmailButton')}
-                  </Button>
-                </div>
-              </div>
-            </section>
+                </Row>
+              </Section>
 
-            <section className="space-y-4">
-              <h2 className="text-xl font-semibold flex items-center gap-2" style={{ color: 'var(--theme-text)' }}>
-                <Lock className="w-5 h-5" />
-                {t('changePassword')}
-              </h2>
-              <div className="p-6 rounded-3xl border transition-colors" style={{ backgroundColor: 'var(--theme-bg-secondary)', borderColor: 'var(--theme-border-subtle)' }}>
-                <div className="space-y-4">
+              <Section id="security" icon={<KeyRound className="w-4 h-4" />} title={pt ? 'Segurança' : 'Security'}>
+                <Row label={t('changePassword')} hint={pt ? 'Use pelo menos 6 caracteres.' : 'Use at least 6 characters.'}>
                   <div className="space-y-2">
-                    <Label style={{ color: 'var(--theme-text)' }}>{t('newPassword')}</Label>
-                    <Input
-                      type="password"
-                      value={newPassword}
-                      onChange={(e) => { setNewPassword(e.target.value); setPasswordMessage(null) }}
-                      placeholder="••••••••"
-                      className="rounded-xl"
-                    />
+                    <Input type="password" value={newPassword} onChange={(e) => { setNewPassword(e.target.value); setPasswordMessage(null) }} placeholder={t('newPassword')} autoComplete="new-password" />
+                    <Input type="password" value={confirmPassword} onChange={(e) => { setConfirmPassword(e.target.value); setPasswordMessage(null) }} placeholder={t('confirmPassword')} autoComplete="new-password" />
+                    <Button variant="outline" disabled={passwordSaving || !newPassword.trim() || newPassword !== confirmPassword}
+                      onClick={async () => {
+                        if (!supabase || newPassword !== confirmPassword) return
+                        setPasswordSaving(true); setPasswordMessage(null)
+                        const { error } = await supabase.auth.updateUser({ password: newPassword })
+                        setPasswordSaving(false)
+                        setPasswordMessage(error ? 'error' : 'success')
+                        if (!error) { setNewPassword(''); setConfirmPassword('') }
+                      }}>
+                      {passwordSaving ? t('saving') : t('changePasswordButton')}
+                    </Button>
+                    <Feedback state={passwordMessage} ok={t('passwordChanged')} error={t('passwordError')} />
                   </div>
-                  <div className="space-y-2">
-                    <Label style={{ color: 'var(--theme-text)' }}>{t('confirmPassword')}</Label>
-                    <Input
-                      type="password"
-                      value={confirmPassword}
-                      onChange={(e) => { setConfirmPassword(e.target.value); setPasswordMessage(null) }}
-                      placeholder="••••••••"
-                      className="rounded-xl"
-                    />
-                  </div>
-                  {passwordMessage === 'success' && <p className="text-sm text-green-600">{t('passwordChanged')}</p>}
-                  {passwordMessage === 'error' && <p className="text-sm text-red-600">{t('passwordError')}</p>}
-                  <Button
-                    className="rounded-xl"
-                    style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}
-                    disabled={passwordSaving || !newPassword.trim() || newPassword !== confirmPassword}
-                    onClick={async () => {
-                      if (!supabase || newPassword !== confirmPassword) return
-                      setPasswordSaving(true)
-                      setPasswordMessage(null)
-                      const { error } = await supabase.auth.updateUser({ password: newPassword })
-                      setPasswordSaving(false)
-                      setPasswordMessage(error ? 'error' : 'success')
-                      if (!error) {
-                        setNewPassword('')
-                        setConfirmPassword('')
-                      }
-                    }}
-                  >
-                    {passwordSaving ? t('saving') : t('changePasswordButton')}
-                  </Button>
-                </div>
-              </div>
-            </section>
+                </Row>
+              </Section>
 
-            <AiConnections />
-
-            <VoiceSettings />
-          </>
-        )}
+              <div id="ai" className="scroll-mt-8"><AiConnections /></div>
+              <div id="voices" className="scroll-mt-8"><VoiceSettings /></div>
+            </>
+          )}
+        </div>
       </div>
     </div>
   )

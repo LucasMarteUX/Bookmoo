@@ -29,6 +29,8 @@ interface XpState {
   events: XpEvent[]
   /** Soma pontos uma única vez por chave. Devolve false se já tinha sido contado. */
   award: (key: string, amount: number, at?: number) => boolean
+  /** Tira pontos uma única vez por chave. Devolve false se não houver saldo ou se já foi cobrado. */
+  spend: (key: string, amount: number) => boolean
   /** Liga o envio ao Supabase e junta o histórico do servidor com o local. */
   connect: (supabase: SupabaseClient | null, userId: string | null) => Promise<void>
 }
@@ -43,6 +45,18 @@ export const useXpStore = create<XpState>()(
         set(state => ({ events: [...state.events, event] }))
         if (sync) void sync.supabase.from('xp_events')
           .upsert({ user_id: sync.userId, key: event.key, amount: event.amount, created_at: new Date(at).toISOString() }, { onConflict: 'user_id,key', ignoreDuplicates: true })
+          .then(({ error }) => { if (error) console.warn('xp sync', error.message) })
+        return true
+      },
+      spend: (key, amount) => {
+        if (!key || amount <= 0 || get().events.some(e => e.key === key)) return false
+        const total = get().events.reduce((sum, e) => sum + e.amount, 0)
+        const cost = Math.min(1000, Math.round(amount))
+        if (total < cost) return false
+        const event = { key: key.slice(0, 300), amount: -cost, at: Date.now() }
+        set(state => ({ events: [...state.events, event] }))
+        if (sync) void sync.supabase.from('xp_events')
+          .upsert({ user_id: sync.userId, key: event.key, amount: event.amount, created_at: new Date(event.at).toISOString() }, { onConflict: 'user_id,key', ignoreDuplicates: true })
           .then(({ error }) => { if (error) console.warn('xp sync', error.message) })
         return true
       },

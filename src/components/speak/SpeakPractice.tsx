@@ -377,7 +377,7 @@ export function SpeakPractice({ book }: Props) {
         )}
 
         {(notice || error) && (
-          <div className="mb-4 rounded-xl border px-4 py-3 text-sm" role="status" style={{ borderColor: error ? '#F0524F' : 'var(--theme-border-subtle)', color: error ? '#C2312E' : 'var(--theme-text-secondary)', backgroundColor: 'var(--theme-bg-secondary)' }}>
+          <div className="mb-4 rounded-xl border px-4 py-3 text-sm" role="status" style={{ borderColor: error ? 'var(--pastel-rose-fg)' : 'var(--theme-border-subtle)', color: error ? 'var(--pastel-rose-fg)' : 'var(--theme-text-secondary)', backgroundColor: 'var(--theme-bg-secondary)' }}>
             {error ?? notice}
           </div>
         )}
@@ -555,7 +555,7 @@ function EngineSwitch({ engine, onChange, disabled, s }: { engine: EngineId | nu
         {options.map(({ id, label, hint, icon: Icon }) => (
           <button key={id} type="button" onClick={() => { onChange(id); setOpen(false) }}
             className="w-full flex items-start gap-3 p-2.5 rounded-xl text-left hover:bg-[var(--theme-nav-hover)]"
-            style={{ boxShadow: engine === id ? 'inset 0 0 0 1.5px var(--theme-accent, #7756c6)' : undefined }}>
+            style={{ boxShadow: engine === id ? 'inset 0 0 0 1.5px var(--theme-accent, #55534E)' : undefined }}>
             <Icon className="w-4 h-4 mt-0.5 shrink-0" />
             <span className="flex-1">
               <span className="flex items-center gap-1 text-sm font-medium">{label}{engine === id && <Check className="w-3.5 h-3.5" />}</span>
@@ -588,7 +588,7 @@ function ScorePanel({ score, s, practiceWords, onPick }: {
   }, [score.accuracy])
 
   const stars = score.accuracy >= 95 ? 3 : score.accuracy >= 80 ? 2 : score.accuracy >= 60 ? 1 : 0
-  const ringColor = score.accuracy >= 80 ? '#34C46F' : score.accuracy >= 60 ? '#FFAE2B' : '#F0524F'
+  const ringColor = score.accuracy >= 80 ? 'var(--pastel-green-fg)' : score.accuracy >= 60 ? 'var(--pastel-amber-bd)' : 'var(--pastel-rose-fg)'
   const R = 46
   const C = 2 * Math.PI * R
 
@@ -609,8 +609,8 @@ function ScorePanel({ score, s, practiceWords, onPick }: {
             <circle cx="55" cy="55" r={R} fill="none" stroke={ringColor} strokeWidth="10" strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C * (1 - shownPct / 100)} />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-3xl font-bold tabular-nums" style={{ color: 'var(--theme-text)', fontFamily: "'Fredoka', system-ui, sans-serif" }}>{shownPct}%</span>
-            <span className="text-[11px] uppercase tracking-wider" style={{ color: 'var(--theme-text-secondary)' }}>{s.accuracy}</span>
+            <span className="text-3xl font-bold tabular-nums" style={{ color: 'var(--theme-text)', fontFamily: 'var(--font-sans)' }}>{shownPct}%</span>
+            <span className="text-[11px]" style={{ color: 'var(--theme-text-secondary)' }}>{s.accuracy}</span>
           </div>
         </div>
 
@@ -618,15 +618,15 @@ function ScorePanel({ score, s, practiceWords, onPick }: {
           <div className="flex items-center justify-center sm:justify-start gap-1">
             {[0, 1, 2].map((i) => (
               <motion.span key={i} initial={{ scale: 0, rotate: -30 }} animate={{ scale: 1, rotate: 0 }} transition={{ delay: 0.5 + i * 0.18, type: 'spring', stiffness: 500, damping: 15 }}>
-                <Star className="w-7 h-7" fill={i < stars ? '#FFC83D' : 'none'} stroke={i < stars ? '#E0A800' : 'var(--theme-text-secondary)'} strokeWidth={2} />
+                <Star className="w-7 h-7" fill={i < stars ? 'var(--pastel-amber-bd)' : 'none'} stroke={i < stars ? 'var(--pastel-amber-fg)' : 'var(--theme-text-secondary)'} strokeWidth={2} />
               </motion.span>
             ))}
-            <span className="ml-2 text-lg font-semibold" style={{ color: 'var(--theme-text)', fontFamily: "'Fredoka', system-ui, sans-serif" }}>{s.medals[stars]}</span>
+            <span className="ml-2 text-lg font-semibold" style={{ color: 'var(--theme-text)', fontFamily: 'var(--font-sans)' }}>{s.medals[stars]}</span>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            <Stat value={score.ok} label={s.statOk} color="#34C46F" />
-            <Stat value={score.close} label={s.statClose} color="#E59A12" />
-            <Stat value={score.errors} label={s.errors} color="#F0524F" />
+            <Stat value={score.ok} label={s.statOk} color="#5FA97A" />
+            <Stat value={score.close} label={s.statClose} color="#C99545" />
+            <Stat value={score.errors} label={s.errors} color="#CF6B5F" />
             <Stat value={score.total} label={s.words} color="var(--theme-primary)" />
           </div>
           <p className="text-xs" style={{ color: 'var(--theme-text-secondary)' }}>
@@ -660,7 +660,7 @@ function ScorePanel({ score, s, practiceWords, onPick }: {
 function Stat({ value, label, color }: { value: number; label: string; color: string }) {
   return (
     <div className="rounded-2xl border px-2 py-2.5 text-center" style={{ borderColor: 'var(--theme-border-subtle)', backgroundColor: 'var(--theme-bg)' }}>
-      <div className="text-2xl font-bold tabular-nums leading-none" style={{ color, fontFamily: "'Fredoka', system-ui, sans-serif" }}>{value}</div>
+      <div className="text-2xl font-bold tabular-nums leading-none" style={{ color, fontFamily: 'var(--font-sans)' }}>{value}</div>
       <div className="text-[11px] mt-1 leading-tight" style={{ color: 'var(--theme-text-secondary)' }}>{label}</div>
     </div>
   )

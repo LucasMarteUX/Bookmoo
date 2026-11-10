@@ -144,13 +144,13 @@ export function PageSizeDialog({ book, open, pt, onOpenChange, onApply }: Props)
             : (pt ? `O livro ficará com ${preview.pages.length} páginas (hoje: ${book.pages.length}).` : `The book will have ${preview.pages.length} pages (now: ${book.pages.length}).`)}
         </p>
         {!unchanged && lost > 0 && (
-          <p className="text-sm rounded-xl p-3 bg-red-500/10 text-red-500">
+          <p className="text-sm rounded-xl p-3 bg-red-500/10 text-[var(--pastel-rose-fg)]">
             {pt
               ? `${lost} quadrinho(s) já gerado(s) deixam de corresponder ao texto das novas páginas e serão desvinculados deste livro.`
               : `${lost} generated comic page(s) will no longer match the new pages and will be unlinked from this book.`}
           </p>
         )}
-        {error && <p className="text-sm text-red-500">{error}</p>}
+        {error && <p className="text-sm text-[var(--pastel-rose-fg)]">{error}</p>}
         <div className="flex justify-end gap-2">
           <Button variant="ghost" onClick={() => onOpenChange(false)}>{pt ? 'Cancelar' : 'Cancel'}</Button>
           <Button onClick={apply} disabled={saving || unchanged}>

@@ -48,11 +48,11 @@ export function AiConnections() {
 
   return (
     <section className="space-y-4">
-      <h2 className="text-xl font-semibold flex items-center gap-2" style={{ color: 'var(--theme-text)' }}>
+      <h2 className="text-[15px] font-semibold flex items-center gap-2 mb-3" style={{ color: 'var(--theme-text)' }}>
         <KeyRound className="w-5 h-5" />
         Conexões de IA
       </h2>
-      <div className="p-6 rounded-3xl border transition-colors space-y-5" style={{ backgroundColor: 'var(--theme-bg-secondary)', borderColor: 'var(--theme-border-subtle)' }}>
+      <div className="p-5 rounded-2xl border transition-colors space-y-5" style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-border)' }}>
         <p className="text-sm flex gap-2" style={{ color: 'var(--theme-text-secondary)' }}>
           <ShieldCheck className="w-4 h-4 shrink-0 mt-0.5" />
           <span>
@@ -113,7 +113,7 @@ export function AiConnections() {
                   </Button>
                 )}
               </div>
-              {errors[p.id] && <p className="text-sm text-red-600">{errors[p.id]}</p>}
+              {errors[p.id] && <p className="text-sm text-[var(--pastel-rose-fg)]">{errors[p.id]}</p>}
             </div>
           )
         })}

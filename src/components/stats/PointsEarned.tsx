@@ -15,8 +15,8 @@ export function PointsEarned({ kind, bookId, page, pt }: { kind: PracticeKind; b
   return (
     <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}
       className="mt-3 rounded-2xl px-3 py-2 text-sm flex flex-wrap items-center gap-x-3 gap-y-1"
-      style={{ backgroundColor: 'color-mix(in srgb, #FFC83D 14%, transparent)', color: 'var(--theme-text)' }}>
-      <span className="font-semibold">⭐ +{base + bonus} {pt ? 'pontos' : 'points'}</span>
+      style={{ backgroundColor: 'color-mix(in srgb, #E9CF7E 14%, transparent)', color: 'var(--theme-text)' }}>
+      <span className="font-semibold">+{base + bonus} {pt ? 'pontos' : 'points'}</span>
       {recovered.length > 0 && (
         <span className="inline-flex flex-wrap items-center gap-1" style={{ color: 'var(--theme-text-secondary)' }}>
           🔁 {pt ? `${recovered.length} palavra(s) que você tinha errado — em dobro (+${bonus}):` : `${recovered.length} word(s) you had missed — double points (+${bonus}):`}

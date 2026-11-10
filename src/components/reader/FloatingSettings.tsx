@@ -27,7 +27,7 @@ export function FloatingSettings() {
             style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-border-subtle)' }}
           >
             <div className="space-y-2">
-              <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--theme-nav-text-muted)' }}>Font Size</span>
+              <span className="text-xs font-medium" style={{ color: 'var(--theme-nav-text-muted)' }}>Font Size</span>
               <div className="flex items-center justify-between rounded-xl p-1 transition-colors" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
                 <Button variant="ghost" size="icon" onClick={() => setFontSize(Math.max(14, fontSize - 2))} style={{ color: 'var(--theme-text)' }}>
                   <Minus className="w-4 h-4" />
@@ -40,7 +40,7 @@ export function FloatingSettings() {
             </div>
 
             <div className="space-y-2">
-              <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--theme-nav-text-muted)' }}>Line Height</span>
+              <span className="text-xs font-medium" style={{ color: 'var(--theme-nav-text-muted)' }}>Line Height</span>
               <div className="flex items-center justify-between rounded-xl p-1 transition-colors" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
                 <Button variant="ghost" size="icon" onClick={() => setLineHeight(Math.max(1.2, lineHeight - 0.2))} style={{ color: 'var(--theme-text)' }}>
                   <Minus className="w-4 h-4" />
@@ -53,7 +53,7 @@ export function FloatingSettings() {
             </div>
 
             <div className="space-y-2">
-              <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--theme-nav-text-muted)' }}>Theme</span>
+              <span className="text-xs font-medium" style={{ color: 'var(--theme-nav-text-muted)' }}>Theme</span>
               <div className="flex gap-2">
                 <Button 
                   variant={theme === 'light' ? 'default' : 'outline'} 
@@ -84,7 +84,7 @@ export function FloatingSettings() {
 
             <div className="space-y-2 pt-2 border-t transition-colors" style={{ borderColor: 'var(--theme-border-subtle)' }}>
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--theme-nav-text-muted)' }}>Highlights</span>
+                <span className="text-xs font-medium" style={{ color: 'var(--theme-nav-text-muted)' }}>Highlights</span>
                 <button 
                   onClick={toggleHighlights}
                   className={`w-10 h-6 rounded-full transition-colors relative ${showHighlights ? 'bg-[var(--theme-accent)]' : 'bg-zinc-200'}`}

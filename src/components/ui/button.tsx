@@ -7,23 +7,24 @@ export interface ButtonProps
   size?: "default" | "sm" | "lg" | "icon"
 }
 
+// Botões no estilo do app: compactos, cantos médios, peso médio. "default" = tinta (preto/branco conforme o tema).
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = "default", size = "default", style, ...props }, ref) => {
     return (
       <button
         ref={ref}
         className={cn(
-          "inline-flex items-center justify-center whitespace-nowrap rounded-[12px] text-sm font-semibold transition-all duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-primary)] focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+          "inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg text-sm font-medium transition-[background-color,opacity,box-shadow,transform] duration-150 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-accent)]/40 focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--theme-bg)] disabled:pointer-events-none disabled:opacity-50",
           {
-            "hover:opacity-95": variant === "default",
-            "border border-[var(--theme-border)]": variant === "secondary",
-            "bg-[var(--color-destructive)] text-white hover:opacity-95": variant === "destructive",
+            "hover:opacity-90 shadow-[0_1px_2px_rgba(0,0,0,0.12)]": variant === "default",
+            "hover:bg-[var(--theme-nav-active)]": variant === "secondary",
+            "bg-[var(--color-destructive)] text-white hover:opacity-90": variant === "destructive",
             "hover:bg-[var(--theme-nav-hover)] text-[var(--theme-text)]": variant === "ghost",
-            "border border-[var(--theme-border)] bg-[var(--theme-bg)]": variant === "outline",
-            "h-12 px-6": size === "default",
-            "h-9 rounded-lg px-4 text-xs": size === "sm",
-            "h-12 rounded-2xl px-8": size === "lg",
-            "h-10 w-10 rounded-[12px]": size === "icon",
+            "border bg-[var(--theme-bg)] hover:bg-[var(--theme-nav-hover)]": variant === "outline",
+            "h-9 px-3.5": size === "default",
+            "h-8 px-2.5 text-[13px]": size === "sm",
+            "h-11 px-5 text-[15px]": size === "lg",
+            "h-9 w-9": size === "icon",
           },
           className
         )}

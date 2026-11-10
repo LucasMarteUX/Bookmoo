@@ -5,7 +5,10 @@ import { useVocabularyStore, type VocabStatus } from '@/store/useVocabularyStore
 import { upsertVocabulary } from '@/lib/supabaseSync'
 import { WordTooltip, type WordTooltipState, type ScoreBurst } from './WordTooltip'
 import { FloatingAction } from './FloatingAction'
-import { VocabularyModal } from '../vocabulary/VocabularyModal'
+import { NoteDialog } from './NoteDialog'
+import { deletePin, loadPins, savePin, usePinStore, type StoryPin } from '@/store/usePinStore'
+import { fetchSharedImages, publishSharedImage, publishVersion, saveBookLink } from '@/lib/catalog'
+import { VocabularyModal, type VocabTab } from '../vocabulary/VocabularyModal'
 import { ChevronLeft, ChevronRight, MousePointer2, Type, Pin, PinOff, Pencil, Trash2, Play, Image as ImageIcon, Loader2, WandSparkles, Pause, Settings, X, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -21,7 +24,8 @@ import {
 import { getAiStatus, useAiStatus } from '@/lib/aiKeys'
 import { detectLetteringTheme, letteringThemeFor, type LetteringThemeId } from '@/lib/comicThemes'
 import { ToolButton, ToolGroup } from '@/components/ui/toolbar'
-import { VoiceRequiredDialog, needsVoiceInstall } from './VoiceRequiredDialog'
+import { needsVoiceInstall } from './VoiceRequiredDialog'
+import { askVoiceOnce } from '@/lib/voiceGate'
 import { XP, useXpStore } from '@/store/useXpStore'
 import { motion, useReducedMotion } from 'motion/react'
 import { ComicPageView, type ComicStage } from './ComicPageView'
@@ -40,8 +44,9 @@ import { useBookSync } from '@/hooks/useBookSync'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
 import { speak, stopSpeaking, pauseSpeaking, resumeSpeaking, prefetch, waitWhilePaused } from '@/lib/tts'
-import { activeKokoroVoice, cancelKokoroPrefetch, warmUpKokoro } from '@/lib/kokoro/engine'
+import { activeKokoroVoice, cancelKokoroPrefetch, subscribeKokoro, warmUpKokoro } from '@/lib/kokoro/engine'
 import { wordRegex, WORD_PATTERN } from '@/lib/wordTokens'
+import { findExpression } from '@/lib/expressions'
 import { isComicPageUrl } from '@/lib/comicStorage'
 import { useLanguage } from '@/store/useLanguage'
 import { useTranslations, getGeneratingComicMessage } from '@/lib/i18n'
@@ -68,7 +73,16 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [vocabToEdit, setVocabToEdit] = useState<string | null>(null)
   const [modalInitialText, setModalInitialText] = useState('')
-  const [interactionMode, setInteractionMode] = useState<'hand' | 'text'>('hand')
+  const [interactionMode, setInteractionMode] = useState<'hand' | 'text' | 'pin'>('hand')
+  const [autoExplain, setAutoExplain] = useState(false)
+  const [modalTab, setModalTab] = useState<VocabTab>('meaning')
+  const [noteDraft, setNoteDraft] = useState<(Partial<StoryPin> & { note: string }) | null>(null)
+  const [expressionIdx, setExpressionIdx] = useState<number[] | null>(null)
+  const [tipSpeaking, setTipSpeaking] = useState(false)
+  const [sharedImages, setSharedImages] = useState<Record<number, string>>({})
+  const dragSelect = useRef<number | null>(null)
+  const dragMoved = useRef(false)
+  const pins = usePinStore(s => s.pins)
   const [viewMode, setViewMode] = useState<'text' | 'comic'>('text')
   const [comicStage, setComicStage] = useState<ComicStage>(null)
   const [comicError, setComicError] = useState<{ page: number; message: string } | null>(null)
@@ -111,6 +125,14 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
     setPinnedVocabIds(new Set(book.pinnedVocabIds ?? []))
   }, [book.id, book.pinnedVocabIds])
 
+  useEffect(() => { if (userId) void loadPins(userId) }, [userId])
+  useEffect(() => {
+    if (!book.catalogId || book.imageMode === 'personal') { setSharedImages({}); return }
+    let alive = true
+    void fetchSharedImages(book.catalogId).then(images => { if (alive) setSharedImages(images) })
+    return () => { alive = false }
+  }, [book.catalogId, book.imageMode])
+
   // Make vocabularies reactive so the component re-renders when a new word is saved
   const vocabularies = useVocabularyStore(state => state.vocabularies).filter(v => v.bookId === book.id)
   const deleteVocabulary = useVocabularyStore(state => state.deleteVocabulary)
@@ -118,8 +140,13 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
   const updateVocabulary = useVocabularyStore(state => state.updateVocabulary)
   const [wordTip, setWordTip] = useState<WordTooltipState | null>(null)
   const [toolbarSlot, setToolbarSlot] = useState<HTMLDivElement | null>(null)
-  const [voiceDialogOpen, setVoiceDialogOpen] = useState(false)
   const pendingPlaybackRef = useRef<{ startWord?: number; rate?: number } | null>(null)
+  useEffect(() => subscribeKokoro(() => {
+    if (!activeKokoroVoice() || !pendingPlaybackRef.current) return
+    const opts = pendingPlaybackRef.current
+    pendingPlaybackRef.current = null
+    setTimeout(() => startPlaybackRef.current(opts), 300)
+  }), [])
   const reduceMotion = useReducedMotion()
   const lastPageRef = useRef(book.currentPage || 0)
   const pageDirection = (book.currentPage || 0) >= lastPageRef.current ? 1 : -1
@@ -292,7 +319,9 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
           const selectedClass = isSelected ? 'border-b-2 border-[var(--theme-accent)] bg-[var(--theme-accent)]/10' : ''
           const ttsClass = isTtsHighlight(idx) ? 'tts-current' : ''
           const hoverClass = interactionMode === 'hand' ? 'hover-word' : 'cursor-pointer hover:bg-[var(--theme-accent)]/10'
-          finalHtml += `<span data-word-index="${idx}" class="word-span ${hoverClass} ${selectedClass} ${ttsClass} transition-colors duration-150 rounded-sm">${escapeHtml(match[0])}</span>`
+          const pinClass = pins.some(pin => pin.bookId === book.id && pin.page === currentPage && pin.kind === 'word' && pin.wordIndex === idx) ? 'has-pin' : ''
+          const exprClass = expressionIdx?.includes(idx) ? 'expr-part' : ''
+          finalHtml += `<span data-word-index="${idx}" class="word-span ${hoverClass} ${selectedClass} ${ttsClass} ${pinClass} ${exprClass} transition-colors duration-150 rounded-sm">${escapeHtml(match[0])}</span>`
           lastIdx = regex.lastIndex;
         }
         if (lastIdx < seg.text.length) {
@@ -302,7 +331,7 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
     })
 
     return finalHtml
-  }, [currentContent, charToWord, vocabularies, showHighlights, interactionMode, selectedRange, ttsHighlightWordIndices, popWordIdx])
+  }, [currentContent, charToWord, vocabularies, showHighlights, interactionMode, selectedRange, ttsHighlightWordIndices, popWordIdx, pins, book.id, currentPage, expressionIdx])
   const contentWithHighlights = useMemo(() => buildWordsHtml(0, currentContent.length), [buildWordsHtml, currentContent])
 
   const handleContentClick = (e: React.MouseEvent) => {
@@ -310,8 +339,17 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
     const wordSpan = target.closest('span[data-word-index]')
     const idx = wordSpan ? parseInt(wordSpan.getAttribute('data-word-index') || '-1', 10) : -1
 
+    if (interactionMode === 'pin') {
+      if (idx < 0 || !wordSpan) return
+      const existing = pins.find(pin => pin.bookId === book.id && pin.page === currentPage && pin.kind === 'word' && pin.wordIndex === idx)
+      setNoteDraft(existing ?? { bookId: book.id, page: currentPage, kind: 'word', wordIndex: idx, quote: wordSpan.textContent || '', note: '' })
+      return
+    }
+
     // Modo "Select Text": clicar estende a seleção (para salvar frases).
+    // Se a pessoa arrastou, o intervalo já está pronto e o clique não pode encolher para uma palavra.
     if (interactionMode === 'text') {
+      if (dragMoved.current) { dragMoved.current = false; return }
       if (idx >= 0) {
         if (!selectedRange) setSelectedRange([idx, idx])
         else {
@@ -324,34 +362,33 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
       return
     }
 
-    // Modo "Click Word": clicar seleciona a palavra, pausa a leitura nela e abre as opções
-    // acima dela (ouvir daqui, voltar, marcar status, explicação). Não há hover.
-    if (idx < 0 || !wordSpan) { setWordTip(null); return }
+    // Modo "Click Word": clicar seleciona a palavra (ou a expressão inteira), pausa a leitura
+    // e abre as opções acima (ouvir a palavra, ouvir daqui, voltar, status, explicação).
+    if (idx < 0 || !wordSpan) { setWordTip(null); setExpressionIdx(null); return }
     if (isPlaying || isPaused) stopPlayback()
     resumeFromWordRef.current = idx
     currentWordRef.current = idx
-    setTtsHighlightWordIndices(new Set([idx]))
-    const rect = wordSpan.getBoundingClientRect()
-    setWordTip({ idx, text: wordSpan.textContent || '', x: rect.left + rect.width / 2, y: rect.bottom, top: rect.top - 2 })
+    const pageWords = pageWordTokens.map(token => currentContent.slice(token.start, token.end))
+    const grouped = expressionIdx?.includes(idx) && expressionIdx.length > 1
+    const hit = grouped ? null : findExpression(pageWords, idx, book.languageCode || 'en')
+    const focus = hit && hit.indices.length > 1 ? hit.indices : [idx]
+    setTtsHighlightWordIndices(new Set(focus))
+    setExpressionIdx(hit ? hit.indices : null)
+    const anchors = focus
+      .map(i => containerRef.current?.querySelector(`span[data-word-index="${i}"]`))
+      .filter((el): el is HTMLElement => el instanceof HTMLElement)
+    const rects = (anchors.length ? anchors : [wordSpan as HTMLElement]).map(el => el.getBoundingClientRect())
+    const left = Math.min(...rects.map(r => r.left))
+    const right = Math.max(...rects.map(r => r.right))
+    const top = Math.min(...rects.map(r => r.top))
+    const bottom = Math.max(...rects.map(r => r.bottom))
+    setWordTip({ idx, text: hit?.canonical || wordSpan.textContent || '', x: (left + right) / 2, y: bottom, top: top - 2 })
   }
 
   const playFromWord = (idx: number) => {
     setWordTip(null)
     stopPlayback()
     startPlaybackRef.current({ startWord: idx })
-  }
-  // "Voltar": recomeça do início da frase da palavra (ou da frase anterior, se ela já abre a frase).
-  const playFromSentenceStart = (idx: number) => {
-    const at = pageWordTokens[idx]?.start ?? 0
-    const sentenceStart = (before: number) => {
-      const head = currentContent.slice(0, before)
-      const match = [...head.matchAll(/[.!?…]["”’)\]]*\s+/gu)].at(-1)
-      return match ? match.index! + match[0].length : 0
-    }
-    let start = sentenceStart(at)
-    if (at - start < 2 && start > 0) start = sentenceStart(Math.max(0, start - 1))
-    const word = pageWordTokens.findIndex(token => token.start >= start)
-    playFromWord(word < 0 ? idx : word)
   }
 
   // Status rápido pelo tooltip: cria ou atualiza a palavra no vocabulário.
@@ -379,9 +416,10 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
     }
     if (hasSupabase && supabase && userId) upsertVocabulary(supabase, userId, saved).catch((err) => console.error('Sync vocab', err))
   }
-  const openExplanation = (text: string) => {
+  const openWordCard = (text: string, tab: VocabTab) => {
     setWordTip(null)
     if (isPlaying) { pauseSpeaking(); setIsPaused(true); setIsPlaying(false) }
+    setModalTab(tab)
     const existing = vocabForText(text)
     if (existing) handleEditVocab(existing.id)
     else handleAddVocab(text)
@@ -407,7 +445,7 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
       document.removeEventListener('keydown', onKey)
     }
   }, [wordTip])
-  useEffect(() => { setWordTip(null) }, [currentPage, viewMode])
+  useEffect(() => { setWordTip(null); setExpressionIdx(null) }, [currentPage, viewMode])
 
   const goToPage = (index: number) => {
     const newPage = Math.max(0, Math.min(pages.length - 1, index))
@@ -558,6 +596,14 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
         style: generated.styleDoc, styleRevision: generated.previousStyleRevision,
         characters: generated.characters, previousCharacters: generated.previousCharacters,
       })
+      if (book.catalogId && book.imageMode !== 'personal' && userId && /^https?:\/\//.test(generated.imageUrl) && !sharedImages[pageIndex]) {
+        try {
+          const published = await publishSharedImage(book.catalogId, pageIndex, generated.imageUrl, userId)
+          if (published) setSharedImages(prev => ({ ...prev, [pageIndex]: generated.imageUrl }))
+        } catch (error) {
+          console.warn('shared comic image', error)
+        }
+      }
     } catch (error) {
       console.error('Failed to generate comic:', error)
       if (isNoApiKeyError(error)) setShowConnectApi(true)
@@ -679,7 +725,7 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
     // Sem voz instalada (livro em inglês): pede para instalar em vez de usar a voz do navegador.
     if (needsVoiceInstall(narrationLanguage)) {
       pendingPlaybackRef.current = opts
-      setVoiceDialogOpen(true)
+      askVoiceOnce()
       return
     }
     browserPlaybackCancelledRef.current = false
@@ -945,7 +991,7 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
                     <button onClick={(e) => { e.stopPropagation(); handleEditVocab(vocab.id); }} className="hover:text-[var(--theme-accent)] rounded p-1 transition-colors" style={{ color: 'var(--theme-text-secondary)', backgroundColor: 'var(--theme-bg-secondary)' }} title="Edit">
                       <Pencil className="w-4 h-4" />
                     </button>
-                    <button onClick={(e) => { e.stopPropagation(); deleteVocabulary(vocab.id); setHoveredVocabId(null); }} className="hover:text-red-500 rounded p-1 transition-colors" style={{ color: 'var(--theme-text-secondary)', backgroundColor: 'var(--theme-bg-secondary)' }} title="Delete">
+                    <button onClick={(e) => { e.stopPropagation(); deleteVocabulary(vocab.id); setHoveredVocabId(null); }} className="hover:text-[var(--pastel-rose-fg)] rounded p-1 transition-colors" style={{ color: 'var(--theme-text-secondary)', backgroundColor: 'var(--theme-bg-secondary)' }} title="Delete">
                       <Trash2 className="w-4 h-4" />
                     </button>
                     <button onClick={(e) => togglePin(vocab.id, e)} className="rounded p-1 transition-colors" style={{ color: 'var(--theme-text-secondary)', backgroundColor: 'var(--theme-bg-secondary)' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--theme-text)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--theme-text-secondary)'} title="Pin">
@@ -959,7 +1005,7 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
                   )}
                   {vocab.examples && vocab.examples.length > 0 && (
                     <div className="pt-2 border-t" style={{ borderColor: 'var(--theme-postit-border)' }}>
-                      <span className="font-semibold text-[10px] uppercase tracking-wider block mb-1" style={{ color: 'var(--theme-text-secondary)' }}>Examples</span>
+                      <span className="font-semibold text-[11.5px] block mb-1" style={{ color: 'var(--theme-text-secondary)' }}>Examples</span>
                       <ul className="list-disc pl-4 space-y-1 text-xs opacity-80">
                         {vocab.examples.map((ex, i) => (
                           <li key={i} className="leading-relaxed">{ex}</li>
@@ -969,10 +1015,10 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
                   )}
                   {vocab.grammarExamples && vocab.grammarExamples.length > 0 && (
                     <div className="space-y-2 border-t pt-2" style={{ borderColor: 'var(--theme-postit-border)' }}>
-                      <span className="font-semibold text-[10px] uppercase tracking-wider" style={{ color: 'var(--theme-text-secondary)' }}>Formas de uso</span>
+                      <span className="font-semibold text-[11.5px]" style={{ color: 'var(--theme-text-secondary)' }}>Formas de uso</span>
                       {vocab.grammarExamples.map((example) => (
                         <div key={example.form} className="rounded-lg p-2" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
-                          <span className="text-[10px] font-bold uppercase" style={{ color: 'var(--theme-accent)' }}>
+                          <span className="text-[11.5px] font-bold uppercase" style={{ color: 'var(--theme-accent)' }}>
                             {example.form === 'affirmative' ? 'Afirmativa' : example.form === 'negative' ? 'Negativa' : 'Interrogativa'}
                           </span>
                           <p className="mt-1 text-xs font-medium">{example.english}</p>
@@ -988,7 +1034,7 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
                   )}
                   {vocab.variantStory && (
                     <div className="border-t pt-2" style={{ borderColor: 'var(--theme-postit-border)' }}>
-                      <span className="font-semibold text-[10px] uppercase tracking-wider" style={{ color: 'var(--theme-text-secondary)' }}>História paralela</span>
+                      <span className="font-semibold text-[11.5px]" style={{ color: 'var(--theme-text-secondary)' }}>História paralela</span>
                       <p className="mt-1 whitespace-pre-wrap text-xs leading-relaxed">{vocab.variantStory}</p>
                     </div>
                   )}
@@ -1023,7 +1069,7 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
                       <button onClick={(e) => { e.stopPropagation(); handleEditVocab(vocab.id); }} className="hover:text-[var(--theme-accent)] rounded p-1 transition-colors" style={{ color: 'var(--theme-text-secondary)', backgroundColor: 'var(--theme-bg-secondary)' }} title="Edit">
                         <Pencil className="w-4 h-4" />
                       </button>
-                      <button onClick={(e) => { e.stopPropagation(); deleteVocabulary(vocab.id); setPinnedVocabIds(prev => { const next = new Set(prev); next.delete(vocab.id); updateBookAndSync(book.id, { pinnedVocabIds: Array.from(next) }); return next; }); }} className="hover:text-red-500 rounded p-1 transition-colors" style={{ color: 'var(--theme-text-secondary)', backgroundColor: 'var(--theme-bg-secondary)' }} title="Delete">
+                      <button onClick={(e) => { e.stopPropagation(); deleteVocabulary(vocab.id); setPinnedVocabIds(prev => { const next = new Set(prev); next.delete(vocab.id); updateBookAndSync(book.id, { pinnedVocabIds: Array.from(next) }); return next; }); }} className="hover:text-[var(--pastel-rose-fg)] rounded p-1 transition-colors" style={{ color: 'var(--theme-text-secondary)', backgroundColor: 'var(--theme-bg-secondary)' }} title="Delete">
                         <Trash2 className="w-4 h-4" />
                       </button>
                       <button onClick={(e) => togglePin(id, e)} className="rounded p-1 transition-colors" style={{ color: 'var(--theme-text-secondary)', backgroundColor: 'var(--theme-bg-secondary)' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--theme-text)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--theme-text-secondary)'} title="Unpin">
@@ -1037,7 +1083,7 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
                     )}
                     {vocab.examples && vocab.examples.length > 0 && (
                       <div className="pt-2 border-t" style={{ borderColor: 'var(--theme-postit-border)' }}>
-                        <span className="font-semibold text-[10px] uppercase tracking-wider block mb-1" style={{ color: 'var(--theme-text-secondary)' }}>Examples</span>
+                        <span className="font-semibold text-[11.5px] block mb-1" style={{ color: 'var(--theme-text-secondary)' }}>Examples</span>
                         <ul className="list-disc pl-4 space-y-1 text-xs opacity-80">
                           {vocab.examples.map((ex, i) => (
                             <li key={i} className="leading-relaxed">{ex}</li>
@@ -1047,10 +1093,10 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
                     )}
                     {vocab.grammarExamples && vocab.grammarExamples.length > 0 && (
                       <div className="space-y-2 border-t pt-2" style={{ borderColor: 'var(--theme-postit-border)' }}>
-                        <span className="font-semibold text-[10px] uppercase tracking-wider" style={{ color: 'var(--theme-text-secondary)' }}>Formas de uso</span>
+                        <span className="font-semibold text-[11.5px]" style={{ color: 'var(--theme-text-secondary)' }}>Formas de uso</span>
                         {vocab.grammarExamples.map((example) => (
                           <div key={example.form} className="rounded-lg p-2" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
-                            <span className="text-[10px] font-bold uppercase" style={{ color: 'var(--theme-accent)' }}>
+                            <span className="text-[11.5px] font-bold uppercase" style={{ color: 'var(--theme-accent)' }}>
                               {example.form === 'affirmative' ? 'Afirmativa' : example.form === 'negative' ? 'Negativa' : 'Interrogativa'}
                             </span>
                             <p className="mt-1 text-xs font-medium">{example.english}</p>
@@ -1066,7 +1112,7 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
                     )}
                     {vocab.variantStory && (
                       <div className="border-t pt-2" style={{ borderColor: 'var(--theme-postit-border)' }}>
-                        <span className="font-semibold text-[10px] uppercase tracking-wider" style={{ color: 'var(--theme-text-secondary)' }}>História paralela</span>
+                        <span className="font-semibold text-[11.5px]" style={{ color: 'var(--theme-text-secondary)' }}>História paralela</span>
                         <p className="mt-1 whitespace-pre-wrap text-xs leading-relaxed">{vocab.variantStory}</p>
                       </div>
                     )}
@@ -1084,7 +1130,9 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
   }
 
   const comicImage = (() => {
-    const v = book.comicPages?.[currentPage]
+    const own = book.comicPages?.[currentPage]
+    const shared = book.catalogId && book.imageMode !== 'personal' ? sharedImages[currentPage] : undefined
+    const v = book.imageMode === 'personal' ? own : (shared || own)
     return v ? (isComicPageUrl(v) ? v : `data:image/jpeg;base64,${v}`) : null
   })()
   // No modo HQ, página ainda sem quadrinho continua mostrando o texto (com o botão de gerar no topo).
@@ -1139,14 +1187,14 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
                   </button>
                 </PopoverTrigger>
                 <PopoverContent
-                  className="w-72 p-4 rounded-2xl shadow-2xl border backdrop-blur-md"
+                  className="w-72 p-4"
                   style={{ backgroundColor: 'var(--theme-nav-bg)', borderColor: 'var(--theme-border-subtle)' }}
                   align="end"
                   sideOffset={8}
                 >
                   <div className="space-y-5">
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--theme-text-secondary)' }}>{t('fontSize')}</p>
+                      <p className="text-[12px] font-medium mb-2" style={{ color: 'var(--theme-text-secondary)' }}>{t('fontSize')}</p>
                       <div className="flex items-center gap-3">
                         <button type="button" onClick={() => setFontSize(Math.max(12, fontSize - 1))} className="w-9 h-9 rounded-lg flex items-center justify-center text-lg font-bold transition-colors hover:bg-[var(--theme-nav-hover)] disabled:opacity-40" style={{ color: 'var(--theme-text)' }} disabled={fontSize <= 12}>A-</button>
                         <span className="flex-1 text-center text-sm font-medium tabular-nums" style={{ color: 'var(--theme-text)' }}>{fontSize}</span>
@@ -1154,7 +1202,7 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
                       </div>
                     </div>
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--theme-text-secondary)' }}>{t('lineHeight')}</p>
+                      <p className="text-[12px] font-medium mb-2" style={{ color: 'var(--theme-text-secondary)' }}>{t('lineHeight')}</p>
                       <div className="flex items-center gap-3">
                         <button type="button" onClick={() => setLineHeight(Math.max(1.2, Math.round((lineHeight - 0.1) * 10) / 10))} className="w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold transition-colors hover:bg-[var(--theme-nav-hover)] disabled:opacity-40" style={{ color: 'var(--theme-text)' }} disabled={lineHeight <= 1.2}>−</button>
                         <span className="flex-1 text-center text-sm font-medium tabular-nums" style={{ color: 'var(--theme-text)' }}>{lineHeight}</span>
@@ -1162,7 +1210,7 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
                       </div>
                     </div>
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--theme-text-secondary)' }}>{t('fontType')}</p>
+                      <p className="text-[12px] font-medium mb-2" style={{ color: 'var(--theme-text-secondary)' }}>{t('fontType')}</p>
                       <div className="flex gap-2">
                         {(['serif', 'sans'] as const).map((f) => (
                           <button key={f} type="button" onClick={() => setFontFamily(f)} className={`flex-1 py-2 px-3 rounded-xl text-sm font-medium transition-all ${fontFamily === f ? 'ring-2 ring-[var(--theme-primary)]' : ''}`} style={{ backgroundColor: fontFamily === f ? 'var(--theme-primary)' : 'var(--theme-bg-secondary)', color: fontFamily === f ? 'var(--theme-primary-text)' : 'var(--theme-text-secondary)' }}>{f === 'serif' ? t('serif') : t('sansSerif')}</button>
@@ -1191,6 +1239,44 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
               className={`whitespace-pre-wrap relative ${interactionMode === 'text' ? 'select-text' : 'select-none'}`}
               style={{ fontFamily: readerFontFamily, fontSize: `${fontSize}px`, lineHeight: lineHeight }}
               onClick={handleContentClick}
+              onMouseDown={(e) => {
+                if (interactionMode !== 'text') return
+                const raw = (e.target as HTMLElement).closest?.('span[data-word-index]')?.getAttribute('data-word-index')
+                if (raw == null) return
+                dragSelect.current = Number(raw)
+                dragMoved.current = false
+              }}
+              onMouseOver={(e) => {
+                if (interactionMode === 'hand') {
+                  const root = containerRef.current
+                  const rawHover = (e.target as HTMLElement).closest?.('span[data-word-index]')?.getAttribute('data-word-index')
+                  if (!root || rawHover == null) {
+                    root?.querySelectorAll('span.expr-hover').forEach(el => el.classList.remove('expr-hover'))
+                    return
+                  }
+                  const hoverIdx = Number(rawHover)
+                  const pageWords = pageWordTokens.map(token => currentContent.slice(token.start, token.end))
+                  const hit = findExpression(pageWords, hoverIdx, book.languageCode || 'en')
+                  const next = hit && hit.indices.length > 1 ? hit.indices : null
+                  root.querySelectorAll('span.expr-hover').forEach(el => el.classList.remove('expr-hover'))
+                  next?.forEach(i => root.querySelectorAll(`span[data-word-index="${i}"]`).forEach(el => el.classList.add('expr-hover')))
+                  return
+                }
+                if (dragSelect.current == null || interactionMode !== 'text') return
+                const raw = (e.target as HTMLElement).closest?.('span[data-word-index]')?.getAttribute('data-word-index')
+                if (raw == null) return
+                const idx = Number(raw)
+                const start = dragSelect.current
+                if (idx === start) return
+                dragMoved.current = true
+                setSelectedRange(start <= idx ? [start, idx] : [idx, start])
+              }}
+              onMouseOut={(e) => {
+                const next = e.relatedTarget
+                if (next instanceof Node && e.currentTarget.contains(next)) return
+                containerRef.current?.querySelectorAll('span.expr-hover').forEach(el => el.classList.remove('expr-hover'))
+              }}
+              onMouseUp={() => { dragSelect.current = null }}
               dangerouslySetInnerHTML={{ __html: contentWithHighlights }}
             />
           </>
@@ -1204,6 +1290,13 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
             sourceText={currentContent}
             locale={locale}
             onContentClick={handleContentClick}
+            pinMode={interactionMode === 'pin'}
+            comicPins={pins.filter(pin => pin.bookId === book.id && pin.page === currentPage && pin.kind === 'comic' && pin.x != null && pin.y != null).map(pin => ({ id: pin.id, x: pin.x!, y: pin.y!, note: pin.note }))}
+            onPlacePin={(x, y) => setNoteDraft({ bookId: book.id, page: currentPage, kind: 'comic', x, y, note: '' })}
+            onOpenPin={(id) => {
+              const pin = pins.find(item => item.id === id)
+              if (pin) setNoteDraft(pin)
+            }}
             fullscreenTarget={() => readerRootRef.current}
             stage={comicStage}
             error={comicError?.page === currentPage ? comicError.message : undefined}
@@ -1246,15 +1339,15 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
       {/* Floating Toolbar — no livro no mobile fica embaixo (BottomNav escondido) */}
       <div className="fixed left-2 right-2 md:left-[var(--sidebar-w,16rem)] md:right-8 md:bottom-8 z-40 flex flex-col items-center" style={{ bottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
         <div 
-          className="backdrop-blur-md border p-1.5 md:p-2.5 rounded-full shadow-2xl flex items-center justify-between md:justify-center gap-0.5 md:gap-1.5 transition-colors w-full flex-nowrap md:w-auto"
-          style={{ backgroundColor: 'var(--theme-nav-bg)', borderColor: 'var(--theme-border-subtle)' }}
+          className="backdrop-blur-md border p-1.5 rounded-2xl shadow-[0_1px_2px_rgba(15,15,15,0.06),0_18px_44px_-14px_rgba(15,15,15,0.38)] flex items-center justify-between md:justify-center gap-0.5 md:gap-1.5 transition-colors w-full flex-nowrap md:w-auto"
+          style={{ backgroundColor: 'color-mix(in srgb, var(--theme-card-bg) 92%, transparent)', borderColor: 'var(--theme-border)' }}
         >
           {/* Previous page — à esquerda no mobile; no desktop no fluxo central */}
           <button
             type="button"
             onClick={() => changePage(-1)}
             disabled={currentPage === 0}
-            className="flex items-center justify-center w-12 h-12 min-w-[48px] min-h-[48px] rounded-full transition-colors shrink-0 disabled:opacity-40 hover:bg-[var(--theme-nav-hover)] xl:px-4 xl:w-auto"
+            className="flex items-center justify-center w-10 h-10 min-w-[40px] min-h-[40px] rounded-xl transition-colors shrink-0 disabled:opacity-40 hover:bg-[var(--theme-nav-hover)] xl:px-4 xl:w-auto"
             style={{ color: 'var(--theme-nav-text)' }}
             title={t('previousPage')}
             aria-label={t('previousPage')}
@@ -1268,10 +1361,10 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
           <div className="flex items-center gap-0.5 md:gap-1 flex-1 justify-center min-w-0">
           <button
             onClick={() => setInteractionMode('hand')}
-            className="flex items-center gap-2 px-3 md:px-4 py-2.5 rounded-full text-sm font-medium transition-all min-h-[44px] min-w-[44px] justify-center shrink-0"
+            className="flex items-center gap-2 px-3 h-10 rounded-xl text-[13.5px] font-medium transition-all min-w-[40px] justify-center shrink-0"
             style={{
-              backgroundColor: interactionMode === 'hand' ? 'var(--theme-primary)' : 'transparent',
-              color: interactionMode === 'hand' ? 'var(--theme-primary-text)' : 'var(--theme-nav-text-muted)'
+              backgroundColor: interactionMode === 'hand' ? 'var(--theme-nav-active)' : 'transparent',
+              color: interactionMode === 'hand' ? 'var(--theme-text)' : 'var(--theme-nav-text-muted)'
             }}
             title={t('clickWord')}
             aria-label={t('clickWord')}
@@ -1281,10 +1374,10 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
           </button>
           <button
             onClick={() => setInteractionMode('text')}
-            className="flex items-center gap-2 px-3 md:px-4 py-2.5 rounded-full text-sm font-medium transition-all min-h-[44px] min-w-[44px] justify-center shrink-0"
+            className="flex items-center gap-2 px-3 h-10 rounded-xl text-[13.5px] font-medium transition-all min-w-[40px] justify-center shrink-0"
             style={{
-              backgroundColor: interactionMode === 'text' ? 'var(--theme-primary)' : 'transparent',
-              color: interactionMode === 'text' ? 'var(--theme-primary-text)' : 'var(--theme-nav-text-muted)'
+              backgroundColor: interactionMode === 'text' ? 'var(--theme-nav-active)' : 'transparent',
+              color: interactionMode === 'text' ? 'var(--theme-text)' : 'var(--theme-nav-text-muted)'
             }}
             title={t('selectText')}
             aria-label={t('selectText')}
@@ -1292,26 +1385,39 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
             <Type className="w-4 h-4 shrink-0" />
             <span className="hidden md:inline">{t('selectText')}</span>
           </button>
+          <button
+            onClick={() => { setInteractionMode('pin'); setSelectedRange(null) }}
+            className="flex items-center gap-2 px-3 h-10 rounded-xl text-[13.5px] font-medium transition-all min-w-[40px] justify-center shrink-0"
+            style={{
+              backgroundColor: interactionMode === 'pin' ? 'var(--theme-pastel-3)' : 'transparent',
+              color: interactionMode === 'pin' ? 'var(--theme-pastel-text)' : 'var(--theme-nav-text-muted)'
+            }}
+            title={locale === 'pt-BR' ? 'Cravar uma nota' : 'Pin a note'}
+            aria-label={locale === 'pt-BR' ? 'Cravar uma nota' : 'Pin a note'}
+          >
+            <Pin className="w-4 h-4 shrink-0" />
+            <span className="hidden md:inline">{locale === 'pt-BR' ? 'Nota' : 'Note'}</span>
+          </button>
           
           <div className="w-px h-6 mx-0.5 md:mx-1 transition-colors shrink-0" style={{ backgroundColor: 'var(--theme-border-subtle)' }}></div>
           
           <button
             onClick={togglePlayback}
-            className="flex items-center justify-center w-12 h-12 min-w-[48px] min-h-[48px] rounded-full transition-colors shrink-0"
+            className="flex items-center justify-center w-10 h-10 min-w-[40px] min-h-[40px] rounded-xl transition-colors shrink-0"
             style={{
-              backgroundColor: isPlaying || isPaused ? 'var(--theme-primary)' : 'transparent',
-              color: isPlaying || isPaused ? 'var(--theme-primary-text)' : 'var(--theme-nav-text)'
+              backgroundColor: 'var(--theme-primary)',
+              color: 'var(--theme-primary-text)'
             }}
             title={isPlaying ? t('pause') : isPaused ? t('listen') : t('listen')}
             aria-label={isPlaying ? t('pause') : isPaused ? t('listen') : t('listen')}
           >
-            {isLoadingTts ? <Loader2 className="w-4 h-4 animate-spin" /> : isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+            {isLoadingTts ? <Loader2 className="w-4 h-4 animate-spin" /> : isPlaying ? <Pause className="w-4 h-4" fill="currentColor" /> : <Play className="w-4 h-4 ml-0.5" fill="currentColor" />}
           </button>
           
           {(isPlaying || isPaused) && (
             <button
               onClick={stopPlayback}
-              className="flex items-center justify-center w-12 h-12 min-w-[48px] min-h-[48px] rounded-full transition-colors hover:bg-[var(--theme-nav-hover)] shrink-0"
+              className="flex items-center justify-center w-10 h-10 min-w-[40px] min-h-[40px] rounded-xl transition-colors hover:bg-[var(--theme-nav-hover)] shrink-0"
               style={{ color: 'var(--theme-nav-text)' }}
               title={t('stop')}
               aria-label={t('stop')}
@@ -1323,7 +1429,7 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
           <Popover>
             <PopoverTrigger asChild>
               <button
-                className="flex items-center justify-center gap-1.5 px-2.5 md:px-4 py-2.5 rounded-full text-sm font-bold transition-all hover:bg-[var(--theme-nav-hover)] min-h-[44px] shrink-0"
+                className="flex items-center justify-center gap-1.5 px-3 h-10 rounded-xl text-[13.5px] font-semibold tabular-nums transition-all hover:bg-[var(--theme-nav-hover)] shrink-0"
                 style={{ color: 'var(--theme-nav-text)' }}
                 title={t('speedLabel')}
                 aria-label={t('speedLabel')}
@@ -1332,8 +1438,7 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
               </button>
             </PopoverTrigger>
             <PopoverContent
-              className="w-40 p-1.5 rounded-2xl shadow-2xl border backdrop-blur-md z-50"
-              style={{ backgroundColor: 'var(--theme-nav-bg)', borderColor: 'var(--theme-border-subtle)' }}
+              className="w-44 p-1.5 z-50"
               align="center"
               sideOffset={8}
             >
@@ -1344,10 +1449,10 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
                     <button
                       key={r}
                       onClick={() => handleRateChange(r)}
-                      className={`px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-left ${!isSelected ? 'hover:bg-black/5 dark:hover:bg-white/5' : ''}`}
+                      className={`px-2.5 py-2 rounded-lg text-[13.5px] font-medium transition-all text-left tabular-nums ${!isSelected ? 'hover:bg-[var(--theme-nav-hover)]' : ''}`}
                       style={{
-                        color: isSelected ? 'var(--theme-pastel-text)' : 'var(--theme-text)',
-                        backgroundColor: isSelected ? 'var(--theme-pastel-2)' : undefined
+                        color: 'var(--theme-text)',
+                        backgroundColor: isSelected ? 'var(--theme-nav-active)' : undefined
                       }}
                     >
                       {r.toFixed(2)}x{r === 1 ? ` — ${t('speedNormal')}` : ''}
@@ -1358,14 +1463,14 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
             </PopoverContent>
           </Popover>
 
-          <div className="hidden md:block w-px h-6 rounded-full opacity-50 shrink-0" style={{ backgroundColor: 'var(--theme-nav-text-muted)' }} />
+          <div className="hidden md:block w-px h-6 shrink-0" style={{ backgroundColor: 'var(--theme-border)' }} />
 
           {/* Settings — desktop only; on mobile the gear is next to Text/Comic tabs */}
           <div className="hidden md:block">
           <Popover>
             <PopoverTrigger asChild>
               <button
-                className="flex items-center justify-center w-12 h-12 min-w-[48px] min-h-[48px] rounded-full transition-colors hover:bg-[var(--theme-nav-hover)] shrink-0"
+                className="flex items-center justify-center w-10 h-10 min-w-[40px] min-h-[40px] rounded-xl transition-colors hover:bg-[var(--theme-nav-hover)] shrink-0"
                 style={{ color: 'var(--theme-nav-text)' }}
                 title={t('readingOptions')}
                 aria-label={t('readingOptions')}
@@ -1374,14 +1479,13 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
               </button>
             </PopoverTrigger>
             <PopoverContent
-              className="w-72 p-4 rounded-2xl shadow-2xl border backdrop-blur-md"
-              style={{ backgroundColor: 'var(--theme-nav-bg)', borderColor: 'var(--theme-border-subtle)' }}
+              className="w-72 p-4"
               align="center"
               sideOffset={8}
             >
               <div className="space-y-5">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--theme-text-secondary)' }}>{t('fontSize')}</p>
+                  <p className="text-[12px] font-medium mb-2" style={{ color: 'var(--theme-text-secondary)' }}>{t('fontSize')}</p>
                   <div className="flex items-center gap-3">
                     <button
                       type="button"
@@ -1405,7 +1509,7 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
                   </div>
                 </div>
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--theme-text-secondary)' }}>{t('lineHeight')}</p>
+                  <p className="text-[12px] font-medium mb-2" style={{ color: 'var(--theme-text-secondary)' }}>{t('lineHeight')}</p>
                   <div className="flex items-center gap-3">
                     <button
                       type="button"
@@ -1429,19 +1533,19 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
                   </div>
                 </div>
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--theme-text-secondary)' }}>{t('fontType')}</p>
+                  <p className="text-[12px] font-medium mb-2" style={{ color: 'var(--theme-text-secondary)' }}>{t('fontType')}</p>
                   <div className="flex gap-2">
                     {(['serif', 'sans'] as const).map((f) => (
                       <button
                         key={f}
                         type="button"
                         onClick={() => setFontFamily(f)}
-                        className={`flex-1 py-2 px-3 rounded-xl text-sm font-medium transition-all ${
-                          fontFamily === f ? 'ring-2 ring-[var(--theme-primary)]' : ''
-                        }`}
+                        className="flex-1 h-9 px-3 rounded-lg text-[13px] font-medium transition-all border"
                         style={{
-                          backgroundColor: fontFamily === f ? 'var(--theme-primary)' : 'var(--theme-bg-secondary)',
-                          color: fontFamily === f ? 'var(--theme-primary-text)' : 'var(--theme-text-secondary)',
+                          backgroundColor: fontFamily === f ? 'var(--theme-nav-active)' : 'transparent',
+                          borderColor: fontFamily === f ? 'var(--theme-text-secondary)' : 'var(--theme-border)',
+                          color: fontFamily === f ? 'var(--theme-text)' : 'var(--theme-text-secondary)',
+                          fontFamily: f === 'serif' ? 'var(--font-serif)' : 'var(--font-sans)',
                         }}
                       >
                         {f === 'serif' ? t('serif') : t('sansSerif')}
@@ -1469,7 +1573,7 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
             type="button"
             onClick={() => changePage(1)}
             disabled={currentPage >= pages.length - 1}
-            className="flex items-center justify-center w-12 h-12 min-w-[48px] min-h-[48px] rounded-full transition-colors shrink-0 disabled:opacity-40 hover:bg-[var(--theme-nav-hover)] xl:px-4 xl:w-auto"
+            className="flex items-center justify-center w-10 h-10 min-w-[40px] min-h-[40px] rounded-xl transition-colors shrink-0 disabled:opacity-40 hover:bg-[var(--theme-nav-hover)] xl:px-4 xl:w-auto"
             style={{ color: 'var(--theme-nav-text)' }}
             title={t('nextPage')}
             aria-label={t('nextPage')}
@@ -1484,38 +1588,94 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
 
       {renderPostIts()}
 
+      {book.catalogId && (
+        <div className="mx-auto max-w-3xl mb-3 rounded-2xl px-4 py-3 text-[13px] leading-snug flex flex-wrap items-center gap-2" style={{ backgroundColor: 'var(--theme-pastel-4)', color: 'var(--theme-pastel-text)' }}>
+          <span className="flex-1 min-w-[16rem]">
+            {book.imageMode === 'personal'
+              ? (locale === 'pt-BR' ? 'Estas imagens são só suas. A galeria dos outros continua como estava.' : 'These images are only yours. Everyone else’s gallery stays as it was.')
+              : (locale === 'pt-BR' ? 'Imagens da galeria. Uma página que ainda não existe, se você criar, aparece para todo mundo. Os balões que você move ficam só seus.' : 'Gallery images. A page that does not exist yet, if you create it, shows up for everyone. Balloons you move stay yours.')}
+          </span>
+          {book.imageMode !== 'personal' ? (
+            <button type="button" className="h-8 px-3 rounded-lg text-[12.5px] font-medium" style={{ backgroundColor: 'var(--theme-card-bg)' }}
+              onClick={() => {
+                updateBook(book.id, { imageMode: 'personal' })
+                if (userId) void saveBookLink({ bookId: book.id, catalogId: book.catalogId!, imageMode: 'personal' }, userId)
+              }}>{locale === 'pt-BR' ? 'Quero as minhas imagens' : 'I want my own images'}</button>
+          ) : (
+            <>
+              <button type="button" className="h-8 px-3 rounded-lg text-[12.5px] font-medium" style={{ backgroundColor: 'var(--theme-card-bg)' }}
+                onClick={() => {
+                  updateBook(book.id, { imageMode: 'shared' })
+                  if (userId) void saveBookLink({ bookId: book.id, catalogId: book.catalogId!, imageMode: 'shared' }, userId)
+                }}>{locale === 'pt-BR' ? 'Voltar às da galeria' : 'Back to the gallery'}</button>
+              <button type="button" className="h-8 px-3 rounded-lg text-[12.5px] font-medium" style={{ backgroundColor: 'var(--theme-card-bg)' }}
+                onClick={() => {
+                  const images = Object.fromEntries(Object.entries(book.comicPages ?? {}).filter(([, url]) => /^https?:\/\//.test(url)))
+                  if (!userId || !Object.keys(images).length) return
+                  void publishVersion(book.catalogId!, userId, session?.user?.user_metadata?.full_name || session?.user?.email?.split('@')[0] || '', images)
+                }}>{locale === 'pt-BR' ? 'Mostrar minha versão' : 'Share my version'}</button>
+            </>
+          )}
+        </div>
+      )}
+
       {selectedText && selectionRect && interactionMode === 'text' && (
-        <FloatingAction 
-          rect={selectionRect} 
-          onAdd={() => handleAddVocab()} 
+        <FloatingAction
+          rect={selectionRect}
+          pt={locale === 'pt-BR'}
+          onSave={() => { setAutoExplain(false); setModalTab('meaning'); handleAddVocab() }}
+          onNote={() => setNoteDraft({ bookId: book.id, page: currentPage, kind: 'word', wordIndex: selectedRange?.[0], quote: selectedText, note: '' })}
+          onExplain={() => { setAutoExplain(true); setModalTab('meaning'); handleAddVocab() }}
         />
       )}
+
+      <NoteDialog
+        open={!!noteDraft}
+        draft={noteDraft}
+        pt={locale === 'pt-BR'}
+        onClose={() => setNoteDraft(null)}
+        onDelete={noteDraft?.id ? () => { void deletePin(noteDraft.id!, userId ?? undefined); setNoteDraft(null) } : undefined}
+        onSave={(note) => {
+          if (!noteDraft) return
+          void savePin({ ...noteDraft, note, bookId: book.id, page: currentPage, kind: noteDraft.kind ?? 'word' }, userId ?? undefined)
+          setNoteDraft(null)
+        }}
+      />
 
       <VocabularyModal
         isOpen={isModalOpen}
         onClose={() => {
           setIsModalOpen(false)
+          setAutoExplain(false)
           setSelectedRange(null)
         }}
         initialText={modalInitialText}
         bookId={book.id}
         vocabId={vocabToEdit}
+        autoExplain={autoExplain}
+        initialTab={modalTab}
       />
 
-      <VoiceRequiredDialog open={voiceDialogOpen} onOpenChange={setVoiceDialogOpen} pt={locale === 'pt-BR'}
-        onReady={() => { const opts = pendingPlaybackRef.current; pendingPlaybackRef.current = null; if (opts) setTimeout(() => startPlaybackRef.current(opts), 300) }} />
 
       <WordTooltip
         state={wordTip}
         status={wordTip ? vocabForText(wordTip.text)?.status ?? null : null}
         onStatus={(st) => wordTip && setWordStatus(wordTip.text, st)}
-        onExplain={() => wordTip && openExplanation(wordTip.text)}
-        onPlayFrom={() => wordTip && playFromWord(wordTip.idx)}
-        onBack={() => wordTip && playFromSentenceStart(wordTip.idx)}
+        onExplain={() => wordTip && openWordCard(wordTip.text, 'meaning')}
+        onNote={() => wordTip && openWordCard(wordTip.text, 'notes')}
+        onImage={() => wordTip && openWordCard(wordTip.text, 'images')}
+        speaking={tipSpeaking}
+        onSpeak={() => {
+          if (!wordTip) return
+          setTipSpeaking(true)
+          void speak(wordTip.text.trim(), { language: book.languageCode || 'en', context: wordTip.text.trim().split(/\s+/).length <= 3 ? 'word' : 'phrase', rate: 0.9 })
+            .then(h => h.done)
+            .finally(() => setTipSpeaking(false))
+        }}
         burst={scoreBurst}
         labels={locale === 'pt-BR'
-          ? { learned: 'Aprendido', review: 'Revisão', important: 'Importante', explain: 'Explicação', playFrom: 'Ouvir daqui', back: 'Voltar' }
-          : { learned: 'Learned', review: 'Review', important: 'Important', explain: 'Explain', playFrom: 'Play from here', back: 'Back' }}
+          ? { learned: 'Aprendido', review: 'Revisão', important: 'Importante', explain: 'Explicação', note: 'Nota', image: 'Imagem', listen: 'Ouvir a palavra' }
+          : { learned: 'Learned', review: 'Review', important: 'Important', explain: 'Explain', note: 'Note', image: 'Image', listen: 'Say this word' }}
       />
 
       <Dialog open={showConnectApi} onOpenChange={setShowConnectApi}>

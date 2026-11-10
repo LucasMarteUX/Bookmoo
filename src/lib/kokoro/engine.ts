@@ -118,15 +118,19 @@ export async function downloadKokoroVoice(voiceId: string, onProgress?: (f: numb
   // Pede ao navegador para não apagar o pacote de voz quando faltar espaço.
   navigator.storage?.persist?.().catch(() => {})
   await send({ type: 'load' }, onProgress)
+  // Marca como instalada assim que o pacote está no aparelho, antes da frase de teste.
+  // Se a frase falhar, a próxima visita não pede para baixar de novo.
   const s = readState()
   s.modelReady = true
+  if (!s.voices.includes(voiceId)) s.voices.push(voiceId)
+  if (!s.selected) s.selected = voiceId
   writeState(s)
-  const { blob } = await send({ type: 'generate', text: 'Hello! I will read with you.', voice: voiceId, speed: 1 })
-  const s2 = readState()
-  if (!s2.voices.includes(voiceId)) s2.voices.push(voiceId)
-  if (!s2.selected) s2.selected = voiceId
-  writeState(s2)
-  return blob!
+  try {
+    const { blob } = await send({ type: 'generate', text: 'Hello! I will read with you.', voice: voiceId, speed: 1 })
+    return blob!
+  } catch {
+    return new Blob()
+  }
 }
 
 export function removeKokoroVoice(voiceId: string) {
