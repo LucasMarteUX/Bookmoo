@@ -676,3 +676,49 @@
     50% { box-shadow: 0 0 0 10px rgba(255, 174, 43, 0); }
   }
 }
+
+/* ── Experiência de app (mobile / iOS) ──────────────────────── */
+@layer components {
+  /* Foco visível consistente para teclado (iPad com teclado, Switch Control). */
+  :where(a, button, [role="button"], [role="tab"], [role="radio"], input, select, textarea, summary):focus-visible {
+    outline: 2px solid var(--theme-accent, var(--theme-text));
+    outline-offset: 2px;
+  }
+
+  /* Feedback de toque: escurece e encolhe levemente, como UIKit. */
+  .pressable { transition: transform .12s var(--ease-ios), opacity .12s, background-color .12s; }
+  .pressable:active { transform: scale(.97); opacity: .85; }
+
+  /* Barras translúcidas. */
+  .ios-bar {
+    background-color: color-mix(in srgb, var(--theme-nav-bg) 82%, transparent);
+    -webkit-backdrop-filter: var(--blur-bar);
+    backdrop-filter: var(--blur-bar);
+  }
+  @media (prefers-reduced-transparency: reduce) { .ios-bar { background-color: var(--theme-nav-bg); -webkit-backdrop-filter: none; backdrop-filter: none; } }
+  @media (prefers-contrast: more) { .ios-bar { background-color: var(--theme-nav-bg); border-color: var(--theme-text-secondary) !important; } }
+
+  /* Lista agrupada (Ajustes do iOS). */
+  .ios-section { border-radius: 12px; overflow: hidden; background-color: var(--theme-card-bg); border: 1px solid var(--theme-border-subtle); }
+  .ios-section-label { font-size: var(--t-footnote); text-transform: uppercase; letter-spacing: .02em; color: var(--theme-text-secondary); padding: 0 1rem .375rem; }
+  .ios-row { display: flex; align-items: center; gap: .75rem; min-height: 2.75rem; padding: .625rem 1rem; width: 100%; text-align: left; color: var(--theme-text); font-size: var(--t-body); }
+  .ios-row + .ios-row { box-shadow: inset 3.25rem 1px 0 0 var(--theme-card-bg), inset 0 1px 0 0 var(--theme-border-subtle); }
+  .ios-row:active { background-color: var(--theme-nav-active); }
+  .ios-row-icon { display: grid; place-items: center; width: 1.875rem; height: 1.875rem; border-radius: 8px; flex-shrink: 0; }
+
+  .toast-in { animation: toast-in .35s var(--ease-ios); }
+  @keyframes toast-in { from { opacity: 0; transform: translateY(-16px) scale(.98); } to { opacity: 1; transform: none; } }
+
+  /* Rolagem horizontal com snap (carrosséis). */
+  .snap-row { display: flex; gap: .75rem; overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding-inline: 1rem; overscroll-behavior-x: contain; scrollbar-width: none; }
+  .snap-row::-webkit-scrollbar { display: none; }
+  .snap-row > * { scroll-snap-align: start; flex-shrink: 0; }
+
+  /* Sheet do vaul: sem a sombra lateral do .elevated, só para cima. */
+  .sheet-content { box-shadow: 0 -8px 40px -12px rgba(0,0,0,.25) !important; border-bottom: 0 !important; }
+
+  /* No celular, texto de interface nunca abaixo de 12px (classes legadas text-[9–11px]). */
+  @media (max-width: 767px) {
+    .text-\[9px\], .text-\[10px\], .text-\[10\.5px\], .text-\[11px\] { font-size: 0.75rem !important; }
+  }
+}

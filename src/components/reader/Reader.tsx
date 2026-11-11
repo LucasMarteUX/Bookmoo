@@ -9,6 +9,7 @@ import { NoteDialog } from './NoteDialog'
 import { deletePin, loadPins, savePin, usePinStore, type StoryPin } from '@/store/usePinStore'
 import { fetchSharedImages, publishSharedImage, publishVersion, saveBookLink } from '@/lib/catalog'
 import { VocabularyModal, type VocabTab } from '../vocabulary/VocabularyModal'
+import { useMediaSession, useWakeLock } from '@/hooks/useNativeMedia'
 import { ChevronLeft, ChevronRight, MousePointer2, Type, Pin, PinOff, Pencil, Trash2, Play, Image as ImageIcon, Loader2, WandSparkles, Pause, Settings, X, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -891,6 +892,19 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
     const span = containerRef.current.querySelector(`span[data-word-index="${firstIdx}"]`) as HTMLElement | null
     if (viewMode === 'comic') {
       // No quadrinho o destaque aparece dentro do balão; sem rolagem nem mãozinha.
+  // Controles na tela de bloqueio/fones enquanto há narração; tela sempre acesa durante a leitura.
+  useMediaSession({
+    enabled: isPlaying || isPaused,
+    title: book.title,
+    artist: book.author,
+    artwork: book.coverData?.startsWith('http') ? book.coverData : undefined,
+    playing: isPlaying,
+    onToggle: () => togglePlaybackRef.current(),
+    onNext: () => changePage(1),
+    onPrev: () => changePage(-1),
+  })
+  useWakeLock(true)
+
       if (ttsHandRef.current) ttsHandRef.current.style.display = 'none'
       return
     }
@@ -1049,7 +1063,8 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
 
         {/* Pinned Post-its Sidebar */}
         {pinnedVocabIds.size > 0 && (
-          <div className="fixed right-8 top-24 w-80 flex flex-col gap-4 z-40 max-h-[calc(100dvh-8rem)] overflow-y-auto pb-8 pr-2 custom-scrollbar">
+          // No celular os post-its fixados viram um carrossel horizontal acima da barra de ferramentas (sem cobrir o texto).
+          <div data-no-swipe-back className="fixed right-8 top-24 w-80 flex flex-col gap-4 z-40 max-h-[calc(100dvh-8rem)] overflow-y-auto pb-8 pr-2 custom-scrollbar max-md:top-auto max-md:right-0 max-md:left-0 max-md:w-auto max-md:bottom-[calc(var(--safe-b)+5.5rem)] max-md:max-h-[38dvh] max-md:flex-row max-md:snap-row max-md:overflow-y-visible max-md:pb-2 max-md:px-4 max-md:[&>*]:w-[78vw] max-md:[&>*]:shrink-0 max-md:[&>*]:snap-start">
             {Array.from(pinnedVocabIds as Set<string>).map(id => {
               const vocab = vocabularies.find(v => v.id === id)
               if (!vocab) return null

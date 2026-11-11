@@ -21,10 +21,11 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             "bg-[var(--color-destructive)] text-white hover:opacity-90": variant === "destructive",
             "hover:bg-[var(--theme-nav-hover)] text-[var(--theme-text)]": variant === "ghost",
             "border bg-[var(--theme-bg)] hover:bg-[var(--theme-nav-hover)]": variant === "outline",
-            "h-9 px-3.5": size === "default",
-            "h-8 px-2.5 text-[13px]": size === "sm",
-            "h-11 px-5 text-[15px]": size === "lg",
-            "h-9 w-9": size === "icon",
+            // No celular nenhum botão fica abaixo de 44pt (alvo de toque da Apple).
+            "h-9 px-3.5 max-md:h-11 max-md:text-[15px] max-md:px-4": size === "default",
+            "h-8 px-2.5 text-[13px] max-md:h-10 max-md:text-[14px]": size === "sm",
+            "h-11 px-5 text-[15px] max-md:h-12 max-md:text-[16px]": size === "lg",
+            "h-9 w-9 max-md:h-11 max-md:w-11": size === "icon",
           },
           className
         )}

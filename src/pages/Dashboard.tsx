@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, BookOpen, Clock, BookMarked, Trash2, Pencil, ImagePlus, X, BookUp, AudioLines, Flame, Star, ArrowRight, Search } from 'lucide-react'
+import { Plus, BookOpen, Clock, BookMarked, Trash2, Pencil, ImagePlus, BookUp, AudioLines, Flame, Star, ArrowRight, Search } from 'lucide-react'
 import { useUiStore } from '@/store/useUiStore'
 import { useXpStore, xpSummary } from '@/store/useXpStore'
 import { useBookStore } from '@/store/useBookStore'
@@ -493,14 +493,6 @@ export function Dashboard() {
       </Dialog>
       <Dialog open={isAddModalOpen} onOpenChange={open => { if (!savingBook) setIsAddModalOpen(open) }}>
         <DialogContent className="relative sm:max-w-lg rounded-[2rem] border pt-8" style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-border)' }}>
-          <button
-            type="button"
-            onClick={() => setIsAddModalOpen(false)}
-            className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-[var(--theme-bg-secondary)] hover:bg-[var(--theme-bg)]"
-            aria-label={t('cancel')}
-          >
-            <X className="h-4 w-4" />
-          </button>
           <DialogHeader>
             <DialogTitle style={{ color: 'var(--theme-text)' }}>{t('addNewBook')}</DialogTitle>
             <DialogDescription style={{ color: 'var(--theme-text-secondary)' }}>{t('addNewBookDescription')}</DialogDescription>
@@ -597,14 +589,6 @@ export function Dashboard() {
 
       <Dialog open={!!editBookId} onOpenChange={(open) => !open && setEditBookId(null)}>
         <DialogContent className="relative sm:max-w-lg rounded-[2rem] border pt-8" style={{ backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-text)', borderColor: 'var(--theme-border)' }}>
-          <button
-            type="button"
-            onClick={() => setEditBookId(null)}
-            className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-[var(--theme-bg-secondary)] hover:bg-[var(--theme-bg)]"
-            aria-label={t('cancel')}
-          >
-            <X className="h-4 w-4" />
-          </button>
           <DialogHeader>
             <DialogTitle>{t('editBook')}</DialogTitle>
             <DialogDescription style={{ color: 'var(--theme-text-secondary)' }}>{t('bookDescriptionPlaceholder')}</DialogDescription>
