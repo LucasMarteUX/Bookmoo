@@ -1,16 +1,26 @@
 <!doctype html>
-<html lang="en">
+<html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- viewport-fit=cover: sem isso o iOS devolve 0 em env(safe-area-inset-*). Zoom do usuário continua permitido (acessibilidade). -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <!-- Atualizado em tempo de execução conforme o tema (App.tsx > ThemeToBody). -->
+    <meta name="theme-color" content="#F6F3EE" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Bookmoo" />
+    <meta name="application-name" content="Bookmoo" />
+    <meta name="format-detection" content="telephone=no, email=no, address=no" />
     <title>Bookmoo</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@600;700&family=Fredoka:wght@500;600;700&family=Comic+Neue:wght@400;700&family=Patrick+Hand&family=Rajdhani:wght@600&family=Lora:wght@600&family=Special+Elite&family=M+PLUS+Rounded+1c:wght@700&family=Alegreya:wght@700&family=Bangers&family=Crimson+Pro:wght@700&family=Nunito:wght@800&display=swap" rel="stylesheet" />
+    <!-- Fontes das HQs (balões): só usadas no leitor de quadrinhos, então carregam sem bloquear a primeira pintura. -->
+    <link rel="stylesheet" media="print" onload="this.media='all'" href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@600;700&family=Fredoka:wght@500;600;700&family=Comic+Neue:wght@400;700&family=Patrick+Hand&family=Rajdhani:wght@600&family=Lora:wght@600&family=Special+Elite&family=M+PLUS+Rounded+1c:wght@700&family=Alegreya:wght@700&family=Bangers&family=Crimson+Pro:wght@700&family=Nunito:wght@800&display=swap" />
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
-

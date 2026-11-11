@@ -4,6 +4,8 @@ import { AuthProvider } from '@/contexts/AuthContext'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { Layout } from '@/components/layout/Layout'
 import { useReaderSettings } from '@/store/useReaderSettings'
+import { useLanguage } from '@/store/useLanguage'
+import { useVisualViewport } from '@/hooks/useVisualViewport'
 import { Dashboard } from '@/pages/Dashboard'
 import { BookPage } from '@/pages/BookPage'
 import { VocabularyPage } from '@/pages/VocabularyPage'
@@ -19,12 +21,23 @@ import { Community, PublicProfile } from '@/pages/Community'
 
 function ThemeToBody() {
   const { theme } = useReaderSettings()
+  const { locale } = useLanguage()
+  useVisualViewport()
   useEffect(() => {
     document.body.className = `theme-${theme} font-sans antialiased transition-colors duration-300`
     // O <html> também recebe o tema: sem isso, o fundo branco padrão aparece nas bordas (rolagem elástica, cantos).
-    document.documentElement.classList.remove('theme-light', 'theme-sepia', 'theme-dark')
-    document.documentElement.classList.add(`theme-${theme}`)
+    const root = document.documentElement
+    root.classList.remove('theme-light', 'theme-sepia', 'theme-dark')
+    root.classList.add(`theme-${theme}`)
+    root.style.colorScheme = theme === 'dark' ? 'dark' : 'light'
+    // Barra de status / barra do Safari com a cor do app.
+    const navBg = getComputedStyle(root).getPropertyValue('--theme-nav-bg').trim()
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', navBg || '#F6F3EE')
+    document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]')
+      ?.setAttribute('content', theme === 'dark' ? 'black' : 'default')
   }, [theme])
+  // Leitor de tela pronuncia no idioma certo.
+  useEffect(() => { document.documentElement.lang = locale }, [locale])
   return null
 }
 

@@ -26,7 +26,7 @@ export function Layout() {
   const isBookPage = /^\/book\/[^/]+$/.test(location.pathname)
 
   return (
-    <div className={`min-h-screen flex flex-col theme-${theme}`}
+    <div className={`min-h-dvh flex flex-col theme-${theme}`}
       style={{ '--sidebar-w': collapsed ? SIDEBAR_WIDTH.collapsed : SIDEBAR_WIDTH.expanded } as CSSProperties}>
       {/* Mobile: top navbar with logo + menu (desktop has no navbar) */}
       <div className="md:hidden">

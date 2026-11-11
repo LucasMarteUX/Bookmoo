@@ -1,11 +1,16 @@
 /* Hi — Language Learning design system */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;0,7..72,600;1,7..72,400&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&display=swap');
+/* Fontes auto-hospedadas (funcionam offline e não bloqueiam a primeira pintura). */
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/literata/opsz.css";
+@import "@fontsource-variable/literata/opsz-italic.css";
+@import "@fontsource-variable/newsreader/opsz.css";
+@import "@fontsource-variable/newsreader/opsz-italic.css";
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-serif: "Literata", ui-serif, Georgia, serif;
-  --font-display: "Newsreader", "Literata", ui-serif, Georgia, serif;
+  --font-sans: "Inter Variable", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-serif: "Literata Variable", "Literata", ui-serif, Georgia, serif;
+  --font-display: "Newsreader Variable", "Newsreader", "Literata Variable", ui-serif, Georgia, serif;
 
   /* Hi primary & secondary — lilás pastel */
   --color-primary: #191919;
@@ -181,8 +186,65 @@
     --theme-tts-hand: #B8B6B0;
   }
 
-  html { background-color: var(--theme-bg); }
+  /* ── Fundação mobile / iOS ─────────────────────────────── */
+  :root {
+    --safe-t: env(safe-area-inset-top, 0px);
+    --safe-b: env(safe-area-inset-bottom, 0px);
+    --safe-l: env(safe-area-inset-left, 0px);
+    --safe-r: env(safe-area-inset-right, 0px);
+    --tabbar-h: 3.0625rem;       /* 49pt */
+    --navbar-h: 2.75rem;         /* 44pt */
+    --navbar-large-h: 6.5rem;
+    --hit: 2.75rem;              /* alvo de toque mínimo (44pt) */
+    --ease-ios: cubic-bezier(.32, .72, 0, 1);
+    --spring-sheet: 0.42s;
+    --blur-bar: saturate(180%) blur(20px);
+    --sheet-radius: 1.5rem;
+    --kb-h: 0px;                 /* altura do teclado virtual (useVisualViewport) */
+    --vvh: 100dvh;               /* altura visível real */
+    /* Escala tipográfica (nenhum texto de UI abaixo de 12px) */
+    --t-caption2: 0.75rem;
+    --t-caption: 0.8125rem;
+    --t-footnote: 0.8125rem;
+    --t-subhead: 0.9375rem;
+    --t-body: 1.0625rem;
+    --t-title3: 1.25rem;
+    --t-title2: 1.375rem;
+    --t-title1: 1.75rem;
+    --t-large: 2.125rem;
+  }
+
+  html {
+    background-color: var(--theme-bg);
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+    /* Elimina o atraso/zoom do duplo toque sem impedir o zoom por pinça. */
+    touch-action: manipulation;
+  }
   html, body { margin: 0; padding: 0; min-height: 100%; }
+  /* Sem "elástico" do documento inteiro: a rolagem acontece nas telas, como num app. */
+  body { overscroll-behavior-y: none; }
+  /* Controles de interface não abrem o menu de "copiar/procurar" do iOS num toque longo. */
+  button, [role="button"], [role="tab"], nav a, img { -webkit-touch-callout: none; }
+  button, [role="button"], [role="tab"] { -webkit-user-select: none; user-select: none; }
+  .scroll-contain { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    .backdrop-blur-md, .backdrop-blur-sm, .backdrop-blur, .backdrop-blur-lg, [class*="backdrop-blur-"] {
+      -webkit-backdrop-filter: none !important;
+      backdrop-filter: none !important;
+    }
+  }
+
   body {
     background-color: var(--theme-bg);
     color: var(--theme-text);

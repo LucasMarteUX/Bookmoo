@@ -1049,7 +1049,7 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
 
         {/* Pinned Post-its Sidebar */}
         {pinnedVocabIds.size > 0 && (
-          <div className="fixed right-8 top-24 w-80 flex flex-col gap-4 z-40 max-h-[calc(100vh-8rem)] overflow-y-auto pb-8 pr-2 custom-scrollbar">
+          <div className="fixed right-8 top-24 w-80 flex flex-col gap-4 z-40 max-h-[calc(100dvh-8rem)] overflow-y-auto pb-8 pr-2 custom-scrollbar">
             {Array.from(pinnedVocabIds as Set<string>).map(id => {
               const vocab = vocabularies.find(v => v.id === id)
               if (!vocab) return null

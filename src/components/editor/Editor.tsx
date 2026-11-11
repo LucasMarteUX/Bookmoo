@@ -75,7 +75,7 @@ export function Editor({ book, onSave, onCancel }: EditorProps) {
   }
 
   return (
-    <div className="max-w-[720px] mx-auto flex flex-col h-[calc(100vh-200px)]">
+    <div className="max-w-[720px] mx-auto flex flex-col h-[calc(100dvh-200px)]">
       <div className="flex justify-between items-center mb-4">
         <div className="flex items-center gap-2">
           <Button 
