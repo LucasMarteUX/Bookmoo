@@ -1,5 +1,6 @@
 // Galeria compartilhada. Livro enviado pela pessoa não tem catalogId e não passa por aqui.
 import { supabase } from '@/lib/supabase'
+import type { CefrId } from '@/lib/cefr'
 
 export type CatalogBook = {
   id: string
@@ -8,6 +9,9 @@ export type CatalogBook = {
   description?: string
   languageCode: string
   coverData?: string
+  /** Dificuldade do texto, escolhida na área admin. */
+  level?: CefrId
+  category?: BookCategory
   pages: string[]
   createdAt?: string
 }
@@ -37,15 +41,48 @@ export type BookLink = {
   bookId: string
   catalogId: string
   imageMode: 'shared' | 'personal'
+  styleId?: string
+}
+
+export const BOOK_CATEGORIES = [
+  { id: 'classic', pt: 'Clássico', en: 'Classic' },
+  { id: 'children', pt: 'Infantil', en: "Children's" },
+  { id: 'adventure', pt: 'Aventura', en: 'Adventure' },
+  { id: 'fantasy', pt: 'Fantasia', en: 'Fantasy' },
+  { id: 'mystery', pt: 'Mistério', en: 'Mystery' },
+  { id: 'romance', pt: 'Romance', en: 'Romance' },
+  { id: 'short', pt: 'Contos', en: 'Short stories' },
+  { id: 'poetry', pt: 'Poesia', en: 'Poetry' },
+  { id: 'nonfiction', pt: 'Não ficção', en: 'Nonfiction' },
+  { id: 'biography', pt: 'Biografia', en: 'Biography' },
+] as const
+
+export type BookCategory = (typeof BOOK_CATEGORIES)[number]['id']
+
+const LEVELS: CefrId[] = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
+const CATEGORY_IDS = BOOK_CATEGORIES.map(item => item.id)
+
+export function categoryName(id: string | undefined, pt: boolean) {
+  const found = BOOK_CATEGORIES.find(item => item.id === id)
+  return found ? (pt ? found.pt : found.en) : ''
+}
+
+function categoryOf(value: unknown): BookCategory | undefined {
+  return CATEGORY_IDS.includes(value as BookCategory) ? value as BookCategory : undefined
+}
+
+function levelOf(value: unknown): CefrId | undefined {
+  return LEVELS.includes(value as CefrId) ? value as CefrId : undefined
 }
 
 function pagesOf(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((page): page is string => typeof page === 'string') : []
 }
 
-export async function listCatalog(): Promise<CatalogBook[]> {
+export async function listCatalog(limit?: number): Promise<CatalogBook[]> {
   if (!supabase) return []
-  const { data, error } = await supabase.from('catalog_books').select('id, title, author, description, language_code, cover_data, created_at').order('created_at', { ascending: false })
+  const request = supabase.from('catalog_books').select('id, title, author, description, language_code, cover_data, cefr_level, category, created_at').order('created_at', { ascending: false })
+  const { data, error } = await (limit ? request.limit(limit) : request)
   if (error) throw error
   return (data ?? []).map(row => ({
     id: row.id,
@@ -54,6 +91,8 @@ export async function listCatalog(): Promise<CatalogBook[]> {
     description: row.description ?? undefined,
     languageCode: row.language_code ?? 'en',
     coverData: row.cover_data ?? undefined,
+    level: levelOf(row.cefr_level),
+    category: categoryOf(row.category),
     pages: [],
     createdAt: row.created_at,
   }))
@@ -71,6 +110,8 @@ export async function getCatalogBook(id: string): Promise<CatalogBook | null> {
     description: data.description ?? undefined,
     languageCode: data.language_code ?? 'en',
     coverData: data.cover_data ?? undefined,
+    level: levelOf(data.cefr_level),
+    category: categoryOf(data.category),
     pages: pagesOf(data.pages),
     createdAt: data.created_at,
   }
@@ -84,6 +125,8 @@ export async function addCatalogBook(book: Omit<CatalogBook, 'id'>, userId: stri
     description: book.description ?? null,
     language_code: book.languageCode,
     cover_data: book.coverData ?? null,
+    cefr_level: book.level ?? null,
+    category: book.category ?? null,
     pages: book.pages,
     created_by: userId,
   }).select('id').single()
@@ -91,20 +134,32 @@ export async function addCatalogBook(book: Omit<CatalogBook, 'id'>, userId: stri
   return data.id as string
 }
 
-export async function fetchSharedImages(catalogId: string): Promise<Record<number, string>> {
+/** A área admin ajusta nível, categoria e capa de um livro que já está na galeria. */
+export async function updateCatalogMeta(id: string, patch: { level?: CefrId | null; category?: BookCategory | null; coverData?: string | null }): Promise<void> {
+  if (!supabase) throw new Error('Sem conexão.')
+  const row: { cefr_level?: string | null; category?: string | null; cover_data?: string | null } = {}
+  if ('level' in patch) row.cefr_level = patch.level ?? null
+  if ('category' in patch) row.category = patch.category ?? null
+  if ('coverData' in patch) row.cover_data = patch.coverData ?? null
+  const { error } = await supabase.from('catalog_books').update(row).eq('id', id)
+  if (error) throw error
+}
+
+/** Imagens oficiais de um livro da galeria num estilo (a primeira pessoa que gera cada página define). */
+export async function fetchSharedImages(catalogId: string, styleId: string): Promise<Record<number, string>> {
   if (!supabase) return {}
-  const { data, error } = await supabase.from('catalog_comic_pages').select('page, image_url').eq('catalog_id', catalogId)
+  const { data, error } = await supabase.from('catalog_comic_pages').select('page, image_url').eq('catalog_id', catalogId).eq('style_id', styleId)
   if (error) return {}
   const images: Record<number, string> = {}
   for (const row of data ?? []) images[row.page] = row.image_url
   return images
 }
 
-/** Publica só se a página ainda não tem imagem. Um conflito significa que outra pessoa chegou antes. */
-export async function publishSharedImage(catalogId: string, page: number, imageUrl: string, userId: string): Promise<boolean> {
+/** Publica só se a página ainda não tem imagem nesse estilo. Um conflito significa que outra pessoa chegou antes. */
+export async function publishSharedImage(catalogId: string, styleId: string, page: number, imageUrl: string, userId: string): Promise<boolean> {
   if (!supabase) return false
   const { error } = await supabase.from('catalog_comic_pages').insert({
-    catalog_id: catalogId, page, image_url: imageUrl, created_by: userId,
+    catalog_id: catalogId, style_id: styleId, page, image_url: imageUrl, created_by: userId,
   })
   if (!error) return true
   return error.code === '23505'
@@ -128,6 +183,7 @@ export async function saveBookLink(link: BookLink, userId: string): Promise<void
     user_id: userId,
     catalog_id: link.catalogId,
     image_mode: link.imageMode,
+    ...(link.styleId ? { style_id: link.styleId } : {}),
     updated_at: new Date().toISOString(),
   }, { onConflict: 'book_id' })
 }

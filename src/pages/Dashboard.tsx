@@ -133,7 +133,8 @@ export function Dashboard() {
       const book = await parseEpub(file)
       setNewTitle(book.title)
       setNewAuthor(book.author ?? '')
-      setNewBookLanguage(book.language && BOOK_LANGUAGES.some(l => l.code === book.language) ? book.language : 'en')
+      setNewDescription(book.description ?? '')
+      setNewBookLanguage('en')
       setNewCoverData(book.coverDataUrl ?? null)
       setNewContent(book.text)
       setImportedEpub(book)
@@ -508,30 +509,6 @@ export function Dashboard() {
               <Input id="author" value={newAuthor} onChange={(e) => setNewAuthor(e.target.value)} placeholder={t('authorPlaceholder')} className="rounded-2xl h-12 px-4" style={{ borderColor: 'var(--theme-border)' }} />
             </div>
             <div className="space-y-2">
-              <Label style={{ color: 'var(--theme-text)' }}>{t('bookLanguage')}</Label>
-              <div className="flex flex-wrap gap-2 p-2 rounded-xl border" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg-secondary)' }}>
-                {BOOK_LANGUAGES.map((lang) => (
-                  <button
-                    key={lang.code}
-                    type="button"
-                    onClick={() => setNewBookLanguage(lang.code)}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-full text-sm font-medium transition-all border ${
-                      newBookLanguage === lang.code ? 'ring-2' : ''
-                    }`}
-                    style={{
-                      borderColor: newBookLanguage === lang.code ? 'var(--theme-primary)' : 'var(--theme-border)',
-                      backgroundColor: newBookLanguage === lang.code ? 'var(--theme-primary)' : 'transparent',
-                      color: newBookLanguage === lang.code ? 'var(--theme-primary-text)' : 'var(--theme-text)'
-                    }}
-                    title={locale === 'pt-BR' ? lang.namePt : lang.nameEn}
-                  >
-                    <span className="text-lg">{lang.flag}</span>
-                    <span>{locale === 'pt-BR' ? lang.namePt : lang.nameEn}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="space-y-2">
               <Label style={{ color: 'var(--theme-text)' }}>{t('bookDescription')}</Label>
               <Input id="new-desc" value={newDescription} onChange={(e) => setNewDescription(e.target.value)} placeholder={t('bookDescriptionPlaceholder')} className="rounded-xl" style={{ borderColor: 'var(--theme-border)' }} />
             </div>
@@ -605,28 +582,6 @@ export function Dashboard() {
             <div className="space-y-2">
               <Label style={{ color: 'var(--theme-text)' }}>{t('bookDescription')}</Label>
               <Input value={editDescription} onChange={(e) => setEditDescription(e.target.value)} placeholder={t('bookDescriptionPlaceholder')} className="rounded-xl" style={{ borderColor: 'var(--theme-border)' }} />
-            </div>
-            <div className="space-y-2">
-              <Label style={{ color: 'var(--theme-text)' }}>{t('bookLanguage')}</Label>
-              <div className="flex flex-wrap gap-2 p-2 rounded-xl border" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg-secondary)' }}>
-                {BOOK_LANGUAGES.map((lang) => (
-                  <button
-                    key={lang.code}
-                    type="button"
-                    onClick={() => setEditLanguage(lang.code)}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-full text-sm font-medium transition-all border ${editLanguage === lang.code ? 'ring-2' : ''}`}
-                    style={{
-                      borderColor: editLanguage === lang.code ? 'var(--theme-primary)' : 'var(--theme-border)',
-                      backgroundColor: editLanguage === lang.code ? 'var(--theme-primary)' : 'transparent',
-                      color: editLanguage === lang.code ? 'var(--theme-primary-text)' : 'var(--theme-text)'
-                    }}
-                    title={locale === 'pt-BR' ? lang.namePt : lang.nameEn}
-                  >
-                    <span className="text-lg">{lang.flag}</span>
-                    <span>{locale === 'pt-BR' ? lang.namePt : lang.nameEn}</span>
-                  </button>
-                ))}
-              </div>
             </div>
             <div className="space-y-2">
               <Label style={{ color: 'var(--theme-text)' }}>{t('totalPages')}</Label>

@@ -7,7 +7,8 @@ import { WordTooltip, type WordTooltipState, type ScoreBurst } from './WordToolt
 import { FloatingAction } from './FloatingAction'
 import { NoteDialog } from './NoteDialog'
 import { deletePin, loadPins, savePin, usePinStore, type StoryPin } from '@/store/usePinStore'
-import { fetchSharedImages, publishSharedImage, publishVersion, saveBookLink } from '@/lib/catalog'
+import { fetchSharedImages, publishSharedImage } from '@/lib/catalog'
+import { bookStyleKey } from '@/lib/comicStyles'
 import { VocabularyModal, type VocabTab } from '../vocabulary/VocabularyModal'
 import { useMediaSession, useWakeLock } from '@/hooks/useNativeMedia'
 import { ChevronLeft, ChevronRight, MousePointer2, Type, Pin, PinOff, Pencil, Trash2, Play, Image as ImageIcon, Loader2, WandSparkles, Pause, Settings, X, RefreshCw } from 'lucide-react'
@@ -58,6 +59,74 @@ interface ReaderProps {
   autoPlay?: boolean
 }
 
+function speedNumber(rate: number) {
+  return String(rate)
+}
+
+function speedName(rate: number, pt: boolean) {
+  if (rate === 0.5) return pt ? 'Lento' : 'Slow'
+  if (rate === 1) return pt ? 'Normal' : 'Normal'
+  if (rate === 1.5) return pt ? 'Rápido' : 'Fast'
+  return ''
+}
+
+function PageJump({ page, total, onGo, pt }: { page: number; total: number; onGo: (index: number) => void; pt: boolean }) {
+  const [open, setOpen] = useState(false)
+  const [draft, setDraft] = useState(String(page + 1))
+  useEffect(() => { if (open) setDraft(String(page + 1)) }, [open, page])
+  const go = (n: number) => {
+    if (!Number.isFinite(n)) return
+    onGo(Math.max(0, Math.min(total - 1, Math.round(n) - 1)))
+    setOpen(false)
+  }
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="flex items-center h-10 px-2 rounded-xl text-xs md:text-sm font-medium tabular-nums shrink-0 cursor-pointer hover:bg-[var(--theme-nav-hover)]"
+          style={{ color: 'var(--theme-nav-text)' }}
+          aria-label={pt ? 'Ir para uma página' : 'Go to a page'}
+        >
+          <span className="md:hidden">{page + 1}/{total}</span>
+          <span className="hidden md:inline">{page + 1} / {total}</span>
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-60 p-3" align="end" side="top" sideOffset={10}>
+        <form
+          className="flex items-center gap-2"
+          onSubmit={(e) => { e.preventDefault(); go(Number(draft)) }}
+        >
+          <label className="sr-only" htmlFor="page-jump">{pt ? 'Número da página' : 'Page number'}</label>
+          <input
+            id="page-jump"
+            inputMode="numeric"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value.replace(/[^\d]/g, ''))}
+            className="h-9 w-full rounded-lg border bg-transparent px-3 text-[14px] tabular-nums outline-none"
+            style={{ borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }}
+          />
+          <button type="submit" className="h-9 px-3 rounded-lg text-[13px] font-medium shrink-0 cursor-pointer" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
+            {pt ? 'Ir' : 'Go'}
+          </button>
+        </form>
+        <p className="mt-2 text-[12px]" style={{ color: 'var(--theme-text-secondary)' }}>
+          {pt ? `1 até ${total}` : `1 to ${total}`}
+        </p>
+        <button
+          type="button"
+          onClick={() => go(1)}
+          disabled={page === 0}
+          className="mt-2 h-9 w-full rounded-lg text-[13px] font-medium cursor-pointer hover:bg-[var(--theme-nav-hover)] disabled:opacity-40"
+          style={{ color: 'var(--theme-text)' }}
+        >
+          {pt ? 'Voltar ao início' : 'Back to the start'}
+        </button>
+      </PopoverContent>
+    </Popover>
+  )
+}
+
 export function Reader({ book, autoPlay = false }: ReaderProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -81,6 +150,8 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
   const [expressionIdx, setExpressionIdx] = useState<number[] | null>(null)
   const [tipSpeaking, setTipSpeaking] = useState(false)
   const [sharedImages, setSharedImages] = useState<Record<number, string>>({})
+  // Chave das imagens oficiais da galeria: o estilo deste exemplar.
+  const sharedStyle = bookStyleKey(book)
   const dragSelect = useRef<number | null>(null)
   const dragMoved = useRef(false)
   const pins = usePinStore(s => s.pins)
@@ -130,9 +201,9 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
   useEffect(() => {
     if (!book.catalogId || book.imageMode === 'personal') { setSharedImages({}); return }
     let alive = true
-    void fetchSharedImages(book.catalogId).then(images => { if (alive) setSharedImages(images) })
+    void fetchSharedImages(book.catalogId, sharedStyle).then(images => { if (alive) setSharedImages(images) })
     return () => { alive = false }
-  }, [book.catalogId, book.imageMode])
+  }, [book.catalogId, book.imageMode, sharedStyle])
 
   // Make vocabularies reactive so the component re-renders when a new word is saved
   const vocabularies = useVocabularyStore(state => state.vocabularies).filter(v => v.bookId === book.id)
@@ -597,9 +668,11 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
         style: generated.styleDoc, styleRevision: generated.previousStyleRevision,
         characters: generated.characters, previousCharacters: generated.previousCharacters,
       })
-      if (book.catalogId && book.imageMode !== 'personal' && userId && /^https?:\/\//.test(generated.imageUrl) && !sharedImages[pageIndex]) {
+      // Só estilos do banco têm imagens oficiais compartilhadas.
+      const publishStyle = generated.styleDoc?.styleId
+      if (book.catalogId && publishStyle && book.imageMode !== 'personal' && userId && /^https?:\/\//.test(generated.imageUrl) && !sharedImages[pageIndex]) {
         try {
-          const published = await publishSharedImage(book.catalogId, pageIndex, generated.imageUrl, userId)
+          const published = await publishSharedImage(book.catalogId, publishStyle, pageIndex, generated.imageUrl, userId)
           if (published) setSharedImages(prev => ({ ...prev, [pageIndex]: generated.imageUrl }))
         } catch (error) {
           console.warn('shared comic image', error)
@@ -824,6 +897,19 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
   togglePlaybackRef.current = togglePlayback
   isPlayingRef.current = isPlaying
 
+  // Controles na tela de bloqueio/fones enquanto há narração; tela sempre acesa durante a leitura.
+  useMediaSession({
+    enabled: isPlaying || isPaused,
+    title: book.title,
+    artist: book.author,
+    artwork: book.coverData?.startsWith('http') ? book.coverData : undefined,
+    playing: isPlaying,
+    onToggle: () => togglePlaybackRef.current(),
+    onNext: () => changePage(1),
+    onPrev: () => changePage(-1),
+  })
+  useWakeLock(true)
+
   // Aba "Escutar": inicia a leitura em voz alta ao entrar. Ao voltar para "Ler", para a
   // narração que o "Escutar" iniciou — em "Ler" nada toca sozinho.
   const wasAutoPlayRef = useRef(autoPlay)
@@ -892,19 +978,6 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
     const span = containerRef.current.querySelector(`span[data-word-index="${firstIdx}"]`) as HTMLElement | null
     if (viewMode === 'comic') {
       // No quadrinho o destaque aparece dentro do balão; sem rolagem nem mãozinha.
-  // Controles na tela de bloqueio/fones enquanto há narração; tela sempre acesa durante a leitura.
-  useMediaSession({
-    enabled: isPlaying || isPaused,
-    title: book.title,
-    artist: book.author,
-    artwork: book.coverData?.startsWith('http') ? book.coverData : undefined,
-    playing: isPlaying,
-    onToggle: () => togglePlaybackRef.current(),
-    onNext: () => changePage(1),
-    onPrev: () => changePage(-1),
-  })
-  useWakeLock(true)
-
       if (ttsHandRef.current) ttsHandRef.current.style.display = 'none'
       return
     }
@@ -1449,28 +1522,34 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
                 title={t('speedLabel')}
                 aria-label={t('speedLabel')}
               >
-                {playbackRate.toFixed(2).replace(/0$/, '')}x
+                {speedNumber(playbackRate)}x
               </button>
             </PopoverTrigger>
             <PopoverContent
-              className="w-44 p-1.5 z-50"
+              className="w-[220px] p-2 z-50"
               align="center"
-              sideOffset={8}
+              side="top"
+              sideOffset={10}
             >
-              <div className="flex flex-col gap-0.5">
+              <p className="px-1.5 pb-1.5 text-[11.5px] font-medium" style={{ color: 'var(--theme-text-secondary)' }}>{t('speedLabel')}</p>
+              <div className="grid grid-cols-3 gap-1">
                 {PLAYBACK_SPEEDS.map((r) => {
                   const isSelected = Math.abs(playbackRate - r) < 0.01
+                  const name = speedName(r, locale === 'pt-BR')
                   return (
                     <button
                       key={r}
+                      type="button"
                       onClick={() => handleRateChange(r)}
-                      className={`px-2.5 py-2 rounded-lg text-[13.5px] font-medium transition-all text-left tabular-nums ${!isSelected ? 'hover:bg-[var(--theme-nav-hover)]' : ''}`}
+                      aria-pressed={isSelected}
+                      className="h-12 rounded-lg cursor-pointer transition-colors hover:bg-[var(--theme-nav-hover)]"
                       style={{
                         color: 'var(--theme-text)',
-                        backgroundColor: isSelected ? 'var(--theme-nav-active)' : undefined
+                        backgroundColor: isSelected ? 'var(--theme-nav-active)' : undefined,
                       }}
                     >
-                      {r.toFixed(2)}x{r === 1 ? ` — ${t('speedNormal')}` : ''}
+                      <span className="block text-[13.5px] font-semibold tabular-nums leading-none">{speedNumber(r)}x</span>
+                      <span className="mt-1 block text-[10.5px] leading-none" style={{ color: 'var(--theme-text-secondary)' }}>{name || ' '}</span>
                     </button>
                   )
                 })}
@@ -1573,13 +1652,7 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
           </Popover>
           </div>
 
-          {/* Contador de página (no celular, compacto) */}
-          <span className="flex items-center text-xs md:text-sm font-medium tabular-nums shrink-0 px-1 md:px-2" style={{ color: 'var(--theme-nav-text-muted)' }}>
-            <span className="md:hidden">{currentPage + 1}/{pages.length}</span>
-          </span>
-          <span className="hidden md:flex items-center text-sm font-medium tabular-nums shrink-0 px-2" style={{ color: 'var(--theme-nav-text-muted)' }}>
-            {currentPage + 1} / {pages.length}
-          </span>
+          <PageJump page={currentPage} total={pages.length} onGo={goToPage} pt={locale === 'pt-BR'} />
 
           </div>
 
@@ -1602,37 +1675,6 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
       </div>
 
       {renderPostIts()}
-
-      {book.catalogId && (
-        <div className="mx-auto max-w-3xl mb-3 rounded-2xl px-4 py-3 text-[13px] leading-snug flex flex-wrap items-center gap-2" style={{ backgroundColor: 'var(--theme-pastel-4)', color: 'var(--theme-pastel-text)' }}>
-          <span className="flex-1 min-w-[16rem]">
-            {book.imageMode === 'personal'
-              ? (locale === 'pt-BR' ? 'Estas imagens são só suas. A galeria dos outros continua como estava.' : 'These images are only yours. Everyone else’s gallery stays as it was.')
-              : (locale === 'pt-BR' ? 'Imagens da galeria. Uma página que ainda não existe, se você criar, aparece para todo mundo. Os balões que você move ficam só seus.' : 'Gallery images. A page that does not exist yet, if you create it, shows up for everyone. Balloons you move stay yours.')}
-          </span>
-          {book.imageMode !== 'personal' ? (
-            <button type="button" className="h-8 px-3 rounded-lg text-[12.5px] font-medium" style={{ backgroundColor: 'var(--theme-card-bg)' }}
-              onClick={() => {
-                updateBook(book.id, { imageMode: 'personal' })
-                if (userId) void saveBookLink({ bookId: book.id, catalogId: book.catalogId!, imageMode: 'personal' }, userId)
-              }}>{locale === 'pt-BR' ? 'Quero as minhas imagens' : 'I want my own images'}</button>
-          ) : (
-            <>
-              <button type="button" className="h-8 px-3 rounded-lg text-[12.5px] font-medium" style={{ backgroundColor: 'var(--theme-card-bg)' }}
-                onClick={() => {
-                  updateBook(book.id, { imageMode: 'shared' })
-                  if (userId) void saveBookLink({ bookId: book.id, catalogId: book.catalogId!, imageMode: 'shared' }, userId)
-                }}>{locale === 'pt-BR' ? 'Voltar às da galeria' : 'Back to the gallery'}</button>
-              <button type="button" className="h-8 px-3 rounded-lg text-[12.5px] font-medium" style={{ backgroundColor: 'var(--theme-card-bg)' }}
-                onClick={() => {
-                  const images = Object.fromEntries(Object.entries(book.comicPages ?? {}).filter(([, url]) => /^https?:\/\//.test(url)))
-                  if (!userId || !Object.keys(images).length) return
-                  void publishVersion(book.catalogId!, userId, session?.user?.user_metadata?.full_name || session?.user?.email?.split('@')[0] || '', images)
-                }}>{locale === 'pt-BR' ? 'Mostrar minha versão' : 'Share my version'}</button>
-            </>
-          )}
-        </div>
-      )}
 
       {selectedText && selectionRect && interactionMode === 'text' && (
         <FloatingAction

@@ -5,6 +5,7 @@ import { useLanguage } from '@/store/useLanguage'
 import { useUiStore } from '@/store/useUiStore'
 import { haptics } from '@/lib/haptics'
 import { isTabRoot, parentOf, screenTitle } from './routes'
+import { NotificationBell } from '@/components/community/NotificationBell'
 
 export function goBack(navigate: ReturnType<typeof useNavigate>, path: string) {
   const idx = (window.history.state as { idx?: number } | null)?.idx ?? 0
@@ -55,6 +56,7 @@ export function NavBar() {
           {title}
         </h2>
         <div className="flex items-center justify-end">
+          <NotificationBell pt={pt} className={`${btn} justify-center`} />
           <button type="button" className={btn} style={{ color: 'var(--theme-text)' }} onClick={() => setCommandOpen(true)} aria-label={pt ? 'Buscar' : 'Search'}>
             <Search className="w-[22px] h-[22px]" aria-hidden />
           </button>

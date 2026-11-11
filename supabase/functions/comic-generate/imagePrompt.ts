@@ -1,13 +1,18 @@
 import { STYLE_FIELDS, cleanText, type ComicReference } from '../_shared/comicEditorial.ts'
 import { isHistoricalRomanceStyle, usesRealisticLineArt } from '../_shared/comicStyle.ts'
+import { BOOK_FIELDS, masterStyle } from '../_shared/styleBank.ts'
 import type { composeRows, resolvePlan } from './storyboard.ts'
 
-export function imagePrompt(plan: ReturnType<typeof resolvePlan>, rows: ReturnType<typeof composeRows>, refs: ComicReference[], continuity: number, feedback?: string) {
+export function imagePrompt(plan: ReturnType<typeof resolvePlan>, rows: ReturnType<typeof composeRows>, refs: ComicReference[], continuity: number, feedback?: string, bankPrompt?: string | null) {
   const { style, context, cast, beats } = plan
   const detailed = usesRealisticLineArt(style)
   const styleReference = refs.some(ref => ref.type === 'style')
-  const historicalRomance = isHistoricalRomanceStyle(style) && !styleReference
-  const art = STYLE_FIELDS.flatMap(k => k !== 'lettering' && k !== 'fonts' && style[k] ? [`${k}: ${cleanText(style[k], 550)}`] : []).join('\n')
+  // Estilo do banco: o super prompt vai inteiro e manda na técnica. Do livro ficam só paleta, luz, cenário e figurino.
+  const bank = bankPrompt ? masterStyle(bankPrompt) : ''
+  const historicalRomance = !bank && isHistoricalRomanceStyle(style) && !styleReference
+  const artFields: readonly string[] = bank ? BOOK_FIELDS : STYLE_FIELDS.filter(k => k !== 'lettering' && k !== 'fonts')
+  const art = artFields.flatMap(k => style[k as keyof typeof style] && typeof style[k as keyof typeof style] === 'string'
+    ? [`${k}: ${cleanText(style[k as keyof typeof style], 550)}`] : []).join('\n')
   const referenceNotes = refs.map((ref, i) =>
     `Image ${i + 1} (${i === 0 ? 'primary, ' : ''}${ref.type}): ${cleanText(ref.instructions, 400) || 'use only for the named role'}`,
   ).join('\n')
@@ -41,10 +46,10 @@ ${panels.join('\n')}`
 
   return `Create the original unlettered art for ONE portrait 2:3 comic page, exactly ${beats.length} panels.
 ${historicalRomance ? 'MEDIUM: contemporary hand-inked color manga, with the graphic look of painted 2D animation cels over transparent watercolor scenery. This visual treatment has priority over all scene descriptions. Draw faces with distinct ink silhouettes, a simplified nose shape, clean cheek planes, graphic expressive eyes and broad grouped hair locks. On faces and clothing use only two discrete tones per local color: a flat base and one hard-edged cel shadow. Keep skin matte and untextured, with zero realistic gradation, wrinkles rendered by a few lines, and clean large eyes. Keep the entire page bright and airy in pale sage green, sky blue, dusty rose and ivory. Use warm brown only as a small accent. Paint scenery as a few large light watercolor shapes and omit fine background texture, stonework, ornament, and fabric patterns. Keep intricate costume texture, architecture and crowds deliberately simplified. People should read like distinctly stylized drawn animation characters. Crowds are loosely painted silhouettes and the emphasis stays on clean foreground outlines and expression. No sepia, realistic portraiture, historical oil painting, brown cinematic color grading or textured realism.' : ''}
-Use visibly drawn line art, expressive illustrated faces and clear graphic shapes. Render as a comic illustration in every genre. Reject cinematic photography, photographic rendering and 3D surfaces.
-${detailed ? 'Use convincing anatomical proportions and more deliberate ink detail, while keeping clearly drawn linework and illustrated shading.' : 'Use stylized proportions, clear color shapes and restrained surface detail.'}
+${bank ? bank + '\nApply this master style to every panel of the page below. The panel plan, cast and context decide what is depicted; the master style decides how it is drawn and painted.' : `Use visibly drawn line art, expressive illustrated faces and clear graphic shapes. Render as a comic illustration in every genre. Reject cinematic photography, photographic rendering and 3D surfaces.
+${detailed ? 'Use convincing anatomical proportions and more deliberate ink detail, while keeping clearly drawn linework and illustrated shading.' : 'Use stylized proportions, clear color shapes and restrained surface detail.'}`}
 Respect the action, chronology and character relationships. Render only the events listed in the panel plan.
-Art direction for this book:
+${bank ? 'Book-specific palette, light, places and clothing (use within the master style):' : 'Art direction for this book:'}
 ${art}
 Historical and narrative context (for accuracy, not rendering style): ${JSON.stringify(context)}
 ${styleReference ? 'Match the drawing language of the style reference: compare contour weight, facial construction, shadow shapes, degree of simplification and color values. Reinterpret the source scene entirely with this visual language. Ignore every word, lettering mark, balloon, tail and caption box in the reference.' : ''}

@@ -31,10 +31,12 @@ export type StyleDocument = ArtDirection & {
   lineStyle?: string
   aesthetics?: string
   revision?: string
+  /** Estilo do banco (comic_styles.id). Ausente = mangá refinado da casa. */
+  styleId?: string
   /** Reader's lettering theme choice (classic, adventure, tech…); absent = detected from the art direction. */
   letteringTheme?: string
   references?: ComicReference[]
-  research?: { fingerprint: string; defaults: ArtDirection; sources: { title: string; url: string }[] }
+  research?: { fingerprint: string; defaults: ArtDirection; sources: { title: string; url: string }[]; styleId?: string | null }
 }
 
 export type Character = { id?: string; name: string; visualDescription: string; firstPage?: number }

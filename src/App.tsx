@@ -18,7 +18,7 @@ import { LegalPage } from '@/pages/legal/LegalPage'
 import { Gallery } from '@/pages/Gallery'
 import { AdminPage } from '@/pages/Admin'
 import { MePage } from '@/pages/Me'
-import { Community, PostPage, PublicProfile } from '@/pages/Community'
+import { Community, ConnectionsPage, NotificationsPage, PostPage, PublicProfile } from '@/pages/Community'
 
 function ThemeToBody() {
   const { theme } = useReaderSettings()
@@ -71,10 +71,14 @@ export default function App() {
             <Route path="gallery/:id" element={<Gallery />} />
             <Route path="community" element={<Community />} />
             <Route path="profile/:userId" element={<PublicProfile />} />
+            <Route path="u/:handle" element={<PublicProfile />} />
+            <Route path="post/:id" element={<PostPage />} />
+            <Route path="u/:handle/:list" element={<ConnectionsPage />} />
+            <Route path="notifications" element={<NotificationsPage />} />
             <Route path="admin" element={<AdminPage />} />
+            <Route path="me" element={<MePage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
-            <Route path="me" element={<MePage />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

@@ -42,6 +42,8 @@ export interface Book {
   catalogId?: string
   /** shared: imagens da galeria. personal: só as imagens desta pessoa. */
   imageMode?: 'shared' | 'personal'
+  /** Dificuldade marcada na galeria. Livro enviado pela pessoa não tem. */
+  cefrLevel?: 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2'
 }
 
 interface BookState {
@@ -51,7 +53,7 @@ interface BookState {
    * `content` here is optional initial full text used para IA (quadrinhos),
    * não gera páginas automaticamente. Páginas são criadas depois no Editor.
    */
-  addBook: (title: string, content: string, opts?: { languageCode?: string; coverData?: string; description?: string; totalPages?: number; author?: string; pages?: string[] }) => Book
+  addBook: (title: string, content: string, opts?: { languageCode?: string; coverData?: string; description?: string; totalPages?: number; author?: string; pages?: string[]; cefrLevel?: Book['cefrLevel'] }) => Book
   updateBook: (id: string, updates: Partial<Book>) => void
   deleteBook: (id: string) => void
   setCurrentBook: (id: string | null) => void
@@ -65,7 +67,7 @@ export const useBookStore = create<BookState>()(
       books: [],
       currentBookId: null,
       addBook: (title, content, opts = {}) => {
-        const { languageCode = 'en', coverData, description, totalPages, author } = opts
+        const { languageCode = 'en', coverData, description, totalPages, author, cefrLevel } = opts
         const fullText = (content || '').trim()
         const pages = opts.pages ?? (fullText ? splitContentIntoPages(fullText) : [])
         const wordCount = countWords(pages.join(' '))
@@ -85,7 +87,8 @@ export const useBookStore = create<BookState>()(
           wordCount,
           totalPages: targetPages,
           languageCode,
-          coverData: coverData || undefined
+          coverData: coverData || undefined,
+          cefrLevel,
         }
         useBookStore.setState((state) => ({
           books: [...state.books, newBook],

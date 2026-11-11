@@ -124,7 +124,7 @@ export const LETTERING_THEMES: Record<LetteringThemeId, LetteringTheme> = {
 const RULES: [LetteringThemeId, RegExp][] = [
   ['superhero', /superhero|super-hero|marvel|caped|vigilante/i],
   ['horror', /horror|terror|gothic horror|vampire|zombie|haunted|occult/i],
-  ['kids', /children|kids|picture book|middle grade|cartoon for kids/i],
+  ['kids', /storybook|children|kids|picture book|middle grade|cartoon for kids/i],
   ['fantasy', /fantasy|medieval|dragon|wizard|sorcer|elf|elves|kingdom|myth/i],
   ['manga', /manga|anime|shōnen|shonen|shōjo|shojo/i],
   ['tech', /sci-?fi|science fiction|cyber|futur|dystop|virtual|space|neon|robot|tech|digital|hologra/i],
@@ -133,9 +133,18 @@ const RULES: [LetteringThemeId, RegExp][] = [
   ['adventure', /adventure|action|pirate|quest|western|jungle|treasure|explor/i],
 ]
 
+/** Tema de balão de cada estilo do banco. */
+const BANK_THEMES: Record<string, LetteringThemeId> = {
+  'aquarela-nanquim': 'classic', 'fantasia-epica': 'fantasy', 'fantasia-sombria': 'fantasy', 'terror-gotico': 'horror',
+  'ficcao-cientifica': 'tech', cyberpunk: 'tech', 'romance-aquarela': 'romance', 'pintura-historica': 'romance',
+  'noir-misterio': 'noir', 'thriller-cinematografico': 'noir', 'manga-tradicional': 'manga', 'anime-colorido': 'manga',
+  'hq-americana': 'superhero', 'hq-europeia': 'adventure', 'infantil-guache': 'kids', 'realismo-magico': 'fantasy',
+}
+
 /** Theme implied by the book's art direction and research. */
 export function detectLetteringTheme(style?: StyleDocument | null): LetteringThemeId {
   if (!style) return 'classic'
+  if (style.styleId && BANK_THEMES[style.styleId]) return BANK_THEMES[style.styleId]
   const text = [style.styleName, style.artStyle, style.lettering, style.era, style.world, style.technology, style.mood, style.aesthetics]
     .filter(Boolean).join(' ')
   return RULES.find(([, re]) => re.test(text))?.[0] ?? 'classic'

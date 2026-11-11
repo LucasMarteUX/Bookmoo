@@ -10,7 +10,7 @@ export const TABS: Tab[] = [
   { id: 'words', to: '/vocabulary', icon: BookMarked, pt: 'Palavras', en: 'Words', match: p => p.startsWith('/vocabulary') },
   {
     id: 'me', to: '/me', icon: UserRound, pt: 'Você', en: 'You',
-    match: p => ['/me', '/settings', '/stats', '/community', '/profile', '/u/', '/post/', '/admin'].some(r => p === r || p.startsWith(r.endsWith('/') ? r : r + '/') || p === r),
+    match: p => ['/me', '/settings', '/stats', '/community', '/profile', '/u/', '/post/', '/admin', '/notifications'].some(r => p === r || p.startsWith(r.endsWith('/') ? r : r + '/') || p === r),
   },
 ]
 
@@ -38,6 +38,7 @@ export function screenTitle(path: string, pt: boolean): string {
     [/^\/community/, 'Comunidade', 'Community'],
     [/^\/(profile|u)\//, 'Perfil', 'Profile'],
     [/^\/post\//, 'Publicação', 'Post'],
+    [/^\/notifications/, 'Notificações', 'Notifications'],
     [/^\/admin/, 'Admin', 'Admin'],
   ]
   const hit = map.find(([re]) => re.test(path))
@@ -48,7 +49,7 @@ export function screenTitle(path: string, pt: boolean): string {
 export function parentOf(path: string): string {
   if (path.startsWith('/gallery/')) return '/gallery'
   if (path.startsWith('/book/')) return '/'
-  if (/^\/(settings|stats|community|admin)/.test(path)) return '/me'
+  if (/^\/(settings|stats|community|admin|notifications)/.test(path)) return '/me'
   if (/^\/(profile|u|post)\//.test(path)) return '/community'
   return '/'
 }

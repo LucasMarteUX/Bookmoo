@@ -79,7 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null)
   }
 
-  const isAdmin = !!user && ADMIN_EMAILS.includes(user.email ?? '')
+  const isAdmin = !!user && ADMIN_EMAILS.includes((user.email ?? '').toLowerCase())
   const hasSupabase = !!supabase
 
   const value: AuthContextValue = {

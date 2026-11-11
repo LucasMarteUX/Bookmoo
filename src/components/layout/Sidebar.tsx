@@ -2,7 +2,7 @@ import { useMemo, type ComponentType, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   AudioLines, BookMarked, ChartNoAxesColumn, ChevronsUpDown, Coffee, Flame, House, Library, LogOut, Moon,
-  PanelLeftClose, PanelLeftOpen, PenLine, Plus, Search, Settings2, Shield, Star, Sun, Users,
+  Bell, PanelLeftClose, PanelLeftOpen, PenLine, Plus, Search, Settings2, Shield, Star, Sun, Users,
 } from 'lucide-react'
 import { useUiStore } from '@/store/useUiStore'
 import { useReaderSettings, type Theme } from '@/store/useReaderSettings'
@@ -17,6 +17,7 @@ import { StudyTimer } from '@/components/timer/StudyTimer'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { VoiceSelect } from './VoiceSelect'
 import { useAuth } from '@/contexts/AuthContext'
+import { useUnreadNotifications } from '@/components/community/NotificationBell'
 
 interface SidebarProps {
   isMobileDrawer?: boolean
@@ -37,6 +38,7 @@ export function Sidebar({ isMobileDrawer, onClose }: SidebarProps) {
   const pt = locale === 'pt-BR'
   const { user, signOut, isAdmin } = useAuth()
   const { sidebarCollapsed, toggleSidebar, setCommandOpen, requestAddBook } = useUiStore()
+  const unread = useUnreadNotifications()
   const books = useBookStore(s => s.books)
   const vocab = useVocabularyStore(s => s.vocabularies)
   const events = useXpStore(s => s.events)
@@ -57,6 +59,7 @@ export function Sidebar({ isMobileDrawer, onClose }: SidebarProps) {
     { title: pt ? 'Juntos' : 'Together', items: [
       { to: '/gallery', icon: Library, label: pt ? 'Galeria' : 'Gallery' },
       { to: '/community', icon: Users, label: pt ? 'Comunidade' : 'Community' },
+      { to: '/notifications', icon: Bell, label: pt ? 'Notificações' : 'Notifications', badge: unread || undefined },
       ...(isAdmin ? [{ to: '/admin', icon: Shield, label: pt ? 'Área admin' : 'Admin' }] : []),
     ] },
   ]

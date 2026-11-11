@@ -7,6 +7,7 @@ import {
   type Character, type EditorialLayout, type GenerationRecord, type StyleDocument,
 } from '../_shared/comicEditorial.ts'
 import { briefFingerprint, researchArtBible } from './artBible.ts'
+import { readyStyles, stylePrompt } from '../_shared/styleBank.ts'
 import { imagePrompt } from './imagePrompt.ts'
 import { loadReferences } from './references.ts'
 import { composeRows, planPrompt, resolvePlan, type ModelPlan } from './storyboard.ts'
@@ -120,7 +121,8 @@ Deno.serve(async (req) => {
     const savedStyle = (book.comic_style_doc ?? {}) as StyleDocument
     // Legacy documents were inferred from the old image pipeline. Keep the
     // references, but rebuild art direction unless it has an editorial revision.
-    let style: StyleDocument = savedStyle.revision ? savedStyle : { references: savedStyle.references }
+    // Sem revisão (livro novo ou estilo trocado): refaz a direção, mantendo referências e o estilo escolhido.
+    let style: StyleDocument = savedStyle.revision ? savedStyle : { references: savedStyle.references, styleId: savedStyle.styleId }
     const cast = (Array.isArray(book.comic_characters) ? book.comic_characters : []) as Character[]
     if (b.panelId) {
       const layout = book.comic_layouts?.[page] as EditorialLayout | undefined
@@ -128,10 +130,21 @@ Deno.serve(async (req) => {
       return json(await editPanel(sb, user.id, bookId, page, b, layout, book.comic_pages?.[page], cast))
     }
     if (b.action !== 'prepare-art' && (pageText.length > 12000 || !pageText.trim())) return json({ error: 'invalid_page_text' }, 400)
-    const fingerprint = await briefFingerprint(book)
+    // Estilo: a escolha da pessoa (styleId no documento); senão o da galeria, definido pela primeira
+    // pessoa que gerou; senão categoria e leitura do modelo, só entre estilos com prompt.
+    const { data: link } = await sb.from('book_links').select('catalog_id, style_id').eq('book_id', bookId).eq('user_id', user.id).maybeSingle()
+    const { data: catalog } = link?.catalog_id
+      ? await sb.from('catalog_books').select('category, style_id').eq('id', link.catalog_id).maybeSingle()
+      : { data: null }
+    const ready = await readyStyles(sb)
+    const isReady = (id: unknown) => typeof id === 'string' && ready.some(item => item.id === id)
+    const catalogStyle = (catalog as { style_id?: string | null } | null)?.style_id ?? null
+    const fixedStyle = isReady(style.styleId) ? style.styleId! : isReady(link?.style_id) ? link!.style_id as string : isReady(catalogStyle) ? catalogStyle : null
+    const brief = { ...book, category: (catalog as { category?: string | null } | null)?.category ?? null, styleId: fixedStyle }
+    const fingerprint = await briefFingerprint(brief)
     const imgAi = await pickProvider(user.id, ['openai'])
     if (style.research?.fingerprint !== fingerprint) {
-      const researched = await researchArtBible(imgAi.key, book, style, fingerprint)
+      const researched = await researchArtBible(imgAi.key, brief, style, fingerprint, ready, fixedStyle)
       const update = sb.from('books').update({ comic_style_doc: researched }).eq('id', bookId).eq('user_id', user.id)
       const { data: saved, error: writeError } = await (savedStyle.revision
         ? update.eq('comic_style_doc->>revision', savedStyle.revision)
@@ -139,6 +152,11 @@ Deno.serve(async (req) => {
       if (writeError) throw new AiError('Could not save art direction', 500, 'book_write_failed')
       if (!saved) throw new AiError('Art direction changed while researching', 409, 'comic_save_conflict')
       style = researched
+    }
+    // A primeira pessoa que gera um livro da galeria define o estilo dele para todo mundo.
+    if (link?.catalog_id && style.styleId) {
+      if (!catalogStyle) await sb.from('catalog_books').update({ style_id: style.styleId }).eq('id', link.catalog_id).is('style_id', null)
+      if (link.style_id !== style.styleId) await sb.from('book_links').update({ style_id: style.styleId }).eq('book_id', bookId).eq('user_id', user.id)
     }
     if (b.action === 'prepare-art') return json({ styleDoc: style })
     const spans = sentenceSpans(pageText)
@@ -171,7 +189,8 @@ Deno.serve(async (req) => {
     // Continuity: the nearest pages already drawn for this book (earlier first) go to the image
     // model as real images, so recurring characters keep the same face, hair and clothing.
     const continuity = await loadContinuity(sb, user.id, bookId, page, book.comic_pages ?? {})
-    const img = await generateImage(imgAi.provider, imgAi.key, imagePrompt(plan, rows, references, continuity.length, b.replan), [...images, ...continuity])
+    const bankPrompt = await stylePrompt(sb, plan.style.styleId)
+    const img = await generateImage(imgAi.provider, imgAi.key, imagePrompt(plan, rows, references, continuity.length, b.replan, bankPrompt), [...images, ...continuity])
     const generation: GenerationRecord = {
       id: crypto.randomUUID(), createdAt: new Date().toISOString(), provider: imgAi.provider,
       styleRevision: plan.style.revision!,
