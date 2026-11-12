@@ -57,7 +57,7 @@ export function VoiceSelect({ hideLabel = false }: { hideLabel?: boolean } = {})
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <button
-            className="w-full flex items-center gap-2.5 h-10 px-2 rounded-lg border text-left transition-colors hover:bg-[var(--theme-nav-hover)]"
+            className="w-full flex items-center gap-2.5 h-10 px-2 rounded-lg border text-left transition-colors hover:bg-[var(--ui-hover)]"
             style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-border)' }}
             aria-label={t('readingVoice')}
           >
@@ -100,7 +100,7 @@ export function VoiceSelect({ hideLabel = false }: { hideLabel?: boolean } = {})
                     key={v.id}
                     onClick={() => choose(v)}
                     disabled={!!downloading}
-                    className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors hover:bg-[var(--theme-nav-hover)] disabled:opacity-60"
+                    className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors hover:bg-[var(--ui-hover)] disabled:opacity-60"
                     style={{ backgroundColor: selected ? 'var(--theme-nav-active)' : undefined }}
                   >
                     <VoiceAvatar voice={v} size={28} />
@@ -125,7 +125,7 @@ export function VoiceSelect({ hideLabel = false }: { hideLabel?: boolean } = {})
           <Link
             to="/settings"
             onClick={() => setOpen(false)}
-            className="block px-2.5 py-2 mt-1 text-xs font-medium rounded-lg hover:bg-[var(--theme-nav-hover)]"
+            className="block px-2.5 py-2 mt-1 text-xs font-medium rounded-lg hover:bg-[var(--ui-hover)]"
             style={{ color: 'var(--theme-text-secondary)' }}
           >
             {t('manageVoices')} →

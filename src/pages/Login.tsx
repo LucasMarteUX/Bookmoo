@@ -145,7 +145,7 @@ export function Login({ mode = 'login' }: { mode?: Mode }) {
             <span className="font-semibold" style={{ color: 'var(--theme-text)' }}>Bookmoo</span>
           </span>
           <button type="button" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            className="w-9 h-9 rounded-lg grid place-items-center transition-colors hover:bg-[var(--theme-nav-hover)]"
+            className="w-9 h-9 rounded-lg grid place-items-center transition-colors hover:bg-[var(--ui-hover)]"
             style={{ color: 'var(--theme-text-secondary)' }}
             aria-label={theme === 'dark' ? (pt ? 'Modo claro' : 'Light mode') : (pt ? 'Modo escuro' : 'Dark mode')}>
             {theme === 'dark' ? <Sun className="w-[18px] h-[18px]" /> : <Moon className="w-[18px] h-[18px]" />}
@@ -163,7 +163,7 @@ export function Login({ mode = 'login' }: { mode?: Mode }) {
             </p>
 
             <button type="button" onClick={google} disabled={loading !== null}
-              className="mt-7 w-full h-11 rounded-lg border flex items-center justify-center gap-2.5 text-[15px] font-medium transition-colors hover:bg-[var(--theme-nav-hover)] disabled:opacity-60"
+              className="mt-7 w-full h-11 rounded-lg border flex items-center justify-center gap-2.5 text-[15px] font-medium transition-colors hover:bg-[var(--ui-hover)] disabled:opacity-60"
               style={{ borderColor: 'var(--theme-border)', color: 'var(--theme-text)', backgroundColor: 'var(--theme-bg)' }}>
               <GoogleIcon />
               {loading === 'google' ? (pt ? 'Abrindo o Google…' : 'Opening Google…') : (pt ? 'Continuar com Google' : 'Continue with Google')}
@@ -187,7 +187,7 @@ export function Login({ mode = 'login' }: { mode?: Mode }) {
                   <input type={showPassword ? 'text' : 'password'} autoComplete={signup ? 'new-password' : 'current-password'} required minLength={6}
                     value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" className={`${field} pr-10`} />
                   <button type="button" onClick={() => setShowPassword(v => !v)}
-                    className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 grid place-items-center rounded-md hover:bg-[var(--theme-nav-hover)]"
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 grid place-items-center rounded-md hover:bg-[var(--ui-hover)]"
                     style={{ color: 'var(--theme-text-secondary)' }} aria-label={showPassword ? (pt ? 'Ocultar senha' : 'Hide password') : (pt ? 'Mostrar senha' : 'Show password')}>
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>

@@ -35,7 +35,7 @@ const OPTIONS: { id: VocabStatus; icon: typeof Check }[] = [
 /** Cartão que abre ao clicar numa palavra: a palavra, o microfone, explicação, nota
  *  e os mesmos botões coloridos do cartão de estudo. */
 export function WordTooltip({ state, status, onStatus, onExplain, onNote, onImage, onSpeak, speaking, labels, burst }: Props) {
-  const quiet = 'h-8 flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg text-[12.5px] font-medium cursor-pointer transition-colors hover:bg-[var(--theme-nav-hover)]'
+  const quiet = 'h-8 flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg text-[12.5px] font-medium cursor-pointer transition-colors hover:bg-[var(--ui-hover)]'
   return (
     <>
       <AnimatePresence>
@@ -59,7 +59,7 @@ export function WordTooltip({ state, status, onStatus, onExplain, onNote, onImag
               <div className="flex items-center gap-2 pl-1 pr-0.5">
                 <span className="font-display min-w-0 flex-1 truncate text-[22px] leading-none tracking-tight" title={state.text}>{state.text}</span>
                 <button type="button" onClick={onSpeak} aria-label={labels.listen} title={labels.listen}
-                  className="w-8 h-8 shrink-0 inline-flex items-center justify-center rounded-full border cursor-pointer transition-colors hover:bg-[var(--theme-nav-hover)]"
+                  className="w-8 h-8 shrink-0 inline-flex items-center justify-center rounded-full border cursor-pointer transition-colors hover:bg-[var(--ui-hover)]"
                   style={{ borderColor: 'var(--theme-border)' }}>
                   <Mic className={`w-3.5 h-3.5 ${speaking ? 'animate-pulse' : ''}`} />
                 </button>

@@ -3,6 +3,7 @@
 import { CommunityMosaic } from './CommunityMosaic'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { BookOpenText, Check, Eye, EyeOff, Images, Info, Loader2, MessageSquareQuote, RotateCcw, Sparkles, Star, StickyNote, Trash2, Volume2, WandSparkles } from 'lucide-react'
+import { InfoHint } from '@/components/ui/info-hint'
 import { useVocabularyStore, type VocabStatus, type VocabType, type GrammarExample } from '@/store/useVocabularyStore'
 import { useBookStore } from '@/store/useBookStore'
 import { generateExplanation, generateVariantStory, API_KEY_REQUIRED_MESSAGE, aiErrorMessage } from '@/lib/ai'
@@ -339,7 +340,7 @@ export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId,
   ]
   const aiButton = (label: string, busyLabel: string, busy: boolean, onClick: () => void, variant: 'solid' | 'outline' = 'solid') => (
     <button type="button" onClick={onClick} disabled={busy || !text.trim()}
-      className={`h-9 px-3.5 inline-flex items-center gap-1.5 rounded-lg text-[13.5px] font-medium transition-[opacity,background-color] disabled:opacity-60 ${variant === 'solid' ? 'hover:opacity-90' : 'border hover:bg-[var(--theme-nav-hover)]'}`}
+      className={`h-9 px-3.5 inline-flex items-center gap-1.5 rounded-lg text-[13.5px] font-medium transition-[opacity,background-color] disabled:opacity-60 ${variant === 'solid' ? 'hover:opacity-90' : 'border hover:bg-[var(--ui-hover)]'}`}
       style={variant === 'solid' ? { backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' } : { borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }}>
       {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
       {busy ? busyLabel : label}
@@ -347,7 +348,7 @@ export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId,
   )
   const listenBtn = (key: string, value: string, className = 'w-7 h-7') => (
     <button type="button" onClick={() => say(key, value)} aria-label={L.listen} title={L.listen}
-      className={`${className} shrink-0 grid place-items-center rounded-md transition-colors hover:bg-[var(--theme-nav-active)]`}
+      className={`${className} shrink-0 grid place-items-center rounded-md transition-colors hover:bg-[var(--ui-hover)]`}
       style={{ color: speaking === key ? 'var(--theme-text)' : 'var(--theme-text-secondary)' }}>
       <Volume2 className={`w-4 h-4 ${speaking === key ? 'animate-pulse' : ''}`} />
     </button>
@@ -368,7 +369,7 @@ export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId,
             <span>{vocabId ? L.editTerm : L.newTerm}</span>
             <span aria-hidden>·</span>
             <select value={type} onChange={e => setType(e.target.value as VocabType)} aria-label={L.word}
-              className="bg-transparent outline-none cursor-pointer rounded hover:bg-[var(--theme-nav-hover)]">
+              className="bg-transparent outline-none cursor-pointer rounded hover:bg-[var(--ui-hover)]">
               <option value="word">{L.word}</option>
               <option value="phrase">{L.phrase}</option>
               <option value="sentence">{L.sentence}</option>
@@ -385,13 +386,13 @@ export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId,
                 <button type="button" onClick={onGlossEye}
                   aria-label={glossShown ? L.hideTranslation : L.showTranslation}
                   title={glossShown ? L.hideTranslation : L.showTranslation}
-                  className="w-7 h-7 inline-flex items-center justify-center rounded-lg cursor-pointer hover:bg-[var(--theme-nav-hover)]">
+                  className="w-7 h-7 inline-flex items-center justify-center rounded-lg cursor-pointer hover:bg-[var(--ui-hover)]">
                   {glossShown ? <EyeOff className="w-4 h-4" style={{ color: 'var(--theme-text-secondary)' }} /> : <Eye className="w-4 h-4" style={{ color: 'var(--theme-text-secondary)' }} />}
                 </button>
                 <Popover>
                   <PopoverTrigger asChild>
                     <button type="button" aria-label={N.peekInfo} title={N.peekInfo}
-                      className="w-6 h-6 inline-flex items-center justify-center rounded-full border cursor-pointer hover:bg-[var(--theme-nav-hover)]"
+                      className="w-6 h-6 inline-flex items-center justify-center rounded-full border cursor-pointer hover:bg-[var(--ui-hover)]"
                       style={{ borderColor: 'var(--theme-border)', color: 'var(--theme-text-secondary)' }}>
                       <Info className="w-3.5 h-3.5" />
                     </button>
@@ -409,19 +410,22 @@ export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId,
           <div className="mt-2 flex flex-wrap items-center gap-2">
             {ipa && <span className="text-[14px] font-mono tracking-tight" style={{ color: 'var(--theme-text-secondary)' }}>{ipa}</span>}
             <button type="button" onClick={() => say('term', text)} disabled={!text.trim()}
-              className="h-8 px-2.5 inline-flex items-center gap-1.5 rounded-lg border text-[13px] font-medium transition-colors hover:bg-[var(--theme-nav-hover)] disabled:opacity-50"
+              className="h-8 px-2.5 inline-flex items-center gap-1.5 rounded-lg border text-[13px] font-medium transition-colors hover:bg-[var(--ui-hover)] disabled:opacity-50"
               style={{ borderColor: 'var(--theme-border)' }}>
               <Volume2 className={`w-3.5 h-3.5 ${speaking === 'term' ? 'animate-pulse' : ''}`} />{L.listen}
             </button>
             <button type="button" onClick={() => say('term-slow', text, 0.6)} disabled={!text.trim()}
-              className="h-8 px-2.5 inline-flex items-center gap-1.5 rounded-lg text-[13px] transition-colors hover:bg-[var(--theme-nav-hover)] disabled:opacity-50"
+              className="h-8 px-2.5 inline-flex items-center gap-1.5 rounded-lg text-[13px] transition-colors hover:bg-[var(--ui-hover)] disabled:opacity-50"
               style={{ color: 'var(--theme-text-secondary)' }}>
               <span className="text-[11px] font-semibold">0.6×</span>{L.slow}
             </button>
           </div>
 
           <div className="mt-5">
-            <p className="text-[12px] mb-1.5" style={{ color: 'var(--theme-text-secondary)' }}>{L.statusQ}</p>
+            <p className="text-[12px] mb-1.5 flex items-center gap-1" style={{ color: 'var(--theme-text-secondary)' }}>{L.statusQ}
+              <InfoHint title={pt ? 'Status da palavra' : 'Word status'} faq="status">
+                {pt ? 'Revisar coloca a palavra na sua revisão. Aprendi tira da revisão e soma pontos. Importante destaca a palavra na lista.' : 'Review adds it to your review. Learned removes it and earns points. Important highlights it in your list.'}
+              </InfoHint></p>
             <div className="inline-flex gap-1.5 flex-wrap">
               {STATUS.map(({ id, icon: Icon }) => (
                 <button key={id} type="button" onClick={() => setStatus(id)} aria-pressed={status === id} className={`btn-3d btn-3d--${id}`}>
@@ -482,7 +486,7 @@ export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId,
                   {showEye && translation && (
                     <button type="button" aria-label={defShown ? L.hideTranslation : L.showTranslation} title={defShown ? L.hideTranslation : L.showTranslation}
                       onClick={() => setDefShown(v => !v)}
-                      className="w-8 h-8 mt-1 shrink-0 grid place-items-center rounded-md transition-colors hover:bg-[var(--theme-nav-active)]" style={{ color: 'var(--theme-text-secondary)' }}>
+                      className="w-8 h-8 mt-1 shrink-0 grid place-items-center rounded-md transition-colors hover:bg-[var(--ui-hover)]" style={{ color: 'var(--theme-text-secondary)' }}>
                       {defShown ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   )}
@@ -523,7 +527,7 @@ export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId,
                           {level.id === 'A1' && example.portuguese && (
                             <button type="button" aria-label={shown ? L.hideTranslation : L.showTranslation} title={shown ? L.hideTranslation : L.showTranslation}
                               onClick={() => setShownTranslations(prev => { const n = new Set(prev); if (n.has(example.form)) n.delete(example.form); else n.add(example.form); return n })}
-                              className="w-7 h-7 shrink-0 grid place-items-center rounded-md transition-colors hover:bg-[var(--theme-nav-active)]" style={{ color: 'var(--theme-text-secondary)' }}>
+                              className="w-7 h-7 shrink-0 grid place-items-center rounded-md transition-colors hover:bg-[var(--ui-hover)]" style={{ color: 'var(--theme-text-secondary)' }}>
                               {shown ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                             </button>
                           )}
@@ -564,7 +568,7 @@ export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId,
                   {showEye && story.translation && (
                     <button type="button" aria-label={storyShown ? L.hideTranslation : L.showTranslation} title={storyShown ? L.hideTranslation : L.showTranslation}
                       onClick={() => setStoryShown(v => !v)}
-                      className="w-8 h-8 shrink-0 grid place-items-center rounded-md transition-colors hover:bg-[var(--theme-nav-active)]" style={{ color: 'var(--theme-text-secondary)' }}>
+                      className="w-8 h-8 shrink-0 grid place-items-center rounded-md transition-colors hover:bg-[var(--ui-hover)]" style={{ color: 'var(--theme-text-secondary)' }}>
                       {storyShown ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   )}
@@ -588,13 +592,13 @@ export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId,
         {/* Rodapé */}
         <div className="flex items-center gap-2 px-6 sm:px-8 py-3.5 border-t" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg-secondary)' }}>
           {vocabId && (
-            <button type="button" onClick={handleDelete} className="h-9 px-3 inline-flex items-center gap-1.5 rounded-lg text-[13.5px] transition-colors hover:bg-[var(--theme-nav-active)]"
+            <button type="button" onClick={handleDelete} className="h-9 px-3 inline-flex items-center gap-1.5 rounded-lg text-[13.5px] transition-colors hover:bg-[var(--ui-hover)]"
               style={{ color: 'var(--pastel-rose-fg)' }}>
               <Trash2 className="w-4 h-4" />{L.delete}
             </button>
           )}
           <div className="ml-auto flex gap-2">
-            <button type="button" onClick={() => { stopSpeaking(); onClose() }} className="h-9 px-3.5 rounded-lg text-[13.5px] font-medium transition-colors hover:bg-[var(--theme-nav-active)]">
+            <button type="button" onClick={() => { stopSpeaking(); onClose() }} className="h-9 px-3.5 rounded-lg text-[13.5px] font-medium transition-colors hover:bg-[var(--ui-hover)]">
               {L.cancel}
             </button>
             <button type="button" onClick={handleSave} disabled={!text.trim()}

@@ -23,7 +23,7 @@ export function ActionSheet({ open, onOpenChange, title, message, actions }: {
   actions: ActionSheetAction[]
 }) {
   const pt = useLanguage().locale === 'pt-BR'
-  const row = 'w-full min-h-[3.5rem] px-4 flex items-center justify-center gap-2 text-[17px] transition-colors active:bg-[var(--theme-nav-active)] hover:bg-[var(--theme-nav-hover)] disabled:opacity-40 focus-visible:outline-2 focus-visible:-outline-offset-2'
+  const row = 'w-full min-h-[3.5rem] px-4 flex items-center justify-center gap-2 text-[17px] transition-colors active:bg-[var(--theme-nav-active)] hover:bg-[var(--ui-hover)] disabled:opacity-40 focus-visible:outline-2 focus-visible:-outline-offset-2'
   return (
     <Drawer.Root open={open} onOpenChange={onOpenChange}>
       <Drawer.Portal>

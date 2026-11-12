@@ -114,7 +114,7 @@ export function Settings() {
       <div className="grid md:grid-cols-[190px_minmax(0,1fr)] gap-8">
         <nav className="hidden md:flex flex-col gap-0.5 sticky top-8 self-start" aria-label={t('settingsTitle')}>
           {nav.map(({ id, label, icon: Icon }) => (
-            <a key={id} href={`#${id}`} className="flex items-center gap-2.5 h-8 px-2 rounded-md text-[13.5px] transition-colors hover:bg-[var(--theme-nav-hover)]"
+            <a key={id} href={`#${id}`} className="flex items-center gap-2.5 h-8 px-2 rounded-md text-[13.5px] transition-colors hover:bg-[var(--ui-hover)]"
               style={{ color: 'var(--theme-text-secondary)' }}
               onClick={e => { e.preventDefault(); document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' }) }}>
               <Icon className="w-4 h-4" />{label}
@@ -170,7 +170,7 @@ export function Settings() {
                       {avatarUrl ? <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
                         : <span className="text-[18px] font-semibold" style={{ color: 'var(--theme-text)' }}>{(userEmail || 'B').charAt(0).toUpperCase()}</span>}
                     </div>
-                    <label className="h-9 px-3.5 inline-flex items-center gap-1.5 rounded-lg border text-[13.5px] font-medium cursor-pointer transition-colors hover:bg-[var(--theme-nav-hover)]"
+                    <label className="h-9 px-3.5 inline-flex items-center gap-1.5 rounded-lg border text-[13.5px] font-medium cursor-pointer transition-colors hover:bg-[var(--ui-hover)]"
                       style={{ borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }}>
                       <Camera className="w-4 h-4" />
                       {avatarUploading ? t('saving') : t('uploadPhoto')}

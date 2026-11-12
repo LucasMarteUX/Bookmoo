@@ -37,7 +37,7 @@ export function EmojiButton({ onPick, pt }: { onPick: (emoji: string) => void; p
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button type="button" aria-label={pt ? 'Inserir emoji' : 'Insert emoji'} title="Emoji"
-          className="h-9 w-9 grid place-items-center rounded-full transition-colors hover:bg-[var(--theme-nav-hover)]" style={{ color: 'var(--theme-text-secondary)' }}>
+          className="h-9 w-9 grid place-items-center rounded-full transition-colors hover:bg-[var(--ui-hover)]" style={{ color: 'var(--theme-text-secondary)' }}>
           <Smile className="w-[18px] h-[18px]" />
         </button>
       </PopoverTrigger>
@@ -45,7 +45,7 @@ export function EmojiButton({ onPick, pt }: { onPick: (emoji: string) => void; p
         <div role="tablist" className="flex border-b px-1.5 pt-1.5" style={{ borderColor: 'var(--theme-border)' }}>
           {EMOJI_GROUPS.map(g => (
             <button key={g.id} type="button" role="tab" aria-selected={group === g.id} onClick={() => setGroup(g.id)} title={pt ? g.pt : g.en}
-              className="relative flex-1 h-10 grid place-items-center text-[19px] rounded-t-lg transition-colors hover:bg-[var(--theme-nav-hover)]">
+              className="relative flex-1 h-10 grid place-items-center text-[19px] rounded-t-lg transition-colors hover:bg-[var(--ui-hover)]">
               {g.icon}
               {group === g.id && <span aria-hidden className="absolute left-3 right-3 -bottom-px h-0.5 rounded-full" style={{ backgroundColor: 'var(--theme-text)' }} />}
             </button>
@@ -55,7 +55,7 @@ export function EmojiButton({ onPick, pt }: { onPick: (emoji: string) => void; p
         <div className="grid grid-cols-8 gap-0.5 p-2 pt-1">
           {items.map(emoji => (
             <button key={emoji} type="button" onClick={() => { onPick(emoji); setOpen(false) }}
-              className="w-[34px] h-[34px] grid place-items-center rounded-lg text-[21px] leading-none transition-transform hover:bg-[var(--theme-nav-hover)] active:scale-90">{emoji}</button>
+              className="w-[34px] h-[34px] grid place-items-center rounded-lg text-[21px] leading-none transition-transform hover:bg-[var(--ui-hover)] active:scale-90">{emoji}</button>
           ))}
         </div>
       </PopoverContent>

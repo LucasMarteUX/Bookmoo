@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { KeyRound, Check, Loader2, ExternalLink, ShieldCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { InfoHint } from '@/components/ui/info-hint'
 import { Input } from '@/components/ui/input'
 import { aiKeyErrorMessage, connectAiKey, removeAiKey, useAiStatus, type AiProvider } from '@/lib/aiKeys'
 
@@ -51,6 +52,9 @@ export function AiConnections() {
       <h2 className="text-[15px] font-semibold flex items-center gap-2 mb-3" style={{ color: 'var(--theme-text)' }}>
         <KeyRound className="w-5 h-5" />
         Conexões de IA
+        <InfoHint title="Por que conectar uma chave?" faq="chave-ia">
+          Explicações, histórias e imagens usam a sua chave da OpenAI ou do Gemini. Ela fica cifrada no servidor e só é usada nos seus pedidos.
+        </InfoHint>
       </h2>
       <div className="p-5 rounded-2xl border transition-colors space-y-5" style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-border)' }}>
         <p className="text-sm flex gap-2" style={{ color: 'var(--theme-text-secondary)' }}>

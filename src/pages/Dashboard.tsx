@@ -371,7 +371,7 @@ export function Dashboard() {
               <div className="mt-1 flex gap-1">
                 {[10, 15, 30].map(m => (
                   <button key={m} type="button" onClick={() => setDailyGoalMinutes(m)} aria-pressed={goal === m}
-                    className="h-6 px-2 rounded-md text-[11.5px] transition-colors hover:bg-[var(--theme-nav-hover)]"
+                    className="h-6 px-2 rounded-md text-[11.5px] transition-colors hover:bg-[var(--ui-hover)]"
                     style={{ backgroundColor: goal === m ? 'var(--theme-nav-active)' : undefined, color: goal === m ? 'var(--theme-text)' : 'var(--theme-text-secondary)' }}>{m} min</button>
                 ))}
               </div>
@@ -379,19 +379,19 @@ export function Dashboard() {
           </div>
           <div className="h-px" style={{ backgroundColor: 'var(--theme-border)' }} />
           <div className="grid grid-cols-2 gap-3 text-[13px]">
-            <button type="button" onClick={() => navigate('/stats')} className="text-left rounded-lg p-2 -m-2 hover:bg-[var(--theme-nav-hover)]">
+            <button type="button" onClick={() => navigate('/stats')} className="text-left rounded-lg p-2 -m-2 hover:bg-[var(--ui-hover)]">
               <p className="flex items-center gap-1.5" style={{ color: 'var(--theme-text-secondary)' }}><Flame className="w-3.5 h-3.5" style={{ color: xp.studiedToday ? 'var(--pastel-amber-fg)' : undefined }} fill={xp.studiedToday ? 'var(--pastel-amber-fg)' : 'none'} />{pt ? 'Sequência' : 'Streak'}</p>
               <p className="mt-0.5 text-[18px] font-semibold tabular-nums">{xp.streak} <span className="text-[12.5px] font-normal" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? (xp.streak === 1 ? 'dia' : 'dias') : (xp.streak === 1 ? 'day' : 'days')}</span></p>
             </button>
-            <button type="button" onClick={() => navigate('/stats')} className="text-left rounded-lg p-2 -m-2 hover:bg-[var(--theme-nav-hover)]">
+            <button type="button" onClick={() => navigate('/stats')} className="text-left rounded-lg p-2 -m-2 hover:bg-[var(--ui-hover)]">
               <p className="flex items-center gap-1.5" style={{ color: 'var(--theme-text-secondary)' }}><Star className="w-3.5 h-3.5" />{pt ? 'Pontos' : 'Points'}</p>
               <p className="mt-0.5 text-[18px] font-semibold tabular-nums">{fmt.format(xp.total)}</p>
             </button>
-            <button type="button" onClick={() => navigate('/vocabulary')} className="text-left rounded-lg p-2 -m-2 hover:bg-[var(--theme-nav-hover)]">
+            <button type="button" onClick={() => navigate('/vocabulary')} className="text-left rounded-lg p-2 -m-2 hover:bg-[var(--ui-hover)]">
               <p className="flex items-center gap-1.5" style={{ color: 'var(--theme-text-secondary)' }}><BookMarked className="w-3.5 h-3.5" />{pt ? 'Palavras' : 'Words'}</p>
               <p className="mt-0.5 text-[18px] font-semibold tabular-nums">{vocabularies.length}</p>
             </button>
-            <button type="button" onClick={() => navigate('/stats')} className="text-left rounded-lg p-2 -m-2 hover:bg-[var(--theme-nav-hover)]">
+            <button type="button" onClick={() => navigate('/stats')} className="text-left rounded-lg p-2 -m-2 hover:bg-[var(--ui-hover)]">
               <p className="flex items-center gap-1.5" style={{ color: 'var(--theme-text-secondary)' }}><Clock className="w-3.5 h-3.5" />{t('studyTime')}</p>
               <p className="mt-0.5 text-[18px] font-semibold tabular-nums">{formatTime(totalStudyTime)}</p>
             </button>

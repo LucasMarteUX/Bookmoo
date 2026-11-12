@@ -6,7 +6,10 @@ import { useLanguage } from '@/store/useLanguage'
 import { useTranslations } from '@/lib/i18n'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
-import { upsertVocabulary } from '@/lib/supabaseSync'
+import { upsertVocabulary, deleteVocabularyRemote } from '@/lib/supabaseSync'
+import { toast } from '@/components/ui/toast'
+import { mainText } from '@/lib/vocabText'
+import { InfoHint } from '@/components/ui/info-hint'
 import { VocabularyModal } from '@/components/vocabulary/VocabularyModal'
 import { Button } from '@/components/ui/button'
 import { speak, stopSpeaking } from '@/lib/tts'
@@ -18,7 +21,7 @@ const STATUS_STYLE: Record<VocabStatus, { bg: string; fg: string; icon: typeof C
 }
 
 /** Primeira linha útil da explicação (sem a pronúncia). */
-const summary = (explanation?: string) => (explanation ?? '').replace(/\n*\s*(Pronunciation|Pronúncia):.*$/is, '').trim()
+const summary = mainText
 const ipaOf = (explanation?: string) => (explanation ?? '').match(/(?:Pronunciation|Pronúncia):\s*(.+)\s*$/i)?.[1]?.trim() ?? ''
 const say = (text: string) => { stopSpeaking(); void speak(text, { language: 'en', context: text.trim().split(/\s+/).length <= 3 ? 'word' : 'phrase', rate: 0.9 }) }
 
@@ -27,6 +30,19 @@ export function VocabularyPage() {
   const { t } = useTranslations(locale)
   const pt = locale === 'pt-BR'
   const { vocabularies, deleteVocabulary, updateVocabulary } = useVocabularyStore()
+  // Excluir: some na hora (com animação), apaga no banco e oferece "Desfazer" no aviso.
+  const removeWord = (v: Vocabulary) => {
+    const userId = session?.user?.id
+    deleteVocabulary(v.id)
+    if (hasSupabase && supabase && userId) deleteVocabularyRemote(supabase, userId, v.id).catch(e => console.error('Sync vocab delete', e))
+    toast(pt ? `“${v.text}” excluída` : `“${v.text}” deleted`, {
+      tone: 'info',
+      action: { label: pt ? 'Desfazer' : 'Undo', onClick: () => {
+        useVocabularyStore.setState(st => ({ vocabularies: [...st.vocabularies, v] }))
+        if (hasSupabase && supabase && userId) upsertVocabulary(supabase, userId, v).catch(e => console.error('Sync vocab restore', e))
+      } },
+    })
+  }
   const { books } = useBookStore()
   const { session, hasSupabase } = useAuth()
   const [modalOpen, setModalOpen] = useState(false)
@@ -69,7 +85,10 @@ export function VocabularyPage() {
     <div className="max-w-5xl mx-auto space-y-8">
       <header className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
-          <h1 className="font-display text-[34px] md:text-[40px] leading-[1.05]" style={{ color: 'var(--theme-text)' }}>{t('vocabularyPageTitle')}</h1>
+          <h1 className="font-display text-[34px] md:text-[40px] leading-[1.05] inline-flex items-center gap-2" style={{ color: 'var(--theme-text)' }}>{t('vocabularyPageTitle')}
+            <InfoHint title={pt ? 'Seu vocabulário' : 'Your vocabulary'} faq="nivel">
+              {pt ? 'Todas as palavras que você salvou lendo. Use os status para organizar a revisão; quanto mais palavras e pontos, mais o seu nível sobe.' : 'Every word you saved while reading. Use statuses to organize review; more words and points raise your level.'}
+            </InfoHint></h1>
           <p className="mt-2 text-[14.5px]" style={{ color: 'var(--theme-text-secondary)' }}>{t('vocabularyPageDesc')}</p>
         </div>
         <Button onClick={() => setReviewing(reviewQueue)} disabled={!reviewQueue.length}>
@@ -107,7 +126,7 @@ export function VocabularyPage() {
         </select>
         {(filterStatus || filterBookId || query) && (
           <button type="button" onClick={() => { setFilterStatus(''); setFilterBookId(''); setQuery('') }}
-            className="h-9 px-2.5 inline-flex items-center gap-1 rounded-lg text-[13px] hover:bg-[var(--theme-nav-hover)]" style={{ color: 'var(--theme-text-secondary)' }}>
+            className="h-9 px-2.5 inline-flex items-center gap-1 rounded-lg text-[13px] hover:bg-[var(--ui-hover)]" style={{ color: 'var(--theme-text-secondary)' }}>
             <X className="w-3.5 h-3.5" />{pt ? 'Limpar' : 'Clear'}
           </button>
         )}
@@ -125,7 +144,7 @@ export function VocabularyPage() {
             const { bg, fg, icon: Icon } = STATUS_STYLE[v.status]
             const ipa = ipaOf(v.explanation)
             return (
-              <li key={v.id} className="group flex items-start gap-4 px-4 sm:px-5 py-4 transition-colors hover:bg-[var(--theme-nav-hover)]" style={{ borderColor: 'var(--theme-border)' }}>
+              <li key={v.id} className="group flex items-start gap-4 px-4 sm:px-5 py-4 transition-colors hover:bg-[var(--ui-hover)]" style={{ borderColor: 'var(--theme-border)' }}>
                 <button type="button" onClick={() => handleEdit(v)} className="flex-1 min-w-0 text-left">
                   <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
                     <span className="font-display text-[20px] leading-tight" style={{ color: 'var(--theme-text)' }}>{v.text}</span>
@@ -146,7 +165,7 @@ export function VocabularyPage() {
                   <Button variant="ghost" size="icon" className="w-8 h-8" onClick={() => handleEdit(v)} title={t('edit')} aria-label={t('edit')}>
                     <Pencil className="w-4 h-4" style={{ color: 'var(--theme-text-secondary)' }} />
                   </Button>
-                  <Button variant="ghost" size="icon" className="w-8 h-8" onClick={() => deleteVocabulary(v.id)} title={t('delete')} aria-label={t('delete')}>
+                  <Button variant="ghost" size="icon" className="w-8 h-8" onClick={() => removeWord(v)} title={t('delete')} aria-label={t('delete')}>
                     <Trash2 className="w-4 h-4" style={{ color: 'var(--pastel-rose-fg)' }} />
                   </Button>
                 </div>
@@ -183,7 +202,7 @@ function ReviewSession({ ids, pt, onClose, onStatus }: { ids: string[]; pt: bool
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
       <div className="fixed inset-0 bg-black/40 backdrop-blur-[2px] dialog-fade" onClick={onClose} />
       <div className="elevated dialog-pop relative w-full max-w-lg rounded-2xl p-6 sm:p-8" role="dialog" aria-modal="true" aria-label={pt ? 'Revisão' : 'Review'}>
-        <button type="button" onClick={onClose} aria-label={pt ? 'Fechar' : 'Close'} className="absolute right-3 top-3 w-8 h-8 grid place-items-center rounded-md hover:bg-[var(--theme-nav-hover)]" style={{ color: 'var(--theme-text-secondary)' }}>
+        <button type="button" onClick={onClose} aria-label={pt ? 'Fechar' : 'Close'} className="absolute right-3 top-3 w-8 h-8 grid place-items-center rounded-md hover:bg-[var(--ui-hover)]" style={{ color: 'var(--theme-text-secondary)' }}>
           <X className="w-4 h-4" />
         </button>
         <div className="flex items-center gap-3 pr-8">
@@ -207,7 +226,7 @@ function ReviewSession({ ids, pt, onClose, onStatus }: { ids: string[]; pt: bool
             <div className="py-10 text-center">
               <p className="font-display text-[44px] leading-tight">{current.text}</p>
               {ipaOf(current.explanation) && <p className="mt-1 text-[14px] font-mono" style={{ color: 'var(--theme-text-secondary)' }}>{ipaOf(current.explanation)}</p>}
-              <button type="button" onClick={() => say(current.text)} className="mt-3 h-8 px-3 inline-flex items-center gap-1.5 rounded-lg border text-[13px] hover:bg-[var(--theme-nav-hover)]" style={{ borderColor: 'var(--theme-border)' }}>
+              <button type="button" onClick={() => say(current.text)} className="mt-3 h-8 px-3 inline-flex items-center gap-1.5 rounded-lg border text-[13px] hover:bg-[var(--ui-hover)]" style={{ borderColor: 'var(--theme-border)' }}>
                 <Volume2 className="w-3.5 h-3.5" />{pt ? 'Ouvir' : 'Listen'}
               </button>
               {revealed ? (

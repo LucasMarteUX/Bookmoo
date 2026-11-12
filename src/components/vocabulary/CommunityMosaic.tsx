@@ -136,7 +136,7 @@ export function CommunityMosaic({ text, lang, pt, onCount }: { text: string; lan
               </div>
             )}
             <button type="button" onClick={generate} disabled={!term}
-              className="mt-auto self-start h-8 px-3 inline-flex items-center gap-1.5 rounded-lg border text-[13px] font-medium transition-colors hover:bg-[var(--theme-nav-hover)] disabled:opacity-50"
+              className="mt-auto self-start h-8 px-3 inline-flex items-center gap-1.5 rounded-lg border text-[13px] font-medium transition-colors hover:bg-[var(--ui-hover)] disabled:opacity-50"
               style={{ borderColor: 'var(--theme-border)' }}>
               <Sparkles className="w-3.5 h-3.5" />{pt ? 'Criar outra versão' : 'Create another version'}
             </button>

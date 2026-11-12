@@ -39,7 +39,7 @@ export const ToolButton = forwardRef<HTMLButtonElement, ToolButtonProps>(functio
         'inline-flex items-center justify-center gap-1.5 h-8 min-w-8 rounded-lg text-[13px] font-medium whitespace-nowrap transition-all',
         'disabled:opacity-40 disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-accent)]/40',
         label ? 'px-2.5' : 'px-0',
-        !active && 'hover:bg-[var(--theme-nav-hover)]',
+        !active && 'hover:bg-[var(--ui-hover)]',
         className,
       )}
       style={{
@@ -61,7 +61,7 @@ export function MenuItem({ icon, label, description, onClick, tone, disabled }: 
 }) {
   return (
     <button type="button" onClick={onClick} disabled={disabled}
-      className="w-full flex items-start gap-2.5 px-2.5 py-1.5 rounded-lg text-left transition-colors hover:bg-[var(--theme-nav-hover)] disabled:opacity-40"
+      className="w-full flex items-start gap-2.5 px-2.5 py-1.5 rounded-lg text-left transition-colors hover:bg-[var(--ui-hover)] disabled:opacity-40"
       style={{ color: tone === 'danger' ? 'var(--pastel-rose-fg)' : 'var(--theme-text)' }}>
       <span className="mt-0.5 shrink-0 opacity-70 [&>svg]:w-4 [&>svg]:h-4">{icon}</span>
       <span className="min-w-0">

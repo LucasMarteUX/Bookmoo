@@ -42,7 +42,7 @@ function CloseButton() {
   const Close = mode === 'sheet' ? Drawer.Close : RDialog.Close
   return (
     <Close
-      className="absolute right-2 top-2 z-10 w-11 h-11 rounded-full flex items-center justify-center transition-colors hover:bg-[var(--theme-nav-hover)] active:bg-[var(--theme-nav-active)] focus-visible:outline-2 focus-visible:outline-offset-2"
+      className="absolute right-2 top-2 z-10 w-11 h-11 rounded-full flex items-center justify-center transition-colors hover:bg-[var(--ui-hover)] active:bg-[var(--theme-nav-active)] focus-visible:outline-2 focus-visible:outline-offset-2"
       style={{ color: 'var(--theme-text-secondary)' }}
       aria-label={pt ? 'Fechar' : 'Close'}
     >

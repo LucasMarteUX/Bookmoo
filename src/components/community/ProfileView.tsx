@@ -131,7 +131,7 @@ export function ProfileHeader({ view, pt, asVisitor = false, onTab, onRelationCh
             )}
             {links.map(({ kind, link }) => (
               <a key={kind} href={link.href} target="_blank" rel="noopener noreferrer nofollow"
-                className="h-8 px-3 inline-flex items-center gap-1.5 rounded-full border text-[12.5px] transition-colors hover:bg-[var(--theme-nav-hover)]" style={{ borderColor: 'var(--theme-border)' }}>
+                className="h-8 px-3 inline-flex items-center gap-1.5 rounded-full border text-[12.5px] transition-colors hover:bg-[var(--ui-hover)]" style={{ borderColor: 'var(--theme-border)' }}>
                 {kind === 'website' ? <Globe className="w-3.5 h-3.5" /> : <span className="font-semibold">{kind === 'instagram' ? 'IG' : 'X'}</span>}
                 {link.label}
               </a>
@@ -147,7 +147,7 @@ export function ProfileHeader({ view, pt, asVisitor = false, onTab, onRelationCh
                 <dd className="text-[18px] font-semibold tabular-nums leading-none" style={{ color: 'var(--theme-text)' }}>{fmt.format(item.value)}</dd>
               </>
             )
-            const className = 'flex flex-col-reverse text-left rounded-lg -mx-1 px-1 transition-colors hover:bg-[var(--theme-nav-hover)]'
+            const className = 'flex flex-col-reverse text-left rounded-lg -mx-1 px-1 transition-colors hover:bg-[var(--ui-hover)]'
             return item.to
               ? <Link key={item.label} to={item.to} className={className}>{content}</Link>
               : item.tab && onTab

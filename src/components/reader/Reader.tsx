@@ -1,4 +1,5 @@
 import { toast } from '@/components/ui/toast'
+import { mainText } from '@/lib/vocabText'
 import { askConfirm } from '@/components/ui/confirm'
 import React, { useRef, useMemo, useState, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
@@ -91,7 +92,7 @@ function PageJump({ page, total, onGo, pt }: { page: number; total: number; onGo
       <PopoverTrigger asChild>
         <button
           type="button"
-          className="flex items-center h-10 px-2 rounded-xl text-xs md:text-sm font-medium tabular-nums shrink-0 cursor-pointer hover:bg-[var(--theme-nav-hover)]"
+          className="flex items-center h-10 px-2 rounded-xl text-xs md:text-sm font-medium tabular-nums shrink-0 cursor-pointer hover:bg-[var(--ui-hover)]"
           style={{ color: 'var(--theme-nav-text)' }}
           aria-label={pt ? 'Ir para uma página' : 'Go to a page'}
         >
@@ -124,7 +125,7 @@ function PageJump({ page, total, onGo, pt }: { page: number; total: number; onGo
           type="button"
           onClick={() => go(1)}
           disabled={page === 0}
-          className="mt-2 h-9 w-full rounded-lg text-[13px] font-medium cursor-pointer hover:bg-[var(--theme-nav-hover)] disabled:opacity-40"
+          className="mt-2 h-9 w-full rounded-lg text-[13px] font-medium cursor-pointer hover:bg-[var(--ui-hover)] disabled:opacity-40"
           style={{ color: 'var(--theme-text)' }}
         >
           {pt ? 'Voltar ao início' : 'Back to the start'}
@@ -1139,7 +1140,7 @@ export function Reader({ book, autoPlay = false, headerSlot }: ReaderProps) {
                 </div>
                 <div className="space-y-3">
                   {vocab.explanation && (
-                    <p className="whitespace-pre-wrap text-sm leading-relaxed">{vocab.explanation}</p>
+                    <p className="whitespace-pre-wrap text-sm leading-relaxed">{mainText(vocab.explanation)}</p>
                   )}
                   {vocab.examples && vocab.examples.length > 0 && (
                     <div className="pt-2 border-t" style={{ borderColor: 'var(--theme-postit-border)' }}>
@@ -1167,13 +1168,13 @@ export function Reader({ book, autoPlay = false, headerSlot }: ReaderProps) {
                   )}
                   {vocab.usageNote && (
                     <p className="border-t pt-2 text-xs leading-relaxed" style={{ borderColor: 'var(--theme-postit-border)' }}>
-                      <strong>Nota: </strong>{vocab.usageNote}
+                      <strong>Nota: </strong>{mainText(vocab.usageNote)}
                     </p>
                   )}
                   {vocab.variantStory && (
                     <div className="border-t pt-2" style={{ borderColor: 'var(--theme-postit-border)' }}>
                       <span className="font-semibold text-[11.5px]" style={{ color: 'var(--theme-text-secondary)' }}>História paralela</span>
-                      <p className="mt-1 whitespace-pre-wrap text-xs leading-relaxed">{vocab.variantStory}</p>
+                      <p className="mt-1 whitespace-pre-wrap text-xs leading-relaxed">{mainText(vocab.variantStory)}</p>
                     </div>
                   )}
                   {!vocab.explanation && (!vocab.examples || vocab.examples.length === 0) && (!vocab.grammarExamples || vocab.grammarExamples.length === 0) && !vocab.variantStory && (
@@ -1218,7 +1219,7 @@ export function Reader({ book, autoPlay = false, headerSlot }: ReaderProps) {
                   </div>
                   <div className="space-y-3">
                     {vocab.explanation && (
-                      <p className="whitespace-pre-wrap text-sm leading-relaxed">{vocab.explanation}</p>
+                      <p className="whitespace-pre-wrap text-sm leading-relaxed">{mainText(vocab.explanation)}</p>
                     )}
                     {vocab.examples && vocab.examples.length > 0 && (
                       <div className="pt-2 border-t" style={{ borderColor: 'var(--theme-postit-border)' }}>
@@ -1246,13 +1247,13 @@ export function Reader({ book, autoPlay = false, headerSlot }: ReaderProps) {
                     )}
                     {vocab.usageNote && (
                       <p className="border-t pt-2 text-xs leading-relaxed" style={{ borderColor: 'var(--theme-postit-border)' }}>
-                        <strong>Nota: </strong>{vocab.usageNote}
+                        <strong>Nota: </strong>{mainText(vocab.usageNote)}
                       </p>
                     )}
                     {vocab.variantStory && (
                       <div className="border-t pt-2" style={{ borderColor: 'var(--theme-postit-border)' }}>
                         <span className="font-semibold text-[11.5px]" style={{ color: 'var(--theme-text-secondary)' }}>História paralela</span>
-                        <p className="mt-1 whitespace-pre-wrap text-xs leading-relaxed">{vocab.variantStory}</p>
+                        <p className="mt-1 whitespace-pre-wrap text-xs leading-relaxed">{mainText(vocab.variantStory)}</p>
                       </div>
                     )}
                     {!vocab.explanation && (!vocab.examples || vocab.examples.length === 0) && (!vocab.grammarExamples || vocab.grammarExamples.length === 0) && !vocab.variantStory && (
@@ -1343,17 +1344,17 @@ export function Reader({ book, autoPlay = false, headerSlot }: ReaderProps) {
                     <div>
                       <p className="text-[12px] font-medium mb-2" style={{ color: 'var(--theme-text-secondary)' }}>{t('fontSize')}</p>
                       <div className="flex items-center gap-3">
-                        <button type="button" onClick={() => setFontSize(Math.max(12, fontSize - 1))} className="w-9 h-9 rounded-lg flex items-center justify-center text-lg font-bold transition-colors hover:bg-[var(--theme-nav-hover)] disabled:opacity-40" style={{ color: 'var(--theme-text)' }} disabled={fontSize <= 12}>A-</button>
+                        <button type="button" onClick={() => setFontSize(Math.max(12, fontSize - 1))} className="w-9 h-9 rounded-lg flex items-center justify-center text-lg font-bold transition-colors hover:bg-[var(--ui-hover)] disabled:opacity-40" style={{ color: 'var(--theme-text)' }} disabled={fontSize <= 12}>A-</button>
                         <span className="flex-1 text-center text-sm font-medium tabular-nums" style={{ color: 'var(--theme-text)' }}>{fontSize}</span>
-                        <button type="button" onClick={() => setFontSize(Math.min(32, fontSize + 1))} className="w-9 h-9 rounded-lg flex items-center justify-center text-lg font-bold transition-colors hover:bg-[var(--theme-nav-hover)] disabled:opacity-40" style={{ color: 'var(--theme-text)' }} disabled={fontSize >= 32}>A+</button>
+                        <button type="button" onClick={() => setFontSize(Math.min(32, fontSize + 1))} className="w-9 h-9 rounded-lg flex items-center justify-center text-lg font-bold transition-colors hover:bg-[var(--ui-hover)] disabled:opacity-40" style={{ color: 'var(--theme-text)' }} disabled={fontSize >= 32}>A+</button>
                       </div>
                     </div>
                     <div>
                       <p className="text-[12px] font-medium mb-2" style={{ color: 'var(--theme-text-secondary)' }}>{t('lineHeight')}</p>
                       <div className="flex items-center gap-3">
-                        <button type="button" onClick={() => setLineHeight(Math.max(1.2, Math.round((lineHeight - 0.1) * 10) / 10))} className="w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold transition-colors hover:bg-[var(--theme-nav-hover)] disabled:opacity-40" style={{ color: 'var(--theme-text)' }} disabled={lineHeight <= 1.2}>−</button>
+                        <button type="button" onClick={() => setLineHeight(Math.max(1.2, Math.round((lineHeight - 0.1) * 10) / 10))} className="w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold transition-colors hover:bg-[var(--ui-hover)] disabled:opacity-40" style={{ color: 'var(--theme-text)' }} disabled={lineHeight <= 1.2}>−</button>
                         <span className="flex-1 text-center text-sm font-medium tabular-nums" style={{ color: 'var(--theme-text)' }}>{lineHeight}</span>
-                        <button type="button" onClick={() => setLineHeight(Math.min(2.4, Math.round((lineHeight + 0.1) * 10) / 10))} className="w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold transition-colors hover:bg-[var(--theme-nav-hover)] disabled:opacity-40" style={{ color: 'var(--theme-text)' }} disabled={lineHeight >= 2.4}>+</button>
+                        <button type="button" onClick={() => setLineHeight(Math.min(2.4, Math.round((lineHeight + 0.1) * 10) / 10))} className="w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold transition-colors hover:bg-[var(--ui-hover)] disabled:opacity-40" style={{ color: 'var(--theme-text)' }} disabled={lineHeight >= 2.4}>+</button>
                       </div>
                     </div>
                     <div>
@@ -1494,7 +1495,7 @@ export function Reader({ book, autoPlay = false, headerSlot }: ReaderProps) {
             type="button"
             onClick={() => changePage(-1)}
             disabled={currentPage === 0}
-            className="flex items-center justify-center w-10 h-10 min-w-[40px] min-h-[40px] rounded-xl transition-colors shrink-0 disabled:opacity-40 hover:bg-[var(--theme-nav-hover)] xl:px-4 xl:w-auto"
+            className="flex items-center justify-center w-10 h-10 min-w-[40px] min-h-[40px] rounded-xl transition-colors shrink-0 disabled:opacity-40 hover:bg-[var(--ui-hover)] xl:px-4 xl:w-auto"
             style={{ color: 'var(--theme-nav-text)' }}
             title={t('previousPage')}
             aria-label={t('previousPage')}
@@ -1564,7 +1565,7 @@ export function Reader({ book, autoPlay = false, headerSlot }: ReaderProps) {
           {(isPlaying || isPaused) && (
             <button
               onClick={stopPlayback}
-              className="flex items-center justify-center w-10 h-10 min-w-[40px] min-h-[40px] rounded-xl transition-colors hover:bg-[var(--theme-nav-hover)] shrink-0"
+              className="flex items-center justify-center w-10 h-10 min-w-[40px] min-h-[40px] rounded-xl transition-colors hover:bg-[var(--ui-hover)] shrink-0"
               style={{ color: 'var(--theme-nav-text)' }}
               title={t('stop')}
               aria-label={t('stop')}
@@ -1576,7 +1577,7 @@ export function Reader({ book, autoPlay = false, headerSlot }: ReaderProps) {
           <Popover>
             <PopoverTrigger asChild>
               <button
-                className="flex items-center justify-center gap-1.5 px-3 h-10 rounded-xl text-[13.5px] font-semibold tabular-nums transition-all hover:bg-[var(--theme-nav-hover)] shrink-0"
+                className="flex items-center justify-center gap-1.5 px-3 h-10 rounded-xl text-[13.5px] font-semibold tabular-nums transition-all hover:bg-[var(--ui-hover)] shrink-0"
                 style={{ color: 'var(--theme-nav-text)' }}
                 title={t('speedLabel')}
                 aria-label={t('speedLabel')}
@@ -1601,7 +1602,7 @@ export function Reader({ book, autoPlay = false, headerSlot }: ReaderProps) {
                       type="button"
                       onClick={() => handleRateChange(r)}
                       aria-pressed={isSelected}
-                      className="h-12 rounded-lg cursor-pointer transition-colors hover:bg-[var(--theme-nav-hover)]"
+                      className="h-12 rounded-lg cursor-pointer transition-colors hover:bg-[var(--ui-hover)]"
                       style={{
                         color: 'var(--theme-text)',
                         backgroundColor: isSelected ? 'var(--theme-nav-active)' : undefined,
@@ -1623,7 +1624,7 @@ export function Reader({ book, autoPlay = false, headerSlot }: ReaderProps) {
           <Popover>
             <PopoverTrigger asChild>
               <button
-                className="flex items-center justify-center w-10 h-10 min-w-[40px] min-h-[40px] rounded-xl transition-colors hover:bg-[var(--theme-nav-hover)] shrink-0"
+                className="flex items-center justify-center w-10 h-10 min-w-[40px] min-h-[40px] rounded-xl transition-colors hover:bg-[var(--ui-hover)] shrink-0"
                 style={{ color: 'var(--theme-nav-text)' }}
                 title={t('readingOptions')}
                 aria-label={t('readingOptions')}
@@ -1643,7 +1644,7 @@ export function Reader({ book, autoPlay = false, headerSlot }: ReaderProps) {
                     <button
                       type="button"
                       onClick={() => setFontSize(Math.max(12, fontSize - 1))}
-                      className="w-9 h-9 rounded-lg flex items-center justify-center text-lg font-bold transition-colors hover:bg-[var(--theme-nav-hover)] disabled:opacity-40"
+                      className="w-9 h-9 rounded-lg flex items-center justify-center text-lg font-bold transition-colors hover:bg-[var(--ui-hover)] disabled:opacity-40"
                       style={{ color: 'var(--theme-text)' }}
                       disabled={fontSize <= 12}
                     >
@@ -1653,7 +1654,7 @@ export function Reader({ book, autoPlay = false, headerSlot }: ReaderProps) {
                     <button
                       type="button"
                       onClick={() => setFontSize(Math.min(32, fontSize + 1))}
-                      className="w-9 h-9 rounded-lg flex items-center justify-center text-lg font-bold transition-colors hover:bg-[var(--theme-nav-hover)] disabled:opacity-40"
+                      className="w-9 h-9 rounded-lg flex items-center justify-center text-lg font-bold transition-colors hover:bg-[var(--ui-hover)] disabled:opacity-40"
                       style={{ color: 'var(--theme-text)' }}
                       disabled={fontSize >= 32}
                     >
@@ -1667,7 +1668,7 @@ export function Reader({ book, autoPlay = false, headerSlot }: ReaderProps) {
                     <button
                       type="button"
                       onClick={() => setLineHeight(Math.max(1.2, Math.round((lineHeight - 0.1) * 10) / 10))}
-                      className="w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold transition-colors hover:bg-[var(--theme-nav-hover)] disabled:opacity-40"
+                      className="w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold transition-colors hover:bg-[var(--ui-hover)] disabled:opacity-40"
                       style={{ color: 'var(--theme-text)' }}
                       disabled={lineHeight <= 1.2}
                     >
@@ -1677,7 +1678,7 @@ export function Reader({ book, autoPlay = false, headerSlot }: ReaderProps) {
                     <button
                       type="button"
                       onClick={() => setLineHeight(Math.min(2.4, Math.round((lineHeight + 0.1) * 10) / 10))}
-                      className="w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold transition-colors hover:bg-[var(--theme-nav-hover)] disabled:opacity-40"
+                      className="w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold transition-colors hover:bg-[var(--ui-hover)] disabled:opacity-40"
                       style={{ color: 'var(--theme-text)' }}
                       disabled={lineHeight >= 2.4}
                     >
@@ -1720,7 +1721,7 @@ export function Reader({ book, autoPlay = false, headerSlot }: ReaderProps) {
             type="button"
             onClick={() => changePage(1)}
             disabled={currentPage >= pages.length - 1}
-            className="flex items-center justify-center w-10 h-10 min-w-[40px] min-h-[40px] rounded-xl transition-colors shrink-0 disabled:opacity-40 hover:bg-[var(--theme-nav-hover)] xl:px-4 xl:w-auto"
+            className="flex items-center justify-center w-10 h-10 min-w-[40px] min-h-[40px] rounded-xl transition-colors shrink-0 disabled:opacity-40 hover:bg-[var(--ui-hover)] xl:px-4 xl:w-auto"
             style={{ color: 'var(--theme-nav-text)' }}
             title={t('nextPage')}
             aria-label={t('nextPage')}

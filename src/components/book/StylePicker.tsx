@@ -3,6 +3,7 @@
 // No celular o Dialog vira bottom sheet: 2 colunas, barra presa ao fim com a área segura.
 import { useEffect, useState } from 'react'
 import { Check, Clock } from 'lucide-react'
+import { InfoHint } from '@/components/ui/info-hint'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { applyBookStyle, loadStyleBank, stylePreview, type BankStyle } from '@/lib/comicStyles'
 import { cn } from '@/lib/utils'
@@ -143,7 +144,10 @@ export function StylePickerDialog({ open, onOpenChange, value, initial, onPick, 
       <DialogContent className="max-w-4xl sm:max-w-4xl p-0 sm:p-0 gap-0 overflow-hidden">
         <div className="max-h-[min(84vh,860px)] overflow-y-auto overscroll-contain">
           <DialogHeader className="px-5 sm:px-7 pt-6 sm:pt-7 pb-4 pr-14">
-            <DialogTitle className="font-display text-[26px] sm:text-[30px] leading-tight">{title ?? (pt ? 'Banco de estilos' : 'Style bank')}</DialogTitle>
+            <DialogTitle className="font-display text-[26px] sm:text-[30px] leading-tight flex items-center gap-2">{title ?? (pt ? 'Banco de estilos' : 'Style bank')}
+              <InfoHint title={pt ? 'Estilo das imagens' : 'Image style'} faq="estilo">
+                {pt ? 'Na galeria, o primeiro estilo escolhido vale para todos. Trocar é pessoal: apaga as suas imagens deste livro e as próximas saem no estilo novo.' : 'In the gallery, the first style picked applies to everyone. Changing it is personal: your images for this book are removed and new ones use the new style.'}
+              </InfoHint></DialogTitle>
             <DialogDescription className="mt-1 max-w-2xl text-[13.5px] leading-relaxed">
               {description ?? (pt ? 'Escolha como as páginas deste livro vão ser desenhadas.' : 'Choose how this book’s pages will be drawn.')}
             </DialogDescription>

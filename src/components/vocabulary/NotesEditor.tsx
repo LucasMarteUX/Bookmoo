@@ -21,7 +21,7 @@ export function NotesEditor({ value, onChange, placeholder }: { value: string; o
     else el.textContent = value
   }, [value])
 
-  const tool = 'w-8 h-8 grid place-items-center rounded-md transition-colors hover:bg-[var(--theme-nav-hover)]'
+  const tool = 'w-8 h-8 grid place-items-center rounded-md transition-colors hover:bg-[var(--ui-hover)]'
   return (
     <div className="rounded-xl border overflow-hidden" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg)' }}>
       <div className="flex flex-wrap items-center gap-0.5 px-2 py-1.5 border-b" style={{ borderColor: 'var(--theme-border)' }}>

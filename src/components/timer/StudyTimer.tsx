@@ -25,7 +25,7 @@ export function StudyTimer() {
     { value: PRESET_SECONDS['2h'], label: t('preset2h') },
     { value: null, label: t('presetUnlimited') },
   ]
-  const iconBtn = 'w-7 h-7 grid place-items-center rounded-md transition-colors hover:bg-[var(--theme-nav-active)]'
+  const iconBtn = 'w-7 h-7 grid place-items-center rounded-md transition-colors hover:bg-[var(--ui-hover)]'
 
   return (
     <div className="rounded-lg border px-2.5 py-2" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-card-bg)' }}>

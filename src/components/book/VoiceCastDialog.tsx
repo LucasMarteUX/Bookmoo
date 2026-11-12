@@ -82,7 +82,7 @@ export function VoiceCastDialog({ book, open, pt, onOpenChange, onSave }: {
                 <p className="text-[11px]" style={{ color: 'var(--theme-text-secondary)' }}>{row.hint}</p>
               </div>
               <button type="button" onClick={() => preview(row.key, row.voice, row.sample)} disabled={!readingVoice}
-                className="w-8 h-8 shrink-0 rounded-full grid place-items-center hover:bg-[var(--theme-nav-hover)] disabled:opacity-40"
+                className="w-8 h-8 shrink-0 rounded-full grid place-items-center hover:bg-[var(--ui-hover)] disabled:opacity-40"
                 title={pt ? 'Ouvir' : 'Listen'} aria-label={pt ? 'Ouvir' : 'Listen'} style={{ color: 'var(--theme-text)' }}>
                 <Play className={`w-4 h-4 ${previewing === row.key ? 'animate-pulse' : ''}`} fill="currentColor" />
               </button>

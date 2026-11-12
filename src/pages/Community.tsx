@@ -203,7 +203,7 @@ function MeCard({ me, pt }: { me: View | null | undefined; pt: boolean }) {
         <LevelBadge id={me.level} pt={pt} className="mt-2" />
         <div className="mt-4 grid grid-cols-3 gap-1 text-center">
           {counts.map(([value, label, to]) => (
-            <Link key={label} to={me.handle ? to : '/settings#profile'} className="rounded-xl py-2 transition-colors hover:bg-[var(--theme-nav-hover)]" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
+            <Link key={label} to={me.handle ? to : '/settings#profile'} className="rounded-xl py-2 transition-colors hover:bg-[var(--ui-hover)]" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
               <p className="text-[15px] font-semibold tabular-nums">{value}</p>
               <p className="text-[11px]" style={muted}>{label}</p>
             </Link>
@@ -211,10 +211,10 @@ function MeCard({ me, pt }: { me: View | null | undefined; pt: boolean }) {
         </div>
         {!me.isPublic && <p className="mt-3 text-[12px] inline-flex items-center gap-1" style={muted}><Lock className="w-3 h-3" />{pt ? 'Perfil fechado: só quem você aprova vê.' : 'Closed profile: only approved people see it.'}</p>}
         <div className="mt-4 grid gap-2">
-          <Link to="/u/me" className="h-9 w-full inline-flex items-center justify-center rounded-full border text-[13px] font-medium transition-colors hover:bg-[var(--theme-nav-hover)]" style={{ borderColor: 'var(--theme-border)' }}>
+          <Link to="/u/me" className="h-9 w-full inline-flex items-center justify-center rounded-full border text-[13px] font-medium transition-colors hover:bg-[var(--ui-hover)]" style={{ borderColor: 'var(--theme-border)' }}>
             {pt ? 'Ver meu perfil' : 'View my profile'}
           </Link>
-          <Link to="/notifications" className="h-9 w-full inline-flex items-center justify-center gap-1.5 rounded-full text-[13px] transition-colors hover:bg-[var(--theme-nav-hover)]" style={muted}>
+          <Link to="/notifications" className="h-9 w-full inline-flex items-center justify-center gap-1.5 rounded-full text-[13px] transition-colors hover:bg-[var(--ui-hover)]" style={muted}>
             <Bell className="w-3.5 h-3.5" />{pt ? 'Notificações e pedidos' : 'Notifications and requests'}
           </Link>
         </div>
@@ -645,7 +645,7 @@ function NotificationRow({ item, pt, onOpen }: { item: AppNotification; pt: bool
     : item.type === 'comment' || item.type === 'reply' ? MessageCircle
       : item.type.startsWith('friend') ? UserCheck : UserPlus
   return (
-    <button type="button" onClick={onOpen} className="w-full px-4 sm:px-5 py-3.5 flex items-start gap-3 text-left transition-colors hover:bg-[var(--theme-nav-hover)]"
+    <button type="button" onClick={onOpen} className="w-full px-4 sm:px-5 py-3.5 flex items-start gap-3 text-left transition-colors hover:bg-[var(--ui-hover)]"
       style={item.read ? undefined : { backgroundColor: 'color-mix(in srgb, var(--theme-bg-secondary) 70%, transparent)' }}>
       <span className="relative shrink-0">
         <Avatar src={item.actor.avatarUrl} name={item.actor.name || item.actor.handle} size={42} />

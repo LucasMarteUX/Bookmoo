@@ -1,11 +1,12 @@
 // Termos de uso, política de privacidade e perguntas frequentes (rotas públicas).
 // Texto-modelo inicial: recomenda-se revisão jurídica antes de uso comercial.
-import { Link, useNavigate } from 'react-router-dom'
+import { useEffect } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import { useLanguage } from '@/store/useLanguage'
 
 export type LegalDoc = 'terms' | 'privacy' | 'faq'
-type Block = { h: string; p: string[] }
+type Block = { h: string; p: string[]; id?: string }
 
 const UPDATED = '2026-11-09'
 
@@ -76,26 +77,38 @@ const DOCS: Record<LegalDoc, { pt: { title: string; intro: string; blocks: Block
       title: 'Perguntas frequentes',
       intro: 'Respostas rápidas sobre como o Bookmoo funciona.',
       blocks: [
-        { h: 'Preciso pagar para usar?', p: ['A leitura, as vozes, o vocabulário e a prática são gratuitos. Recursos de IA (explicações, histórias e imagens) usam a sua própria chave da OpenAI ou do Gemini, cobrada pelo provedor.'] },
-        { h: 'Como conecto minha chave de IA?', p: ['Em Configurações → Conexões de IA. A chave fica cifrada no servidor.'] },
-        { h: 'Os livros que eu envio ficam públicos?', p: ['Não. EPUBs e textos que você envia ficam só na sua conta.'] },
-        { h: 'O que é a galeria?', p: ['Uma coleção de livros de domínio público prontos para estudar. As imagens de quadrinho geradas por um leitor ficam disponíveis para todos — se alguém já gerou a página, você não precisa gerar de novo.'] },
-        { h: 'Posso ter os quadrinhos do meu jeito?', p: ['Sim. Você pode mover e editar os balões só para você, ou resetar as imagens e gerar no seu estilo. Se quiser, compartilhe sua versão; outros leitores podem usá-la e dar estrelas.'] },
-        { h: 'Como funcionam as notas?', p: ['No leitor, escolha o modo Nota e clique em qualquer palavra ou ponto do quadrinho. Suas notas ficam marcadas com um pin e reunidas na página Notas.'] },
-        { h: 'Meu perfil é público?', p: ['Só se você quiser. Por padrão ele é privado; você escolhe o que mostrar em Configurações → Perfil.'] },
-        { h: 'Como excluo minha conta?', p: ['Em Configurações → Conta. Seus dados pessoais são apagados.'] },
+        { id: 'pagar', h: 'Preciso pagar para usar?', p: ['A leitura, as vozes, o vocabulário e a prática são gratuitos. Recursos de IA (explicações, histórias e imagens) usam a sua própria chave da OpenAI ou do Gemini, cobrada pelo provedor.'] },
+        { id: 'chave-ia', h: 'Como conecto minha chave de IA?', p: ['Em Configurações → Conexões de IA. A chave fica cifrada no servidor e só é usada para os seus pedidos.'] },
+        { id: 'status', h: 'O que são Aprendi, Revisar e Importante?', p: ['É como a palavra está para você. Revisar coloca a palavra na sua revisão; Aprendi tira da revisão e soma pontos; Importante destaca a palavra na lista para você voltar nela primeiro.'] },
+        { id: 'explicacao', h: 'O que vem na explicação de uma palavra?', p: ['Um clique em Explicar com IA traz o significado, uma dica de uso, exemplos nas formas afirmativa, negativa e pergunta e uma pequena história usando a palavra.'] },
+        { id: 'traducao', h: 'Por que só às vezes aparece o olho de tradução?', p: ['Tudo vem em inglês para você pensar no idioma. No nível A1 aparece o olho: ele troca o significado, a dica e a história para o português. Ao subir de nível, o olho some para incentivar a leitura direta.'] },
+        { id: 'nivel', h: 'Como meu nível (A1, A2…) é calculado?', p: ['Pelas palavras que você salva e pelos pontos que ganha estudando. Ao atingir as metas de um nível, você passa para o próximo.'] },
+        { id: 'livros-privados', h: 'Os livros que eu envio ficam públicos?', p: ['Não. EPUBs e textos que você envia ficam só na sua conta.'] },
+        { id: 'galeria', h: 'O que é a galeria?', p: ['Uma coleção de livros de domínio público prontos para estudar. As imagens de uma página geradas por um leitor ficam disponíveis para todos — se alguém já gerou a página, você não precisa gerar de novo.'] },
+        { id: 'estilo', h: 'Como funciona o estilo das imagens?', p: ['Na primeira ilustração você escolhe um estilo (sugerimos um para cada livro). Na galeria, o primeiro estilo escolhido vale para todos. Trocar de estilo é pessoal: apaga as suas imagens daquele livro e gera as próximas no estilo novo.'] },
+        { id: 'quadrinhos', h: 'Posso ter os quadrinhos do meu jeito?', p: ['Sim. Você pode mover e editar os balões só para você, ou trocar o estilo e gerar de novo. Se quiser, compartilhe sua versão; outros leitores podem usá-la e dar estrelas.'] },
+        { id: 'notas', h: 'Como funcionam as notas?', p: ['No leitor, escolha o modo Nota e clique em qualquer palavra ou ponto do quadrinho. Suas notas ficam marcadas com um pin e reunidas na página Notas.'] },
+        { id: 'perfil', h: 'Meu perfil é público?', p: ['Só se você quiser. Por padrão ele é privado; você escolhe o que mostrar em Configurações → Perfil.'] },
+        { id: 'excluir-conta', h: 'Como excluo minha conta?', p: ['Escreva para lucasmarteux@gmail.com pelo e-mail da conta e apagamos seus dados pessoais.'] },
       ],
     },
     en: {
       title: 'Frequently asked questions',
       intro: 'Quick answers about how Bookmoo works.',
       blocks: [
-        { h: 'Is it free?', p: ['Reading, voices, vocabulary and practice are free. AI features use your own OpenAI or Gemini key, billed by the provider.'] },
-        { h: 'Are my uploaded books public?', p: ['No. EPUBs and texts you upload stay in your account only.'] },
-        { h: 'What is the gallery?', p: ['A collection of public-domain books ready to study. Comic images generated by one reader are available to everyone.'] },
-        { h: 'Can I have comics my own way?', p: ['Yes. Edit balloons just for you, or reset images and generate in your own style — and share your version if you like.'] },
-        { h: 'How do notes work?', p: ['In the reader, choose Note mode and click any word or comic spot. Notes show as pins and are gathered on the Notes page.'] },
-        { h: 'Is my profile public?', p: ['Only if you want. It is private by default.'] },
+        { id: 'pagar', h: 'Is it free?', p: ['Reading, voices, vocabulary and practice are free. AI features use your own OpenAI or Gemini key, billed by the provider.'] },
+        { id: 'chave-ia', h: 'How do I connect my AI key?', p: ['In Settings → AI connections. The key is encrypted on the server and used only for your requests.'] },
+        { id: 'status', h: 'What do Learned, Review and Important mean?', p: ['How the word is for you. Review adds it to your review; Learned removes it and earns points; Important highlights it so you come back to it first.'] },
+        { id: 'explicacao', h: 'What comes in a word explanation?', p: ['Explain with AI brings the meaning, a usage tip, affirmative, negative and question examples and a short story using the word.'] },
+        { id: 'traducao', h: 'Why does the translation eye only appear sometimes?', p: ['Everything comes in English so you think in the language. At level A1 an eye switches the meaning, tip and story to your language; it goes away as you level up.'] },
+        { id: 'nivel', h: 'How is my level (A1, A2…) calculated?', p: ['From the words you save and the points you earn studying.'] },
+        { id: 'livros-privados', h: 'Are my uploaded books public?', p: ['No. EPUBs and texts you upload stay in your account only.'] },
+        { id: 'galeria', h: 'What is the gallery?', p: ['A collection of public-domain books ready to study. Page images generated by one reader are available to everyone.'] },
+        { id: 'estilo', h: 'How does the image style work?', p: ['On the first illustration you pick a style (we suggest one per book). In the gallery, the first style picked applies to everyone. Changing it is personal: it removes your images for that book and new ones use the new style.'] },
+        { id: 'quadrinhos', h: 'Can I have comics my own way?', p: ['Yes. Edit balloons just for you, or change the style and generate again — and share your version if you like.'] },
+        { id: 'notas', h: 'How do notes work?', p: ['In the reader, choose Note mode and click any word or comic spot. Notes show as pins and are gathered on the Notes page.'] },
+        { id: 'perfil', h: 'Is my profile public?', p: ['Only if you want. It is private by default.'] },
+        { id: 'excluir-conta', h: 'How do I delete my account?', p: ['Email lucasmarteux@gmail.com from your account address and we delete your personal data.'] },
       ],
     },
   },
@@ -105,13 +118,15 @@ export function LegalPage({ doc }: { doc: LegalDoc }) {
   const pt = useLanguage().locale === 'pt-BR'
   const navigate = useNavigate()
   const d = DOCS[doc][pt ? 'pt' : 'en']
+  const hash = useLocation().hash.slice(1)
+  useEffect(() => { if (hash) document.getElementById(hash)?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }, [hash])
   const links: [LegalDoc, string][] = [['terms', pt ? 'Termos' : 'Terms'], ['privacy', pt ? 'Privacidade' : 'Privacy'], ['faq', 'FAQ']]
   return (
     <div className="min-h-dvh px-5 py-10" style={{ backgroundColor: 'var(--theme-bg)', color: 'var(--theme-text)' }}>
       <div className="mx-auto max-w-2xl">
         <div className="flex items-center justify-between gap-3 mb-10">
           <button type="button" onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/'))}
-            className="inline-flex items-center gap-1.5 h-8 px-2 -ml-2 rounded-md text-[13.5px] hover:bg-[var(--theme-nav-hover)]" style={{ color: 'var(--theme-text-secondary)' }}>
+            className="inline-flex items-center gap-1.5 h-8 px-2 -ml-2 rounded-md text-[13.5px] hover:bg-[var(--ui-hover)]" style={{ color: 'var(--theme-text-secondary)' }}>
             <ArrowLeft className="w-4 h-4" />{pt ? 'Voltar' : 'Back'}
           </button>
           <nav className="flex gap-1">
@@ -126,7 +141,7 @@ export function LegalPage({ doc }: { doc: LegalDoc }) {
         {doc !== 'faq' && <p className="mt-2 text-[12.5px]" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? 'Atualizado em' : 'Updated'} {new Date(`${UPDATED}T12:00:00`).toLocaleDateString(pt ? 'pt-BR' : 'en-US')}</p>}
         <div className="mt-10 space-y-8">
           {d.blocks.map(b => doc === 'faq' ? (
-            <details key={b.h} className="group rounded-xl border px-5 py-4" style={{ borderColor: 'var(--theme-border)' }}>
+            <details key={b.h} id={b.id} open={!!b.id && hash === b.id} className="group scroll-mt-6 rounded-xl border px-5 py-4 transition-colors open:bg-[var(--ui-hover)] target:ring-2 target:ring-[var(--ui-focus)]" style={{ borderColor: 'var(--theme-border)' }}>
               <summary className="cursor-pointer list-none flex items-center justify-between gap-3 text-[15px] font-medium">
                 {b.h}<span className="text-[18px] transition-transform group-open:rotate-45" style={{ color: 'var(--theme-text-secondary)' }}>+</span>
               </summary>

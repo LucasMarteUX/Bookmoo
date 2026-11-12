@@ -384,7 +384,7 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
 
   const generating = stage !== null
   const stageLabel = stage === 'prepare' ? labels.preparingArt : stage === 'image' ? labels.generatingImage : labels.generatingLayout
-  const btn = 'h-9 min-w-9 px-2 rounded-full flex items-center justify-center gap-1.5 text-xs font-semibold border transition-colors hover:bg-[var(--theme-nav-hover)] disabled:opacity-40'
+  const btn = 'h-9 min-w-9 px-2 rounded-full flex items-center justify-center gap-1.5 text-xs font-semibold border transition-colors hover:bg-[var(--ui-hover)] disabled:opacity-40'
   const btnStyle = { backgroundColor: 'var(--theme-nav-bg)', borderColor: 'var(--theme-border-subtle)', color: 'var(--theme-nav-text)' }
 
   // Barra flutuante do balão selecionado, em pixels da página (some durante o arrasto).

@@ -85,7 +85,7 @@ export function VoiceSettings() {
             <button
               key={f.id}
               onClick={() => setFilter(f.id)}
-              className="h-8 px-3 rounded-lg text-[13px] font-medium border transition-colors hover:bg-[var(--theme-nav-hover)]"
+              className="h-8 px-3 rounded-lg text-[13px] font-medium border transition-colors hover:bg-[var(--ui-hover)]"
               style={{
                 borderColor: filter === f.id ? 'var(--theme-text-secondary)' : 'var(--theme-border)',
                 backgroundColor: filter === f.id ? 'var(--theme-nav-active)' : 'transparent',
@@ -136,10 +136,10 @@ export function VoiceSettings() {
 
                 {downloaded ? (
                   <div className="flex items-center gap-1">
-                    <button onClick={() => preview(v)} className="p-2 rounded-lg hover:bg-[var(--theme-nav-hover)]" aria-label={`Ouvir ${v.name}`} style={{ color: 'var(--theme-text)' }}>
+                    <button onClick={() => preview(v)} className="p-2 rounded-lg hover:bg-[var(--ui-hover)]" aria-label={`Ouvir ${v.name}`} style={{ color: 'var(--theme-text)' }}>
                       {previewing === v.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Volume2 className="w-4 h-4" />}
                     </button>
-                    <button onClick={() => removeKokoroVoice(v.id)} className="p-2 rounded-lg hover:bg-[var(--theme-nav-hover)]" aria-label={`Remover ${v.name}`} style={{ color: 'var(--theme-text-secondary)' }}>
+                    <button onClick={() => removeKokoroVoice(v.id)} className="p-2 rounded-lg hover:bg-[var(--ui-hover)]" aria-label={`Remover ${v.name}`} style={{ color: 'var(--theme-text-secondary)' }}>
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
@@ -147,7 +147,7 @@ export function VoiceSettings() {
                   <button
                     onClick={() => download(v)}
                     disabled={!supported || !!downloading}
-                    className="h-8 flex items-center gap-1.5 px-3 rounded-lg border text-[13px] font-medium transition-colors hover:bg-[var(--theme-nav-hover)] disabled:opacity-50"
+                    className="h-8 flex items-center gap-1.5 px-3 rounded-lg border text-[13px] font-medium transition-colors hover:bg-[var(--ui-hover)] disabled:opacity-50"
                     style={{ borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }}
                     aria-label={`Baixar ${v.name}`}
                   >

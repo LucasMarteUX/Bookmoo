@@ -13,7 +13,7 @@ export function XpBadge({ pt }: { pt: boolean }) {
     : `${streak}-day streak${studiedToday ? '' : ' — study today to keep it'} · ${fmt.format(total)} points`
   return (
     <button type="button" onClick={() => navigate('/stats')} title={hint} aria-label={hint}
-      className="h-9 rounded-lg border px-3 inline-flex items-center gap-2.5 text-sm font-medium tabular-nums transition-colors hover:bg-[var(--theme-nav-hover)]"
+      className="h-9 rounded-lg border px-3 inline-flex items-center gap-2.5 text-sm font-medium tabular-nums transition-colors hover:bg-[var(--ui-hover)]"
       style={{ backgroundColor: 'var(--theme-bg-secondary)', borderColor: 'var(--theme-border-subtle)', color: 'var(--theme-text)' }}>
       <span className="inline-flex items-center gap-1" style={{ opacity: studiedToday || streak === 0 ? 1 : 0.6 }}>
         <span aria-hidden className={studiedToday ? '' : 'grayscale'}>🔥</span>{streak}

@@ -71,7 +71,7 @@ function BookChip({ item, covers, pt }: { item: FeedItem; covers: Covers; pt: bo
   )
   const className = 'mt-3 flex items-center gap-3 rounded-2xl border p-2.5 pr-4 max-w-sm'
   return item.catalogId
-    ? <Link to={`/gallery/${item.catalogId}`} className={`${className} transition-colors hover:bg-[var(--theme-nav-hover)]`} style={{ borderColor: 'var(--theme-border)' }}>{body}</Link>
+    ? <Link to={`/gallery/${item.catalogId}`} className={`${className} transition-colors hover:bg-[var(--ui-hover)]`} style={{ borderColor: 'var(--theme-border)' }}>{body}</Link>
     : <div className={className} style={{ borderColor: 'var(--theme-border)' }}>{body}</div>
 }
 
@@ -154,7 +154,7 @@ export function Composer({ me, books, pt, onPosted }: { me: ProfileView | null; 
     setBody(next)
     requestAnimationFrame(() => { el?.focus(); el?.setSelectionRange(start + emoji.length, start + emoji.length) })
   }
-  const tool = 'h-9 inline-flex items-center gap-1.5 rounded-full px-2.5 text-[13px] font-medium transition-colors hover:bg-[var(--theme-nav-hover)]'
+  const tool = 'h-9 inline-flex items-center gap-1.5 rounded-full px-2.5 text-[13px] font-medium transition-colors hover:bg-[var(--ui-hover)]'
   const ready = !busy && (!!body.trim() || !!image)
 
   return (
@@ -181,7 +181,7 @@ export function Composer({ me, books, pt, onPosted }: { me: ProfileView | null; 
                 ? <img src={tagged.cover} alt="" className="w-7 h-10 rounded-md object-cover shrink-0" />
                 : <span className="w-7 h-10 grid place-items-center rounded-md shrink-0" style={{ backgroundColor: 'var(--theme-card-bg)' }}><BookOpen className="w-3.5 h-3.5" style={muted} /></span>}
               <span className="min-w-0 text-[13px] font-medium truncate">{tagged.title}</span>
-              <button type="button" onClick={() => setBookKey('')} aria-label={pt ? 'Tirar livro' : 'Remove book'} className="w-6 h-6 grid place-items-center rounded-full shrink-0 hover:bg-[var(--theme-nav-hover)]" style={muted}>
+              <button type="button" onClick={() => setBookKey('')} aria-label={pt ? 'Tirar livro' : 'Remove book'} className="w-6 h-6 grid place-items-center rounded-full shrink-0 hover:bg-[var(--ui-hover)]" style={muted}>
                 <X className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -453,19 +453,19 @@ export function PostCard({ item, covers, pt, canPost, onDeleted, standalone = fa
       {/* Ações: três botões iguais, separados do conteúdo por uma linha. */}
       <footer className="mt-3 mx-2 sm:mx-3 grid grid-cols-3 border-t py-1" style={{ borderColor: finished ? 'color-mix(in srgb, currentColor 18%, transparent)' : 'var(--theme-border)' }}>
         <button type="button" onClick={() => { void applyLike(!liked) }} aria-pressed={liked} aria-label={pt ? 'Curtir' : 'Like'}
-          className="h-10 inline-flex items-center justify-center gap-2 rounded-xl text-[13.5px] font-medium transition-colors hover:bg-[var(--theme-nav-hover)]"
+          className="h-10 inline-flex items-center justify-center gap-2 rounded-xl text-[13.5px] font-medium transition-colors hover:bg-[var(--ui-hover)]"
           style={{ color: liked ? 'var(--pastel-rose-fg)' : finished ? 'inherit' : 'var(--theme-text-secondary)' }}>
           <Heart className={`w-[18px] h-[18px] transition-transform duration-200 motion-reduce:transition-none ${liked ? 'scale-110' : ''}`} fill={liked ? 'currentColor' : 'none'} />
           <span className="hidden sm:inline">{pt ? 'Curtir' : 'Like'}</span>{likes > 0 && <span className="tabular-nums">{likes}</span>}
         </button>
         <button type="button" onClick={() => setOpen(value => !value)} aria-expanded={open} aria-label={pt ? 'Comentários' : 'Comments'}
-          className="h-10 inline-flex items-center justify-center gap-2 rounded-xl text-[13.5px] font-medium transition-colors hover:bg-[var(--theme-nav-hover)]"
+          className="h-10 inline-flex items-center justify-center gap-2 rounded-xl text-[13.5px] font-medium transition-colors hover:bg-[var(--ui-hover)]"
           style={{ color: open ? 'var(--theme-text)' : finished ? 'inherit' : 'var(--theme-text-secondary)' }}>
           <MessageCircle className="w-[18px] h-[18px]" />
           <span className="hidden sm:inline">{pt ? 'Comentar' : 'Comment'}</span>{comments > 0 && <span className="tabular-nums">{comments}</span>}
         </button>
         <button type="button" onClick={() => { void share() }} aria-label={pt ? 'Compartilhar' : 'Share'}
-          className="h-10 inline-flex items-center justify-center gap-2 rounded-xl text-[13.5px] font-medium transition-colors hover:bg-[var(--theme-nav-hover)]"
+          className="h-10 inline-flex items-center justify-center gap-2 rounded-xl text-[13.5px] font-medium transition-colors hover:bg-[var(--ui-hover)]"
           style={{ color: finished ? 'inherit' : 'var(--theme-text-secondary)' }}>
           {copied ? <Check className="w-[18px] h-[18px]" /> : <Link2 className="w-[18px] h-[18px]" />}
           <span className="hidden sm:inline">{copied ? (pt ? 'Link copiado' : 'Link copied') : (pt ? 'Compartilhar' : 'Share')}</span>

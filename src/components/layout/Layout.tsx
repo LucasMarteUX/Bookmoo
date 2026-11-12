@@ -17,6 +17,7 @@ import { InstallPrompt } from '@/components/mobile/InstallPrompt'
 import { OfflineBanner } from '@/components/mobile/OfflineBanner'
 import { useEdgeSwipeBack, useScreenTransitions } from '@/components/mobile/useScreenTransitions'
 import { Toaster } from '@/components/ui/toast'
+import { TooltipLayer } from '@/components/ui/tooltip'
 import type { CSSProperties } from 'react'
 
 export function Layout() {
@@ -68,6 +69,7 @@ export function Layout() {
       <CommandPalette />
       <Toaster />
       <ConfirmHost />
+      <TooltipLayer />
       <OfflineBanner />
       <VoiceRequiredDialog open={voicePrompt} pt={pt} onOpenChange={(open) => { if (!open) markVoicePromptSeen(); setVoicePrompt(open) }} />
       {isMobile && !isBookPage ? <TabBar /> : null}

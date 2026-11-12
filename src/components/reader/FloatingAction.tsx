@@ -15,7 +15,7 @@ export function FloatingAction({
     e.stopPropagation()
     fn()
   }
-  const item = 'h-8 px-2.5 inline-flex items-center gap-1.5 rounded-lg text-[13px] font-medium hover:bg-[var(--theme-nav-hover)]'
+  const item = 'h-8 px-2.5 inline-flex items-center gap-1.5 rounded-lg text-[13px] font-medium hover:bg-[var(--ui-hover)]'
   return (
     <div
       className="fixed z-50 -translate-x-1/2 -translate-y-full pb-2"

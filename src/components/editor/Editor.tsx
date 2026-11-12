@@ -202,7 +202,7 @@ function PageImageDialog({
             <h2 className="text-lg font-semibold">Adicionar página</h2>
             <p className="mt-1 text-sm" style={{ color: 'var(--theme-text-secondary)' }}>Fotografe ou escolha uma imagem para transcrever.</p>
           </div>
-          <button type="button" onClick={onClose} disabled={isProcessing} aria-label="Fechar" className="rounded-full p-2 hover:bg-[var(--theme-nav-hover)]">
+          <button type="button" onClick={onClose} disabled={isProcessing} aria-label="Fechar" className="rounded-full p-2 hover:bg-[var(--ui-hover)]">
             <X className="h-4 w-4" />
           </button>
         </div>

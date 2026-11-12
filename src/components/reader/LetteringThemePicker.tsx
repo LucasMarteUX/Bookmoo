@@ -64,7 +64,7 @@ export function LetteringThemePicker({ theme, choice, detected, onChange, pt }: 
           </p>
         </div>
         <button type="button" onClick={() => pick(null)}
-          className="w-full flex items-center gap-3 p-2.5 mb-3 rounded-xl border text-left hover:bg-[var(--theme-nav-hover)]"
+          className="w-full flex items-center gap-3 p-2.5 mb-3 rounded-xl border text-left hover:bg-[var(--ui-hover)]"
           style={{ borderColor: choice === null ? ring : 'var(--theme-border-subtle)', boxShadow: choice === null ? `0 0 0 1px ${ring}` : undefined }}>
           <span className="grid place-items-center w-8 h-8 rounded-full" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
             <Sparkles className="w-4 h-4" style={{ color: ring }} />
@@ -82,7 +82,7 @@ export function LetteringThemePicker({ theme, choice, detected, onChange, pt }: 
             const selected = choice === item.id
             return (
               <button key={item.id} type="button" onClick={() => pick(item.id)} aria-pressed={selected}
-                className="flex items-center gap-3 p-2 rounded-xl text-left transition-colors hover:bg-[var(--theme-nav-hover)]"
+                className="flex items-center gap-3 p-2 rounded-xl text-left transition-colors hover:bg-[var(--ui-hover)]"
                 style={{ backgroundColor: selected ? 'var(--theme-nav-hover)' : undefined, boxShadow: selected ? `inset 0 0 0 1.5px ${ring}` : undefined }}>
                 <Sample theme={item} />
                 <span className="min-w-0 flex-1">

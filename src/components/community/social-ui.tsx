@@ -221,7 +221,7 @@ export function ReportDialog({ target, open, onOpenChange, pt, onDone }: { targe
         </DialogHeader>
         <div className="mt-2 space-y-1.5" role="radiogroup">
           {REASONS.map(([id, ptLabel, enLabel]) => (
-            <label key={id} className="flex items-center gap-3 rounded-xl px-3 py-2.5 cursor-pointer transition-colors hover:bg-[var(--theme-nav-hover)]"
+            <label key={id} className="flex items-center gap-3 rounded-xl px-3 py-2.5 cursor-pointer transition-colors hover:bg-[var(--ui-hover)]"
               style={reason === id ? { backgroundColor: 'var(--theme-bg-secondary)' } : undefined}>
               <input type="radio" name="report-reason" checked={reason === id} onChange={() => setReason(id)} />
               <span className="text-[14px]">{pt ? ptLabel : enLabel}</span>
@@ -244,7 +244,7 @@ export function ReportDialog({ target, open, onOpenChange, pt, onDone }: { targe
 // ─── Menu ⋯ ───
 
 export function MenuItem({ onClick, to, icon, danger, children }: { onClick?: () => void; to?: string; icon: ReactNode; danger?: boolean; children: ReactNode }) {
-  const className = 'w-full h-9 px-2.5 flex items-center gap-2.5 rounded-lg text-[13.5px] text-left transition-colors hover:bg-[var(--theme-nav-hover)]'
+  const className = 'w-full h-9 px-2.5 flex items-center gap-2.5 rounded-lg text-[13.5px] text-left transition-colors hover:bg-[var(--ui-hover)]'
   const style = { color: danger ? 'var(--color-destructive)' : 'var(--theme-text)' }
   return to
     ? <Link to={to} className={className} style={style}>{icon}{children}</Link>
@@ -255,7 +255,7 @@ export function MoreMenu({ label, children, size = 'md' }: { label: string; chil
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <button type="button" aria-label={label} className={cn('grid place-items-center rounded-full transition-colors hover:bg-[var(--theme-nav-hover)]', size === 'sm' ? 'w-8 h-8' : 'w-9 h-9')} style={muted}>
+        <button type="button" aria-label={label} className={cn('grid place-items-center rounded-full transition-colors hover:bg-[var(--ui-hover)]', size === 'sm' ? 'w-8 h-8' : 'w-9 h-9')} style={muted}>
           <MoreHorizontal className="w-5 h-5" />
         </button>
       </PopoverTrigger>

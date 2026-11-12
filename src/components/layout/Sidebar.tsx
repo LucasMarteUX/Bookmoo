@@ -120,10 +120,10 @@ export function Sidebar({ isMobileDrawer, onClose }: SidebarProps) {
           <VoiceSelect hideLabel />
         </div>
         <div className="my-1 h-px" style={{ backgroundColor: 'var(--theme-border)' }} />
-        <Link to="/settings" onClick={go} className="flex items-center gap-2.5 h-8 px-2 rounded-md text-[13px] hover:bg-[var(--theme-nav-hover)]">
+        <Link to="/settings" onClick={go} className="flex items-center gap-2.5 h-8 px-2 rounded-md text-[13px] hover:bg-[var(--ui-hover)]">
           <Settings2 className="w-4 h-4 opacity-70" />{t('settings')}
         </Link>
-        <button type="button" onClick={() => { go(); signOut() }} className="w-full flex items-center gap-2.5 h-8 px-2 rounded-md text-[13px] hover:bg-[var(--theme-nav-hover)]">
+        <button type="button" onClick={() => { go(); signOut() }} className="w-full flex items-center gap-2.5 h-8 px-2 rounded-md text-[13px] hover:bg-[var(--ui-hover)]">
           <LogOut className="w-4 h-4 opacity-70" />{t('logout')}
         </button>
       </PopoverContent>
@@ -132,7 +132,7 @@ export function Sidebar({ isMobileDrawer, onClose }: SidebarProps) {
 
   // Recolhida (só desktop): trilho de ícones, com a logo no topo.
   if (!isMobileDrawer && sidebarCollapsed) {
-    const rail = 'w-10 h-10 rounded-lg grid place-items-center transition-colors hover:bg-[var(--theme-nav-hover)]'
+    const rail = 'w-10 h-10 rounded-lg grid place-items-center transition-colors hover:bg-[var(--ui-hover)]'
     return (
       <aside className="w-[64px] flex flex-col items-center py-3 gap-1 z-20 fixed left-0 top-0 bottom-0 transition-colors duration-300"
         style={{ backgroundColor: 'var(--theme-nav-bg)', color: 'var(--theme-nav-text)', borderRight: '1px solid var(--theme-border)' }}>
@@ -168,11 +168,11 @@ export function Sidebar({ isMobileDrawer, onClose }: SidebarProps) {
       style={{ backgroundColor: 'var(--theme-nav-bg)', color: 'var(--theme-nav-text)', borderRight: isMobileDrawer ? undefined : '1px solid var(--theme-border)' }}>
       {!isMobileDrawer && (
         <div className="flex items-center justify-between gap-2 px-3 pt-3 pb-2">
-          <Link to="/" className="flex items-center gap-2 min-w-0 rounded-md px-1 py-1 -mx-1 hover:bg-[var(--theme-nav-hover)]">
+          <Link to="/" className="flex items-center gap-2 min-w-0 rounded-md px-1 py-1 -mx-1 hover:bg-[var(--ui-hover)]">
             <span className="grid place-items-center w-6 h-6 rounded-md text-[13px] font-semibold font-display" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>B</span>
             <span className="text-[14px] font-semibold tracking-tight">Bookmoo</span>
           </Link>
-          <button type="button" onClick={toggleSidebar} className="w-7 h-7 rounded-md grid place-items-center transition-colors hover:bg-[var(--theme-nav-hover)]"
+          <button type="button" onClick={toggleSidebar} className="w-7 h-7 rounded-md grid place-items-center transition-colors hover:bg-[var(--ui-hover)]"
             title={pt ? 'Recolher menu' : 'Collapse menu'} aria-label={pt ? 'Recolher menu' : 'Collapse menu'} style={{ color: 'var(--theme-nav-text-muted)' }}>
             <PanelLeftClose className="w-4 h-4" />
           </button>
@@ -182,14 +182,14 @@ export function Sidebar({ isMobileDrawer, onClose }: SidebarProps) {
       <div className={isMobileDrawer ? 'flex flex-col gap-4' : 'flex-1 min-h-0 overflow-y-auto custom-scrollbar px-2 pb-3 flex flex-col gap-4'}>
         <div className="flex flex-col gap-0.5">
           <button type="button" onClick={() => { go(); setCommandOpen(true) }}
-            className="w-full flex items-center gap-2.5 h-8 px-2 rounded-md text-[13.5px] transition-colors hover:bg-[var(--theme-nav-hover)]"
+            className="w-full flex items-center gap-2.5 h-8 px-2 rounded-md text-[13.5px] transition-colors hover:bg-[var(--ui-hover)]"
             style={{ color: 'var(--theme-nav-text-muted)' }}>
             <Search className="w-4 h-4" />
             <span className="flex-1 text-left">{pt ? 'Buscar' : 'Search'}</span>
             <kbd className="kbd">{MOD_KEY} K</kbd>
           </button>
           <button type="button" onClick={() => { go(); if (location.pathname !== '/') navigate('/'); requestAddBook() }}
-            className="w-full flex items-center gap-2.5 h-8 px-2 rounded-md text-[13.5px] transition-colors hover:bg-[var(--theme-nav-hover)]"
+            className="w-full flex items-center gap-2.5 h-8 px-2 rounded-md text-[13.5px] transition-colors hover:bg-[var(--ui-hover)]"
             style={{ color: 'var(--theme-nav-text-muted)' }}>
             <Plus className="w-4 h-4" />
             <span>{t('addBook')}</span>
@@ -203,7 +203,7 @@ export function Sidebar({ isMobileDrawer, onClose }: SidebarProps) {
               const active = isActive(to)
               return (
                 <Link key={to} to={to} onClick={go} aria-current={active ? 'page' : undefined}
-                  className="flex items-center gap-2.5 h-8 px-2 rounded-md text-[13.5px] transition-colors hover:bg-[var(--theme-nav-hover)]"
+                  className="flex items-center gap-2.5 h-8 px-2 rounded-md text-[13.5px] transition-colors hover:bg-[var(--ui-hover)]"
                   style={{ backgroundColor: active ? 'var(--theme-nav-active)' : undefined, color: active ? 'var(--theme-nav-text)' : 'var(--theme-nav-text-muted)', fontWeight: active ? 500 : 400 }}>
                   <ItemIcon className="w-4 h-4 shrink-0" strokeWidth={active ? 2.2 : 1.8} />
                   <span className="flex-1 truncate">{label}</span>
@@ -225,7 +225,7 @@ export function Sidebar({ isMobileDrawer, onClose }: SidebarProps) {
               const progress = readingProgress(book.currentPage, book.pages.length, book.totalPages)
               return (
                 <Link key={book.id} to={to} onClick={go} title={book.title}
-                  className="flex items-center gap-2.5 h-9 px-2 rounded-md text-[13px] transition-colors hover:bg-[var(--theme-nav-hover)]"
+                  className="flex items-center gap-2.5 h-9 px-2 rounded-md text-[13px] transition-colors hover:bg-[var(--ui-hover)]"
                   style={{ backgroundColor: active ? 'var(--theme-nav-active)' : undefined, color: active ? 'var(--theme-nav-text)' : 'var(--theme-nav-text-muted)' }}>
                   <span className="w-[18px] h-[26px] rounded-[3px] overflow-hidden shrink-0 shadow-[0_1px_2px_rgba(0,0,0,0.2)]" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
                     {book.coverData && <img src={book.coverData} alt="" className="w-full h-full object-cover" />}
@@ -241,7 +241,7 @@ export function Sidebar({ isMobileDrawer, onClose }: SidebarProps) {
 
       <div className={isMobileDrawer ? 'flex flex-col gap-2' : 'px-2 pb-2 pt-2 flex flex-col gap-1.5 border-t'} style={{ borderColor: 'var(--theme-border)' }}>
         <StudyTimer />
-        <Link to="/stats" onClick={go} className="flex items-center gap-3 h-8 px-2 rounded-md text-[12.5px] tabular-nums hover:bg-[var(--theme-nav-hover)]"
+        <Link to="/stats" onClick={go} className="flex items-center gap-3 h-8 px-2 rounded-md text-[12.5px] tabular-nums hover:bg-[var(--ui-hover)]"
           style={{ color: 'var(--theme-nav-text-muted)' }} title={pt ? 'Sequência e pontos' : 'Streak and points'}>
           <span className="inline-flex items-center gap-1" style={{ color: studiedToday ? 'var(--pastel-amber-fg)' : undefined }}>
             <Flame className="w-3.5 h-3.5" fill={studiedToday ? 'currentColor' : 'none'} />{streak}
@@ -253,7 +253,7 @@ export function Sidebar({ isMobileDrawer, onClose }: SidebarProps) {
           </span>
         </Link>
         {userMenu(
-          <button type="button" className="w-full flex items-center gap-2.5 h-10 px-2 rounded-md text-left transition-colors hover:bg-[var(--theme-nav-hover)]"
+          <button type="button" className="w-full flex items-center gap-2.5 h-10 px-2 rounded-md text-left transition-colors hover:bg-[var(--ui-hover)]"
             aria-label={pt ? 'Conta e preferências' : 'Account and preferences'}>
             <span className="grid place-items-center w-7 h-7 rounded-full text-[13px] font-semibold shrink-0" style={{ backgroundColor: 'var(--theme-bg-secondary)', color: 'var(--theme-text)' }}>{initial}</span>
             <span className="flex-1 min-w-0">

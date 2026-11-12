@@ -456,7 +456,7 @@ export function SpeakPractice({ book }: Props) {
             type="button"
             onClick={() => goToPage(currentPage - 1)}
             disabled={currentPage === 0 || busy}
-            className="flex items-center justify-center w-12 h-12 rounded-full transition-colors shrink-0 disabled:opacity-40 hover:bg-[var(--theme-nav-hover)]"
+            className="flex items-center justify-center w-12 h-12 rounded-full transition-colors shrink-0 disabled:opacity-40 hover:bg-[var(--ui-hover)]"
             style={{ color: 'var(--theme-nav-text)' }}
             title={s.prevPage}
             aria-label={s.prevPage}
@@ -509,7 +509,7 @@ export function SpeakPractice({ book }: Props) {
             type="button"
             onClick={() => goToPage(currentPage + 1)}
             disabled={currentPage >= pages.length - 1 || busy}
-            className="flex items-center justify-center w-12 h-12 rounded-full transition-colors shrink-0 disabled:opacity-40 hover:bg-[var(--theme-nav-hover)]"
+            className="flex items-center justify-center w-12 h-12 rounded-full transition-colors shrink-0 disabled:opacity-40 hover:bg-[var(--ui-hover)]"
             style={{ color: 'var(--theme-nav-text)' }}
             title={s.nextPage}
             aria-label={s.nextPage}
@@ -554,7 +554,7 @@ function EngineSwitch({ engine, onChange, disabled, s }: { engine: EngineId | nu
         <p className="px-2 pb-2 text-xs" style={{ color: 'var(--theme-text-secondary)' }}>{s.engineWhy}</p>
         {options.map(({ id, label, hint, icon: Icon }) => (
           <button key={id} type="button" onClick={() => { onChange(id); setOpen(false) }}
-            className="w-full flex items-start gap-3 p-2.5 rounded-xl text-left hover:bg-[var(--theme-nav-hover)]"
+            className="w-full flex items-start gap-3 p-2.5 rounded-xl text-left hover:bg-[var(--ui-hover)]"
             style={{ boxShadow: engine === id ? 'inset 0 0 0 1.5px var(--theme-accent, #55534E)' : undefined }}>
             <Icon className="w-4 h-4 mt-0.5 shrink-0" />
             <span className="flex-1">

@@ -15,7 +15,7 @@ export function FloatingSettings() {
       >
         <button 
           onClick={() => setIsOpen(!isOpen)}
-          className="w-10 h-10 flex items-center justify-center rounded-xl transition-colors hover:bg-[var(--theme-nav-hover)]"
+          className="w-10 h-10 flex items-center justify-center rounded-xl transition-colors hover:bg-[var(--ui-hover)]"
           style={{ color: 'var(--theme-nav-text-muted)' }}
         >
           <Settings className="w-5 h-5" />

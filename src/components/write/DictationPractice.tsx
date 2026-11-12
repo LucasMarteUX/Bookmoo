@@ -286,7 +286,7 @@ export function DictationPractice({ book }: { book: Book }) {
         <div className="backdrop-blur-md border p-1.5 md:p-2.5 rounded-full shadow-2xl flex items-center justify-between gap-1.5 w-full md:w-auto"
           style={{ backgroundColor: 'var(--theme-nav-bg)', borderColor: 'var(--theme-border-subtle)' }}>
           {(!started || done) && <button type="button" onClick={() => goTo(page - 1)} disabled={page === 0} aria-label={t.prev}
-            className="w-11 h-11 rounded-full grid place-items-center disabled:opacity-40 hover:bg-[var(--theme-nav-hover)]" style={{ color: 'var(--theme-nav-text)' }}>
+            className="w-11 h-11 rounded-full grid place-items-center disabled:opacity-40 hover:bg-[var(--ui-hover)]" style={{ color: 'var(--theme-nav-text)' }}>
             <ChevronLeft className="w-5 h-5" />
           </button>}
           {!started ? (
@@ -303,9 +303,9 @@ export function DictationPractice({ book }: { book: Book }) {
           ) : (
             <div className="flex items-center gap-1.5 flex-1 md:flex-none">
               <button type="button" onClick={() => { stopLoop(); sayWord(words[current], false) }} title={t.hear}
-                className="w-10 h-10 rounded-full grid place-items-center hover:bg-[var(--theme-nav-hover)]" style={{ color: 'var(--theme-nav-text)' }}><Volume2 className="w-5 h-5" /></button>
+                className="w-10 h-10 rounded-full grid place-items-center hover:bg-[var(--ui-hover)]" style={{ color: 'var(--theme-nav-text)' }}><Volume2 className="w-5 h-5" /></button>
               <button type="button" onClick={() => { stopLoop(); sayWord(words[current], true) }} title={t.slow}
-                className="w-10 h-10 rounded-full grid place-items-center hover:bg-[var(--theme-nav-hover)]" style={{ color: 'var(--theme-nav-text)' }}><Snail className="w-5 h-5" /></button>
+                className="w-10 h-10 rounded-full grid place-items-center hover:bg-[var(--ui-hover)]" style={{ color: 'var(--theme-nav-text)' }}><Snail className="w-5 h-5" /></button>
               <input ref={inputRef} value={input} onChange={e => setInput(e.target.value)} placeholder={t.placeholder} aria-label={t.placeholder}
                 autoCapitalize="off" autoCorrect="off" spellCheck={false} disabled={feedback?.kind === 'answer' || feedback?.kind === 'spelling'}
                 onKeyDown={e => {
@@ -315,17 +315,17 @@ export function DictationPractice({ book }: { book: Book }) {
                 className="h-11 min-w-0 flex-1 md:w-72 rounded-full border px-4 text-base outline-none focus:ring-2 focus:ring-[var(--theme-accent,#55534E)]"
                 style={{ backgroundColor: 'var(--theme-bg)', borderColor: secondTry ? 'var(--pastel-amber-bd)' : 'var(--theme-border-subtle)', color: 'var(--theme-text)' }} />
               <button type="button" onClick={() => giveUp(true)} disabled={feedback?.kind === 'answer' || feedback?.kind === 'spelling'} title={t.skip}
-                className="h-10 px-3 rounded-full inline-flex items-center gap-1 text-xs font-semibold hover:bg-[var(--theme-nav-hover)] disabled:opacity-40" style={{ color: 'var(--theme-nav-text)' }}>
+                className="h-10 px-3 rounded-full inline-flex items-center gap-1 text-xs font-semibold hover:bg-[var(--ui-hover)] disabled:opacity-40" style={{ color: 'var(--theme-nav-text)' }}>
                 <SkipForward className="w-4 h-4" /> <span className="hidden sm:inline">{t.skip}</span>
               </button>
               <button type="button" onClick={reset} title={t.stop} aria-label={t.stop}
-                className="h-10 w-10 sm:w-auto sm:px-3 rounded-full inline-flex items-center justify-center gap-1 text-xs font-semibold hover:bg-[var(--theme-nav-hover)]" style={{ color: 'var(--pastel-rose-fg)' }}>
+                className="h-10 w-10 sm:w-auto sm:px-3 rounded-full inline-flex items-center justify-center gap-1 text-xs font-semibold hover:bg-[var(--ui-hover)]" style={{ color: 'var(--pastel-rose-fg)' }}>
                 <Square className="w-3.5 h-3.5" fill="currentColor" /> <span className="hidden sm:inline">{t.stop}</span>
               </button>
             </div>
           )}
           {(!started || done) && <button type="button" onClick={() => goTo(page + 1)} disabled={page >= pages.length - 1} aria-label={t.next}
-            className="w-11 h-11 rounded-full grid place-items-center disabled:opacity-40 hover:bg-[var(--theme-nav-hover)]" style={{ color: 'var(--theme-nav-text)' }}>
+            className="w-11 h-11 rounded-full grid place-items-center disabled:opacity-40 hover:bg-[var(--ui-hover)]" style={{ color: 'var(--theme-nav-text)' }}>
             <ChevronRight className="w-5 h-5" />
           </button>}
         </div>
