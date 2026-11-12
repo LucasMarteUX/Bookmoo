@@ -1183,7 +1183,7 @@ export function Reader({ book, autoPlay = false, headerSlot }: ReaderProps) {
         {/* Pinned Post-its Sidebar */}
         {pinnedVocabIds.size > 0 && (
           // No celular os post-its fixados viram um carrossel horizontal acima da barra de ferramentas (sem cobrir o texto).
-          <div data-no-swipe-back className="fixed right-8 top-24 w-80 flex flex-col gap-4 z-40 max-h-[calc(100dvh-8rem)] overflow-y-auto pb-8 pr-2 custom-scrollbar max-md:top-auto max-md:right-0 max-md:left-0 max-md:w-auto max-md:bottom-[calc(var(--safe-b)+5.5rem)] max-md:max-h-[38dvh] max-md:flex-row max-md:snap-row max-md:overflow-y-visible max-md:pb-2 max-md:px-4 max-md:[&>*]:w-[78vw] max-md:[&>*]:shrink-0 max-md:[&>*]:snap-start">
+          <div data-no-swipe-back data-reader-panel className="fixed right-8 top-24 w-80 flex flex-col gap-4 z-40 max-h-[calc(100dvh-8rem)] overflow-y-auto pb-8 pr-2 custom-scrollbar max-md:top-auto max-md:right-0 max-md:left-0 max-md:w-auto max-md:bottom-[calc(var(--safe-b)+5.5rem)] max-md:max-h-[38dvh] max-md:flex-row max-md:snap-row max-md:overflow-y-visible max-md:pb-2 max-md:px-4 max-md:[&>*]:w-[78vw] max-md:[&>*]:shrink-0 max-md:[&>*]:snap-start">
             {Array.from(pinnedVocabIds as Set<string>).map(id => {
               const vocab = vocabularies.find(v => v.id === id)
               if (!vocab) return null

@@ -729,3 +729,13 @@ html.comic-immersive [data-reader-bar] { z-index: 90; left: 0.5rem !important; r
 
 /* Faixa de ferramentas do livro: some quando não há nada nela (ex.: Falar). */
 .book-toolrow:not(:has(> :not(.book-toolslot, .book-tooldivider))):has(> .book-toolslot:empty) { display: none; }
+
+/* Leitura imersiva (z 80): painel da palavra, post-it, menus e janelas precisam ficar por cima. */
+html.comic-immersive [data-reader-panel]{z-index:95}
+html.comic-immersive .post-it-card{z-index:95}
+html.comic-immersive [data-radix-popper-content-wrapper]{z-index:120 !important}
+html.comic-immersive [data-vaul-overlay],
+html.comic-immersive .fixed.inset-0.z-\[60\]{z-index:110}
+html.comic-immersive [data-vaul-drawer],
+html.comic-immersive .fixed.inset-0.z-\[61\],
+html.comic-immersive .sheet-content{z-index:111}
