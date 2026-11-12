@@ -1,3 +1,4 @@
+import { askConfirm } from '@/components/ui/confirm'
 // Peças pequenas da camada social, reaproveitadas no feed, no perfil, nas listas e na galeria.
 import { useEffect, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
@@ -118,7 +119,7 @@ export function FriendButton({ userId, state, pt, onChange, size = 'md' }: {
   const height = size === 'sm' ? 'h-8 px-3 text-[12.5px]' : 'h-9 px-4 text-[13.5px]'
 
   const run = async (next: Relation['friend'], action: () => Promise<void>, confirmText?: string) => {
-    if (confirmText && !window.confirm(confirmText)) return
+    if (confirmText && !await askConfirm(confirmText)) return
     const previous = current
     setCurrent(next); setBusy(true)
     try { await action(); onChange?.(next) } catch (err) { setCurrent(previous); toast(errorText(err, pt), { tone: 'error' }) } finally { setBusy(false) }
@@ -278,14 +279,14 @@ export function ProfileMenu({ person, relation, pt, onChange }: { person: Author
       await unblockUser(user.id, person.userId).catch(err => toast(errorText(err, pt), { tone: 'error' }))
       toast(pt ? 'Pessoa desbloqueada.' : 'Unblocked.', { tone: 'success' })
     } else {
-      if (!window.confirm(pt ? `Bloquear @${person.handle}? Vocês deixam de se seguir e de ser amigos, e não poderão interagir.` : `Block @${person.handle}? You stop following each other and cannot interact.`)) return
+      if (!await askConfirm(pt ? `Bloquear @${person.handle}? Vocês deixam de se seguir e de ser amigos, e não poderão interagir.` : `Block @${person.handle}? You stop following each other and cannot interact.`)) return
       await blockUser(user.id, person.userId).catch(err => toast(errorText(err, pt), { tone: 'error' }))
       toast(pt ? 'Pessoa bloqueada.' : 'Blocked.', { tone: 'success' })
     }
     onChange()
   }
   const remove = async () => {
-    if (!window.confirm(pt ? `Remover @${person.handle} dos seus seguidores?` : `Remove @${person.handle} from your followers?`)) return
+    if (!await askConfirm(pt ? `Remover @${person.handle} dos seus seguidores?` : `Remove @${person.handle} from your followers?`)) return
     await removeFollower(user.id, person.userId).catch(err => toast(errorText(err, pt), { tone: 'error' }))
     onChange()
   }

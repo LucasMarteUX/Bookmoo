@@ -219,6 +219,12 @@ export function regenerateComicPanel(options: { bookId: string; page: number; pa
 }
 
 /** Gera a página (grade de quadros, sem texto na imagem) e devolve os trechos de cada quadro. */
+/** Estilo sugerido antes da primeira geração (não grava nada): o da comunidade, ou a leitura da IA sobre o livro. */
+export async function suggestComicStyle(bookId: string, pageText: string, bookContext?: string) {
+  return invoke<{ styleId: string | null; source: 'community' | 'ai' | 'category'; reason?: string }>('comic-generate',
+    { action: 'suggest-style', bookId, pageText: pageText.slice(0, 4000), bookContext: bookContext?.slice(0, 2000) })
+}
+
 export async function prepareComicArt(bookId: string): Promise<ComicStyleDoc> {
   // Probe both endpoints without book content. Older functions reject this
   // request before contacting the image provider.

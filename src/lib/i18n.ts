@@ -64,7 +64,7 @@ const en = {
 
   // Reader
   text: 'Text',
-  comic: 'Comic',
+  comic: 'Illustrated',
   clickWord: 'Click Word',
   selectText: 'Select Text',
   clickShort: 'Click',
@@ -233,7 +233,7 @@ const ptBr: Record<TranslationKey, string> = {
   saveBook: 'Salvar Livro',
   editBook: 'Editar livro',
   text: 'Texto',
-  comic: 'Quadrinho',
+  comic: 'Ilustrado',
   clickWord: 'Clicar Palavra',
   selectText: 'Selecionar Texto',
   clickShort: 'Clicar',

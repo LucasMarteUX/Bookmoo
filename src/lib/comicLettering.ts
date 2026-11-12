@@ -384,27 +384,44 @@ export function placePanelBoxes(inspection: ComicInspection, dialogue: Dialogue[
     const panelW = panel.bounds.w, panelH = panel.bounds.h / inspection.aspect
     const faces = panel.faces.map(face => headRect(face.face))
     const focus = panel.focus ?? []
+    // O canto que o gerador de imagem foi instruído a deixar calmo para o texto (contrato com a geração).
+    const preferred = lines[0].preferredPosition ?? 'top-left'
+    const want = { x: preferred.endsWith('right') ? 1 : 0, y: preferred.startsWith('bottom') ? 1 : 0 }
+    // Quem fala primeiro no quadro: a caixa fica do lado dele, para o rabicho ser curto.
+    const speakerFace = (() => {
+      const first = lines.find(line => line.balloonType !== 'caption' && line.speakerId)
+      const face = first ? panel.faces.find(f => f.speakerId === first.speakerId)?.face : undefined
+      return face ? { x: face.x + face.w / 2, y: face.y + face.h / 2 } : null
+    })()
+    // O miolo da cena (onde costuma estar a ação) só recebe texto em último caso.
+    const core = { x: 0.24, y: 0.22, w: 0.52, h: 0.56 }
     // Uma posição só para o quadro (a caixa não "pula" entre falas): dimensionada pela maior fala.
     const heightFor = (w: number, font: number) => Math.max(...lines.map(line => boxContentHeight([line], panelW * w * 0.9, font, measure))) / panelH
     let best = null as { box: Rect; font: number; cost: number } | null
-    for (const font of [0.027, 0.024, 0.021, 0.018, 0.0155, 0.013, 0.011]) {
-      for (const w of [0.34, 0.42, 0.5, 0.6, 0.72, 0.88]) {
+    // Letra legível primeiro: a caixa alarga antes de a fonte diminuir.
+    for (const font of [0.03, 0.027, 0.0245, 0.022, 0.02, 0.018, 0.0165]) {
+      for (const w of [0.36, 0.44, 0.52, 0.62, 0.74, 0.86, 0.94]) {
+        if (w > 1 - 2 * MARGIN) continue
         const h = heightFor(w, font)
-        if (h > 1 - 2 * MARGIN) continue
+        if (h > 0.62) continue
         const steps = [0, 0.25, 0.5, 0.75, 1]
         for (const tx of steps) for (const ty of steps) {
           const box = { x: MARGIN + tx * (1 - 2 * MARGIN - w), y: MARGIN + ty * (1 - 2 * MARGIN - h), w, h }
           const faceHit = faces.reduce((sum, f) => sum + area(box, f) / (f.w * f.h), 0)
           const focusHit = focus.reduce((sum, f) => sum + area(box, f) / (f.w * f.h), 0)
+          const coreHit = area(box, core) / (core.w * core.h)
           const edge = Math.min(tx, 1 - tx) + Math.min(ty, 1 - ty)
-          const cost = faceHit * 30 + focusHit * 4 + edge * 0.5 + w * h * 0.6 + Math.max(0, w - 0.6) * 1.2 + (0.027 - font) * 150
+          const corner = Math.abs(tx - want.x) + Math.abs(ty - want.y)
+          const center = { x: box.x + box.w / 2, y: box.y + box.h / 2 }
+          const fromSpeaker = speakerFace ? Math.hypot(center.x - speakerFace.x, center.y - speakerFace.y) : 0
+          const cost = faceHit * 30 + focusHit * 5 + coreHit * 3 + corner * 0.9 + edge * 0.7 + fromSpeaker * 0.8
+            + w * h * 0.5 + Math.max(0, w - 0.74) * 1.5 + (0.03 - font) * 220
           if (!best || cost < best.cost) best = { box, font, cost }
         }
       }
-      if (best && best.cost < 1.8) break
     }
     if (!best) {
-      const font = 0.0105
+      const font = 0.0145
       const h = Math.min(1 - 2 * MARGIN, heightFor(0.94, font))
       best = { box: { x: MARGIN, y: MARGIN, w: 1 - 2 * MARGIN, h }, font, cost: Infinity }
       issues.push(`lettering_dense:${panel.panelId}`)

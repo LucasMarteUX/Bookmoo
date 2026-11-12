@@ -11,10 +11,16 @@ interface LanguageState {
 export const useLanguage = create<LanguageState>()(
   persist(
     (set) => ({
-      locale: 'en',
+      // Interface em português por padrão (o livro continua na língua dele). Dá para trocar em Ajustes.
+      locale: 'pt-BR',
       setLocale: (locale) => set({ locale })
     }),
-    { name: 'bookmoo-locale' }
+    {
+      name: 'bookmoo-locale',
+      // v1: o padrão antigo era inglês e ficou gravado para todo mundo; passa para português uma vez.
+      version: 1,
+      migrate: () => ({ locale: 'pt-BR' as Locale }),
+    }
   )
 )
 

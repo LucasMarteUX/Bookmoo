@@ -2,7 +2,9 @@ import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 
 /** Rounded container that groups related tools (one visual unit in the reader toolbar). */
-export function ToolGroup({ children, className, label }: { children: ReactNode; className?: string; label?: string }) {
+export function ToolGroup({ children, className, label, flat }: { children: ReactNode; className?: string; label?: string; flat?: boolean }) {
+  // flat: dentro de uma faixa de ferramentas (sem moldura própria).
+  if (flat) return <div role="group" aria-label={label} className={cn('flex items-center gap-0.5', className)}>{children}</div>
   return (
     <div role="group" aria-label={label}
       className={cn('flex items-center gap-0.5 p-1 rounded-xl border backdrop-blur-md shadow-[0_1px_2px_rgba(15,15,15,0.05),0_6px_20px_-10px_rgba(15,15,15,0.25)]', className)}

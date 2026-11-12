@@ -1,3 +1,4 @@
+import { ConfirmHost } from '@/components/ui/confirm'
 import { useEffect, useRef, useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { VoiceRequiredDialog } from '@/components/reader/VoiceRequiredDialog'
@@ -49,7 +50,7 @@ export function Layout() {
         {isMobile ? null : <Sidebar />}
 
         <main id="main" tabIndex={-1}
-          className={`flex-1 min-w-0 overflow-x-clip md:ml-[var(--sidebar-w)] transition-[margin] duration-300 md:px-10 md:pt-8 outline-none ${isBookPage ? 'md:pb-8' : 'md:pb-12'}`}
+          className={`flex-1 min-w-0 overflow-x-clip md:ml-[var(--sidebar-w)] transition-[margin] duration-300 md:px-10 outline-none ${isBookPage ? 'md:pt-0 md:pb-8' : 'md:pt-8 md:pb-12'}`}
           style={isMobile ? {
             paddingTop: 'calc(var(--safe-t) + var(--navbar-h) + 0.75rem)',
             // No leitor a barra de ferramentas própria fica embaixo; nas outras telas, a tab bar.
@@ -66,6 +67,7 @@ export function Layout() {
 
       <CommandPalette />
       <Toaster />
+      <ConfirmHost />
       <OfflineBanner />
       <VoiceRequiredDialog open={voicePrompt} pt={pt} onOpenChange={(open) => { if (!open) markVoicePromptSeen(); setVoicePrompt(open) }} />
       {isMobile && !isBookPage ? <TabBar /> : null}

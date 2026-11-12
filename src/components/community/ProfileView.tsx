@@ -1,3 +1,4 @@
+import { askConfirm } from '@/components/ui/confirm'
 // Perfil social: cabeçalho (capa, foto, identidade, relação, estatísticas) e as seções
 // reaproveitadas pelas abas do perfil (estante, meta, resultados, estudando).
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
@@ -440,7 +441,7 @@ export function ReadingGoalCard({ view, pt, compact = false, onChanged }: { view
     try { await saveGoal(user.id, year, target); setEditing(false); onChanged?.() } catch (err) { toast(errorText(err, pt), { tone: 'error' }) } finally { setBusy(false) }
   }
   const remove = async () => {
-    if (!user || !window.confirm(pt ? 'Apagar a meta deste ano?' : 'Delete this year’s goal?')) return
+    if (!user || !await askConfirm(pt ? 'Apagar a meta deste ano?' : 'Delete this year’s goal?')) return
     try { await deleteGoal(user.id, year); onChanged?.() } catch (err) { toast(errorText(err, pt), { tone: 'error' }) }
   }
 

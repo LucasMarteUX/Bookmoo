@@ -66,7 +66,8 @@ Rules:
   if (!proposed || !cleanText(proposed.palette)) throw new AiError('Art bible incomplete', 502, 'comic_bible_invalid')
   // Ordem: escolha da pessoa ou da galeria, categoria do livro, leitura do modelo; sem estilo pronto, mangá da casa.
   const picked = cleanText((proposed as { styleId?: unknown }).styleId, 40)
-  const styleId = fixedStyle ?? styleForCategory(book.category, ready) ?? (ready.some(style => style.id === picked) ? picked : null)
+  // Escolha da pessoa/comunidade; senão a leitura da IA sobre o livro; a categoria da galeria é só o último recurso.
+  const styleId = fixedStyle ?? (ready.some(style => style.id === picked) ? picked : null) ?? styleForCategory(book.category, ready)
   const bank = ready.find(style => style.id === styleId)
   Object.assign(proposed, bank
     ? { styleName: bank.name, artStyle: `${bank.look}. Full style prompt applied at generation.`, lineWork: '', anatomy: '', coloring: '', camera: '', avoid: '', realism: 'illustrated', ...styleLettering(bank.id) }

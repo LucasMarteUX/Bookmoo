@@ -55,7 +55,7 @@ export function Dashboard() {
   const [newTitle, setNewTitle] = useState('')
   const [newContent, setNewContent] = useState('')
   const [importedEpub, setImportedEpub] = useState<EpubBook | null>(null)
-  const [pendingDelete, setPendingDelete] = useState<{ id: string; title: string } | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; title: string; catalogId?: string | null } | null>(null)
   const [savingBook, setSavingBook] = useState(false)
   const [bookError, setBookError] = useState('')
   const [newAuthor, setNewAuthor] = useState('')
@@ -277,15 +277,16 @@ export function Dashboard() {
               <div className="h-full bg-white/90" style={{ width: `${progress}%` }} />
             </div>
           )}
-          <div className="absolute right-1.5 top-1.5 z-20 flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 md:focus-within:opacity-100 transition-opacity">
-            <Button variant="ghost" size="icon" className={coverActionClass} onClick={e => openEditBook(book, e)} title={t('editBook')} aria-label={t('editBook')}>
-              <Pencil className="size-3.5" />
-            </Button>
-            <Button variant="ghost" size="icon" className={coverActionClass} aria-label={t('delete')} title={t('delete')}
-              onClick={e => { e.stopPropagation(); setBookError(''); setPendingDelete(book) }}>
-              <Trash2 className="size-3.5" />
-            </Button>
-          </div>
+        </div>
+        {/* Ações fora da capa: a capa ganha transform no hover e prendia os botões abaixo do link que abre o livro. */}
+        <div className="absolute right-1.5 top-1.5 z-20 flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 md:focus-within:opacity-100 transition-[opacity,transform] duration-300 md:group-hover:-translate-y-1">
+          <Button variant="ghost" size="icon" className={coverActionClass} onClick={e => openEditBook(book, e)} title={t('editBook')} aria-label={t('editBook')}>
+            <Pencil className="size-3.5" />
+          </Button>
+          <Button variant="ghost" size="icon" className={coverActionClass} aria-label={t('delete')} title={t('delete')}
+            onClick={e => { e.preventDefault(); e.stopPropagation(); setBookError(''); setPendingDelete(book) }}>
+            <Trash2 className="size-3.5" />
+          </Button>
         </div>
         <div className="mt-3 space-y-0.5">
           <h3 className="text-[14px] font-medium leading-snug line-clamp-2" style={{ color: 'var(--theme-text)', display: '-webkit-box', WebkitBoxOrient: 'vertical' }} title={book.title}>{book.title}</h3>
@@ -472,8 +473,12 @@ export function Dashboard() {
       <Dialog open={!!pendingDelete} onOpenChange={open => { if (!open && !savingBook) setPendingDelete(null) }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{locale === 'pt-BR' ? 'Excluir livro' : 'Delete book'}</DialogTitle>
-            <DialogDescription>{pendingDelete?.title}</DialogDescription>
+            <DialogTitle>{locale === 'pt-BR' ? `Excluir “${pendingDelete?.title ?? ''}”?` : `Delete “${pendingDelete?.title ?? ''}”?`}</DialogTitle>
+            <DialogDescription>
+              {pendingDelete?.catalogId
+                ? (locale === 'pt-BR' ? 'Ele sai da sua biblioteca, com seu progresso e as páginas ilustradas. Você pode baixar de novo pela Galeria quando quiser.' : 'It leaves your library, with your progress and illustrated pages. You can get it again from the Gallery anytime.')
+                : (locale === 'pt-BR' ? 'Ele sai da sua biblioteca, com seu progresso e as páginas ilustradas. Para ter de novo, é só enviar o arquivo outra vez.' : 'It leaves your library, with your progress and illustrated pages. To get it back, upload the file again.')}
+            </DialogDescription>
           </DialogHeader>
           {bookError && <p role="alert">{bookError}</p>}
           <div className="flex justify-end gap-2">

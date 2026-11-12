@@ -42,7 +42,7 @@ export function AdminPage() {
       </header>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {cards.map(card => (
-          <div key={card.label} className="rounded-2xl border px-4 py-3" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-pastel-4)' }}>
+          <div key={card.label} className="rounded-2xl border px-4 py-3" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-text)' }}>
             <p className="text-[12px]" style={{ color: 'var(--theme-text-secondary)' }}>{card.label}</p>
             <p className="mt-1 font-display text-[28px] leading-none">{card.value ?? '–'}</p>
           </div>

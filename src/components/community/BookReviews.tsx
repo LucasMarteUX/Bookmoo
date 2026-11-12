@@ -1,3 +1,4 @@
+import { askConfirm } from '@/components/ui/confirm'
 // Avaliações e resenhas de um livro da galeria: média, a minha (editar ou apagar) e as visíveis.
 // Uma avaliação por pessoa por livro; ao salvar vira publicação na timeline (curtir e comentar).
 import { useEffect, useState } from 'react'
@@ -99,7 +100,7 @@ function ReviewEditor({ catalogId, initial, pt, onSaved, onCancel }: { catalogId
     } catch (err) { toast(errorText(err, pt), { tone: 'error' }) } finally { setBusy(false) }
   }
   const remove = async () => {
-    if (!initial || !window.confirm(pt ? 'Apagar sua avaliação e resenha? As curtidas e comentários dela também somem.' : 'Delete your review? Its likes and comments go too.')) return
+    if (!initial || !await askConfirm(pt ? 'Apagar sua avaliação e resenha? As curtidas e comentários dela também somem.' : 'Delete your review? Its likes and comments go too.')) return
     try { await deleteReview(initial.id); onSaved() } catch (err) { toast(errorText(err, pt), { tone: 'error' }) }
   }
 

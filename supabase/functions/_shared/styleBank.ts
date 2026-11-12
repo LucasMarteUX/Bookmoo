@@ -13,6 +13,15 @@ export async function readyStyles(sb: SupabaseClient): Promise<BankStyle[]> {
   }))
 }
 
+/** Amostra visual do estilo (a miniatura do banco), enviada à IA de imagem como referência de técnica. */
+export async function styleSample(sb: SupabaseClient, id: string | undefined | null): Promise<{ mime: string; blob: Blob } | null> {
+  if (!id) return null
+  const { data } = await sb.from('comic_styles').select('sample').eq('id', id).maybeSingle()
+  if (typeof data?.sample !== 'string' || !data.sample) return null
+  const bytes = Uint8Array.from(atob(data.sample), c => c.charCodeAt(0))
+  return { mime: 'image/webp', blob: new Blob([bytes], { type: 'image/webp' }) }
+}
+
 export async function stylePrompt(sb: SupabaseClient, id: string | undefined | null): Promise<string | null> {
   if (!id) return null
   const { data } = await sb.from('comic_styles').select('prompt, ready').eq('id', id).maybeSingle()
@@ -45,13 +54,64 @@ export function styleLettering(id: string) {
   return PAPER.has(id) ? { lettering: 'paper', fonts: 'serif' } : { lettering: 'white', fonts: 'humanist' }
 }
 
-/** Só a parte de estilo do super prompt: a cena, os personagens e o formato vêm do plano da página. */
+/**
+ * Só a parte de estilo do super prompt: a cena, os personagens e o formato vêm do plano da página.
+ * Corta no bloco de entrada da cena ("SCENE TO ILLUSTRATE:", "16. SCENE GENERATION INPUT", "17. DYNAMIC SCENE INPUT — BOOKMOO")
+ * ou, se não houver, na primeira variável {{...}}. Variáveis que sobrarem nunca vão para a imagem.
+ */
 export function masterStyle(prompt: string) {
-  const cut = prompt.search(/^\s*SCENE TO ILLUSTRATE\s*:/im)
+  const marker = prompt.search(/^[ \t]*(?:\d+\.\s*)?(?:DYNAMIC\s+)?SCENE\s+(?:TO\s+ILLUSTRATE|GENERATION\s+INPUT|INPUT|DESCRIPTION)\b.*$/im)
+  const variable = prompt.search(/^.*\{\{[^}]+\}\}.*$/m)
+  const cut = marker > 0 ? marker : variable > 0 ? variable : -1
   return (cut > 0 ? prompt.slice(0, cut) : prompt)
+    .split('\n')
+    .filter(line => !/\{\{[^}]+\}\}/.test(line))
+    .join('\n')
     .replace(/^\s*Output a single complete illustration.*$/gim, '')
     .trim()
 }
 
-/** Campos do livro que seguem valendo junto do estilo do banco. */
-export const BOOK_FIELDS = ['palette', 'lighting', 'setting', 'costume'] as const
+/**
+ * Compacta o super prompt sem mudar o conteúdo: listas de tópicos viram uma linha só ("a; b; c.")
+ * e linhas vazias somem. Os prompts completos têm até ~26 mil caracteres e a geração de imagem
+ * aceita no máximo 32 mil no pedido inteiro.
+ */
+export function compactStyle(text: string) {
+  const out: string[] = []
+  let bullets: string[] = []
+  const flush = () => { if (bullets.length) { out.push(bullets.join('; ') + '.'); bullets = [] } }
+  for (const raw of text.split('\n')) {
+    const line = raw.trim()
+    if (!line) continue
+    const bullet = /^[*•-]\s+(.*)$/.exec(line)
+    if (bullet) { bullets.push(bullet[1].replace(/[.;]\s*$/, '')); continue }
+    flush()
+    out.push(line)
+  }
+  flush()
+  return out.join('\n')
+}
+
+/** Seções que podem sair primeiro quando o pedido não cabe (o resto do prompt já cobre o assunto). */
+const DROPPABLE = /ORIGINALITY|COPYRIGHT|CONSISTENCY|CONTINUITY|EMOTIONAL|FLEXIBILITY|GENRE|DETAIL DISTRIBUTION|LEVEL OF DETAIL|INFLUENCE|SUBSTYLE|PANEL RULES|MOTION|ACTION AND MOVEMENT/i
+
+/** Estilo dentro de um orçamento de caracteres: compacta, tira seções secundárias e, por fim, corta em fim de linha. */
+export function fitStyle(text: string, budget: number) {
+  let style = compactStyle(text)
+  if (style.length <= budget) return style
+  const parts = style.split(/\n(?=\d{1,2}\.\s+[A-Z])/)
+  for (let i = parts.length - 1; i > 0 && parts.join('\n').length > budget; i--) {
+    if (DROPPABLE.test(parts[i].split('\n')[0])) parts.splice(i, 1)
+  }
+  style = parts.join('\n')
+  if (style.length <= budget) return style
+  const cut = style.lastIndexOf('\n', budget)
+  return style.slice(0, cut > 0 ? cut : budget)
+}
+
+/**
+ * Campos do livro que seguem valendo junto do estilo do banco: só o conteúdo (lugar e roupas).
+ * Paleta e luz vêm do super prompt do estilo; a paleta "do livro" (ex.: tons terrosos apagados)
+ * puxava a imagem de volta para o visual antigo.
+ */
+export const BOOK_FIELDS = ['setting', 'costume'] as const

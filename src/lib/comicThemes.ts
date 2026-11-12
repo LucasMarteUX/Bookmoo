@@ -2,7 +2,7 @@
 // Picked automatically from the book's art direction; the reader can override it per book.
 import type { StyleDocument } from '../../supabase/functions/_shared/comicEditorial'
 
-export type LetteringThemeId = 'classic' | 'adventure' | 'tech' | 'romance' | 'noir' | 'manga' | 'fantasy' | 'kids' | 'superhero' | 'horror' | 'modern'
+export type LetteringThemeId = 'classic' | 'adventure' | 'tech' | 'romance' | 'noir' | 'manga' | 'fantasy' | 'kids' | 'superhero' | 'horror' | 'modern' | 'watercolor' | 'epic'
 
 export type LetteringTheme = {
   id: LetteringThemeId
@@ -23,6 +23,12 @@ export type LetteringTheme = {
   speech: { center: string; edge: string; text: string; border: string }
   /** Current word while reading / selected word. */
   highlight: { bg: string; ring: string; text?: string }
+  /** Fonte da etiqueta de quem fala (padrão: a do texto). */
+  nameFont?: string
+  /** Acabamento da caixa: 'filigree' = cantoneiras e losangos dourados; 'ink' = contorno duplo de nanquim. */
+  ornament?: 'filigree' | 'ink'
+  /** Cor do ornamento. */
+  ornamentColor?: string
 }
 
 export const LETTERING_THEMES: Record<LetteringThemeId, LetteringTheme> = {
@@ -83,6 +89,26 @@ export const LETTERING_THEMES: Record<LetteringThemeId, LetteringTheme> = {
     speech: { center: '#fffaf0', edge: '#f3e8d0', text: '#2b2116', border: '#3b2c1a' },
     highlight: { bg: '#7fd1a8', ring: '#1f5c3f', text: '#0e2a1c' },
   },
+  watercolor: {
+    id: 'watercolor', blurb: { pt: 'Papel de aquarela e traço de nanquim', en: 'Watercolour paper and ink line' }, scene: 'linear-gradient(135deg,#9cb8c9,#e9d6b0)',
+    label: { pt: 'Aquarela', en: 'Watercolour' },
+    font: '"Lora", Georgia, serif', weight: 600, nameFont: '"Lora", Georgia, serif',
+    ink: '#24211c', stroke: 0.0017, shadow: 0, shadowColor: 'transparent',
+    caption: { top: '#fdfaf3', bottom: '#f3ead8', text: '#24211c', border: '#2b2721', radius: 0.006 },
+    speech: { center: '#fffdf8', edge: '#f6efe2', text: '#24211c', border: '#2b2721' },
+    highlight: { bg: '#cfe3ee', ring: '#3d6b86', text: '#14303f' },
+    ornament: 'ink', ornamentColor: '#2b2721',
+  },
+  epic: {
+    id: 'epic', blurb: { pt: 'Pergaminho, ouro e ornamentos', en: 'Parchment, gold and ornaments' }, scene: 'linear-gradient(135deg,#2a1d3f,#b8893a)',
+    label: { pt: 'Épico', en: 'Epic' },
+    font: '"Alegreya", Georgia, serif', weight: 700, nameFont: '"Cinzel", "Alegreya", Georgia, serif',
+    ink: '#2a1c0e', stroke: 0.0026, shadow: 0.005, shadowColor: 'rgba(30,18,6,0.45)',
+    caption: { top: '#f8eed6', bottom: '#e8d3a4', text: '#2a1c0e', border: '#5b3d17', radius: 0.003, inner: '#b8893a' },
+    speech: { center: '#fff8e8', edge: '#efdcb0', text: '#2a1c0e', border: '#5b3d17' },
+    highlight: { bg: '#f2cf6b', ring: '#7a4f12', text: '#2a1c0e' },
+    ornament: 'filigree', ornamentColor: '#9a6f26',
+  },
   kids: {
     id: 'kids', blurb: { pt: 'Arredondado, alegre e colorido', en: 'Rounded, cheerful and colourful' }, scene: 'linear-gradient(135deg,#7ed6f7,#ffb3d9)',
     label: { pt: 'Infantil', en: 'Kids' },
@@ -135,7 +161,7 @@ const RULES: [LetteringThemeId, RegExp][] = [
 
 /** Tema de balão de cada estilo do banco. */
 const BANK_THEMES: Record<string, LetteringThemeId> = {
-  'aquarela-nanquim': 'classic', 'fantasia-epica': 'fantasy', 'fantasia-sombria': 'fantasy', 'terror-gotico': 'horror',
+  'aquarela-nanquim': 'watercolor', 'fantasia-epica': 'epic', 'fantasia-sombria': 'fantasy', 'terror-gotico': 'horror',
   'ficcao-cientifica': 'tech', cyberpunk: 'tech', 'romance-aquarela': 'romance', 'pintura-historica': 'romance',
   'noir-misterio': 'noir', 'thriller-cinematografico': 'noir', 'manga-tradicional': 'manga', 'anime-colorido': 'manga',
   'hq-americana': 'superhero', 'hq-europeia': 'adventure', 'infantil-guache': 'kids', 'realismo-magico': 'fantasy',

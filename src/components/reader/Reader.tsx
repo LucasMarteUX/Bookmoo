@@ -1,4 +1,7 @@
+import { toast } from '@/components/ui/toast'
+import { askConfirm } from '@/components/ui/confirm'
 import React, { useRef, useMemo, useState, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { Book, useBookStore } from '@/store/useBookStore'
 import { useReaderSettings, PLAYBACK_SPEEDS } from '@/store/useReaderSettings'
 import { useVocabularyStore, type VocabStatus } from '@/store/useVocabularyStore'
@@ -9,6 +12,7 @@ import { NoteDialog } from './NoteDialog'
 import { deletePin, loadPins, savePin, usePinStore, type StoryPin } from '@/store/usePinStore'
 import { fetchSharedImages, publishSharedImage } from '@/lib/catalog'
 import { bookStyleKey } from '@/lib/comicStyles'
+import { StylePickerDialog, useApplyBookStyle, useStyleBank } from '@/components/book/StylePicker'
 import { VocabularyModal, type VocabTab } from '../vocabulary/VocabularyModal'
 import { useMediaSession, useWakeLock } from '@/hooks/useNativeMedia'
 import { ChevronLeft, ChevronRight, MousePointer2, Type, Pin, PinOff, Pencil, Trash2, Play, Image as ImageIcon, Loader2, WandSparkles, Pause, Settings, X, RefreshCw } from 'lucide-react'
@@ -17,6 +21,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import {
   generateComicPage,
   prepareComicArt,
+  suggestComicStyle,
   inspectComicPage,
   locateComicFaces,
   AiRequestError,
@@ -25,7 +30,7 @@ import {
 } from '@/lib/ai'
 import { getAiStatus, useAiStatus } from '@/lib/aiKeys'
 import { detectLetteringTheme, letteringThemeFor, type LetteringThemeId } from '@/lib/comicThemes'
-import { ToolButton, ToolGroup } from '@/components/ui/toolbar'
+import { ToolButton, ToolDivider, ToolGroup } from '@/components/ui/toolbar'
 import { needsVoiceInstall } from './VoiceRequiredDialog'
 import { askVoiceOnce } from '@/lib/voiceGate'
 import { XP, useXpStore } from '@/store/useXpStore'
@@ -57,6 +62,8 @@ interface ReaderProps {
   book: Book
   /** Aba "Escutar": começa a narração ao abrir. */
   autoPlay?: boolean
+  /** No computador, a barra de leitura (Texto | Ilustrado e ferramentas) vai para o topo do livro. */
+  headerSlot?: HTMLElement | null
 }
 
 function speedNumber(rate: number) {
@@ -127,7 +134,16 @@ function PageJump({ page, total, onGo, pt }: { page: number; total: number; onGo
   )
 }
 
-export function Reader({ book, autoPlay = false }: ReaderProps) {
+export function Reader({ book, autoPlay = false, headerSlot }: ReaderProps) {
+  // Topo numa linha só a partir de 1024px; no celular a barra continua aqui embaixo.
+  const [wide, setWide] = useState(() => typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches)
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)')
+    const on = () => setWide(mq.matches)
+    mq.addEventListener('change', on)
+    return () => mq.removeEventListener('change', on)
+  }, [])
+  const inHeader = wide && !!headerSlot
   const containerRef = useRef<HTMLDivElement>(null)
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const { locale } = useLanguage()
@@ -155,11 +171,23 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
   const dragSelect = useRef<number | null>(null)
   const dragMoved = useRef(false)
   const pins = usePinStore(s => s.pins)
-  const [viewMode, setViewMode] = useState<'text' | 'comic'>('text')
+  // Livro que já tem ilustração abre no modo ilustrado (imagem tem prioridade sobre o texto).
+  // Páginas ainda sem imagem continuam mostrando o texto, com o botão de ilustrar.
+  const hasIllustrations = Object.keys(book.comicPages ?? {}).length > 0
+  const [viewMode, setViewMode] = useState<'text' | 'comic'>(hasIllustrations ? 'comic' : 'text')
+  const firstIllustration = useRef(hasIllustrations)
+  useEffect(() => {
+    // Gerou a primeira imagem agora (ou trocou de livro): passa a priorizar o ilustrado.
+    if (hasIllustrations && !firstIllustration.current) setViewMode('comic')
+    firstIllustration.current = hasIllustrations
+  }, [hasIllustrations])
+  useEffect(() => { setViewMode(Object.keys(book.comicPages ?? {}).length ? 'comic' : 'text') }, [book.id])
   const [comicStage, setComicStage] = useState<ComicStage>(null)
   const [comicError, setComicError] = useState<{ page: number; message: string } | null>(null)
   const isGeneratingComic = comicStage !== null
   const [showConnectApi, setShowConnectApi] = useState(false)
+  // Primeira geração do livro: escolher o estilo (com sugestão) antes de desenhar.
+  const [firstStyle, setFirstStyle] = useState<{ suggested: string | null; note?: string; loading: boolean } | null>(null)
   const connectApiShownRef = useRef(false)
   const readerRootRef = useRef<HTMLDivElement>(null)
   const { status: aiStatus } = useAiStatus()
@@ -610,7 +638,20 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
       setComicStage(null)
     }
   }
-  const handleGenerateComic = async () => {
+  const styleBank = useStyleBank(locale === 'pt-BR')
+  const styleChange = useApplyBookStyle(book, userId ?? undefined, locale === 'pt-BR', styleBank)
+  /** Abre o banco de estilos com a sugestão do livro (comunidade na galeria; leitura da IA nos EPUBs). */
+  const askFirstStyle = () => {
+    setFirstStyle({ suggested: null, loading: true })
+    const context = book.context?.trim() || book.pages.slice(0, 2).join('\n\n') || book.content
+    suggestComicStyle(book.id, currentContent, context)
+      .then(r => setFirstStyle(prev => prev && {
+        suggested: r.styleId, loading: false,
+        note: r.source === 'community' ? (locale === 'pt-BR' ? 'Estilo da comunidade' : 'Community style') : (locale === 'pt-BR' ? 'Sugerido para este livro' : 'Suggested for this book'),
+      }))
+      .catch(() => setFirstStyle(prev => prev && { ...prev, loading: false }))
+  }
+  const handleGenerateComic = async (opts?: { styleChosen?: boolean }) => {
     if (comicOperation.current) return
     comicOperation.current = true
     const pageIndex = currentPage
@@ -620,6 +661,8 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
       const status = aiStatus ?? await getAiStatus().catch(() => null)
       if (!status) throw new AiRequestError('ai_status_unavailable')
       if (!status.openai.connected) { setShowConnectApi(true); return }
+      // Livro ainda sem estilo escolhido: primeiro o banco de estilos (com sugestão), depois desenha.
+      if (!opts?.styleChosen && !book.comicStyleDoc?.styleId) { askFirstStyle(); return }
       setComicStage('prepare')
       const styleDoc = await prepareComicArt(book.id)
       useBookStore.getState().updateBook(book.id, { comicStyleDoc: styleDoc })
@@ -690,9 +733,12 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
 
   const handleDeleteComic = async () => {
     if (comicOperation.current || !book.comicPages?.[currentPage]) return
+    const pt = locale === 'pt-BR'
+    if (!await askConfirm(pt ? 'Apagar a ilustração desta página?' : 'Delete this page’s illustration?',
+      { detail: pt ? 'A página volta a ser só texto. Para ter a imagem de novo é preciso gerar outra vez (usa sua chave de IA).' : 'The page goes back to text only. Getting an image again means generating it again (uses your AI key).', confirmLabel: pt ? 'Apagar' : 'Delete' })) return
     comicOperation.current = true
     try { await saveComicPage(book, currentPage, null, null) }
-    catch (error) { console.error('Comic delete failed:', error); alert(aiErrorMessage(error)) }
+    catch (error) { console.error('Comic delete failed:', error); toast(aiErrorMessage(error), { tone: 'error' }) }
     finally { comicOperation.current = false }
   }
 
@@ -1226,40 +1272,48 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
   // No modo HQ, página ainda sem quadrinho continua mostrando o texto (com o botão de gerar no topo).
   const showComicPage = viewMode === 'comic' && !!comicImage
 
-  return (
-    <div
-      ref={readerRootRef}
-      className={`reader-root min-h-full transition-colors duration-300 theme-${theme} pb-32`}
-    >
-      <div className={`${showComicPage ? 'max-w-[1400px]' : 'max-w-[720px]'} mx-auto pt-1 md:pt-10 px-4 md:px-8`}>
-        <div className={`mb-5 md:mb-12 flex flex-wrap justify-between items-center gap-3 ${viewMode === 'comic' ? 'sticky z-30 py-2 -mx-2 px-2 rounded-2xl' : ''}`}
-          style={viewMode === 'comic' ? { top: 'var(--reader-sticky-top, 76px)', backgroundColor: 'color-mix(in srgb, var(--theme-bg) 85%, transparent)', backdropFilter: 'blur(8px)' } : undefined}>
-          <h1 className="font-semibold tracking-tight mb-0 whitespace-nowrap overflow-hidden text-ellipsis max-w-full" style={{ fontSize: '1.25em', fontFamily: 'var(--font-sans)' }}>
-            {book.title}
-          </h1>
-          
-          <div className="flex items-center gap-2 flex-wrap justify-end ml-auto min-w-0 max-w-full">
-            {/* Ferramentas da HQ (renderizadas pelo ComicPageView aqui, à esquerda do modo) */}
-            {showComicPage && <div ref={setToolbarSlot} className="flex items-center justify-end min-w-0 max-w-full" />}
-            {viewMode === 'comic' && !comicImage && (
-              <ToolGroup label={locale === 'pt-BR' ? 'Quadrinho' : 'Comic'}>
-                <ToolButton tone="primary" disabled={!!comicStage} onClick={handleGenerateComic}
+  const modeBar = (
+            <ToolGroup flat={inHeader} label={locale === 'pt-BR' ? 'Modo de leitura' : 'Reading mode'}>
+              <ToolButton icon={<Type className="w-4 h-4" />} label={t('text')} compact active={viewMode === 'text'}
+                hint={locale === 'pt-BR' ? 'Ler só o texto' : 'Read the text only'} onClick={() => setViewMode('text')} />
+              <ToolButton icon={<ImageIcon className="w-4 h-4" />} label={t('comic')} compact active={viewMode === 'comic'}
+                hint={locale === 'pt-BR' ? 'Ler com as ilustrações da página' : 'Read with the page illustrations'} onClick={openComicMode} />
+              {showComicPage && <><ToolDivider /><div ref={setToolbarSlot} className="flex items-center" /></>}
+              {viewMode === 'comic' && !comicImage && <>
+                <ToolDivider />
+                <ToolButton tone="primary" disabled={!!comicStage} onClick={() => { void handleGenerateComic() }}
                   icon={comicStage ? <Loader2 className="w-4 h-4 animate-spin" /> : <WandSparkles className="w-4 h-4" />}
                   label={comicStage
                     ? (locale === 'pt-BR'
                       ? { prepare: 'Preparando a arte…', image: 'Desenhando a página…', layout: 'Encaixando os balões…' }[comicStage]
                       : { prepare: 'Preparing the art…', image: 'Drawing the page…', layout: 'Fitting balloons…' }[comicStage])
-                    : (locale === 'pt-BR' ? 'Gerar HQ desta página' : 'Generate comic for this page')}
+                    : (locale === 'pt-BR' ? 'Ilustrar esta página' : 'Illustrate this page')}
                   hint={locale === 'pt-BR' ? 'Desenha esta página como quadrinho, com o texto nos balões. Usa sua chave de IA.' : 'Draws this page as a comic with the text in balloons. Uses your AI key.'} />
-              </ToolGroup>
-            )}
-            {/* Modo de leitura */}
-            <ToolGroup label={locale === 'pt-BR' ? 'Modo de leitura' : 'Reading mode'}>
-              <ToolButton icon={<Type className="w-4 h-4" />} label={t('text')} compact active={viewMode === 'text'}
-                hint={locale === 'pt-BR' ? 'Ler só o texto' : 'Read the text only'} onClick={() => setViewMode('text')} />
-              <ToolButton icon={<ImageIcon className="w-4 h-4" />} label={t('comic')} compact active={viewMode === 'comic'}
-                hint={locale === 'pt-BR' ? 'Ler como história em quadrinhos' : 'Read as a comic'} onClick={openComicMode} />
+              </>}
             </ToolGroup>
+  )
+
+  return (
+    <div
+      ref={readerRootRef}
+      className={`reader-root min-h-full transition-colors duration-300 theme-${theme} pb-32`}
+    >
+      <div className={`${showComicPage ? 'max-w-[1400px]' : 'max-w-[720px]'} mx-auto pt-1 md:pt-2 px-4 md:px-8`}>
+        <div className={`mb-5 md:mb-8 flex flex-wrap justify-between items-center gap-3 ${viewMode === 'comic' && !inHeader ? 'sticky z-30 py-2 -mx-2 px-2 rounded-2xl' : ''}`}
+          style={viewMode === 'comic' && !inHeader ? { top: 'var(--reader-sticky-top, 76px)', backgroundColor: 'color-mix(in srgb, var(--theme-bg) 85%, transparent)', backdropFilter: 'blur(8px)' } : undefined}>
+          {/* Título do livro: no conteúdo, abaixo das barras fixas. */}
+          <div className="min-w-0 max-w-full">
+            <h1 className="font-semibold tracking-tight mb-0 whitespace-nowrap overflow-hidden text-ellipsis max-w-full" style={{ fontSize: '1.25em', fontFamily: 'var(--font-sans)' }}>
+              {book.title}
+            </h1>
+            <p className="mt-0.5 text-[12.5px] font-medium tabular-nums" style={{ color: 'var(--theme-text-secondary)', fontFamily: 'var(--font-sans)' }}>
+              {book.wordCount.toLocaleString(locale)} {t('words')}
+            </p>
+          </div>
+          
+          <div className="flex items-center gap-2 flex-wrap justify-end ml-auto min-w-0 max-w-full">
+            {/* Modo de leitura e, no modo ilustrado, as ferramentas da página: uma barra só. */}
+            {inHeader ? createPortal(modeBar, headerSlot!) : modeBar}
             {/* Settings (gear) next to tabs — mobile only */}
             <div className="md:hidden flex items-center">
               <Popover>
@@ -1388,7 +1442,7 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
             fullscreenTarget={() => readerRootRef.current}
             stage={comicStage}
             error={comicError?.page === currentPage ? comicError.message : undefined}
-            onGenerate={handleGenerateComic}
+            onGenerate={() => { void handleGenerateComic() }}
             onDelete={handleDeleteComic}
             onSaveLettering={handleSaveLettering}
             onRelayout={handleRelayoutComic}
@@ -1425,7 +1479,7 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
       </div>
 
       {/* Floating Toolbar — no livro no mobile fica embaixo (BottomNav escondido) */}
-      <div className="fixed left-2 right-2 md:left-[var(--sidebar-w,16rem)] md:right-8 md:bottom-8 z-40 flex flex-col items-center" style={{ bottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
+      <div data-reader-bar className="fixed left-2 right-2 md:left-[var(--sidebar-w,16rem)] md:right-8 md:bottom-8 z-40 flex flex-col items-center" style={{ bottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
         <div 
           className="backdrop-blur-md border p-1.5 rounded-2xl shadow-[0_1px_2px_rgba(15,15,15,0.06),0_18px_44px_-14px_rgba(15,15,15,0.38)] flex items-center justify-between md:justify-center gap-0.5 md:gap-1.5 transition-colors w-full flex-nowrap md:w-auto"
           style={{ backgroundColor: 'color-mix(in srgb, var(--theme-card-bg) 92%, transparent)', borderColor: 'var(--theme-border)' }}
@@ -1735,6 +1789,21 @@ export function Reader({ book, autoPlay = false }: ReaderProps) {
           : { learned: 'Learned', review: 'Review', important: 'Important', explain: 'Explain', note: 'Note', image: 'Image', listen: 'Say this word' }}
       />
 
+      <StylePickerDialog open={!!firstStyle} onOpenChange={open => { if (!open) setFirstStyle(null) }} pt={locale === 'pt-BR'}
+        value={book.comicStyleDoc?.styleId} initial={firstStyle?.suggested} busy={styleChange.busy} warn={styleChange.warn}
+        notes={firstStyle?.suggested && firstStyle.note ? { [firstStyle.suggested]: firstStyle.note } : undefined}
+        title={locale === 'pt-BR' ? 'Escolha o estilo das ilustrações' : 'Choose the illustration style'}
+        description={firstStyle?.loading
+          ? (locale === 'pt-BR' ? 'Lendo o livro para sugerir um estilo…' : 'Reading the book to suggest a style…')
+          : (locale === 'pt-BR' ? 'Todas as páginas deste livro saem neste estilo. Dá para trocar depois em Ajustes do livro → Estilo de arte.' : 'Every page of this book uses this style. You can change it later in Book settings → Art style.')}
+        confirmLabel={locale === 'pt-BR' ? 'Usar e ilustrar' : 'Use and illustrate'}
+        onPick={styleId => {
+          void styleChange.apply(styleId).then(ok => {
+            if (!ok) return
+            setFirstStyle(null)
+            void handleGenerateComic({ styleChosen: true })
+          })
+        }} />
       <Dialog open={showConnectApi} onOpenChange={setShowConnectApi}>
         <DialogContent>
           <DialogHeader>

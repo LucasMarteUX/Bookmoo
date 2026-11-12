@@ -7,7 +7,7 @@ import {
   type Character, type EditorialLayout, type GenerationRecord, type StyleDocument,
 } from '../_shared/comicEditorial.ts'
 import { briefFingerprint, researchArtBible } from './artBible.ts'
-import { readyStyles, stylePrompt } from '../_shared/styleBank.ts'
+import { readyStyles, styleForCategory, stylePrompt, styleSample } from '../_shared/styleBank.ts'
 import { imagePrompt } from './imagePrompt.ts'
 import { loadReferences } from './references.ts'
 import { composeRows, planPrompt, resolvePlan, type ModelPlan } from './storyboard.ts'
@@ -75,12 +75,15 @@ Return a full portrait page with the exact same framing and no text, lettering o
 const CONTINUITY_PAGES = 2
 
 async function loadContinuity(sb: ReturnType<typeof adminClient>, userId: string, bookId: string, page: number,
-  pages: Record<string, string>): Promise<ImageReference[]> {
+  pages: Record<string, string>, layouts: Record<string, EditorialLayout> = {}, styleId?: string | null): Promise<ImageReference[]> {
   const prefix = `${Deno.env.get('SUPABASE_URL')}/storage/v1/object/public/${BUCKET}/`
   const folder = `${userId}/${bookId}/`
   const candidates = Object.entries(pages)
     .map(([key, url]) => ({ index: Number(key), path: typeof url === 'string' && url.startsWith(prefix) ? url.slice(prefix.length) : '' }))
     .filter(c => Number.isInteger(c.index) && c.index !== page && c.path.startsWith(folder))
+    // Com estilo do banco, só páginas desenhadas nesse mesmo estilo: uma página no visual antigo
+    // como continuidade fazia a nova sair igual a ela.
+    .filter(c => !styleId || layouts[String(c.index)]?.generation?.styleId === styleId)
     // Earlier pages first (closest to this one), then later pages if nothing earlier exists.
     .sort((a, b) => (a.index > page ? 1 : 0) - (b.index > page ? 1 : 0) || Math.abs(a.index - page) - Math.abs(b.index - page))
     .slice(0, CONTINUITY_PAGES)
@@ -103,13 +106,13 @@ Deno.serve(async (req) => {
   const bookId = String(b.bookId ?? '')
   const page = Number(b.page)
   const pageText = String(b.pageText ?? '')
-  if (!/^[\da-f-]{36}$/i.test(bookId) || (b.action !== 'prepare-art' && (!Number.isInteger(b.page) || page < 0 || page > 100000))) return json({ error: 'invalid_target' }, 400)
+  if (!/^[\da-f-]{36}$/i.test(bookId) || (b.action !== 'prepare-art' && b.action !== 'suggest-style' && (!Number.isInteger(b.page) || page < 0 || page > 100000))) return json({ error: 'invalid_target' }, 400)
 
   try {
     const sb = adminClient()
     const { data: book, error } = await sb.from('books').select(b.panelId
       ? 'title, comic_style_doc, comic_characters, comic_layouts, comic_pages'
-      : 'title, author, description, context, comic_style_doc, comic_characters, comic_pages')
+      : 'title, author, description, context, comic_style_doc, comic_characters, comic_pages, comic_layouts')
       .eq('id', bookId).eq('user_id', user.id).maybeSingle()
       .overrideTypes<{
         title: string; author?: string | null; description?: string | null; context?: string | null
@@ -129,7 +132,7 @@ Deno.serve(async (req) => {
       if (layout?.v !== 3) return json({ error: 'invalid_target' }, 400)
       return json(await editPanel(sb, user.id, bookId, page, b, layout, book.comic_pages?.[page], cast))
     }
-    if (b.action !== 'prepare-art' && (pageText.length > 12000 || !pageText.trim())) return json({ error: 'invalid_page_text' }, 400)
+    if (b.action !== 'prepare-art' && b.action !== 'suggest-style' && (pageText.length > 12000 || !pageText.trim())) return json({ error: 'invalid_page_text' }, 400)
     // Estilo: a escolha da pessoa (styleId no documento); senão o da galeria, definido pela primeira
     // pessoa que gerou; senão categoria e leitura do modelo, só entre estilos com prompt.
     const { data: link } = await sb.from('book_links').select('catalog_id, style_id').eq('book_id', bookId).eq('user_id', user.id).maybeSingle()
@@ -140,6 +143,30 @@ Deno.serve(async (req) => {
     const isReady = (id: unknown) => typeof id === 'string' && ready.some(item => item.id === id)
     const catalogStyle = (catalog as { style_id?: string | null } | null)?.style_id ?? null
     const fixedStyle = isReady(style.styleId) ? style.styleId! : isReady(link?.style_id) ? link!.style_id as string : isReady(catalogStyle) ? catalogStyle : null
+    // Sugestão antes da primeira geração (não grava nada): o estilo da comunidade para livros da
+    // galeria; para livros enviados pela pessoa, a IA lê o livro e escolhe entre os estilos prontos.
+    if (b.action === 'suggest-style') {
+      if (isReady(catalogStyle)) return json({ styleId: catalogStyle, source: 'community' })
+      const category = (catalog as { category?: string | null } | null)?.category ?? null
+      try {
+        const textAi = await pickProvider(user.id, ['gemini', 'openai'])
+        const about = [cleanText(book.title, 200), cleanText(book.author, 120), cleanText(book.description, 1200),
+          cleanText(book.context || b.bookContext, 1200), cleanText(pageText, 1500)].filter(Boolean).join('\n')
+        const answer = await llmJson<{ styleId?: unknown; reason?: unknown }>(textAi.provider, textAi.key, {
+          prompt: `Choose the illustration style that best fits this book for a reader app. Judge by genre, audience, era and tone (for example: children's tales and fables, epic fantasy, gothic horror, science fiction, romance, detective noir, historical fiction).
+Book:
+${about}
+${category ? `Gallery category: ${category}` : ''}
+Styles: ${JSON.stringify(ready.map(item => ({ id: item.id, look: item.look, use: item.use })))}
+Return JSON {"styleId": one id from the list, "reason": one short sentence in Portuguese}.`,
+        })
+        const picked = cleanText(answer.styleId, 40)
+        if (isReady(picked)) return json({ styleId: picked, source: 'ai', reason: cleanText(answer.reason, 200) })
+      } catch (e) {
+        log('comic-generate', 'suggest_style_failed', { reason: e instanceof Error ? e.message : String(e) })
+      }
+      return json({ styleId: styleForCategory(category, ready) ?? ready[0]?.id ?? null, source: 'category' })
+    }
     const brief = { ...book, category: (catalog as { category?: string | null } | null)?.category ?? null, styleId: fixedStyle }
     const fingerprint = await briefFingerprint(brief)
     const imgAi = await pickProvider(user.id, ['openai'])
@@ -188,12 +215,17 @@ Deno.serve(async (req) => {
     const rows = composeRows(plan.beats)
     // Continuity: the nearest pages already drawn for this book (earlier first) go to the image
     // model as real images, so recurring characters keep the same face, hair and clothing.
-    const continuity = await loadContinuity(sb, user.id, bookId, page, book.comic_pages ?? {})
+    const continuity = await loadContinuity(sb, user.id, bookId, page, book.comic_pages ?? {}, book.comic_layouts ?? {}, plan.style.styleId)
     const bankPrompt = await stylePrompt(sb, plan.style.styleId)
-    const img = await generateImage(imgAi.provider, imgAi.key, imagePrompt(plan, rows, references, continuity.length, b.replan, bankPrompt), [...images, ...continuity])
+    // A miniatura do estilo vai como primeira imagem: é ela que mostra à IA o visual escolhido
+    // (o texto sozinho deixava livros famosos voltarem ao visual das edições conhecidas).
+    const sample = bankPrompt ? await styleSample(sb, plan.style.styleId) : null
+    const img = await generateImage(imgAi.provider, imgAi.key, imagePrompt(plan, rows, references, continuity.length, b.replan, bankPrompt, !!sample),
+      [...(sample ? [sample] : []), ...images, ...continuity])
     const generation: GenerationRecord = {
       id: crypto.randomUUID(), createdAt: new Date().toISOString(), provider: imgAi.provider,
       styleRevision: plan.style.revision!,
+      styleId: plan.style.styleId,
       style: Object.fromEntries(STYLE_FIELDS.flatMap(key => plan.style[key] ? [[key, plan.style[key]]] : [])),
       references, composition: rows,
     }

@@ -14,8 +14,14 @@ import { VoiceCastDialog } from '@/components/book/VoiceCastDialog'
 import { remapComics } from '@/lib/comicPersistence'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { BookOpen, Users, CheckCircle2, FilePen, Keyboard, Headphones, Mic, Palette, PenLine, Rows3, XCircle } from 'lucide-react'
-import { ToolButton, ToolGroup } from '@/components/ui/toolbar'
+import { BookOpen, Users, CheckCircle2, FilePen, Keyboard, Headphones, Mic, Palette, PenLine, Rows3, XCircle, Settings2, ChevronDown } from 'lucide-react'
+import { MenuItem, ToolButton, ToolGroup } from '@/components/ui/toolbar'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { StylePickerDialog, useApplyBookStyle, useStyleBank } from '@/components/book/StylePicker'
+import { stylePreview } from '@/lib/comicStyles'
+import { VoiceAvatar } from '@/components/settings/VoiceAvatar'
+import { getKokoroVoice } from '@/lib/kokoro/voices'
+import { activeKokoroVoice } from '@/lib/kokoro/engine'
 import { useAuth } from '@/contexts/AuthContext'
 
 export function BookPage() {
@@ -30,6 +36,9 @@ export function BookPage() {
   const [saveFeedback, setSaveFeedback] = useState<'success' | 'error' | null>(null)
   const [saveError, setSaveError] = useState('')
   const [artOpen, setArtOpen] = useState(false)
+  const [styleOpen, setStyleOpen] = useState(false)
+  const [setupOpen, setSetupOpen] = useState(false)
+  const [headerSlot, setHeaderSlot] = useState<HTMLDivElement | null>(null)
   const [pageSizeOpen, setPageSizeOpen] = useState(false)
   const [castOpen, setCastOpen] = useState(false)
   const [writeMode, setWriteMode] = useState<'dictation' | 'edit'>('dictation')
@@ -45,6 +54,11 @@ export function BookPage() {
   })
 
   const book = books.find(b => b.id === id)
+  const pt = locale === 'pt-BR'
+  const bank = useStyleBank(pt)
+  const placeholder = { id: '', comicPages: {} } as unknown as NonNullable<typeof book>
+  const narratorVoice = getKokoroVoice((book?.comicStyleDoc as { narratorVoice?: string } | undefined)?.narratorVoice ?? activeKokoroVoice())
+  const styleChange = useApplyBookStyle(book ?? placeholder, session?.user.id, pt, bank)
 
   useEffect(() => {
     if (id) {
@@ -90,53 +104,65 @@ export function BookPage() {
 
   return (
     <div className="relative min-h-full flex flex-col" style={{ '--reader-sticky-top': `${headerH}px` } as CSSProperties}>
-      <div ref={headerRef} className="flex justify-between items-center gap-3 flex-wrap mb-6 sticky top-0 z-40 py-3 transition-colors" style={{ backgroundColor: 'var(--theme-bg)' }}>
-        <ToolGroup label={locale === 'pt-BR' ? 'Atividade' : 'Activity'}>
-          {([
-            ['read', t('readTab'), <BookOpen key="i" className="w-4 h-4" />],
-            ['edit', t('writeTab'), <PenLine key="i" className="w-4 h-4" />],
-            ['listen', t('listenTab'), <Headphones key="i" className="w-4 h-4" />],
-            ['speak', t('speakTab'), <Mic key="i" className="w-4 h-4" />],
-          ] as const).map(([m, label, icon]) => (
-            <ToolButton key={m} icon={icon} label={label} compact active={mode === m} onClick={() => setMode(m)} />
-          ))}
-        </ToolGroup>
-
-        <div className="flex items-center gap-3">
-          {/* Contagem de palavras à esquerda das ferramentas do livro. */}
-          <span className="hidden lg:inline-flex items-center gap-1.5 h-8 text-[12.5px] font-medium tabular-nums" style={{ color: 'var(--theme-text-secondary)' }}>
-            {book.wordCount.toLocaleString(locale)} {t('words')}
-          </span>
-          <ToolGroup label={locale === 'pt-BR' ? 'Configurar livro' : 'Book setup'}>
-            <ToolButton icon={<Rows3 className="w-4 h-4" />} compact
-              label={locale === 'pt-BR' ? 'Tamanho da página' : 'Page length'}
-              hint={locale === 'pt-BR' ? 'Escolha quanto texto vai em cada página (curta é melhor para HQ)' : 'Choose how much text goes on each page (short works best for comics)'}
-              onClick={() => setPageSizeOpen(true)} />
-            <ToolButton icon={<Users className="w-4 h-4" />} compact
-              label={locale === 'pt-BR' ? 'Vozes' : 'Voices'}
-              hint={locale === 'pt-BR' ? 'Voz de cada personagem na leitura (mulher, homem, criança…)' : 'Each character’s voice when reading (woman, man, child…)'}
-              onClick={() => setCastOpen(true)} />
-            <ToolButton icon={<Palette className="w-4 h-4" />} compact
-              label={locale === 'pt-BR' ? 'Arte da HQ' : 'Comic art'}
-              hint={locale === 'pt-BR' ? 'Estilo de desenho, referências visuais e personagens da HQ' : 'Drawing style, visual references and characters for the comic'}
-              onClick={() => setArtOpen(true)} />
-          </ToolGroup>
+      {/* Topo fixo numa faixa só, como um editor: atividades, ferramentas da atividade e ajustes.
+          O título do livro fica no conteúdo, sem disputar espaço com as barras. */}
+      <div ref={headerRef} className="sticky top-[calc(var(--safe-t,0px)+var(--navbar-h,0px))] md:top-0 z-40 -mx-4 md:-mx-10 mb-4 md:mb-6"
+        style={{ backgroundColor: 'var(--theme-bg)' }}>
+        <div className="h-12 px-2 md:px-6 flex items-stretch gap-1 border-b" style={{ borderColor: 'var(--theme-border)' }}>
+          <nav role="tablist" aria-label={pt ? 'Atividade' : 'Activity'} className="flex items-stretch gap-0.5 min-w-0 overflow-x-auto overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {([
+              ['read', t('readTab'), <BookOpen key="i" className="w-4 h-4" />],
+              ['edit', t('writeTab'), <PenLine key="i" className="w-4 h-4" />],
+              ['listen', t('listenTab'), <Headphones key="i" className="w-4 h-4" />],
+              ['speak', t('speakTab'), <Mic key="i" className="w-4 h-4" />],
+            ] as const).map(([m, label, icon]) => (
+              <button key={m} type="button" role="tab" aria-selected={mode === m} onClick={() => setMode(m)}
+                className="relative px-3 inline-flex items-center gap-2 text-[13.5px] font-medium whitespace-nowrap transition-colors hover:text-[var(--theme-text)]"
+                style={{ color: mode === m ? 'var(--theme-text)' : 'var(--theme-text-secondary)' }}>
+                {icon}<span className="hidden sm:inline">{label}</span>
+                {mode === m && <span aria-hidden className="absolute left-2 right-2 -bottom-px h-0.5 rounded-full" style={{ backgroundColor: 'var(--theme-text)' }} />}
+              </button>
+            ))}
+          </nav>
+          {/* Ferramentas na mesma faixa: as do leitor (Texto | Ilustrado…) vêm do Reader; na escrita, os modos de escrita. */}
+          <div className="book-toolrow flex items-center gap-2 min-w-0 overflow-x-auto overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <span aria-hidden className="book-tooldivider mx-1 h-5 w-px shrink-0" style={{ backgroundColor: 'var(--theme-border)' }} />
+            {mode === 'edit' && (
+              <div className="flex items-center gap-0.5">
+                <ToolButton icon={<Keyboard className="w-4 h-4" />} active={writeMode === 'dictation'} onClick={() => setWriteMode('dictation')}
+                  compact label={pt ? 'Treino de ditado' : 'Dictation practice'}
+                  hint={pt ? 'Ouça cada palavra da página e digite' : 'Hear each word of the page and type it'} />
+                <ToolButton icon={<FilePen className="w-4 h-4" />} active={writeMode === 'edit'} onClick={() => setWriteMode('edit')}
+                  compact label={pt ? 'Editar texto' : 'Edit text'}
+                  hint={pt ? 'Digite, cole ou corrija as páginas do livro' : 'Type, paste or fix the book pages'} />
+              </div>
+            )}
+            <div ref={setHeaderSlot} className="book-toolslot flex items-center min-w-0" />
+          </div>
+          {/* Ajustes do livro direto no topo: miniatura do estilo, voz do narrador e tamanho da página. */}
+          <div className="ml-auto flex items-center gap-1 shrink-0">
+            <button type="button" onClick={() => setStyleOpen(true)} title={pt ? 'Estilo de arte das ilustrações' : 'Illustration art style'}
+              className="h-9 pl-1 pr-2.5 inline-flex items-center gap-2 rounded-lg text-[13px] font-medium transition-colors hover:bg-[var(--theme-nav-hover)]" style={{ color: 'var(--theme-text-secondary)' }}>
+              {book.comicStyleDoc?.styleId
+                ? <img src={stylePreview(book.comicStyleDoc.styleId)} alt="" className="w-7 h-7 rounded-md object-cover" />
+                : <span className="w-7 h-7 grid place-items-center"><Palette className="w-4 h-4" /></span>}
+              <span className="hidden xl:inline max-w-[140px] truncate">{bank?.find(st => st.id === book.comicStyleDoc?.styleId)?.name ?? (pt ? 'Estilo de arte' : 'Art style')}</span>
+            </button>
+            <button type="button" onClick={() => setCastOpen(true)} title={pt ? 'Vozes da leitura' : 'Reading voices'}
+              className="h-9 w-9 grid place-items-center rounded-lg transition-colors hover:bg-[var(--theme-nav-hover)]">
+              {narratorVoice ? <VoiceAvatar voice={narratorVoice} size={26} /> : <Users className="w-4 h-4" />}
+            </button>
+            <button type="button" onClick={() => setPageSizeOpen(true)} title={pt ? 'Tamanho da página' : 'Page length'} aria-label={pt ? 'Tamanho da página' : 'Page length'}
+              className="h-9 w-9 grid place-items-center rounded-lg transition-colors hover:bg-[var(--theme-nav-hover)]" style={{ color: 'var(--theme-text-secondary)' }}>
+              <Rows3 className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
 
       <div className="flex-1">
         {mode === 'edit' ? (
           <div className="space-y-6">
-            <div className="flex justify-center">
-              <ToolGroup label={locale === 'pt-BR' ? 'Escrever' : 'Write'}>
-                <ToolButton icon={<Keyboard className="w-4 h-4" />} active={writeMode === 'dictation'} onClick={() => setWriteMode('dictation')}
-                  label={locale === 'pt-BR' ? 'Treino de ditado' : 'Dictation practice'}
-                  hint={locale === 'pt-BR' ? 'Ouça cada palavra da página e digite' : 'Hear each word of the page and type it'} />
-                <ToolButton icon={<FilePen className="w-4 h-4" />} active={writeMode === 'edit'} onClick={() => setWriteMode('edit')}
-                  label={locale === 'pt-BR' ? 'Editar texto' : 'Edit text'}
-                  hint={locale === 'pt-BR' ? 'Digite, cole ou corrija as páginas do livro' : 'Type, paste or fix the book pages'} />
-              </ToolGroup>
-            </div>
             {writeMode === 'dictation'
               ? <DictationPractice book={book} />
               : <Editor book={book} onSave={handleSaveContent} onCancel={() => setMode('read')} />}
@@ -144,7 +170,7 @@ export function BookPage() {
         ) : mode === 'speak' ? (
           <SpeakPractice book={book} />
         ) : (
-          <Reader book={book} autoPlay={mode === 'listen'} />
+          <Reader book={book} autoPlay={mode === 'listen'} headerSlot={headerSlot} />
         )}
       </div>
 
@@ -157,8 +183,14 @@ export function BookPage() {
         onOpenChange={setPageSizeOpen}
         onApply={(updates) => updateBookAndSyncAsync(book.id, updates)}
       />
+      <StylePickerDialog open={styleOpen} onOpenChange={setStyleOpen} value={book.comicStyleDoc?.styleId} pt={pt} busy={styleChange.busy} warn={styleChange.warn}
+        description={Object.keys(book.comicPages ?? {}).length
+          ? (pt ? `Este livro tem ${Object.keys(book.comicPages ?? {}).length} páginas desenhadas. Trocar o estilo apaga essas imagens e recomeça do zero.` : `This book has ${Object.keys(book.comicPages ?? {}).length} drawn pages. Changing the style deletes them and starts over.`)
+          : (pt ? 'Escolha como as páginas deste livro vão ser desenhadas.' : 'Choose how this book’s pages will be drawn.')}
+        secondary={{ label: pt ? 'Direção de arte avançada (referências e personagens)' : 'Advanced art direction (references and characters)', onClick: () => { setStyleOpen(false); setArtOpen(true) } }}
+        onPick={styleId => { void styleChange.apply(styleId).then(ok => { if (ok) setStyleOpen(false) }) }} />
       <Dialog open={artOpen} onOpenChange={setArtOpen}>
-        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl sm:max-w-3xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{locale === 'pt-BR' ? 'Direção de arte do livro' : 'Book art direction'}</DialogTitle>
           </DialogHeader>

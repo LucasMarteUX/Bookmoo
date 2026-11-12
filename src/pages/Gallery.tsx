@@ -165,7 +165,7 @@ function GalleryBook({ id }: { id: string }) {
             : [...styleOptions.map(option => option.styleId), ...(chosenStyle && !styleOptions.some(option => option.styleId === chosenStyle) ? [chosenStyle] : [])]
           if (!shown.length) return null
           return (
-            <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-2xl">
+            <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 max-w-3xl">
               {shown.map(styleId => {
                 const option = styleOptions.find(item => item.styleId === styleId)
                 const meta = bank?.find(item => item.id === styleId)
@@ -173,14 +173,9 @@ function GalleryBook({ id }: { id: string }) {
                   ? `${option.isDefault ? (pt ? 'Padrão · ' : 'Default · ') : ''}${option.pages} ${pt ? (option.pages === 1 ? 'página pronta' : 'páginas prontas') : 'pages ready'}`
                   : (pt ? 'Novo: começa do zero' : 'New: starts from scratch')
                 if (styleId === LEGACY_STYLE) {
-                  return (
-                    <button key={styleId} type="button" disabled={!!owned} onClick={() => setChosenStyle(styleId)} aria-pressed={chosenStyle === styleId}
-                      className="group block text-left rounded-2xl p-1.5 -m-1.5" style={chosenStyle === styleId && !owned ? { boxShadow: '0 0 0 2px var(--theme-text)' } : undefined}>
-                      <BookCover title={book.title} coverData={book.coverData} className="aspect-square rounded-xl" />
-                      <span className="mt-2 block text-[13.5px] font-medium">{pt ? 'Estilo original' : 'Original style'}</span>
-                      <span className="block text-[12px] font-medium" style={{ color: 'var(--theme-text-secondary)' }}>{note}</span>
-                    </button>
-                  )
+                  return <StyleCard key={styleId} pt={pt} compact note={note} preview={book.coverData}
+                    style={{ id: LEGACY_STYLE, name: pt ? 'Estilo original' : 'Original style', look: '', ready: true }}
+                    selected={!owned && chosenStyle === styleId} onClick={owned ? undefined : () => setChosenStyle(styleId)} />
                 }
                 return meta
                   ? <StyleCard key={styleId} style={meta} pt={pt} compact note={note} selected={!owned && chosenStyle === styleId} onClick={owned ? undefined : () => setChosenStyle(styleId)} />
@@ -189,7 +184,7 @@ function GalleryBook({ id }: { id: string }) {
             </div>
           )
         })()}
-        <StylePickerDialog open={pickingStyle} onOpenChange={setPickingStyle} value={chosenStyle} pt={pt}
+        <StylePickerDialog open={pickingStyle} onOpenChange={setPickingStyle} value={chosenStyle} pt={pt} confirmLabel={pt ? 'Escolher este estilo' : 'Choose this style'}
           notes={Object.fromEntries(styleOptions.map(option => [option.styleId, `${option.pages} ${pt ? 'páginas prontas' : 'pages ready'}`]))}
           description={pt ? 'Um estilo que já tem páginas usa as imagens prontas. Um estilo novo começa do zero e passa a ser oferecido a quem puxar o livro depois.' : 'A style with pages reuses the ready images. A new style starts from scratch and is offered to readers after you.'}
           onPick={styleId => { setChosenStyle(styleId); setPickingStyle(false) }} />

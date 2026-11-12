@@ -58,7 +58,7 @@ export function StyleBankAdmin({ pt }: { pt: boolean }) {
               </button>
               {expanded && (
                 <div className="px-3 pb-3 grid gap-2">
-                  <textarea value={value} onChange={e => setDrafts({ ...drafts, [style.id]: e.target.value })} rows={12} maxLength={20000}
+                  <textarea value={value} onChange={e => setDrafts({ ...drafts, [style.id]: e.target.value })} rows={12} maxLength={40000}
                     placeholder={pt ? 'Cole aqui o MASTER STYLE PROMPT deste estilo (pode incluir a parte SCENE TO ILLUSTRATE: ela é preenchida pelo app).' : 'Paste this style’s MASTER STYLE PROMPT.'}
                     className="w-full rounded-xl border px-3 py-2 text-[13px] leading-relaxed font-mono bg-transparent outline-none resize-y" style={{ borderColor: 'var(--theme-border)' }} />
                   <div className="flex items-center gap-3">

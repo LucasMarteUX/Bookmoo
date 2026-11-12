@@ -52,7 +52,7 @@ export type CatalogSocial = Record<string, { readers: number; faces: Author[] }>
 export type Connection = Author & { relation: Relation; isMe: boolean }
 export type Requests = { followIn: (Author & { at: string })[]; friendIn: (Author & { at: string })[]; friendOut: (Author & { at: string })[] }
 
-export type NotificationType = 'follow' | 'follow_request' | 'follow_accepted' | 'friend_request' | 'friend_accepted' | 'like' | 'review_like' | 'comment' | 'reply'
+export type NotificationType = 'follow' | 'follow_request' | 'follow_accepted' | 'friend_request' | 'friend_accepted' | 'like' | 'review_like' | 'comment' | 'reply' | 'mention'
 export type AppNotification = {
   id: string
   type: NotificationType
@@ -214,8 +214,10 @@ export async function updatePost(id: string, patch: { body: string; audience: Au
 
 export async function deletePost(item: Pick<FeedItem, 'id' | 'imageUrl'>): Promise<void> {
   const db = need()
-  const { error } = await db.from('community_posts').delete().eq('id', item.id)
+  // .select(): sem permissão (RLS), o delete "funciona" sem apagar nada; assim o erro aparece.
+  const { data, error } = await db.from('community_posts').delete().eq('id', item.id).select('id')
   if (error) throw errorOf(error)
+  if (!data?.length) throw new SocialError('closed_profile')
   const path = item.imageUrl ? mediaPath(item.imageUrl) : null
   if (path) await db.storage.from(MEDIA_BUCKET).remove([path])
 }
@@ -362,7 +364,7 @@ export async function report(me: string, target: ReportTarget, reason: ReportRea
 
 // ─── Notificações ───
 
-const NOTIFICATION_TYPES: NotificationType[] = ['follow', 'follow_request', 'follow_accepted', 'friend_request', 'friend_accepted', 'like', 'review_like', 'comment', 'reply']
+const NOTIFICATION_TYPES: NotificationType[] = ['follow', 'follow_request', 'follow_accepted', 'friend_request', 'friend_accepted', 'like', 'review_like', 'comment', 'reply', 'mention']
 
 export async function loadNotifications(before?: string): Promise<AppNotification[]> {
   if (!supabase) return []

@@ -1,6 +1,7 @@
+import { askConfirm } from '@/components/ui/confirm'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { Bell, BookOpen, Check, Compass, Flame, Heart, Lock, MessageCircle, Search, UserCheck, UserPlus, UserRound, Users, X } from 'lucide-react'
+import { AtSign, Bell, BookOpen, Check, Compass, Flame, Heart, Lock, MessageCircle, Search, UserCheck, UserPlus, UserRound, Users, X } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useLanguage } from '@/store/useLanguage'
 import { listCatalog, type CatalogBook } from '@/lib/catalog'
@@ -515,8 +516,8 @@ export function ConnectionsPage() {
                       action={person.isMe ? null : (
                         <span className="flex items-center gap-1.5">
                           {view?.isOwner && kind === 'followers' && user && (
-                            <button type="button" onClick={() => {
-                              if (!window.confirm(pt ? `Remover @${person.handle} dos seguidores?` : `Remove @${person.handle}?`)) return
+                            <button type="button" onClick={async () => {
+                              if (!await askConfirm(pt ? `Remover @${person.handle} dos seguidores?` : `Remove @${person.handle}?`)) return
                               void removeFollower(user.id, person.userId).then(() => removeFromList(person.userId)).catch(err => toast(errorText(err, pt), { tone: 'error' }))
                             }} className="h-8 px-3 rounded-full border text-[12.5px]" style={{ borderColor: 'var(--theme-border)' }}>{pt ? 'Remover' : 'Remove'}</button>
                           )}
@@ -633,12 +634,14 @@ function notificationText(item: AppNotification, pt: boolean) {
     review_like: ['curtiu sua resenha', 'liked your review'],
     comment: ['comentou na sua publicação', 'commented on your post'],
     reply: ['respondeu ao seu comentário', 'replied to your comment'],
+    mention: ['mencionou você', 'mentioned you'],
   }
   return texts[item.type][pt ? 0 : 1]
 }
 
 function NotificationRow({ item, pt, onOpen }: { item: AppNotification; pt: boolean; onOpen: () => void }) {
   const Icon = item.type === 'like' || item.type === 'review_like' ? Heart
+    : item.type === 'mention' ? AtSign
     : item.type === 'comment' || item.type === 'reply' ? MessageCircle
       : item.type.startsWith('friend') ? UserCheck : UserPlus
   return (

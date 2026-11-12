@@ -722,3 +722,10 @@
     .text-\[9px\], .text-\[10px\], .text-\[10\.5px\], .text-\[11px\] { font-size: 0.75rem !important; }
   }
 }
+
+/* Leitura imersiva da página ilustrada: a barra de play fica por cima do palco escuro, centralizada. */
+html.comic-immersive { overflow: hidden; }
+html.comic-immersive [data-reader-bar] { z-index: 90; left: 0.5rem !important; right: 0.5rem !important; }
+
+/* Faixa de ferramentas do livro: some quando não há nada nela (ex.: Falar). */
+.book-toolrow:not(:has(> :not(.book-toolslot, .book-tooldivider))):has(> .book-toolslot:empty) { display: none; }

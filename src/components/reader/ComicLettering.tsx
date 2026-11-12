@@ -47,6 +47,50 @@ function panelBox(lines: { box?: Rect | null }[], editing: { box?: Rect | null }
   return [...votes.values()].reduce((a, b) => score(b) < score(a) ? b : a).box
 }
 
+/** Acabamento por estilo: cantoneiras douradas (fantasia épica) ou contorno duplo de nanquim (aquarela). */
+function Ornament({ box, theme, stroke }: { box: { x: number; y: number; w: number; h: number }; theme: LetteringTheme; stroke: number }) {
+  const color = theme.ornamentColor ?? theme.caption.border
+  if (theme.ornament === 'filigree') {
+    const s = Math.max(12, Math.min(30, Math.min(box.w, box.h) * 0.2))
+    const i = stroke * 3.2
+    // Cantoneira no canto de cima à esquerda; as outras são espelhos.
+    const corner = `M${i} ${i + s} L${i} ${i + s * 0.42} Q${i} ${i} ${i + s * 0.42} ${i} L${i + s} ${i}`
+      + ` M${i + s * 0.2} ${i + s * 0.72} Q${i + s * 0.2} ${i + s * 0.2} ${i + s * 0.72} ${i + s * 0.2}`
+    const curl = `M${i + s * 0.62} ${i + s * 0.2} q${s * 0.2} ${s * 0.02} ${s * 0.16} ${s * 0.2} q-${s * 0.04} ${s * 0.12} -${s * 0.14} ${s * 0.04}`
+    const flips = [[1, 1, 0, 0], [-1, 1, box.w, 0], [1, -1, 0, box.h], [-1, -1, box.w, box.h]]
+    const d = s * 0.2
+    const diamond = (cx: number, cy: number) => `M${cx} ${cy - d} L${cx + d * 0.8} ${cy} L${cx} ${cy + d} L${cx - d * 0.8} ${cy} Z`
+    return <g pointerEvents="none" fill="none" stroke={color} strokeWidth={Math.max(1, stroke * 0.75)} strokeLinecap="round">
+      {flips.map(([sx, sy, tx, ty], k) => (
+        <g key={k} transform={`translate(${box.x + tx} ${box.y + ty}) scale(${sx} ${sy})`}>
+          <path d={corner} /><path d={curl} />
+          <circle cx={i + s * 0.12} cy={i + s * 0.12} r={Math.max(1.2, s * 0.06)} fill={color} stroke="none" />
+        </g>
+      ))}
+      {box.h > s * 2.6 && <>
+        <path d={diamond(box.x, box.y + box.h / 2)} fill={theme.caption.top} />
+        <path d={diamond(box.x + box.w, box.y + box.h / 2)} fill={theme.caption.top} />
+      </>}
+      <path d={diamond(box.x + box.w / 2, box.y + box.h)} fill={color} stroke={theme.caption.border} />
+    </g>
+  }
+  if (theme.ornament === 'ink') {
+    // Segundo traço de pena, levemente fora de registro, e respingos no canto.
+    const r = Math.max(2, Math.min(box.w, box.h) * 0.04)
+    const cx = box.x + box.w / 2, cy = box.y + box.h / 2
+    return <g pointerEvents="none" stroke={color} fill="none" opacity={0.75}>
+      <rect x={box.x + 2} y={box.y - 1.5} width={box.w - 3} height={box.h + 1} rx={r * 1.4} strokeWidth={Math.max(0.8, stroke * 0.55)}
+        transform={`rotate(-0.5 ${cx} ${cy})`} />
+      <g fill={color} stroke="none">
+        <circle cx={box.x + box.w + r * 1.6} cy={box.y + box.h - r * 0.4} r={r * 0.45} />
+        <circle cx={box.x + box.w + r * 2.6} cy={box.y + box.h + r * 0.6} r={r * 0.25} />
+        <circle cx={box.x + box.w + r * 0.8} cy={box.y + box.h + r * 1.3} r={r * 0.18} />
+      </g>
+    </g>
+  }
+  return null
+}
+
 function cloudPath(box: Rect) {
   const center = { x: box.x + box.w / 2, y: box.y + box.h / 2 }
   const points = Array.from({ length: 11 }, (_, i) => {
@@ -197,7 +241,8 @@ export function ComicLettering({ layout, width, height, wordsHtml, sourceText, e
       const fixed = panelBox(lines, editor?.draft?.panelId === panelId ? editor.draft : null, coverage(panel))
       if (!shown || !fixed) return null
       // Fonte do quadro: a maior entre as falas (o FitText reduz quando o texto não cabe).
-      const line = { ...shown, box: fixed, font: editor?.draft?.panelId === panelId ? shown.font : Math.max(...lines.map(l => l.font ?? 0), shown.font ?? 0) }
+      // Piso de leitura: o FitText reduz se o texto não couber, então pedir maior só ajuda.
+      const line = { ...shown, box: fixed, font: editor?.draft?.panelId === panelId ? shown.font : Math.max(0.022, ...lines.map(l => l.font ?? 0), shown.font ?? 0) }
       const r = pageRect(bounds, fixed)
       const box = { x: r.x * width, y: r.y * height, w: r.w * width, h: r.h * height }
       const pad = Math.max(8, box.w * 0.05)
@@ -215,10 +260,49 @@ export function ComicLettering({ layout, width, height, wordsHtml, sourceText, e
       const matches = parts.every(part => part.start >= 0) && parts.map(part => sourceText.slice(part.start, part.end)).join(' ') === line.text
       const words = matches ? parts.map(part => wordsHtml(part.start, part.end)).join(' ') : escapeHtml(line.text)
       const speech = line.balloonType !== 'caption'
-      // Se o personagem tem selo perto do rosto, a caixa não repete o nome.
-      const hasChip = !layout.reflow && !!line.speakerId && !!line.speakerName
+      // Quem fala: etiqueta presa na borda de cima da caixa (clicar toca a fala) e, se o rosto foi
+      // localizado, um rabicho saindo da caixa na direção dele. Nada solto sobre a arte.
+      // O nome de quem fala fica num selo perto do personagem (abaixo), não preso à caixa.
+      const tab = false
+      const hasChip = speech && !!line.speakerId && !!line.speakerName && !layout.reflow
+      const tabH = Math.max(17, Math.min(34, width * 0.036)) // acompanha o tamanho da página (no celular fica menor)
+      const tabW = tab ? Math.min(box.w * 0.92, tabH * 1.7 + line.speakerName!.length * tabH * 0.38) : 0
+      const tabX = Math.min(box.x + box.w - tabW - 4, box.x + Math.max(10, box.w * 0.04))
+      const tabY = box.y - tabH * 0.55
+      const speakerFace = undefined as Rect | undefined // sem rabicho: o selo já marca quem fala
+      const tail = (() => {
+        if (!speakerFace) return null
+        const f = pageRect(bounds, { x: speakerFace.x, y: speakerFace.y + speakerFace.h, w: speakerFace.w, h: 0 })
+        // Mira no queixo (meio de baixo do rosto); se a caixa está abaixo do rosto, mira no meio dele.
+        const fx = (f.x + f.w / 2) * width, fy = f.y * height
+        const target = { x: fx, y: fy > box.y + box.h ? fy - f.w * width * 0.6 : fy }
+        const base = { x: Math.max(box.x, Math.min(box.x + box.w, target.x)), y: Math.max(box.y, Math.min(box.y + box.h, target.y)) }
+        const dx = target.x - base.x, dy = target.y - base.y
+        const dist = Math.hypot(dx, dy)
+        if (dist < 18) return null
+        const len = Math.min(dist * 0.72, Math.max(26, width * 0.09))
+        const ux = dx / dist, uy = dy / dist
+        // Base do rabicho: na borda da caixa, longe dos cantos arredondados.
+        const onSide = base.x === box.x || base.x === box.x + box.w
+        const half = Math.max(7, Math.min(16, (onSide ? box.h : box.w) * 0.12))
+        const r = width * theme.caption.radius + half
+        const b = onSide
+          ? { x: base.x, y: Math.max(box.y + r, Math.min(box.y + box.h - r, base.y)) }
+          : { x: Math.max(box.x + r, Math.min(box.x + box.w - r, base.x)), y: base.y }
+        const along = onSide ? { x: 0, y: 1 } : { x: 1, y: 0 }
+        const inset = onSide ? { x: b.x === box.x ? 1 : -1, y: 0 } : { x: 0, y: b.y === box.y ? 1 : -1 }
+        const tip = { x: b.x + ux * len, y: b.y + uy * len }
+        const p1 = { x: b.x - along.x * half, y: b.y - along.y * half }
+        const p2 = { x: b.x + along.x * half, y: b.y + along.y * half }
+        const d = `M${p1.x} ${p1.y} Q${(p1.x + tip.x) / 2 + along.x * half * 0.2} ${(p1.y + tip.y) / 2 + along.y * half * 0.2} ${tip.x} ${tip.y} Q${(p2.x + tip.x) / 2} ${(p2.y + tip.y) / 2} ${p2.x} ${p2.y} Z`
+        // Remendo sem contorno sobre a junção, para o rabicho "sair" da caixa sem a linha da borda.
+        const s = strokeWidth * 1.4
+        const patch = `M${p1.x + inset.x * s - along.x * 0.5} ${p1.y + inset.y * s - along.y * 0.5} L${p1.x - inset.x * s} ${p1.y - inset.y * s} L${tip.x} ${tip.y} L${p2.x - inset.x * s} ${p2.y - inset.y * s} L${p2.x + inset.x * s + along.x * 0.5} ${p2.y + inset.y * s + along.y * 0.5} Z`
+        return { d, patch }
+      })()
+      const active = currentChar != null && partsOf(line).some(part => currentChar >= part.start && currentChar < part.end)
       const html = speech
-        ? `<p class="comic-line comic-line--speech">${line.speakerName && !hasChip ? `<span class="comic-speaker">${escapeHtml(line.speakerName)}</span>` : ''}<span class="comic-quote">“${words}”</span></p>`
+        ? `<p class="comic-line comic-line--speech">${line.speakerName && !tab && !hasChip ? `<span class="comic-speaker">${escapeHtml(line.speakerName)}</span>` : ''}<span class="comic-quote">“${words}”</span></p>`
         : `<p class="comic-line">${words}</p>`
       const isSelected = editor?.selected?.id === line.id
       const accent = 'var(--theme-accent, #7756c6)'
@@ -231,8 +315,11 @@ export function ComicLettering({ layout, width, height, wordsHtml, sourceText, e
       }
       const navSize = Math.max(18, Math.min(24, width * 0.026))
       return <g key={line.id} data-balloon-hit className="comic-box-in">
-        {shadow > 0 && <g transform={`translate(${shadow} ${shadow})`} fill={theme.shadowColor} stroke="none">{rect}</g>}
+        {shadow > 0 && <g transform={`translate(${shadow} ${shadow})`} fill={theme.shadowColor} stroke="none">{rect}{tail && <path d={tail.d} />}</g>}
+        {tail && <path d={tail.d} stroke={theme.caption.border} strokeWidth={strokeWidth} strokeLinejoin="round" fill={theme.caption.bottom} />}
         <g stroke={theme.caption.border} strokeWidth={strokeWidth} strokeLinejoin="round" fill={`url(#${uid}-caption)`}>{rect}</g>
+        {tail && <path d={tail.patch} fill={theme.caption.bottom} stroke="none" />}
+        <Ornament box={box} theme={theme} stroke={strokeWidth} />
         {theme.caption.inner && <rect x={box.x + strokeWidth * 1.8} y={box.y + strokeWidth * 1.8} width={Math.max(0, box.w - strokeWidth * 3.6)}
           height={Math.max(0, box.h - strokeWidth * 3.6)} rx={width * theme.caption.radius * 0.6} fill="none" stroke={theme.caption.inner} strokeWidth={1} />}
         {editor && <>
@@ -253,12 +340,31 @@ export function ComicLettering({ layout, width, height, wordsHtml, sourceText, e
             onHeight={px => setHug(prev => prev[hugKey] && Math.abs(prev[hugKey] - px) < 1 ? prev : { ...prev, [hugKey]: Math.ceil(px) + 2 })}
             style={{
               display: 'flex', flexDirection: 'column', justifyContent: 'center', height: '100%', boxSizing: 'border-box',
-              padding: `0.5em 0.1em calc(0.5em + ${navSize * 0.45}px)`, lineHeight: 1.28, fontFamily: theme.font, fontWeight: theme.weight,
+              padding: `calc(0.5em + ${tab ? tabH * 0.4 : 0}px) 0.1em calc(0.5em + ${navSize * 0.45}px)`, lineHeight: 1.28, fontFamily: theme.font, fontWeight: theme.weight,
               letterSpacing: theme.uppercase ? '0.04em' : '0.01em', textTransform: theme.uppercase ? 'uppercase' : undefined,
               textAlign: 'left', color: theme.caption.text, overflowWrap: 'anywhere', whiteSpace: 'normal', pointerEvents: 'none', overflow: 'visible',
               ['--comic-badge-bg' as string]: theme.caption.border, ['--comic-badge-fg' as string]: theme.caption.top,
             }} />
         </foreignObject>
+        {tab && (
+          <foreignObject x={tabX} y={tabY} width={tabW} height={tabH} style={{ overflow: 'visible' }}>
+            <button type="button" data-speaker-chip className={`comic-speaker-chip is-current ${active ? 'is-speaking' : ''}`}
+              style={{ height: tabH, maxWidth: tabW, fontSize: tabH * (theme.nameFont ? 0.4 : 0.44), fontFamily: theme.nameFont ?? theme.font, letterSpacing: theme.nameFont ? '0.06em' : undefined, ['--chip-bg' as string]: theme.caption.border, ['--chip-fg' as string]: theme.caption.top,
+                ['--chip-hl' as string]: theme.highlight.bg, ['--chip-hl-fg' as string]: theme.highlight.text ?? '#1d1a16', ['--chip-ring' as string]: theme.caption.border }}
+              title={`${line.speakerName}: ${line.text}`} aria-label={`${line.speakerName}: ${line.text}`}
+              onPointerDown={e => e.stopPropagation()}
+              onClick={e => { e.stopPropagation(); onPlayLine?.(partsOf(line)[0].start) }}>
+              <span className="comic-speaker-chip__icon" aria-hidden>
+                <svg viewBox="0 0 24 24" width="1.3em" height="1.3em" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M11 5 6 9H3v6h3l5 4V5z" fill="currentColor" />
+                  <path className="wave wave-1" d="M15.5 9.5a3.5 3.5 0 0 1 0 5" />
+                  <path className="wave wave-2" d="M18.5 7a7 7 0 0 1 0 10" />
+                </svg>
+              </span>
+              <span className="comic-speaker-chip__name">{line.speakerName}</span>
+            </button>
+          </foreignObject>
+        )}
         {/* Setas: posição da fala no quadro (sempre visível); passam para a fala anterior/seguinte. */}
         {lines.length > 1 && (
           <foreignObject x={box.x + box.w - navSize * 3.4 - 6} y={box.y + box.h - navSize * 0.55} width={navSize * 3.4} height={navSize} style={{ overflow: 'visible' }}>
@@ -291,7 +397,7 @@ export function ComicLettering({ layout, width, height, wordsHtml, sourceText, e
       if (!panel) return []
       const { bounds } = panel
       const toPx = (q: Rect) => ({ x: (bounds.x + q.x * bounds.w) * width, y: (bounds.y + q.y * bounds.h) * height, w: q.w * bounds.w * width, h: q.h * bounds.h * height })
-      const panelFaces = facesOf(panel)
+      const panelFaces = panel.faces ?? []
       const heads = panelFaces.map(f => toPx(headRect(f.face)))
       const activeLine = lines.find(line => line.box) // caixa visível pode variar; protege todas as caixas do quadro
       const fixedBox = panelBox(lines, null, coverage(panel))
@@ -358,11 +464,11 @@ export function ComicLettering({ layout, width, height, wordsHtml, sourceText, e
         const draftHere = chipDraft?.key === key ? chipDraft : null
         // Checagem na própria imagem: posição com muita pele (rosto/mão) é descartada, mesmo que o
         // retângulo do rosto detectado esteja errado.
-        const onSkin = (c: { x: number; y: number; w: number; h: number }) => !!skinAt && skinAt(c.x / width, c.y / height, c.w / width, c.h / height) > 0.12
+        // Pele na imagem não serve aqui: pelo, papel e tons bege contam como pele e empurravam o selo para longe.
+        const onSkin = (_c: { x: number; y: number; w: number; h: number }) => false
         const free = (c: { x: number; y: number; w: number; h: number }) => !blockers.some(b => hit(c, b)) && !onSkin(c)
         // Último recurso: o lugar com menos pele (nunca o primeiro da lista às cegas).
-        const leastSkin = <T extends { x: number; y: number; w: number; h: number }>(list: T[]) => !skinAt ? list[0]
-          : list.map(c => ({ c, f: skinAt(c.x / width, c.y / height, c.w / width, c.h / height) })).sort((a, b) => a.f - b.f)[0]?.c
+        const leastSkin = <T extends { x: number; y: number; w: number; h: number }>(list: T[]) => list[0]
         // Grade de reserva (perto da cabeça) quando as posições preferidas estão ocupadas ou sobre pele.
         const grid = [-1.4, -0.7, 0, 0.7, 1.4].flatMap(dx => [-1.6, -0.6, 0.6, 1.8].map(dy => ({
           x: Math.max(panelPx.x + 4, Math.min(panelPx.x + panelPx.w - chipW - 4, cx - chipW / 2 + dx * chipW)),

@@ -1,3 +1,4 @@
+import { askConfirm } from '@/components/ui/confirm'
 // Fila de denúncias da área admin: ver o conteúdo, ocultar, apagar ou arquivar.
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -18,7 +19,7 @@ export function AdminReports({ pt }: { pt: boolean }) {
   useEffect(() => { setItems(null); void reload() }, [status])
 
   const act = async (item: AdminReport, action: 'dismiss' | 'hide' | 'delete') => {
-    if (action === 'delete' && !window.confirm(pt ? 'Apagar este conteúdo para sempre?' : 'Delete this content for good?')) return
+    if (action === 'delete' && !await askConfirm(pt ? 'Apagar este conteúdo para sempre?' : 'Delete this content for good?')) return
     try { await resolveReport(item.id, action); await reload() } catch (err) { toast(errorText(err, pt), { tone: 'error' }) }
   }
 

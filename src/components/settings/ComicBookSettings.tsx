@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useBookStore, type Book } from '@/store/useBookStore'
-import { StyleCard, StylePickerDialog, useStyleBank } from '@/components/book/StylePicker'
-import { applyBookStyle } from '@/lib/comicStyles'
+import { StyleCard, StylePickerDialog, useApplyBookStyle, useStyleBank } from '@/components/book/StylePicker'
 import {
   REFERENCE_BUCKET, REFERENCE_BYTES, REFERENCE_LIMIT, REFERENCE_MIME, REFERENCE_TYPES, STYLE_FIELDS,
   type ArtDirection, type ComicReference, type StyleDocument,
@@ -197,29 +196,9 @@ export function ComicBookSettings({ book, userId, pt }: { book: Book; userId?: s
 function BookStyleSection({ book, userId, pt }: { book: Book; userId?: string; pt: boolean }) {
   const styles = useStyleBank(pt)
   const [open, setOpen] = useState(false)
-  const [busy, setBusy] = useState(false)
-  const [message, setMessage] = useState('')
+  const { apply, busy, warn } = useApplyBookStyle(book, userId, pt, styles)
   const current = styles?.find(style => style.id === book.comicStyleDoc?.styleId)
-  const generated = Object.keys(book.comicPages ?? {}).length
-
-  const pick = async (styleId: string) => {
-    if (styleId === book.comicStyleDoc?.styleId) { setOpen(false); return }
-    const name = styles?.find(style => style.id === styleId)?.name ?? styleId
-    const warning = generated
-      ? (pt ? `Trocar para ${name} apaga as ${generated} páginas geradas deste livro e recomeça do zero. Continuar?` : `Switching to ${name} deletes the ${generated} generated pages of this book and starts over. Continue?`)
-      : (pt ? `Usar ${name} neste livro?` : `Use ${name} for this book?`)
-    if (!window.confirm(warning)) return
-    setBusy(true); setMessage('')
-    try {
-      await applyBookStyle(book, styleId, userId)
-      setOpen(false)
-      setMessage(pt ? `Estilo trocado para ${name}. As próximas páginas usam o novo estilo.` : `Style changed to ${name}. New pages use it.`)
-    } catch (e) {
-      setMessage(e instanceof Error ? e.message : pt ? 'Não foi possível trocar o estilo.' : 'Could not change the style.')
-    } finally {
-      setBusy(false)
-    }
-  }
+  const pick = async (styleId: string) => { if (await apply(styleId)) setOpen(false) }
 
   return (
     <div className="grid gap-3 rounded-2xl border p-4" style={{ borderColor: 'var(--theme-border)' }}>
@@ -241,8 +220,7 @@ function BookStyleSection({ book, userId, pt }: { book: Book; userId?: string; p
           </button>
         </div>
       </div>
-      {message && <p role="status" className="text-sm">{message}</p>}
-      <StylePickerDialog open={open} onOpenChange={setOpen} value={book.comicStyleDoc?.styleId} pt={pt} onPick={styleId => { void pick(styleId) }}
+      <StylePickerDialog open={open} onOpenChange={setOpen} value={book.comicStyleDoc?.styleId} pt={pt} busy={busy} warn={warn} onPick={styleId => { void pick(styleId) }}
         description={pt ? 'Trocar o estilo recomeça as imagens deste livro do zero. Na galeria, se outra pessoa já gerou nesse estilo, as páginas prontas aparecem para você.' : 'Changing the style restarts this book’s images. In the gallery, pages someone already made in that style show up for you.'} />
     </div>
   )

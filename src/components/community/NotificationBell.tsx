@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { Bell } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { unreadNotifications } from '@/lib/social'
+import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
 
 /** Não lidas: busca ao abrir, a cada minuto, ao voltar para a aba e quando uma tela avisa (evento). */
@@ -19,8 +20,16 @@ export function useUnreadNotifications() {
     const onVisible = () => { if (document.visibilityState === 'visible') refresh() }
     document.addEventListener('visibilitychange', onVisible)
     window.addEventListener('bookmoo:notifications', refresh)
+    // Tempo real: uma notificação nova atualiza o número na hora (o intervalo fica de reserva).
+    const channel = supabase?.channel(`notifications:${user.id}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `recipient_id=eq.${user.id}` }, () => {
+        refresh()
+        window.dispatchEvent(new Event('bookmoo:notifications-new'))
+      })
+      .subscribe()
     return () => {
       alive = false
+      if (channel) void supabase?.removeChannel(channel)
       window.clearInterval(timer)
       document.removeEventListener('visibilitychange', onVisible)
       window.removeEventListener('bookmoo:notifications', refresh)

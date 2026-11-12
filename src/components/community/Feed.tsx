@@ -1,3 +1,5 @@
+import { EmojiButton, MentionTextarea, RichText } from './TextAssist'
+import { askConfirm } from '@/components/ui/confirm'
 // Timeline social: publicações manuais (texto, foto, livro) e atividades de leitura (começou, avançou,
 // terminou, resenha, meta), todas com curtir, comentar (com resposta de um nível) e compartilhar.
 import { useEffect, useRef, useState, type ReactNode } from 'react'
@@ -84,6 +86,7 @@ export function Composer({ me, books, pt, onPosted }: { me: ProfileView | null; 
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const fileInput = useRef<HTMLInputElement>(null)
+  const area = useRef<HTMLTextAreaElement>(null)
   const canPost = !!me && !!me.handle
   useEffect(() => () => { if (image) URL.revokeObjectURL(image.url) }, [image])
 
@@ -139,37 +142,64 @@ export function Composer({ me, books, pt, onPosted }: { me: ProfileView | null; 
     ? (pt ? 'O que você está lendo? Uma frase, uma palavra nova, uma conquista…' : 'What are you reading? A quote, a new word, a win…')
     : (pt ? 'Seu perfil é fechado: só quem você aprovou vê.' : 'Your profile is closed: only people you approve see this.')
 
+  const tagged = (() => {
+    if (bookKey.startsWith('cat:')) { const b = books.find(item => item.id === bookKey.slice(4)); return b ? { title: b.title, cover: b.coverData } : null }
+    if (bookKey.startsWith('lib:')) { const b = library.find(item => item.id === bookKey.slice(4)); return b ? { title: b.title, cover: b.coverData } : null }
+    return null
+  })()
+  const addEmoji = (emoji: string) => {
+    const el = area.current
+    const start = el?.selectionStart ?? body.length, end = el?.selectionEnd ?? body.length
+    const next = body.slice(0, start) + emoji + body.slice(end)
+    setBody(next)
+    requestAnimationFrame(() => { el?.focus(); el?.setSelectionRange(start + emoji.length, start + emoji.length) })
+  }
+  const tool = 'h-9 inline-flex items-center gap-1.5 rounded-full px-2.5 text-[13px] font-medium transition-colors hover:bg-[var(--theme-nav-hover)]'
+  const ready = !busy && (!!body.trim() || !!image)
+
   return (
-    <div className="rounded-3xl border p-4 sm:p-5" style={card}>
-      <div className="flex gap-3">
+    <div className="rounded-3xl border" style={card}>
+      <div className="flex gap-3 px-4 sm:px-5 pt-4 sm:pt-5">
         <Avatar src={me.avatarUrl} name={me.name || me.handle} size={42} />
-        <textarea value={body} onChange={e => setBody(e.target.value)} maxLength={POST_MAX} rows={body || image ? 3 : 2}
-          placeholder={placeholder} aria-label={pt ? 'Escrever publicação' : 'Write a post'}
-          onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) void submit() }}
-          className="flex-1 min-w-0 resize-none bg-transparent outline-none text-[15px] leading-relaxed pt-2" />
-      </div>
-      {image && (
-        <div className="relative mt-3 sm:ml-[54px] rounded-2xl overflow-hidden border" style={{ borderColor: 'var(--theme-border)' }}>
-          <img src={image.url} alt="" className="block w-full aspect-[4/3] object-cover" />
-          <button type="button" onClick={() => setImage(null)} aria-label={pt ? 'Tirar foto' : 'Remove photo'}
-            className="absolute right-2 top-2 w-8 h-8 grid place-items-center rounded-full" style={{ backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-text)' }}>
-            <X className="w-4 h-4" />
-          </button>
+        <div className="flex-1 min-w-0">
+          <MentionTextarea ref={area} value={body} onChange={setBody} pt={pt} emoji={false} maxLength={POST_MAX} rows={body || image ? 4 : 2}
+            placeholder={placeholder} aria-label={pt ? 'Escrever publicação' : 'Write a post'}
+            onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) void submit() }}
+            className="w-full resize-none bg-transparent outline-none text-[16px] leading-relaxed pt-2 placeholder:text-[var(--theme-text-secondary)]" />
+          {image && (
+            <div className="relative mt-2 rounded-2xl overflow-hidden border" style={{ borderColor: 'var(--theme-border)' }}>
+              <img src={image.url} alt="" className="block w-full max-h-[420px] object-cover" />
+              <button type="button" onClick={() => setImage(null)} aria-label={pt ? 'Tirar foto' : 'Remove photo'}
+                className="absolute right-2.5 top-2.5 w-8 h-8 grid place-items-center rounded-full backdrop-blur-md" style={{ backgroundColor: 'color-mix(in srgb, var(--theme-card-bg) 80%, transparent)', color: 'var(--theme-text)' }}>
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+          {tagged && (
+            <div className="mt-2 inline-flex max-w-full items-center gap-2.5 rounded-2xl border py-1.5 pl-1.5 pr-2" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg-secondary)' }}>
+              {tagged.cover
+                ? <img src={tagged.cover} alt="" className="w-7 h-10 rounded-md object-cover shrink-0" />
+                : <span className="w-7 h-10 grid place-items-center rounded-md shrink-0" style={{ backgroundColor: 'var(--theme-card-bg)' }}><BookOpen className="w-3.5 h-3.5" style={muted} /></span>}
+              <span className="min-w-0 text-[13px] font-medium truncate">{tagged.title}</span>
+              <button type="button" onClick={() => setBookKey('')} aria-label={pt ? 'Tirar livro' : 'Remove book'} className="w-6 h-6 grid place-items-center rounded-full shrink-0 hover:bg-[var(--theme-nav-hover)]" style={muted}>
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
         </div>
-      )}
-      <div className="mt-3 pl-0 sm:pl-[54px] flex flex-wrap items-center gap-2">
+      </div>
+
+      {/* Barra de ações: tudo numa linha, ícones à esquerda e Publicar à direita. */}
+      <div className="mt-3 flex items-center gap-1 border-t px-3 sm:px-4 py-2.5" style={{ borderColor: 'var(--theme-border)' }}>
         <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={e => { void pick(e.target.files?.[0]); e.currentTarget.value = '' }} />
-        <button type="button" onClick={() => fileInput.current?.click()}
-          className="h-8 px-3 inline-flex items-center gap-1.5 rounded-full border text-[12.5px]"
-          style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-text-secondary)' }}>
-          <ImagePlus className="w-3.5 h-3.5" />{pt ? 'Foto' : 'Photo'}
+        <button type="button" onClick={() => fileInput.current?.click()} className={tool} style={muted} title={pt ? 'Adicionar foto' : 'Add photo'}>
+          <ImagePlus className="w-[18px] h-[18px]" /><span className="hidden sm:inline">{pt ? 'Foto' : 'Photo'}</span>
         </button>
-        <label className="relative inline-flex items-center">
-          <BookOpen className="absolute left-2.5 w-3.5 h-3.5 pointer-events-none" style={muted} />
+        <label className={`${tool} relative cursor-pointer`} style={muted} title={pt ? 'Marcar um livro' : 'Tag a book'}>
+          <BookOpen className="w-[18px] h-[18px]" /><span className="hidden sm:inline">{pt ? 'Livro' : 'Book'}</span>
           <select value={bookKey} onChange={e => setBookKey(e.target.value)} aria-label={pt ? 'Marcar um livro' : 'Tag a book'}
-            className="h-8 max-w-[200px] rounded-full border pl-7 pr-3 text-[12.5px] outline-none cursor-pointer truncate"
-            style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-card-bg)', color: bookKey ? 'var(--theme-text)' : 'var(--theme-text-secondary)' }}>
-            <option value="">{pt ? 'Marcar um livro' : 'Tag a book'}</option>
+            className="absolute inset-0 opacity-0 cursor-pointer">
+            <option value="">{pt ? 'Nenhum livro' : 'No book'}</option>
             {library.length > 0 && (
               <optgroup label={pt ? 'Minha estante' : 'My shelf'}>
                 {library.map(book => <option key={book.id} value={`lib:${book.id}`}>{book.title}</option>)}
@@ -182,16 +212,27 @@ export function Composer({ me, books, pt, onPosted }: { me: ProfileView | null; 
             )}
           </select>
         </label>
-        <AudienceSelect<Audience> value={audience} onChange={setAudience} options={AUDIENCES} pt={pt} />
-        <span className="ml-auto text-[12px] tabular-nums" style={muted}>{body.length > POST_MAX - 120 ? `${body.length}/${POST_MAX}` : ''}</span>
-        <button type="button" disabled={busy || (!body.trim() && !image)} onClick={() => { void submit() }}
-          className="h-9 px-4 inline-flex items-center gap-1.5 rounded-full text-[13.5px] font-medium disabled:opacity-50"
+        <EmojiButton onPick={addEmoji} pt={pt} />
+        <span className="mx-1 h-5 w-px shrink-0" style={{ backgroundColor: 'var(--theme-border)' }} aria-hidden />
+        <label className={`${tool} relative cursor-pointer`} style={muted} title={pt ? 'Quem pode ver' : 'Who can see'}>
+          <AudienceIcon audience={audience} />
+          <span className="hidden sm:inline">{audienceLabel(audience, pt)}</span>
+          <select value={audience} onChange={e => setAudience(e.target.value as Audience)} aria-label={pt ? 'Quem pode ver' : 'Who can see'}
+            className="absolute inset-0 opacity-0 cursor-pointer">
+            {AUDIENCES.map(option => <option key={option} value={option}>{audienceLabel(option, pt)}</option>)}
+          </select>
+        </label>
+        <span className="ml-auto pr-2 text-[12px] tabular-nums" style={{ color: body.length > POST_MAX - 40 ? 'var(--color-destructive)' : 'var(--theme-text-secondary)' }}>
+          {body.length > POST_MAX - 120 ? POST_MAX - body.length : ''}
+        </span>
+        <button type="button" disabled={!ready} onClick={() => { void submit() }}
+          className="h-9 px-4 shrink-0 inline-flex items-center gap-1.5 rounded-full text-[13.5px] font-semibold transition-opacity disabled:opacity-40"
           style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
           {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
           {pt ? 'Publicar' : 'Post'}
         </button>
       </div>
-      {error && <p className="mt-2 text-[13px]" role="alert" style={{ color: 'var(--color-destructive)' }}>{error}</p>}
+      {error && <p className="px-5 pb-3 -mt-1 text-[13px]" role="alert" style={{ color: 'var(--color-destructive)' }}>{error}</p>}
     </div>
   )
 }
@@ -203,7 +244,7 @@ function CommentRow({ item, pt, onReply, onDelete, onReport, reply = false }: { 
       <div className="min-w-0 flex-1">
         <div className="rounded-2xl px-3 py-2" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
           <p className="text-[12.5px]"><Link to={`/u/${item.author.handle}`} className="font-medium hover:underline">{item.author.name || item.author.handle}</Link> <span style={muted}>· {timeAgo(item.at, pt)}</span></p>
-          <p className="text-[14px] leading-snug whitespace-pre-line break-words">{item.body}</p>
+          <p className="text-[14px] leading-snug whitespace-pre-line break-words"><RichText text={item.body} /></p>
         </div>
         <div className="mt-0.5 ml-2 flex gap-3 text-[12px]" style={muted}>
           {onReply && <button type="button" onClick={onReply} className="hover:underline">{pt ? 'Responder' : 'Reply'}</button>}
@@ -222,7 +263,7 @@ function Comments({ postId, pt, canPost, onCount }: { postId: string; pt: boolea
   const [replyTo, setReplyTo] = useState<PostComment | null>(null)
   const [reporting, setReporting] = useState<ReportTarget | null>(null)
   const [error, setError] = useState('')
-  const input = useRef<HTMLInputElement>(null)
+  const input = useRef<HTMLTextAreaElement>(null)
   const reload = () => loadComments(postId).then(setItems)
   useEffect(() => { void reload() }, [postId])
 
@@ -235,7 +276,7 @@ function Comments({ postId, pt, canPost, onCount }: { postId: string; pt: boolea
     } catch (err) { setError(errorText(err, pt)) }
   }
   const remove = async (id: string) => {
-    if (!window.confirm(pt ? 'Apagar este comentário?' : 'Delete this comment?')) return
+    if (!await askConfirm(pt ? 'Apagar este comentário?' : 'Delete this comment?')) return
     try { await deleteComment(id); onCount(-1); await reload() } catch (err) { toast(errorText(err, pt), { tone: 'error' }) }
   }
   const top = (items ?? []).filter(item => !item.parentId)
@@ -262,10 +303,12 @@ function Comments({ postId, pt, canPost, onCount }: { postId: string; pt: boolea
               </p>
             )}
             <div className="flex gap-2">
-              <input ref={input} value={body} onChange={e => setBody(e.target.value)} maxLength={COMMENT_MAX}
-                placeholder={replyTo ? (pt ? 'Escreva uma resposta' : 'Write a reply') : (pt ? 'Escreva um comentário' : 'Write a comment')}
-                onKeyDown={e => { if (e.key === 'Enter') void send() }}
-                className="flex-1 min-w-0 h-9 rounded-full border px-3.5 text-[13.5px] bg-transparent outline-none" style={{ borderColor: 'var(--theme-border)' }} />
+              <div className="flex-1 min-w-0">
+                <MentionTextarea ref={input} value={body} onChange={setBody} pt={pt} maxLength={COMMENT_MAX} rows={1}
+                  placeholder={replyTo ? (pt ? 'Escreva uma resposta' : 'Write a reply') : (pt ? 'Escreva um comentário' : 'Write a comment')}
+                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void send() } }}
+                  className="block w-full min-h-9 max-h-32 resize-none rounded-[18px] border pl-3.5 pr-10 py-[7px] text-[13.5px] leading-snug bg-transparent outline-none" style={{ borderColor: 'var(--theme-border)' }} />
+              </div>
               <button type="button" disabled={!body.trim()} onClick={() => { void send() }} aria-label={pt ? 'Enviar' : 'Send'}
                 className="h-9 w-9 grid place-items-center rounded-full disabled:opacity-40" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
                 <Send className="w-3.5 h-3.5" />
@@ -352,21 +395,22 @@ export function PostCard({ item, covers, pt, canPost, onDeleted, standalone = fa
     } catch (err) { toast(errorText(err, pt), { tone: 'error' }) }
   }
   const remove = async () => {
-    if (!window.confirm(pt ? 'Apagar esta publicação?' : 'Delete this post?')) return
+    if (!await askConfirm(pt ? 'Apagar esta publicação?' : 'Delete this post?')) return
     try { await deletePost(item); onDeleted() } catch (err) { toast(errorText(err, pt), { tone: 'error' }) }
   }
   const block = async () => {
-    if (!user || !window.confirm(pt ? `Bloquear @${item.author.handle}? Vocês não poderão interagir.` : `Block @${item.author.handle}?`)) return
+    if (!user || !await askConfirm(pt ? `Bloquear @${item.author.handle}? Vocês não poderão interagir.` : `Block @${item.author.handle}?`)) return
     try { await blockUser(user.id, item.author.userId); toast(pt ? 'Pessoa bloqueada.' : 'Blocked.', { tone: 'success' }); onDeleted() } catch (err) { toast(errorText(err, pt), { tone: 'error' }) }
   }
 
   return (
-    <article className="rounded-3xl border p-4 sm:p-5" style={finished ? { ...card, backgroundColor: 'var(--pastel-green-bg)', color: 'var(--pastel-green-fg)' } : card}>
-      <header className="flex items-start gap-3">
+    <article className="rounded-3xl border overflow-hidden" style={finished ? { ...card, backgroundColor: 'var(--pastel-green-bg)', color: 'var(--pastel-green-fg)' } : card}>
+      <div className="px-4 sm:px-5 pt-4 sm:pt-5">
+      <header className="flex items-center gap-3">
         <Link to={`/u/${item.author.handle}`} className="shrink-0"><Avatar src={item.author.avatarUrl} name={item.author.name || item.author.handle} size={42} /></Link>
         <AuthorLine author={item.author} at={item.at} pt={pt} postId={item.id} edited={shown.edited} audience={shown.audience} action={activity} />
-        <LevelBadge id={item.author.level} pt={pt} variant="compact" className="border hidden sm:inline-block" />
-        {item.kind === 'goal' ? <Target className="w-5 h-5 shrink-0 mt-2" /> : item.kind === 'finished' ? <PartyPopper className="w-5 h-5 shrink-0 mt-2" /> : null}
+        <LevelBadge id={item.author.level} pt={pt} variant="compact" className="border hidden sm:inline-block shrink-0" />
+        {item.kind === 'goal' ? <Target className="w-5 h-5 shrink-0" /> : item.kind === 'finished' ? <PartyPopper className="w-5 h-5 shrink-0" /> : null}
         <MoreMenu label={pt ? 'Mais opções' : 'More options'}>
           <MenuItem onClick={() => { void share() }} icon={<Link2 className="w-4 h-4" />}>{pt ? 'Copiar link' : 'Copy link'}</MenuItem>
           {item.mine && item.kind === 'post' && <MenuItem onClick={() => { setDraft({ body: shown.body ?? '', audience: shown.audience }); setEditing(true) }} icon={<Pencil className="w-4 h-4" />}>{pt ? 'Editar' : 'Edit'}</MenuItem>}
@@ -378,8 +422,8 @@ export function PostCard({ item, covers, pt, canPost, onDeleted, standalone = fa
 
       {editing
         ? <div className="mt-3 space-y-2">
-            <textarea value={draft.body} onChange={e => setDraft({ ...draft, body: e.target.value })} maxLength={POST_MAX} rows={3} autoFocus
-              className="w-full rounded-2xl border px-3 py-2 text-[15px] leading-relaxed bg-transparent outline-none resize-none" style={{ borderColor: 'var(--theme-border)' }} />
+            <MentionTextarea value={draft.body} onChange={body => setDraft({ ...draft, body })} pt={pt} maxLength={POST_MAX} rows={3} autoFocus
+              className="w-full rounded-2xl border pl-3 pr-10 py-2 text-[15px] leading-relaxed bg-transparent outline-none resize-none" style={{ borderColor: 'var(--theme-border)' }} />
             <div className="flex flex-wrap items-center gap-2">
               <AudienceSelect<Audience> value={draft.audience} onChange={audience => setDraft({ ...draft, audience })} options={AUDIENCES} pt={pt} />
               <span className="flex-1" />
@@ -388,14 +432,14 @@ export function PostCard({ item, covers, pt, canPost, onDeleted, standalone = fa
                 style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>{pt ? 'Salvar' : 'Save'}</button>
             </div>
           </div>
-        : shown.body && <p className="mt-3 text-[15px] leading-relaxed whitespace-pre-line break-words">{shown.body}</p>}
+        : shown.body && <p className="mt-3 text-[15px] leading-relaxed whitespace-pre-line break-words"><RichText text={shown.body} /></p>}
 
       {item.kind === 'review' && <ReviewBody item={item} pt={pt} />}
 
       {item.imageUrl && (
         <div className="relative mt-3 rounded-2xl overflow-hidden select-none" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}
           onDoubleClick={() => { setBurst(n => n + 1); void applyLike(true) }}>
-          <img src={item.imageUrl} alt="" loading="lazy" decoding="async" draggable={false} className="block w-full aspect-[4/3] object-cover" />
+          <img src={item.imageUrl} alt="" loading="lazy" decoding="async" draggable={false} className="block w-full max-h-[560px] object-cover" />
           {burst > 0 && (
             <Heart key={burst} className="absolute left-1/2 top-1/2 w-20 h-20 -ml-10 -mt-10 pointer-events-none animate-[ping_0.7s_ease-out_1_forwards] motion-reduce:hidden"
               style={{ color: 'var(--theme-card-bg)' }} fill="currentColor" />
@@ -405,25 +449,29 @@ export function PostCard({ item, covers, pt, canPost, onDeleted, standalone = fa
 
       {item.book && item.kind !== 'goal' && <BookChip item={item} covers={covers} pt={pt} />}
 
-      <footer className="mt-3 -ml-2 flex items-center gap-1">
-        <button type="button" onClick={() => { void applyLike(!liked) }} aria-pressed={liked}
-          className="h-8 px-2.5 inline-flex items-center gap-1.5 rounded-full text-[13px] transition-colors hover:bg-[var(--theme-nav-hover)]"
-          style={{ color: liked ? 'var(--pastel-rose-fg)' : 'var(--theme-text-secondary)' }}>
-          <Heart className={`w-4 h-4 transition-transform duration-200 motion-reduce:transition-none ${liked ? 'scale-110' : ''}`} fill={liked ? 'currentColor' : 'none'} />{likes > 0 && <span className="tabular-nums">{likes}</span>}
-          <span className="sr-only">{pt ? 'Curtir' : 'Like'}</span>
+      </div>
+      {/* Ações: três botões iguais, separados do conteúdo por uma linha. */}
+      <footer className="mt-3 mx-2 sm:mx-3 grid grid-cols-3 border-t py-1" style={{ borderColor: finished ? 'color-mix(in srgb, currentColor 18%, transparent)' : 'var(--theme-border)' }}>
+        <button type="button" onClick={() => { void applyLike(!liked) }} aria-pressed={liked} aria-label={pt ? 'Curtir' : 'Like'}
+          className="h-10 inline-flex items-center justify-center gap-2 rounded-xl text-[13.5px] font-medium transition-colors hover:bg-[var(--theme-nav-hover)]"
+          style={{ color: liked ? 'var(--pastel-rose-fg)' : finished ? 'inherit' : 'var(--theme-text-secondary)' }}>
+          <Heart className={`w-[18px] h-[18px] transition-transform duration-200 motion-reduce:transition-none ${liked ? 'scale-110' : ''}`} fill={liked ? 'currentColor' : 'none'} />
+          <span className="hidden sm:inline">{pt ? 'Curtir' : 'Like'}</span>{likes > 0 && <span className="tabular-nums">{likes}</span>}
         </button>
-        <button type="button" onClick={() => setOpen(value => !value)} aria-expanded={open}
-          className="h-8 px-2.5 inline-flex items-center gap-1.5 rounded-full text-[13px] transition-colors hover:bg-[var(--theme-nav-hover)]" style={muted}>
-          <MessageCircle className="w-4 h-4" />{comments > 0 && <span className="tabular-nums">{comments}</span>}
-          <span className="sr-only">{pt ? 'Comentários' : 'Comments'}</span>
+        <button type="button" onClick={() => setOpen(value => !value)} aria-expanded={open} aria-label={pt ? 'Comentários' : 'Comments'}
+          className="h-10 inline-flex items-center justify-center gap-2 rounded-xl text-[13.5px] font-medium transition-colors hover:bg-[var(--theme-nav-hover)]"
+          style={{ color: open ? 'var(--theme-text)' : finished ? 'inherit' : 'var(--theme-text-secondary)' }}>
+          <MessageCircle className="w-[18px] h-[18px]" />
+          <span className="hidden sm:inline">{pt ? 'Comentar' : 'Comment'}</span>{comments > 0 && <span className="tabular-nums">{comments}</span>}
         </button>
-        <button type="button" onClick={() => { void share() }}
-          className="h-8 px-2.5 inline-flex items-center gap-1.5 rounded-full text-[13px] transition-colors hover:bg-[var(--theme-nav-hover)]" style={muted}>
-          {copied ? <Check className="w-4 h-4" /> : <Link2 className="w-4 h-4" />}
-          {copied ? <span>{pt ? 'Link copiado' : 'Link copied'}</span> : <span className="sr-only">{pt ? 'Compartilhar' : 'Share'}</span>}
+        <button type="button" onClick={() => { void share() }} aria-label={pt ? 'Compartilhar' : 'Share'}
+          className="h-10 inline-flex items-center justify-center gap-2 rounded-xl text-[13.5px] font-medium transition-colors hover:bg-[var(--theme-nav-hover)]"
+          style={{ color: finished ? 'inherit' : 'var(--theme-text-secondary)' }}>
+          {copied ? <Check className="w-[18px] h-[18px]" /> : <Link2 className="w-[18px] h-[18px]" />}
+          <span className="hidden sm:inline">{copied ? (pt ? 'Link copiado' : 'Link copied') : (pt ? 'Compartilhar' : 'Share')}</span>
         </button>
       </footer>
-      {open && <Comments postId={item.id} pt={pt} canPost={canPost} onCount={delta => setComments(count => Math.max(0, count + delta))} />}
+      {open && <div className="border-t px-4 sm:px-5 pb-4" style={{ borderColor: 'var(--theme-border)' }}><Comments postId={item.id} pt={pt} canPost={canPost} onCount={delta => setComments(count => Math.max(0, count + delta))} /></div>}
       <ReportDialog open={reporting} onOpenChange={setReporting} pt={pt} target={{ type: 'post', postId: item.id }} onDone={onDeleted} />
     </article>
   )
