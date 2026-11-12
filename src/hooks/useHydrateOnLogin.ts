@@ -11,7 +11,8 @@ import {
   fetchVocabulary,
   fetchStudyDays,
   fetchReaderSettings,
-  updateBookFields
+  updateBookFields,
+  upsertVocabulary
 } from '@/lib/supabaseSync'
 import { fetchBookLinks } from '@/lib/catalog'
 
@@ -77,7 +78,17 @@ export function useHydrateOnLogin() {
             await updateBookFields(supabase!, userId, updated, ['comicPages']).catch((e) => console.warn('[migrate comics]', e))
           }
         })()
-        setVocabularies(vocab)
+        // Junta com o que está só no aparelho (ainda não sincronizado): o banco não apaga o que a
+        // pessoa acabou de salvar, e o que faltar lá é reenviado.
+        const local = useVocabularyStore.getState().vocabularies
+        const remoteById = new Map(vocab.map(v => [v.id, v]))
+        const merged = vocab.map(v => {
+          const mine = local.find(l => l.id === v.id)
+          return mine && !v.explanation?.trim() && mine.explanation?.trim() ? mine : v
+        })
+        const pending = [...merged.filter(v => { const r = remoteById.get(v.id); return r && r !== v }), ...local.filter(l => !remoteById.has(l.id))]
+        setVocabularies([...merged, ...local.filter(l => !remoteById.has(l.id))])
+        for (const v of pending) void upsertVocabulary(supabase, userId, v).catch(err => console.warn('[sync vocab]', err))
         setStudyState(study.total, study.daily)
         if (settings) {
           setTheme(settings.theme)

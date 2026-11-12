@@ -79,15 +79,29 @@ interface VocabularyModalProps {
   initialTab?: VocabTab
 }
 
-/** Separa "definição\n\nPronunciation: /ipa/" (formato salvo pela IA) em definição e IPA. */
+/**
+ * Formato salvo: "definição\n\nTranslation: tradução\n\nPronunciation: /ipa/".
+ * A definição fica no idioma do livro; a tradução (idioma da pessoa) é opcional e só aparece no olhinho.
+ */
 function splitExplanation(explanation: string) {
-  const match = explanation.match(/\n*\s*(?:Pronunciation|Pronúncia):\s*(.+)\s*$/i)
-  return match ? { definition: explanation.slice(0, match.index).trim(), ipa: match[1].trim() } : { definition: explanation, ipa: '' }
+  const pron = explanation.match(/\n*\s*(?:Pronunciation|Pronúncia):\s*(.+)\s*$/i)
+  const ipa = pron ? pron[1].trim() : ''
+  const rest = pron ? explanation.slice(0, pron.index).trim() : explanation
+  const tr = rest.match(/\n*\s*(?:Translation|Tradução):\s*([\s\S]+)$/i)
+  return { definition: (tr ? rest.slice(0, tr.index) : rest).trim(), translation: tr ? tr[1].trim() : '', ipa }
+}
+function splitNote(note: string) {
+  const tr = note.match(/\n*\s*(?:Translation|Tradução):\s*([\s\S]+)$/i)
+  return { text: (tr ? note.slice(0, tr.index) : note).trim(), translation: tr ? tr[1].trim() : '' }
+}
+function composeNote(text: string, translation: string) { return text ? `${text}${translation ? `\n\nTranslation: ${translation}` : ''}` : '' }
+function composeExplanation(definition: string, translation: string, ipa: string) {
+  return `${definition}${translation ? `\n\nTranslation: ${translation}` : ''}${ipa ? `\n\nPronunciation: ${ipa}` : ''}`
 }
 
-function AutoTextarea({ value, onChange, placeholder, className, style }: { value: string; onChange: (v: string) => void; placeholder: string; className?: string; style?: React.CSSProperties }) {
+function AutoTextarea({ value, onChange, placeholder, className, style, readOnly }: { value: string; onChange: (v: string) => void; placeholder: string; className?: string; style?: React.CSSProperties; readOnly?: boolean }) {
   return (
-    <textarea value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} rows={1}
+    <textarea value={value} readOnly={readOnly} onChange={e => onChange(e.target.value)} placeholder={placeholder} rows={1}
       ref={el => { if (el) { el.style.height = 'auto'; el.style.height = `${el.scrollHeight}px` } }}
       onInput={e => { const el = e.currentTarget; el.style.height = 'auto'; el.style.height = `${el.scrollHeight}px` }}
       className={`w-full resize-none bg-transparent outline-none placeholder:text-[var(--theme-text-secondary)]/70 ${className ?? ''}`}
@@ -134,6 +148,8 @@ export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId,
   const N = TEXTS[nativeLocale()]
   const explainLang = pt ? 'pt' : 'en'
   const [shownTranslations, setShownTranslations] = useState<Set<string>>(new Set())
+  const [defShown, setDefShown] = useState(false)
+  const [storyShown, setStoryShown] = useState(false)
   const [speaking, setSpeaking] = useState<string | null>(null)
   const [glossShown, setGlossShown] = useState(false)
   const [glossEmpty, setGlossEmpty] = useState(false)
@@ -147,7 +163,7 @@ export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId,
   useEffect(() => {
     if (!isOpen) return
     stopSpeaking()
-    setSpeaking(null); setError(''); setWriteOwn(false); setShownTranslations(new Set()); setSavedHint(false)
+    setSpeaking(null); setError(''); setWriteOwn(false); setShownTranslations(new Set()); setDefShown(false); setStoryShown(false); setSavedHint(false)
     setGlossShown(false); setGlossEmpty(false); setPeekCapped(false)
     savedIdRef.current = vocabId
     const vocab = vocabId ? vocabularies.find(v => v.id === vocabId) : null
@@ -174,14 +190,19 @@ export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId,
   }, [isOpen, vocabId, initialText, initialTab])
 
   useEffect(() => {
-    if (!isOpen || !autoExplain || vocabId || !initialText.trim()) return
-    const timer = window.setTimeout(() => { void handleExplainWithAI(initialText) }, 40)
+    if (!isOpen || !autoExplain) return
+    // Palavra já salva com explicação: não gera de novo (o botão "Gerar de novo" segue disponível).
+    const saved = vocabId ? useVocabularyStore.getState().vocabularies.find(v => v.id === vocabId) : null
+    if (saved?.explanation?.trim()) return
+    if (!saved && !initialText.trim()) return
+    const timer = window.setTimeout(() => { void handleExplainWithAI(saved?.text || initialText) }, 40)
     return () => window.clearTimeout(timer)
   // A explicação lê o texto já colocado no efeito acima.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, autoExplain, vocabId, initialText])
 
-  const { definition, ipa } = useMemo(() => splitExplanation(explanation), [explanation])
+  const { definition, translation, ipa } = useMemo(() => splitExplanation(explanation), [explanation])
+  const note = useMemo(() => splitNote(usageNote), [usageNote])
   const examples = useMemo(() => examplesText.split('\n').map(s => s.trim()).filter(Boolean), [examplesText])
   const lang = (bookLanguageCode || 'en').slice(0, 2).toLowerCase()
   const localGloss = useMemo(() => glossPt(text), [text])
@@ -206,18 +227,23 @@ export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId,
   }
 
   const handleExplainWithAI = async (source?: string) => {
-    const term = (source ?? text).trim()
+    // O botão repassa o evento do clique: só vale como termo quando for texto.
+    const term = (typeof source === 'string' ? source : text).trim()
     if (!term) return
     setIsGeneratingExplanation(true); setError('')
     try {
-      const result = await generateExplanation(term, 'B1', explainLang)
-      const explanationText = `${result.definition}\n\nPronunciation: ${result.ipa}`
+      const result = await generateExplanation(term, 'B1', lang, explainLang !== lang ? explainLang : undefined)
+      const explanationText = composeExplanation(result.definition, result.definitionTranslation ?? '', result.ipa)
+      const noteText = composeNote(result.usageNote, result.usageNoteTranslation ?? '')
       const exampleLines = result.examples.join('\n')
       setExplanation(explanationText)
       setExamplesText(exampleLines)
       setGrammarExamples(result.grammarExamples)
-      setUsageNote(result.usageNote)
-      persist({ text: term, explanation: explanationText, examples: result.examples, grammarExamples: result.grammarExamples, usageNote: result.usageNote })
+      setUsageNote(noteText)
+      setDefShown(false); setStoryShown(false)
+      const storyText = composeNote((result.story ?? '').trim(), (result.storyTranslation ?? '').trim())
+      if (storyText) setVariantStory(storyText)
+      persist({ text: term, explanation: explanationText, examples: result.examples, grammarExamples: result.grammarExamples, usageNote: noteText, ...(storyText ? { variantStory: storyText } : {}) })
     } catch (e) {
       console.error(e)
       setError(aiErrorMessage(e))
@@ -225,6 +251,10 @@ export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId,
       setIsGeneratingExplanation(false)
     }
   }
+
+  // Olhinho (só no A1): troca significado + dica de uso juntos para o português já gerado.
+  const showEye = level.id === 'A1'
+  const story = useMemo(() => splitNote(variantStory), [variantStory])
 
   const handleGenerateVariantStory = async () => {
     setIsGeneratingStory(true); setError('')
@@ -324,7 +354,12 @@ export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId,
   )
 
   return (
-    <Dialog open={isOpen} onOpenChange={() => { stopSpeaking(); onClose() }}>
+    <Dialog open={isOpen} onOpenChange={() => {
+      // Fechar pelo X, fora da janela ou Esc também guarda o que foi escrito (notas, exemplos, status).
+      // "Cancelar" é o único jeito de descartar as edições feitas depois do último salvamento.
+      if (text.trim() && (savedIdRef.current || explanation.trim() || examplesText.trim() || personalNote.replace(/<[^>]+>/g, '').trim() || variantStory.trim())) persist({})
+      stopSpeaking(); onClose()
+    }}>
       <DialogContent className="p-0 gap-0 overflow-hidden flex flex-col max-h-[90dvh]"
         style={{ width: 'calc(100vw - 2rem)', maxWidth: '46rem', borderRadius: 20 }}>
         {/* Cabeçalho: a palavra, áudio e status */}
@@ -434,13 +469,32 @@ export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId,
               </EmptyState>
             ) : (
               <div className="space-y-5">
-                <AutoTextarea value={definition} placeholder={L.explanationPh}
-                  onChange={v => setExplanation(ipa ? `${v}\n\nPronunciation: ${ipa}` : v)}
-                  className="font-serif text-[17px] leading-[1.7]" />
-                {usageNote && (
+                <div className="flex items-start gap-2">
+                  <div className="flex-1 min-w-0">
+                    {defShown && translation ? (
+                      <p className="font-serif text-[17px] leading-[1.7] whitespace-pre-wrap" style={{ color: 'var(--theme-text)' }}>{translation}</p>
+                    ) : (
+                      <AutoTextarea value={definition} placeholder={L.explanationPh}
+                        onChange={v => setExplanation(composeExplanation(v, translation, ipa))}
+                        className="font-serif text-[17px] leading-[1.7]" />
+                    )}
+                  </div>
+                  {showEye && translation && (
+                    <button type="button" aria-label={defShown ? L.hideTranslation : L.showTranslation} title={defShown ? L.hideTranslation : L.showTranslation}
+                      onClick={() => setDefShown(v => !v)}
+                      className="w-8 h-8 mt-1 shrink-0 grid place-items-center rounded-md transition-colors hover:bg-[var(--theme-nav-active)]" style={{ color: 'var(--theme-text-secondary)' }}>
+                      {defShown ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  )}
+                </div>
+                {note.text && (
                   <div className="rounded-xl px-4 py-3" style={{ backgroundColor: 'var(--pastel-amber-bg)', color: 'var(--pastel-amber-fg)' }}>
-                    <p className="text-[12px] font-semibold mb-0.5">{L.usage}</p>
-                    <p className="text-[14px] leading-relaxed">{usageNote}</p>
+                    <div className="flex items-start gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[12px] font-semibold mb-0.5">{L.usage}</p>
+                        <p className="text-[14px] leading-relaxed">{defShown && note.translation ? note.translation : note.text}</p>
+                      </div>
+                    </div>
                   </div>
                 )}
                 <div className="flex gap-2">
@@ -505,8 +559,19 @@ export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId,
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="flex justify-end">{listenBtn('story', variantStory, 'w-8 h-8')}</div>
-                <AutoTextarea value={variantStory} onChange={setVariantStory} placeholder={L.storyPh} className="font-serif text-[17px] leading-[1.85]" />
+                <div className="flex justify-end gap-1">
+                  {listenBtn('story', story.text, 'w-8 h-8')}
+                  {showEye && story.translation && (
+                    <button type="button" aria-label={storyShown ? L.hideTranslation : L.showTranslation} title={storyShown ? L.hideTranslation : L.showTranslation}
+                      onClick={() => setStoryShown(v => !v)}
+                      className="w-8 h-8 shrink-0 grid place-items-center rounded-md transition-colors hover:bg-[var(--theme-nav-active)]" style={{ color: 'var(--theme-text-secondary)' }}>
+                      {storyShown ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  )}
+                </div>
+                {storyShown && story.translation
+                  ? <p className="font-serif text-[17px] leading-[1.85] whitespace-pre-wrap">{story.translation}</p>
+                  : <AutoTextarea value={story.text} onChange={v => setVariantStory(composeNote(v, story.translation))} placeholder={L.storyPh} className="font-serif text-[17px] leading-[1.85]" />}
                 {aiButton(L.createStory, L.creating, isGeneratingStory, handleGenerateVariantStory, 'outline')}
               </div>
             )

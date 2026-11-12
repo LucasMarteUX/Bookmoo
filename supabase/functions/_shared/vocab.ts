@@ -82,29 +82,30 @@ async function assertDailyText(userId: string) {
 // Prompts (reaproveitados pelas ações antigas 'explain' e 'variant-story')
 // ---------------------------------------------------------------------------
 export type GrammarExample = { form: 'affirmative' | 'negative' | 'interrogative'; context: string; english: string; portuguese: string }
-export type Explanation = { definition: string; ipa: string; examples: string[]; grammarExamples: GrammarExample[]; usageNote: string }
+export type Explanation = { definition: string; ipa: string; examples: string[]; grammarExamples: GrammarExample[]; usageNote: string; definitionTranslation?: string; usageNoteTranslation?: string; story?: string; storyTranslation?: string }
 
-export async function explainTerm(provider: Provider, key: string, text: string, level: string, languageCode: string, avoid: string[] = []): Promise<Explanation> {
+export async function explainTerm(provider: Provider, key: string, text: string, level: string, languageCode: string, avoid: string[] = [], nativeCode?: string): Promise<Explanation> {
   const langName = LANG_NAMES[languageCode] ?? 'English'
+  const nativeName = nativeCode && nativeCode !== languageCode ? LANG_NAMES[nativeCode] ?? null : null
   const avoidHint = avoid.length
     ? `\nOther learners already saw explanations using these contexts; choose DIFFERENT contexts and different example sentences: ${avoid.slice(0, 12).join(' | ').slice(0, 800)}\n`
     : ''
+  const native = nativeName ?? 'Portuguese'
   const r = await llmJson<Record<string, unknown>>(provider, key, {
-    system: `You are a ${langName} teacher. Provide a simple definition in ${langName}, an intuitive phonetic spelling (e.g., AP-uhl for apple) instead of IPA, and exactly 3 example sentences in ${langName}.`,
-    prompt: `Explain clearly in ${langName} the meaning of "${text}".
-Level: ${level}
-Be concise.
+    system: `You are a friendly ${langName} teacher for language learners. You answer with JSON only.`,
+    prompt: `Teach the ${langName} word or expression "${text}" to a learner (level ${level}). Be concise and accurate.
 ${avoidHint}
-You are a language teacher focused on practical English for business and career. In addition to the definition and pronunciation, create exactly three practical examples using different business contexts:
-1. affirmative
-2. negative
-3. interrogative
-
-For each example, include the grammatical form, a distinct context, the sentence in English with the analyzed term wrapped in **, and a fluent Portuguese translation. Add a short usage note when the negative or interrogative form changes an auxiliary, verb tense, word order, or another grammatical element.
-Never include real people's names, e-mails, phone numbers or URLs.
+Return:
+- "definition": a simple definition in ${langName} (1-2 sentences).
+- "ipa": an intuitive phonetic spelling (e.g., AP-uhl for apple), not IPA.
+- "usageNote": one or two sentences in ${langName} specific to THIS word: its part of speech, typical position in a sentence, common prepositions or collocations, register, or a frequent learner mistake. Never describe generic auxiliary or word-order rules (do/does, will, inversion) unless the word itself is that auxiliary. If there is nothing specific and useful, use an empty string.
+- "examples": exactly 3 short example sentences in ${langName}.
+- "grammarExamples": exactly 3 items with forms affirmative, negative and interrogative, each in a distinct everyday context, with the sentence in ${langName} (term wrapped in **) and a fluent ${native} translation in "portuguese".
+- "story": a short story in ${langName} (first line is a one-sentence title, then 80-130 words) in a fresh everyday situation, using the term naturally at least three times.
+${nativeName ? `- "definitionTranslation", "usageNoteTranslation" and "storyTranslation": fluent ${nativeName} translations of the definition, the usage note (empty when it is empty) and the whole story (keep the target term in ${langName}).\n` : ''}Never include real people's names, e-mails, phone numbers or URLs.
 
 Return JSON only with this exact shape:
-{"definition": string, "ipa": string, "examples": [string, string, string], "grammarExamples": [{"form": "affirmative"|"negative"|"interrogative", "context": string, "english": string, "portuguese": string}], "usageNote": string}`,
+{"definition": string, "ipa": string, "usageNote": string, "examples": [string, string, string], "grammarExamples": [{"form": "affirmative"|"negative"|"interrogative", "context": string, "english": string, "portuguese": string}], "story": string${nativeName ? ', "definitionTranslation": string, "usageNoteTranslation": string, "storyTranslation": string' : ''}}`,
   })
   const forms = ['affirmative', 'negative', 'interrogative']
   return {
@@ -116,6 +117,10 @@ Return JSON only with this exact shape:
       .slice(0, 3)
       .map((g) => ({ form: String(g.form) as GrammarExample['form'], context: scrub(String(g.context ?? ''), 120), english: scrub(String(g.english ?? ''), 300), portuguese: scrub(String(g.portuguese ?? ''), 300) })),
     usageNote: scrub(String(r.usageNote ?? ''), 800),
+    definitionTranslation: nativeName ? scrub(String(r.definitionTranslation ?? ''), 1500) : undefined,
+    usageNoteTranslation: nativeName ? scrub(String(r.usageNoteTranslation ?? ''), 800) : undefined,
+    story: scrub(String(r.story ?? ''), 2000),
+    storyTranslation: nativeName ? scrub(String(r.storyTranslation ?? ''), 2500) : undefined,
   }
 }
 

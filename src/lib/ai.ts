@@ -71,16 +71,21 @@ export interface VocabExplanation {
     portuguese: string
   }[]
   usageNote: string
+  definitionTranslation?: string
+  usageNoteTranslation?: string
+  story?: string
+  storyTranslation?: string
 }
 
 /** targetLanguageCode: ISO 639-1 (e.g. en, pt). Explanation and examples will be in this language. */
 export async function generateExplanation(
   text: string,
   level: "A2" | "B1" | "B2" = "B1",
-  targetLanguageCode?: string
+  targetLanguageCode?: string,
+  nativeLanguageCode?: string
 ): Promise<VocabExplanation> {
   try {
-    return await aiText<VocabExplanation>("explain", { text, level, languageCode: targetLanguageCode || "en" })
+    return await aiText<VocabExplanation>("explain", { text, level, languageCode: targetLanguageCode || "en", nativeLanguageCode })
   } catch (e) {
     return { definition: aiErrorMessage(e), ipa: "", examples: [], grammarExamples: [], usageNote: "" }
   }

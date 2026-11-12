@@ -21,7 +21,7 @@ async function handle(userId: string, b: Body) {
       const text = String(b.text ?? '').slice(0, 300)
       const level = ['A2', 'B1', 'B2'].includes(String(b.level)) ? String(b.level) : 'B1'
       const { provider, key } = await pickProvider(userId, ['gemini', 'openai'])
-      return await explainTerm(provider, key, text, level, String(b.languageCode ?? 'en'))
+      return await explainTerm(provider, key, text, level, String(b.languageCode ?? 'en'), [], b.nativeLanguageCode ? String(b.nativeLanguageCode).slice(0, 5).toLowerCase() : undefined)
     }
     case 'gloss': {
       const text = String(b.text ?? '').slice(0, 120)

@@ -330,6 +330,11 @@ export function Reader({ book, autoPlay = false, headerSlot }: ReaderProps) {
 
   const handleAddVocab = (textOverride?: string) => {
     const text = typeof textOverride === 'string' ? textOverride : selectedText;
+    // Palavra que já está na lista: abre a que existe (com explicação, exemplos e notas salvos)
+    // em vez de começar uma nova em branco.
+    const key = text.trim().toLowerCase()
+    const existing = key ? useVocabularyStore.getState().vocabularies.find(v => v.bookId === book.id && v.text.trim().toLowerCase() === key) : undefined
+    if (existing) { setVocabToEdit(existing.id); setIsModalOpen(true); return }
     setVocabToEdit(null)
     setModalInitialText(text)
     setIsModalOpen(true)
