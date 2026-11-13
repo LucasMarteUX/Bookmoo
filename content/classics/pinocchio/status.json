@@ -1,0 +1,35 @@
+{
+  "slug": "pinocchio",
+  "stages": {
+    "cover": {
+      "ok": true,
+      "jpgBytes": 86452,
+      "thumbBytes": 7054
+    },
+    "epub": {
+      "ok": true,
+      "file": "content/classics/pinocchio/build/pinocchio-a2-expanded.epub",
+      "bytes": 111188,
+      "epubcheck": {
+        "errors": 0,
+        "warnings": 0
+      }
+    },
+    "validated": {
+      "ok": true,
+      "at": "2026-11-13T15:23:25.407Z"
+    },
+    "published": {
+      "ok": true,
+      "id": "b049ab8e-b159-45fc-ba5e-aae00f89d4df",
+      "at": "2026-11-13T15:23:38.223Z",
+      "verifiedPages": 135
+    }
+  },
+  "updatedAt": "2026-11-13T15:23:38.223Z",
+  "chapters": 16,
+  "storyWords": 13744,
+  "glossary": 55,
+  "pages": 135,
+  "readingMinutes": 137
+}

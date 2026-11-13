@@ -1,0 +1,35 @@
+{
+  "slug": "rumpelstiltskin",
+  "stages": {
+    "cover": {
+      "ok": true,
+      "jpgBytes": 118983,
+      "thumbBytes": 10436
+    },
+    "epub": {
+      "ok": true,
+      "file": "content/classics/rumpelstiltskin/build/rumpelstiltskin-a1-expanded.epub",
+      "bytes": 117831,
+      "epubcheck": {
+        "errors": 0,
+        "warnings": 0
+      }
+    },
+    "validated": {
+      "ok": true,
+      "at": "2026-11-13T14:59:19.067Z"
+    },
+    "published": {
+      "ok": true,
+      "id": "e593404e-1203-44b0-90ca-118cf4c44a75",
+      "at": "2026-11-13T14:59:32.433Z",
+      "verifiedPages": 47
+    }
+  },
+  "updatedAt": "2026-11-13T14:59:32.434Z",
+  "chapters": 6,
+  "storyWords": 4492,
+  "glossary": 46,
+  "pages": 47,
+  "readingMinutes": 45
+}

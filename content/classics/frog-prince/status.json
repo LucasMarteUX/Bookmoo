@@ -1,0 +1,35 @@
+{
+  "slug": "frog-prince",
+  "stages": {
+    "cover": {
+      "ok": true,
+      "jpgBytes": 106911,
+      "thumbBytes": 9612
+    },
+    "epub": {
+      "ok": true,
+      "file": "content/classics/frog-prince/build/frog-prince-a1-expanded.epub",
+      "bytes": 105965,
+      "epubcheck": {
+        "errors": 0,
+        "warnings": 0
+      }
+    },
+    "validated": {
+      "ok": true,
+      "at": "2026-11-13T14:43:05.218Z"
+    },
+    "published": {
+      "ok": true,
+      "id": "a2b9383e-daa2-4542-a236-f84066a9117b",
+      "at": "2026-11-13T14:43:24.103Z",
+      "verifiedPages": 43
+    }
+  },
+  "updatedAt": "2026-11-13T14:43:24.103Z",
+  "chapters": 6,
+  "storyWords": 3940,
+  "glossary": 46,
+  "pages": 43,
+  "readingMinutes": 39
+}

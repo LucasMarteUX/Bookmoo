@@ -1,0 +1,35 @@
+{
+  "slug": "snow-queen",
+  "stages": {
+    "cover": {
+      "ok": true,
+      "jpgBytes": 126853,
+      "thumbBytes": 12424
+    },
+    "epub": {
+      "ok": true,
+      "file": "content/classics/snow-queen/build/snow-queen-a1-expanded.epub",
+      "bytes": 139402,
+      "epubcheck": {
+        "errors": 0,
+        "warnings": 0
+      }
+    },
+    "validated": {
+      "ok": true,
+      "at": "2026-11-13T14:43:02.380Z"
+    },
+    "published": {
+      "ok": true,
+      "id": "27682c0c-999a-4bff-b735-197d9c01c8f9",
+      "at": "2026-11-13T14:43:16.917Z",
+      "verifiedPages": 109
+    }
+  },
+  "updatedAt": "2026-11-13T14:43:16.917Z",
+  "chapters": 11,
+  "storyWords": 9993,
+  "glossary": 51,
+  "pages": 109,
+  "readingMinutes": 100
+}

@@ -1,0 +1,278 @@
+[
+ {
+  "term": "miller",
+  "pt": "moleiro",
+  "meaning": "A person who owns a mill and makes flour.",
+  "example": "The miller was poor."
+ },
+ {
+  "term": "mill",
+  "pt": "moinho",
+  "meaning": "A building where wheat is made into flour.",
+  "example": "He had a small mill by a river."
+ },
+ {
+  "term": "flour",
+  "pt": "farinha",
+  "meaning": "A white powder made from wheat for making bread.",
+  "example": "He ground wheat into flour."
+ },
+ {
+  "term": "straw",
+  "pt": "palha",
+  "meaning": "Dry yellow stems of plants.",
+  "example": "She must spin straw into gold."
+ },
+ {
+  "term": "gold",
+  "pt": "ouro",
+  "meaning": "A shiny yellow metal worth a lot of money.",
+  "example": "The straw turned into gold."
+ },
+ {
+  "term": "spin",
+  "pt": "fiar",
+  "meaning": "To make thread by turning something.",
+  "example": "She must spin the straw."
+ },
+ {
+  "term": "spinning wheel",
+  "pt": "roca de fiar",
+  "meaning": "A machine with a wheel for making thread.",
+  "example": "There was a spinning wheel in the room."
+ },
+ {
+  "term": "thread",
+  "pt": "fio",
+  "meaning": "A thin line used for sewing or weaving.",
+  "example": "The straw became golden thread."
+ },
+ {
+  "term": "tower",
+  "pt": "torre",
+  "meaning": "A tall, thin part of a castle.",
+  "example": "The room was at the top of a tower."
+ },
+ {
+  "term": "king",
+  "pt": "rei",
+  "meaning": "The man who rules a country.",
+  "example": "The king liked gold more than anything."
+ },
+ {
+  "term": "greedy",
+  "pt": "ganancioso",
+  "meaning": "Wanting more and more money or things.",
+  "example": "The king was greedy."
+ },
+ {
+  "term": "queen",
+  "pt": "rainha",
+  "meaning": "The wife of a king.",
+  "example": "The miller's daughter became the queen."
+ },
+ {
+  "term": "lock",
+  "pt": "trancar",
+  "meaning": "To close with a key.",
+  "example": "The king locked the door."
+ },
+ {
+  "term": "beard",
+  "pt": "barba",
+  "meaning": "The hair on a man's chin.",
+  "example": "The little man had a long grey beard."
+ },
+ {
+  "term": "necklace",
+  "pt": "colar",
+  "meaning": "A chain you wear around your neck.",
+  "example": "She gave him her necklace."
+ },
+ {
+  "term": "ring",
+  "pt": "anel",
+  "meaning": "A circle of metal on a finger.",
+  "example": "She gave him her ring."
+ },
+ {
+  "term": "whirr",
+  "pt": "zumbido (da roca)",
+  "meaning": "The sound of a wheel that turns fast.",
+  "example": "Whirr, whirr, whirr!"
+ },
+ {
+  "term": "promise",
+  "pt": "promessa; prometer",
+  "meaning": "To say that you will surely do something.",
+  "example": "I promise to give you my first child."
+ },
+ {
+  "term": "choice",
+  "pt": "escolha",
+  "meaning": "The chance to decide.",
+  "example": "She had no choice."
+ },
+ {
+  "term": "wedding",
+  "pt": "casamento",
+  "meaning": "A party when two people get married.",
+  "example": "There was a big wedding."
+ },
+ {
+  "term": "baby",
+  "pt": "bebê",
+  "meaning": "A very young child.",
+  "example": "The queen had a beautiful baby."
+ },
+ {
+  "term": "riches",
+  "pt": "riquezas",
+  "meaning": "A lot of money and valuable things.",
+  "example": "I will give you all the riches of the kingdom."
+ },
+ {
+  "term": "jewels",
+  "pt": "joias",
+  "meaning": "Beautiful stones of great value.",
+  "example": "I will give you gold and jewels."
+ },
+ {
+  "term": "treasure",
+  "pt": "tesouro",
+  "meaning": "Gold and other valuable things.",
+  "example": "A living child is worth more than all the treasure."
+ },
+ {
+  "term": "beg",
+  "pt": "implorar",
+  "meaning": "To ask in a very sad and strong way.",
+  "example": "She cried and begged."
+ },
+ {
+  "term": "guess",
+  "pt": "adivinhar",
+  "meaning": "To say an answer when you are not sure.",
+  "example": "You may guess as many times as you like."
+ },
+ {
+  "term": "messenger",
+  "pt": "mensageiro",
+  "meaning": "A person who carries news.",
+  "example": "The messenger rode away along the road."
+ },
+ {
+  "term": "name",
+  "pt": "nome",
+  "meaning": "The word that people call you.",
+  "example": "I must find out his name."
+ },
+ {
+  "term": "village",
+  "pt": "vilarejo",
+  "meaning": "A very small town.",
+  "example": "Ask in every village."
+ },
+ {
+  "term": "forest",
+  "pt": "floresta",
+  "meaning": "A big place with many trees.",
+  "example": "I rode through a high forest."
+ },
+ {
+  "term": "fire",
+  "pt": "fogueira; fogo",
+  "meaning": "Burning wood that gives heat and light.",
+  "example": "A little man jumped around the fire."
+ },
+ {
+  "term": "hop",
+  "pt": "pular num pé só",
+  "meaning": "To jump on one foot.",
+  "example": "He was hopping on one leg."
+ },
+ {
+  "term": "brew",
+  "pt": "fermentar; preparar bebida",
+  "meaning": "To make beer or another drink.",
+  "example": "Today I bake, tomorrow I brew."
+ },
+ {
+  "term": "bake",
+  "pt": "assar",
+  "meaning": "To cook bread or cake in an oven.",
+  "example": "Today I bake."
+ },
+ {
+  "term": "stamp",
+  "pt": "bater o pé",
+  "meaning": "To hit the ground hard with your foot.",
+  "example": "He stamped his foot on the floor."
+ },
+ {
+  "term": "rage",
+  "pt": "fúria",
+  "meaning": "Very strong anger.",
+  "example": "In his rage, he pulled his foot."
+ },
+ {
+  "term": "devil",
+  "pt": "diabo",
+  "meaning": "A very bad spirit in stories.",
+  "example": "The devil told you!"
+ },
+ {
+  "term": "tear",
+  "pt": "rasgar",
+  "meaning": "To pull something into pieces.",
+  "example": "He pulled himself in two."
+ },
+ {
+  "term": "trust",
+  "pt": "confiar",
+  "meaning": "To believe that a person is good and honest.",
+  "example": "She called her most trusted messenger."
+ },
+ {
+  "term": "ministers",
+  "pt": "ministros",
+  "meaning": "The king's important helpers.",
+  "example": "He called his ministers and soldiers."
+ },
+ {
+  "term": "soldiers",
+  "pt": "soldados",
+  "meaning": "Men who fight for a country.",
+  "example": "He called his soldiers."
+ },
+ {
+  "term": "shake",
+  "pt": "tremer",
+  "meaning": "To move quickly from side to side.",
+  "example": "His knees were shaking."
+ },
+ {
+  "term": "pointed",
+  "pt": "pontudo",
+  "meaning": "With a sharp end.",
+  "example": "He had a pointed red hat."
+ },
+ {
+  "term": "clever",
+  "pt": "esperto",
+  "meaning": "Quick to understand.",
+  "example": "The little man's eyes were bright and clever."
+ },
+ {
+  "term": "pretend",
+  "pt": "fingir",
+  "meaning": "To act as if something is true.",
+  "example": "She pretended to think."
+ },
+ {
+  "term": "tax",
+  "pt": "imposto",
+  "meaning": "Money that people pay to the government.",
+  "example": "The miller had to pay a small tax."
+ }
+]

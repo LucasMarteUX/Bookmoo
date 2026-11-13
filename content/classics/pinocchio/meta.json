@@ -1,0 +1,27 @@
+{
+  "n": 18,
+  "slug": "pinocchio",
+  "title": "Pinocchio: The Wooden Boy",
+  "galleryTitle": "Pinocchio: The Wooden Boy",
+  "author": "Carlo Collodi",
+  "authorFull": "Carlo Collodi (Carlo Lorenzini, 1826–1890)",
+  "originalTitle": "Le avventure di Pinocchio",
+  "originalYear": 1883,
+  "category": "adventure",
+  "level": "A2",
+  "language": "en",
+  "readingWpm": 100,
+  "descriptionEn": "A rich retelling of Collodi's classic novel in simple English (A2). Sixteen chapters with full scenes and dialogue: the talking log, the Cricket, Fire-Eater's theater, the Fox and the Cat, the Fairy with blue hair, the Field of Miracles, the Land of Toys, the donkey and the Terrible Shark, with a vocabulary guide.",
+  "descriptionPt": "Um reconto rico do clássico de Collodi em inglês simples (A2). Dezesseis capítulos com cenas e diálogos: o pedaço de lenha que fala, o Grilo, o teatro do Comedor de Fogo, a Raposa e o Gato, a Fada de cabelos azuis, o Campo dos Milagres, o País dos Brinquedos, o burro e o Terrível Tubarão, com guia de vocabulário.",
+  "adaptationCredit": "Adapted for beginner learners (A2) for Bookmoo. Newly written in simple English from the events of Carlo Collodi's Italian novel (1883); condensed to sixteen chapters. Not a copy of any published translation.",
+  "sources": [
+    "Carlo Collodi, Le avventure di Pinocchio. Storia di un burattino (1883), Italian original in the public domain (Project Gutenberg #52484), read to check the events, characters and order of the 36 chapters. Condensed and retold in new English."
+  ],
+  "rights": "Carlo Collodi died in 1890, so the Italian original is in the public domain worldwide. The English text of this edition is new and is based on the events of the Italian novel; it does not copy any published English translation. It uses no names, songs or designs from the 1940 film or other adaptations (no Jiminy Cricket, Stromboli, Figaro or Monstro). Cover: original artwork made for Bookmoo.",
+  "cover": {
+    "bg1": "#6a4a1c",
+    "bg2": "#241606",
+    "accent": "#c8372d",
+    "paper": "#f6ecd6"
+  }
+}

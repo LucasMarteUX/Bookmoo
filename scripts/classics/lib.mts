@@ -22,7 +22,11 @@ export type Book = { dir: string; meta: Meta; chapters: Chapter[]; glossary: Ent
 
 export const bookDir = (slug: string) => join(CLASSICS, slug)
 export const buildDir = (slug: string) => { const d = join(bookDir(slug), 'build'); mkdirSync(d, { recursive: true }); return d }
-export const epubName = (slug: string) => `${slug}-a1-expanded.epub`
+export const epubName = (slug: string) => {
+  let level = 'a1'
+  try { level = String(JSON.parse(readFileSync(join(CLASSICS, slug, 'meta.json'), 'utf8')).level ?? 'A1').toLowerCase() } catch { /* meta ainda não existe */ }
+  return `${slug}-${level}-expanded.epub`
+}
 
 export function loadQueue(): { n: number; slug: string; title: string; author: string; category: string }[] {
   return JSON.parse(readFileSync(join(CLASSICS, 'queue.json'), 'utf8'))
@@ -71,7 +75,7 @@ export function validateBook(book: Book): Check[] {
   if (!chapters.length) return [...out, { level: 'error', msg: 'Sem capítulos.' }]
   for (const f of ['title', 'author', 'category', 'level', 'descriptionEn', 'rights', 'adaptationCredit'] as const) if (!meta[f]) err(`meta.${f} ausente`)
   if (!meta.sources?.length) err('Nenhuma fonte histórica registrada')
-  if (meta.level !== 'A1') err('Nível deve ser A1')
+  if (!['A1', 'A2', 'B1'].includes(meta.level)) err('Nível deve ser A1, A2 ou B1')
   const avg = book.storyWords / chapters.length
   const sorted = chapters.map(c => c.words).sort((a, b) => a - b)
   const median = sorted[Math.floor(sorted.length / 2)]
@@ -94,7 +98,7 @@ export function validateBook(book: Book): Check[] {
   const sentences = all.split(/(?<=[.!?])\s+/).map(s => countWords(s))
   const avgSentence = sentences.reduce((a, b) => a + b, 0) / sentences.length
   info(`${chapters.length} capítulos, ${book.storyWords} palavras (mediana ${median}/cap., média ${Math.round(avg)}); frase média ${avgSentence.toFixed(1)} palavras`)
-  if (avgSentence > 14) warn(`Frase média longa para A1 (${avgSentence.toFixed(1)})`)
+  if (avgSentence > (meta.level === 'B1' ? 20 : meta.level === 'A2' ? 17 : 14)) warn(`Frase média longa para ${meta.level} (${avgSentence.toFixed(1)})`)
   if (/[“”‘’]/.test(all)) warn('Aspas tipográficas no texto (use aspas retas para o leitor/vocabulário)')
   if (!/"/.test(all)) err('Sem diálogos')
   // glossário
@@ -121,7 +125,7 @@ export function editionIntro(book: Book) {
     `About this edition`,
     `${meta.title.split(':')[0]} in Simple English`,
     `This is a newly written, expanded English retelling of the tale "${meta.originalTitle.replace(/ \(.*$/, '')}" by the ${meta.author}, first published in ${meta.originalYear}. It keeps the people, the places, the events and the ending of the original story, and it tells them with short sentences and common words.`,
-    `Reading level: A1-adapted, with vocabulary support. This is an estimated teaching level, not an official CEFR certification. Some story words are explained in the vocabulary guide at the end.`,
+    `Reading level: ${meta.level}-adapted, with vocabulary support. This is an estimated teaching level, not an official CEFR certification. Some story words are explained in the vocabulary guide at the end.`,
     `About ${book.storyWords.toLocaleString('en-US')} words in ${book.chapters.length} chapters. Reading time: about ${readingMinutes(book.storyWords, meta.readingWpm)} minutes at a slow, careful pace.`,
   ]
 }
@@ -169,7 +173,7 @@ dl dt{font-weight:bold;margin-top:.8em;}dl dd{margin:0 0 .4em 1em;}
 
 export function buildEpub(book: Book, coverJpeg: Uint8Array): Uint8Array {
   const { meta, chapters, glossary } = book
-  const uid = `urn:bookmoo:classics:${meta.slug}:a1-expanded`
+  const uid = `urn:bookmoo:classics:${meta.slug}:${meta.level.toLowerCase()}-expanded`
   const modified = new Date().toISOString().replace(/\.\d+Z$/, 'Z')
   const files: Record<string, Uint8Array | [Uint8Array, { level: 0 }]> = {}
   const put = (path: string, text: string) => { files[path] = strToU8(text) }
@@ -181,7 +185,7 @@ export function buildEpub(book: Book, coverJpeg: Uint8Array): Uint8Array {
   files['OEBPS/images/cover.jpg'] = coverJpeg
   put('OEBPS/cover.xhtml', xhtml('Cover', `<div class="cover"><img src="images/cover.jpg" alt="Cover of ${esc(meta.title)}"/></div>`, 'cover'))
   put('OEBPS/title.xhtml', xhtml('Title page', `<h1>${esc(meta.title)}</h1>
-<p class="center"><em>Extended A1 Edition</em></p>
+<p class="center"><em>Extended ${meta.level} Edition</em></p>
 <p class="center">${esc(meta.author)}</p>
 <p class="center small">Adapted for beginner learners</p>`))
   const intro = editionIntro(book)
@@ -221,7 +225,7 @@ export function buildEpub(book: Book, coverJpeg: Uint8Array): Uint8Array {
 <dc:language>en</dc:language>
 <dc:publisher>Bookmoo</dc:publisher>
 <dc:description>${esc(meta.descriptionEn)}</dc:description>
-<dc:subject>Graded reader, A1, ${esc(meta.category)}</dc:subject>
+<dc:subject>Graded reader, ${meta.level}, ${esc(meta.category)}</dc:subject>
 <dc:rights>${esc(meta.rights)}</dc:rights>
 <meta property="dcterms:modified">${modified}</meta>
 <meta name="cover" content="cover-image"/>

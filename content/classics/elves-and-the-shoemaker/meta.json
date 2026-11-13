@@ -1,0 +1,27 @@
+{
+  "n": 17,
+  "slug": "elves-and-the-shoemaker",
+  "title": "The Elves and the Shoemaker: Shoes at Midnight",
+  "galleryTitle": "The Elves and the Shoemaker: Shoes at Midnight",
+  "author": "Brothers Grimm",
+  "authorFull": "Jacob Grimm (1785–1863) and Wilhelm Grimm (1786–1859)",
+  "originalTitle": "Die Wichtelmänner (The Elves, KHM 39)",
+  "originalYear": 1812,
+  "category": "short",
+  "level": "A1",
+  "language": "en",
+  "readingWpm": 100,
+  "descriptionEn": "A beginner-friendly English retelling of the Brothers Grimm tale The Elves and the Shoemaker. Four chapters with full scenes and dialogue: the poor shoemaker, the shoes in the morning, two little men at midnight and the Christmas gift, with a vocabulary guide.",
+  "descriptionPt": "Um reconto acessível, em inglês simples, do conto Os Duendes e o Sapateiro dos Irmãos Grimm. Quatro capítulos: o sapateiro pobre, os sapatos de manhã, os dois homenzinhos à meia-noite e o presente de Natal, com guia de vocabulário.",
+  "adaptationCredit": "Adapted for beginner learners (A1) for Bookmoo. New text written from the structure of the Grimm tale; not a copy of any published translation.",
+  "sources": [
+    "Brothers Grimm, Kinder- und Haus-Märchen, KHM 39 'Die Wichtelmänner' (first tale; 1st ed. 1812; final text 1857). Read in the historical English translation in Project Gutenberg #2591 (Edgar Taylor / Marian Edwardes) to confirm events: the last piece of leather, the shoes made at night, the growing orders, the watching at midnight, the clothes and the elves' dance and song."
+  ],
+  "rights": "Original tale: Jacob Grimm died in 1863 and Wilhelm Grimm in 1859, so the work is in the public domain worldwide. The adaptation is new original text written for Bookmoo and copies no translation. It uses no names, songs or designs from film or stage versions. Cover: original artwork made for Bookmoo.",
+  "cover": {
+    "bg1": "#2a4a3a",
+    "bg2": "#0d1c14",
+    "accent": "#c8372d",
+    "paper": "#f6ecd6"
+  }
+}

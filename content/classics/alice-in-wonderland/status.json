@@ -1,0 +1,38 @@
+{
+  "slug": "alice-in-wonderland",
+  "stages": {
+    "manuscript": {
+      "ok": false
+    },
+    "cover": {
+      "ok": true,
+      "jpgBytes": 123484,
+      "thumbBytes": 11960
+    },
+    "epub": {
+      "ok": true,
+      "file": "content/classics/alice-in-wonderland/build/alice-in-wonderland-a2-expanded.epub",
+      "bytes": 143066,
+      "epubcheck": {
+        "errors": 0,
+        "warnings": 0
+      }
+    },
+    "validated": {
+      "ok": true,
+      "at": "2026-11-13T15:14:05.858Z"
+    },
+    "published": {
+      "ok": true,
+      "id": "9dc1a14c-90a2-4725-9b25-e2da1c1797a3",
+      "at": "2026-11-13T15:14:30.070Z",
+      "verifiedPages": 142
+    }
+  },
+  "updatedAt": "2026-11-13T15:14:30.070Z",
+  "chapters": 10,
+  "storyWords": 13572,
+  "glossary": 53,
+  "pages": 142,
+  "readingMinutes": 136
+}

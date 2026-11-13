@@ -1,0 +1,27 @@
+{
+  "n": 16,
+  "slug": "rumpelstiltskin",
+  "title": "Rumpelstiltskin: Straw into Gold",
+  "galleryTitle": "Rumpelstiltskin: Straw into Gold",
+  "author": "Brothers Grimm",
+  "authorFull": "Jacob Grimm (1785–1863) and Wilhelm Grimm (1786–1859)",
+  "originalTitle": "Rumpelstilzchen (Rumpelstiltskin, KHM 55)",
+  "originalYear": 1812,
+  "category": "fantasy",
+  "level": "A1",
+  "language": "en",
+  "readingWpm": 100,
+  "descriptionEn": "A rich, beginner-friendly English retelling of the Brothers Grimm tale Rumpelstiltskin. Six chapters with full scenes and dialogue: the miller's boast, three nights of spinning, the promise, the guessing game and the name by the fire, with a vocabulary guide.",
+  "descriptionPt": "Um reconto rico e acessível, em inglês simples, do conto Rumpelstiltskin dos Irmãos Grimm. Seis capítulos: a gabola do moleiro, três noites fiando, a promessa, o jogo de adivinhar e o nome junto à fogueira, com guia de vocabulário.",
+  "adaptationCredit": "Adapted for beginner learners (A1) for Bookmoo. New text written from the structure of the Grimm tale; not a copy of any published translation.",
+  "sources": [
+    "Brothers Grimm, Kinder- und Haus-Märchen, KHM 55 'Rumpelstilzchen' (1st ed. 1812; final text 1857). Read in the historical English translation in Project Gutenberg #2591 (Edgar Taylor / Marian Edwardes) to confirm events: the miller's boast, three nights, the necklace, the ring, the promise of the first child, the three days of guessing, the song by the fire and the ending."
+  ],
+  "rights": "Original tale: Jacob Grimm died in 1863 and Wilhelm Grimm in 1859, so the work is in the public domain worldwide. The adaptation is new original text written for Bookmoo and copies no translation. It uses no names, songs or designs from film or stage versions. Cover: original artwork made for Bookmoo.",
+  "cover": {
+    "bg1": "#6a4a1c",
+    "bg2": "#251806",
+    "accent": "#c8372d",
+    "paper": "#f6ecd6"
+  }
+}

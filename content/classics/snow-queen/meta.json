@@ -1,0 +1,27 @@
+{
+  "n": 14,
+  "slug": "snow-queen",
+  "title": "The Snow Queen: The Mirror and the Roses",
+  "galleryTitle": "The Snow Queen: The Mirror and the Roses",
+  "author": "Hans Christian Andersen",
+  "authorFull": "Hans Christian Andersen (1805–1875)",
+  "originalTitle": "Snedronningen (The Snow Queen)",
+  "originalYear": 1844,
+  "category": "fantasy",
+  "level": "A1",
+  "language": "en",
+  "readingWpm": 100,
+  "descriptionEn": "A beginner-friendly English retelling of Andersen's long tale in seven stories. Eleven chapters: the troll's mirror, Kai and Gerda, the splinter of glass, the long search, the robber girl, the reindeer and the palace of ice, with a vocabulary guide.",
+  "descriptionPt": "Um reconto em inglês simples do longo conto A Rainha da Neve de Andersen, em sete histórias. Onze capítulos: o espelho do troll, Kai e Gerda, o estilhaço de vidro, a longa busca, a menina ladra, a rena e o palácio de gelo, com guia de vocabulário.",
+  "adaptationCredit": "Adapted for beginner learners (A1) for Bookmoo. New text written from the structure of Andersen's tale; not a copy of any published translation.",
+  "sources": [
+    "Hans Christian Andersen, Snedronningen (The Snow Queen), published 21 December 1844 (Nye Eventyr). Read in full in a historical English translation (Project Gutenberg #27200, 19th century): the seven stories, the splinters of the mirror, the robber girl, the Lapland and Finland women, the ice puzzle and the word Eternity."
+  ],
+  "rights": "Original tale: Hans Christian Andersen died in 1875, so the work is in the public domain worldwide. The adaptation is new text written for Bookmoo and copies no modern translation. It uses no names, songs, characters or designs from film, stage or television versions (no Elsa, Anna, Olaf, Frozen). Cover: original artwork made for Bookmoo.",
+  "cover": {
+    "bg1": "#1c3f6a",
+    "bg2": "#08172b",
+    "accent": "#c8372d",
+    "paper": "#eef4fa"
+  }
+}

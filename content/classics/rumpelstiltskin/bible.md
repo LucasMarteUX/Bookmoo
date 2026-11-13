@@ -1,0 +1,6 @@
+# Bíblia — Rumpelstiltskin
+
+**Autor/tradição:** Irmãos Grimm, "Rumpelstilzchen" (KHM 55), 1812; texto de 1857. PD mundial. Variantes europeias anteriores (Tom Tit Tot etc.) só como contexto.
+**Versão seguida:** Grimm 1857 (lida na tradução histórica Taylor/Edwardes, Gutenberg #2591). Texto novo, sem copiar a tradução; sem filmes/musicais.
+**Personagens:** o moleiro e sua filha; o rei; o anãozinho (Rumpelstiltskin); a rainha; o mensageiro.
+**Eventos obrigatórios:** moleiro pobre vangloria-se de que a filha transforma palha em ouro; rei leva-a ao quarto cheio de palha; chora; o anão aparece, pergunta; dá-lhe o colar; 1ª noite; 2ª noite maior, o anel; 3ª noite ainda maior; o rei promete casar-se; ela não tem mais nada; promete o primeiro filho; casamento; um ano depois, o bebê; o anão volta; ela oferece riquezas; ele quer "algo vivo"; compaixão: três dias para adivinhar o nome; 1º dia: lista de nomes (Caspar, Melchior, Balthazar...); 2º dia: nomes estranhos (Ribs-of-beef, Sheep-shanks, Laceleg); 3º dia: o mensageiro vê o anão dançando à fogueira ("Today I bake, tomorrow I brew…Rumpelstiltskin is my name!"); ela adivinha ("Is your name Conrad? Harry? Rumpelstiltskin?"); "The devil told you that!"; ele bate o pé direito no chão, afunda até a cintura, puxa o pé esquerdo e se rasga ao meio.

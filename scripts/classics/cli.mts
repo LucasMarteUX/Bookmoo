@@ -39,8 +39,10 @@ async function makeCover(book: Book) {
   if (!existsSync(artFile)) fail('cover-art.svg ausente (arte da capa, viewBox 1024x830)')
   const art = readFileSync(artFile, 'utf8').replace(/<\?xml[^>]*>/, '').replace(/<svg([^>]*)>/, '<svg x="0" y="190" width="1024" height="830"$1>')
   const [main, sub] = meta.title.split(/:\s*/)
-  const mainLines = wrap(main, 16)
-  const size = mainLines.length > 2 ? 92 : 104
+  let mainLines = wrap(main, 16)
+  if (mainLines.length > 2) mainLines = wrap(main, 21)
+  const longest = Math.max(...mainLines.map(l => l.length))
+  const size = Math.min(mainLines.length > 2 ? 92 : 104, Math.floor(880 / (longest * 0.6)))
   const titleSvg = mainLines.map((l, i) => `<text x="512" y="${1070 + i * (size + 8)}" font-size="${size}" font-weight="700" text-anchor="middle" fill="${meta.cover.paper}" font-family="Georgia, 'Times New Roman', serif">${esc(l)}</text>`).join('')
   const subY = 1070 + mainLines.length * (size + 8) - 6
   const subSvg = sub ? wrap(sub, 30).map((l, i) => `<text x="512" y="${subY + 56 + i * 52}" font-size="44" font-style="italic" text-anchor="middle" fill="${meta.cover.accent === '#c8372d' ? '#f2b8b1' : meta.cover.paper}" font-family="Georgia, 'Times New Roman', serif">${esc(l)}</text>`).join('') : ''
@@ -50,7 +52,7 @@ async function makeCover(book: Book) {
 <rect x="24" y="24" width="976" height="1488" fill="none" stroke="${meta.cover.paper}" stroke-width="3" opacity=".9"/>
 <rect x="36" y="36" width="952" height="1464" fill="none" stroke="${meta.cover.paper}" stroke-width="1" opacity=".5"/>
 <text x="512" y="100" font-size="34" letter-spacing="10" text-anchor="middle" fill="${meta.cover.paper}" font-family="Georgia, serif" opacity=".95">BOOKMOO CLASSICS</text>
-<text x="512" y="148" font-size="26" letter-spacing="6" text-anchor="middle" fill="${meta.cover.accent === '#c8372d' ? '#f2b8b1' : meta.cover.paper}" font-family="Georgia, serif">GRADED READER · A1</text>
+<text x="512" y="148" font-size="26" letter-spacing="6" text-anchor="middle" fill="${meta.cover.accent === '#c8372d' ? '#f2b8b1' : meta.cover.paper}" font-family="Georgia, serif">GRADED READER · ${meta.level}</text>
 <g clip-path="url(#artclip)" transform="translate(48,0)"><svg x="0" y="190" width="928" height="760" viewBox="0 0 1024 830" preserveAspectRatio="xMidYMid slice">${art.replace(/^<svg[^>]*>/, '').replace(/<\/svg>\s*$/, '')}</svg></g>
 <rect x="48" y="190" width="928" height="760" rx="8" fill="none" stroke="${meta.cover.paper}" stroke-width="3"/>
 ${titleSvg}${subSvg}
@@ -155,20 +157,20 @@ async function publish() {
   const pages = bookPages(book)
   const title = book.meta.galleryTitle
   const update = flags.includes('--update')
-  const sql = update ? `update public.catalog_books set author = ${q$(book.meta.author)}, description = ${q$(book.meta.descriptionEn)}, cover_data = ${q$(cover)}, cover_thumb = ${q$(thumb)}, cefr_level = 'A1', category = ${q$(book.meta.category)}, pages = ${q$(JSON.stringify(pages))}::jsonb
+  const sql = update ? `update public.catalog_books set author = ${q$(book.meta.author)}, description = ${q$(book.meta.descriptionEn)}, cover_data = ${q$(cover)}, cover_thumb = ${q$(thumb)}, cefr_level = ${q$(book.meta.level)}, category = ${q$(book.meta.category)}, pages = ${q$(JSON.stringify(pages))}::jsonb
   where lower(title) = lower(${q$(title)}) returning id, title;
 ` : `do $$ begin
   if exists (select 1 from public.catalog_books where lower(title) = lower(${q$(title)})) then raise exception 'ja_existe: ${title.replace(/'/g, "''")}'; end if;
   if (select count(*) from auth.users where lower(email) = 'lucasmarteux@gmail.com') <> 1 then raise exception 'admin_nao_encontrado'; end if;
 end $$;
 insert into public.catalog_books (title, author, description, language_code, cover_data, cover_thumb, cefr_level, category, pages, created_by)
-values (${q$(title)}, ${q$(book.meta.author)}, ${q$(book.meta.descriptionEn)}, 'en', ${q$(cover)}, ${q$(thumb)}, 'A1', ${q$(book.meta.category)},
+values (${q$(title)}, ${q$(book.meta.author)}, ${q$(book.meta.descriptionEn)}, 'en', ${q$(cover)}, ${q$(thumb)}, ${q$(book.meta.level)}, ${q$(book.meta.category)},
   ${q$(JSON.stringify(pages))}::jsonb, (select id from auth.users where lower(email) = 'lucasmarteux@gmail.com'))
 returning id, title;
 `
   const file = join(dir, 'publish.sql')
   writeFileSync(file, sql)
-  log(`SQL gerado (${(sql.length / 1024).toFixed(0)} KB): ${pages.length} páginas, categoria ${book.meta.category}, nível A1.`)
+  log(`SQL gerado (${(sql.length / 1024).toFixed(0)} KB): ${pages.length} páginas, categoria ${book.meta.category}, nível ${book.meta.level}.`)
   if (!flags.includes('--run')) return log('Dry-run. Use --run para publicar (escreve na produção); --update atualiza um livro já publicado, sem duplicar.')
   const r = dbQuery(file)
   if (!r.ok && r.raw.includes('ja_existe')) { log('Já existe na galeria: não duplica, só verifica.'); return verify() }
@@ -191,7 +193,7 @@ async function verify() {
   const row = rows[0]
   const problems: string[] = []
   if (row.np !== pages.length) problems.push(`páginas: banco ${row.np} ≠ local ${pages.length}`)
-  if (row.cefr_level !== 'A1') problems.push('nível não é A1')
+  if (row.cefr_level !== book.meta.level) problems.push(`nível não é ${book.meta.level}`)
   if (row.category !== book.meta.category) problems.push('categoria diferente')
   if (!row.cover_ok || !row.thumb_ok) problems.push('capa/miniatura ausentes')
   log('No banco:', { id: row.id, title: row.title, author: row.author, level: row.cefr_level, category: row.category, pages: row.np, createdAt: row.created_at })

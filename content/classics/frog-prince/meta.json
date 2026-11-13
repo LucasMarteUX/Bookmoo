@@ -1,0 +1,27 @@
+{
+  "n": 15,
+  "slug": "frog-prince",
+  "title": "The Frog Prince: The Golden Ball and the Iron Bands",
+  "galleryTitle": "The Frog Prince: The Golden Ball and the Iron Bands",
+  "author": "Brothers Grimm",
+  "authorFull": "Jacob Grimm (1785–1863) and Wilhelm Grimm (1786–1859)",
+  "originalTitle": "Der Froschkönig oder der eiserne Heinrich (The Frog King, KHM 1)",
+  "originalYear": 1812,
+  "category": "fantasy",
+  "level": "A1",
+  "language": "en",
+  "readingWpm": 100,
+  "descriptionEn": "A rich, beginner-friendly English retelling of the Brothers Grimm tale The Frog King. Six chapters with full scenes and dialogue: the golden ball, the promise at the well, three nights at the table, the wall and the faithful servant with the iron bands, with a vocabulary guide.",
+  "descriptionPt": "Um reconto rico e acessível, em inglês simples, do conto O Príncipe Sapo dos Irmãos Grimm. Seis capítulos: a bola de ouro, a promessa no poço, três noites à mesa, a parede e o servo fiel com as cintas de ferro, com guia de vocabulário.",
+  "adaptationCredit": "Adapted for beginner learners (A1) for Bookmoo. New text written from the structure of the Grimm tale; not a copy of any published translation.",
+  "sources": [
+    "Brothers Grimm, Kinder- und Haus-Märchen, KHM 1 'Der Froschkönig oder der eiserne Heinrich' (1st ed. 1812; final text 1857, with the frog thrown against the wall and the three iron bands). Read in the historical English translation in Project Gutenberg #2591 (Edgar Taylor / Marian Edwardes, titled 'The Frog-Prince') and checked against the structure of the 1857 text."
+  ],
+  "rights": "Original tale: Jacob Grimm died in 1863 and Wilhelm Grimm in 1859, so the work is in the public domain worldwide. The adaptation is new original text written for Bookmoo and copies no translation. It uses no names, songs or designs from film or stage versions. Cover: original artwork made for Bookmoo.",
+  "cover": {
+    "bg1": "#2a5a3a",
+    "bg2": "#0d2416",
+    "accent": "#c8372d",
+    "paper": "#f3e9d2"
+  }
+}

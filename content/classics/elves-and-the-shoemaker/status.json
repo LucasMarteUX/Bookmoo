@@ -1,0 +1,35 @@
+{
+  "slug": "elves-and-the-shoemaker",
+  "stages": {
+    "cover": {
+      "ok": true,
+      "jpgBytes": 113169,
+      "thumbBytes": 9976
+    },
+    "epub": {
+      "ok": true,
+      "file": "content/classics/elves-and-the-shoemaker/build/elves-and-the-shoemaker-a1-expanded.epub",
+      "bytes": 102675,
+      "epubcheck": {
+        "errors": 0,
+        "warnings": 0
+      }
+    },
+    "validated": {
+      "ok": true,
+      "at": "2026-11-13T14:59:22.046Z"
+    },
+    "published": {
+      "ok": true,
+      "id": "7800c4ee-67d6-4a05-98b6-a7b33ca416c6",
+      "at": "2026-11-13T14:59:39.499Z",
+      "verifiedPages": 33
+    }
+  },
+  "updatedAt": "2026-11-13T14:59:39.499Z",
+  "chapters": 4,
+  "storyWords": 3067,
+  "glossary": 44,
+  "pages": 33,
+  "readingMinutes": 31
+}

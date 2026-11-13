@@ -1,0 +1,6 @@
+# Bíblia — The Elves and the Shoemaker
+
+**Autor/tradição:** Irmãos Grimm, "Die Wichtelmänner" (KHM 39, primeiro conto), 1812; texto de 1857. PD mundial.
+**Versão seguida:** Grimm 1857 (lida na tradução histórica Taylor/Edwardes, Gutenberg #2591, "The Elves and the Shoemaker"). Texto novo; sem versões modernas.
+**Personagens:** o sapateiro e sua esposa; os dois duendes (elves) pequenos e nus; fregueses.
+**Eventos obrigatórios:** sapateiro pobre por culpa alguma; só tem couro para um par; corta à noite, deixa para a manhã; de manhã, um par pronto, impecável; um freguês paga mais do que o preço; com o dinheiro compra couro para dois pares; corta à noite; de manhã, dois pares; e assim cresce: quatro, seis; perto do Natal, a esposa sugere ficarem acordados para ver; escondem-se atrás das roupas no canto; à meia-noite, dois homenzinhos nus sentam-se à bancada e trabalham sem parar até terminar, e desaparecem; a esposa se compadece: roupas, camisas, casacos, calças, meias; ele faz sapatos; deixam os presentes na bancada e se escondem; meia-noite: os duendes se vestem, cantam "Now we are boys so fine to see, why cobble more for you and me?", dançam e vão embora; nunca mais voltam; a sorte do sapateiro continua.

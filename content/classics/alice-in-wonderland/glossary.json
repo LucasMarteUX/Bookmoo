@@ -1,0 +1,320 @@
+[
+ {
+  "term": "waistcoat",
+  "pt": "colete",
+  "meaning": "A short coat without sleeves worn under a jacket.",
+  "example": "The Rabbit took a watch out of its waistcoat pocket."
+ },
+ {
+  "term": "marmalade",
+  "pt": "geleia de laranja",
+  "meaning": "A sweet orange jam.",
+  "example": "The jar was labeled ORANGE MARMALADE."
+ },
+ {
+  "term": "curtsy",
+  "pt": "fazer reverência",
+  "meaning": "A small bow that a woman or girl makes.",
+  "example": "She tried to curtsy as she fell."
+ },
+ {
+  "term": "telescope",
+  "pt": "luneta",
+  "meaning": "A tube that you can make longer or shorter.",
+  "example": "I must be shutting up like a telescope."
+ },
+ {
+  "term": "label",
+  "pt": "rótulo",
+  "meaning": "A paper on a bottle that says what is inside.",
+  "example": "The bottle had a label: DRINK ME."
+ },
+ {
+  "term": "poison",
+  "pt": "veneno",
+  "meaning": "Something that can make you very ill.",
+  "example": "The bottle was not marked poison."
+ },
+ {
+  "term": "pool",
+  "pt": "poça; lago pequeno",
+  "meaning": "A small area of water.",
+  "example": "She swam in a pool of her own tears."
+ },
+ {
+  "term": "fan",
+  "pt": "leque",
+  "meaning": "A thing that moves the air to make you cool.",
+  "example": "She picked up the fan and the gloves."
+ },
+ {
+  "term": "Dodo",
+  "pt": "dodô",
+  "meaning": "A large bird that no longer lives on Earth.",
+  "example": "The Dodo called a Caucus-race."
+ },
+ {
+  "term": "caucus-race",
+  "pt": "corrida do Caucus",
+  "meaning": "A silly race with no start and no end.",
+  "example": "Everybody has won in a Caucus-race."
+ },
+ {
+  "term": "thimble",
+  "pt": "dedal",
+  "meaning": "A small cap for a finger when you sew.",
+  "example": "Alice's prize was a thimble."
+ },
+ {
+  "term": "Dormouse",
+  "pt": "arganaz",
+  "meaning": "A small sleepy animal like a mouse.",
+  "example": "The Dormouse was asleep."
+ },
+ {
+  "term": "caterpillar",
+  "pt": "lagarta",
+  "meaning": "An insect before it becomes a butterfly.",
+  "example": "A blue Caterpillar sat on the mushroom."
+ },
+ {
+  "term": "mushroom",
+  "pt": "cogumelo",
+  "meaning": "A small plant that grows in damp places.",
+  "example": "One side of the mushroom makes you taller."
+ },
+ {
+  "term": "chrysalis",
+  "pt": "crisálida",
+  "meaning": "The soft case where a caterpillar changes into a butterfly.",
+  "example": "You will turn into a chrysalis."
+ },
+ {
+  "term": "duchess",
+  "pt": "duquesa",
+  "meaning": "A woman of very high rank.",
+  "example": "The Duchess nursed a baby."
+ },
+ {
+  "term": "hearth",
+  "pt": "lareira",
+  "meaning": "The floor in front of a fireplace.",
+  "example": "The cat sat on the hearth."
+ },
+ {
+  "term": "grin",
+  "pt": "sorrir largamente",
+  "meaning": "To smile with a wide mouth.",
+  "example": "The Cheshire Cat grinned."
+ },
+ {
+  "term": "snout",
+  "pt": "focinho",
+  "meaning": "The nose of an animal like a pig.",
+  "example": "The baby had a turned-up snout."
+ },
+ {
+  "term": "mad",
+  "pt": "maluco",
+  "meaning": "Not sane; very strange.",
+  "example": "We are all mad here."
+ },
+ {
+  "term": "hatter",
+  "pt": "chapeleiro",
+  "meaning": "A person who makes hats.",
+  "example": "The Hatter and the March Hare had tea."
+ },
+ {
+  "term": "riddle",
+  "pt": "adivinha",
+  "meaning": "A question that is a puzzle.",
+  "example": "Why is a raven like a writing-desk?"
+ },
+ {
+  "term": "croquet",
+  "pt": "croquê",
+  "meaning": "A garden game with mallets and balls.",
+  "example": "The Queen played croquet."
+ },
+ {
+  "term": "mallet",
+  "pt": "malho",
+  "meaning": "A tool like a hammer used to hit balls.",
+  "example": "The mallets were live flamingos."
+ },
+ {
+  "term": "hedgehog",
+  "pt": "ouriço",
+  "meaning": "A small animal with sharp points on its back.",
+  "example": "The balls were live hedgehogs."
+ },
+ {
+  "term": "flamingo",
+  "pt": "flamingo",
+  "meaning": "A tall pink bird with long legs.",
+  "example": "The flamingo twisted its neck."
+ },
+ {
+  "term": "gardeners",
+  "pt": "jardineiros",
+  "meaning": "People who take care of a garden.",
+  "example": "The three gardeners were painting the roses."
+ },
+ {
+  "term": "Gryphon",
+  "pt": "grifo",
+  "meaning": "A creature with a lion's body and an eagle's head.",
+  "example": "The Gryphon took Alice to the Mock Turtle."
+ },
+ {
+  "term": "Mock Turtle",
+  "pt": "Tartaruga Falsa",
+  "meaning": "A made-up creature in the story.",
+  "example": "The Mock Turtle sighed and sobbed."
+ },
+ {
+  "term": "trial",
+  "pt": "julgamento",
+  "meaning": "A meeting in a court to decide if someone did wrong.",
+  "example": "The trial of the Knave of Hearts began."
+ },
+ {
+  "term": "jury",
+  "pt": "júri",
+  "meaning": "People who decide if the accused is guilty.",
+  "example": "The jury wrote on their slates."
+ },
+ {
+  "term": "verdict",
+  "pt": "veredito",
+  "meaning": "The decision of the jury.",
+  "example": "Consider your verdict."
+ },
+ {
+  "term": "tarts",
+  "pt": "tortinhas",
+  "meaning": "Small sweet pies.",
+  "example": "The Knave stole the tarts."
+ },
+ {
+  "term": "witness",
+  "pt": "testemunha",
+  "meaning": "A person who tells what he saw in court.",
+  "example": "The Hatter was the first witness."
+ },
+ {
+  "term": "accusation",
+  "pt": "acusação",
+  "meaning": "A statement that someone did something wrong.",
+  "example": "Read the accusation!"
+ },
+ {
+  "term": "evidence",
+  "pt": "prova; depoimento",
+  "meaning": "Facts or words that show what is true.",
+  "example": "Give your evidence."
+ },
+ {
+  "term": "sentence",
+  "pt": "sentença",
+  "meaning": "The punishment decided in court.",
+  "example": "Sentence first, verdict afterwards!"
+ },
+ {
+  "term": "pack of cards",
+  "pt": "baralho",
+  "meaning": "A set of playing cards.",
+  "example": "You are nothing but a pack of cards!"
+ },
+ {
+  "term": "dream",
+  "pt": "sonho",
+  "meaning": "Pictures and stories in your mind while you sleep.",
+  "example": "What a curious dream!"
+ },
+ {
+  "term": "hole",
+  "pt": "buraco",
+  "meaning": "An opening in the ground.",
+  "example": "The Rabbit jumped into a big hole."
+ },
+ {
+  "term": "shelf",
+  "pt": "prateleira",
+  "meaning": "A flat board on a wall for putting things.",
+  "example": "She took a jar from a shelf."
+ },
+ {
+  "term": "curious",
+  "pt": "curioso",
+  "meaning": "Wanting to know or see something.",
+  "example": "She was very curious."
+ },
+ {
+  "term": "servant",
+  "pt": "criado",
+  "meaning": "A person who works in a house.",
+  "example": "A servant in a uniform opened the door."
+ },
+ {
+  "term": "pepper",
+  "pt": "pimenta",
+  "meaning": "A hot powder that makes you sneeze.",
+  "example": "There was too much pepper in the soup."
+ },
+ {
+  "term": "tea time",
+  "pt": "hora do chá",
+  "meaning": "The time in the afternoon when people drink tea.",
+  "example": "It is always tea time."
+ },
+ {
+  "term": "pot",
+  "pt": "panela",
+  "meaning": "A deep round container for cooking.",
+  "example": "The cook stirred a big pot of soup."
+ },
+ {
+  "term": "sneeze",
+  "pt": "espirrar",
+  "meaning": "To blow air out of the nose suddenly.",
+  "example": "Everybody sneezed in the kitchen."
+ },
+ {
+  "term": "chin",
+  "pt": "queixo",
+  "meaning": "The bottom part of your face.",
+  "example": "She put her chin on Alice's shoulder."
+ },
+ {
+  "term": "angry",
+  "pt": "bravo",
+  "meaning": "Feeling that you want to shout.",
+  "example": "The Queen was very angry."
+ },
+ {
+  "term": "whisper",
+  "pt": "sussurrar",
+  "meaning": "To speak very quietly.",
+  "example": "The Rabbit whispered in her ear."
+ },
+ {
+  "term": "trumpet",
+  "pt": "trombeta",
+  "meaning": "A musical instrument that you blow.",
+  "example": "The Rabbit blew the trumpet three times."
+ },
+ {
+  "term": "court",
+  "pt": "tribunal",
+  "meaning": "The place where a judge decides if someone did wrong.",
+  "example": "The King and Queen were in court."
+ },
+ {
+  "term": "crown",
+  "pt": "coroa",
+  "meaning": "A gold hat for a king or queen.",
+  "example": "The King wore his crown on his wig."
+ }
+]

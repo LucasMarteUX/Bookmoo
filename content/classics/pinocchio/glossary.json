@@ -1,0 +1,332 @@
+[
+ {
+  "term": "puppet",
+  "pt": "fantoche; marionete",
+  "meaning": "A toy person that moves with strings or hands.",
+  "example": "Geppetto wanted to make a puppet."
+ },
+ {
+  "term": "carpenter",
+  "pt": "carpinteiro",
+  "meaning": "A person who makes things from wood.",
+  "example": "Master Cherry was an old carpenter."
+ },
+ {
+  "term": "log",
+  "pt": "tronco",
+  "meaning": "A thick piece of wood from a tree.",
+  "example": "A log was in his workshop."
+ },
+ {
+  "term": "axe",
+  "pt": "machado",
+  "meaning": "A tool for cutting wood.",
+  "example": "He picked up his sharp axe."
+ },
+ {
+  "term": "wig",
+  "pt": "peruca",
+  "meaning": "False hair that you wear on your head.",
+  "example": "Geppetto had a yellow wig."
+ },
+ {
+  "term": "workshop",
+  "pt": "oficina",
+  "meaning": "A room where you make things.",
+  "example": "A log lay in his workshop."
+ },
+ {
+  "term": "carve",
+  "pt": "esculpir",
+  "meaning": "To cut wood into a shape.",
+  "example": "Geppetto began to carve the puppet."
+ },
+ {
+  "term": "nose",
+  "pt": "nariz",
+  "meaning": "The part of the face that you smell with.",
+  "example": "His nose grew longer."
+ },
+ {
+  "term": "policeman",
+  "pt": "policial",
+  "meaning": "A man who keeps people safe.",
+  "example": "A policeman caught him by the nose."
+ },
+ {
+  "term": "cricket",
+  "pt": "grilo",
+  "meaning": "A small insect that sings at night.",
+  "example": "The Talking Cricket lived in the room."
+ },
+ {
+  "term": "hammer",
+  "pt": "martelo",
+  "meaning": "A tool for hitting nails.",
+  "example": "He threw a hammer at the Cricket."
+ },
+ {
+  "term": "hungry",
+  "pt": "com fome",
+  "meaning": "Wanting food.",
+  "example": "Pinocchio was very hungry."
+ },
+ {
+  "term": "egg",
+  "pt": "ovo",
+  "meaning": "A round white thing that a chick comes out of.",
+  "example": "He found an egg."
+ },
+ {
+  "term": "chick",
+  "pt": "pintinho",
+  "meaning": "A baby chicken.",
+  "example": "A little chick came out."
+ },
+ {
+  "term": "bucket",
+  "pt": "balde",
+  "meaning": "A round container for water.",
+  "example": "A bucket of water fell on his head."
+ },
+ {
+  "term": "coals",
+  "pt": "brasas",
+  "meaning": "Pieces of burning black rock or wood.",
+  "example": "He put his feet on hot coals."
+ },
+ {
+  "term": "feet",
+  "pt": "pés",
+  "meaning": "The parts at the end of your legs.",
+  "example": "His wooden feet began to burn."
+ },
+ {
+  "term": "pear",
+  "pt": "pera",
+  "meaning": "A sweet fruit.",
+  "example": "Geppetto gave him three pears."
+ },
+ {
+  "term": "fussy",
+  "pt": "enjoado; exigente",
+  "meaning": "Not happy with simple things.",
+  "example": "I never knew that you were so fussy."
+ },
+ {
+  "term": "coat",
+  "pt": "casaco",
+  "meaning": "A warm piece of clothing.",
+  "example": "Geppetto sold his coat."
+ },
+ {
+  "term": "alphabet book",
+  "pt": "cartilha",
+  "meaning": "A book for learning to read.",
+  "example": "He needed an alphabet book."
+ },
+ {
+  "term": "puppet theater",
+  "pt": "teatro de marionetes",
+  "meaning": "A place where puppets act in a play.",
+  "example": "The Great Puppet Theater was in the square."
+ },
+ {
+  "term": "beard",
+  "pt": "barba",
+  "meaning": "The hair on a man's chin.",
+  "example": "His beard was black as ink."
+ },
+ {
+  "term": "whip",
+  "pt": "chicote",
+  "meaning": "A long rope used to hit animals.",
+  "example": "He had a big whip in his hand."
+ },
+ {
+  "term": "sneeze",
+  "pt": "espirrar",
+  "meaning": "To blow air out of your nose suddenly.",
+  "example": "Fire-Eater sneezed loudly."
+ },
+ {
+  "term": "gold coins",
+  "pt": "moedas de ouro",
+  "meaning": "Round pieces of gold used as money.",
+  "example": "He gave Pinocchio five gold coins."
+ },
+ {
+  "term": "fox",
+  "pt": "raposa",
+  "meaning": "A wild animal with a long tail.",
+  "example": "The Fox walked on three legs."
+ },
+ {
+  "term": "cat",
+  "pt": "gato",
+  "meaning": "A small animal that has soft fur.",
+  "example": "The Cat could not see."
+ },
+ {
+  "term": "inn",
+  "pt": "estalagem",
+  "meaning": "A small hotel with food.",
+  "example": "They stopped at the Red Lobster inn."
+ },
+ {
+  "term": "ghost",
+  "pt": "fantasma",
+  "meaning": "The spirit of a dead person.",
+  "example": "The ghost of the Talking Cricket spoke."
+ },
+ {
+  "term": "sack",
+  "pt": "saco",
+  "meaning": "A big bag.",
+  "example": "The thieves had black sacks."
+ },
+ {
+  "term": "thief",
+  "pt": "ladrão",
+  "meaning": "A person who steals.",
+  "example": "Two thieves chased him."
+ },
+ {
+  "term": "knife",
+  "pt": "faca",
+  "meaning": "A tool for cutting.",
+  "example": "They took out two long knives."
+ },
+ {
+  "term": "rope",
+  "pt": "corda",
+  "meaning": "A thick strong string.",
+  "example": "They put a rope around his neck."
+ },
+ {
+  "term": "oak",
+  "pt": "carvalho",
+  "meaning": "A big strong tree.",
+  "example": "They hanged him on a big oak."
+ },
+ {
+  "term": "fairy",
+  "pt": "fada",
+  "meaning": "A magic woman in stories.",
+  "example": "The Fairy had blue hair."
+ },
+ {
+  "term": "falcon",
+  "pt": "falcão",
+  "meaning": "A bird that hunts.",
+  "example": "A falcon cut the rope."
+ },
+ {
+  "term": "doctor",
+  "pt": "médico",
+  "meaning": "A person who helps sick people.",
+  "example": "Three doctors came."
+ },
+ {
+  "term": "medicine",
+  "pt": "remédio",
+  "meaning": "Something you take when you are ill.",
+  "example": "He did not want the medicine."
+ },
+ {
+  "term": "coffin",
+  "pt": "caixão",
+  "meaning": "A box for a dead person.",
+  "example": "Four rabbits carried a coffin."
+ },
+ {
+  "term": "lie",
+  "pt": "mentira; mentir",
+  "meaning": "To say something that is not true.",
+  "example": "His nose grew when he lied."
+ },
+ {
+  "term": "woodpecker",
+  "pt": "pica-pau",
+  "meaning": "A bird that pecks at trees.",
+  "example": "A thousand woodpeckers pecked his nose."
+ },
+ {
+  "term": "miracle",
+  "pt": "milagre",
+  "meaning": "A wonderful event that people cannot explain.",
+  "example": "This is the Field of Miracles."
+ },
+ {
+  "term": "judge",
+  "pt": "juiz",
+  "meaning": "The person who decides in a court.",
+  "example": "The judge was an old gorilla."
+ },
+ {
+  "term": "prison",
+  "pt": "prisão",
+  "meaning": "A place where bad people must stay.",
+  "example": "He spent four months in prison."
+ },
+ {
+  "term": "trap",
+  "pt": "armadilha",
+  "meaning": "Something that catches animals.",
+  "example": "His leg was in a trap."
+ },
+ {
+  "term": "watchdog",
+  "pt": "cão de guarda",
+  "meaning": "A dog that protects a place.",
+  "example": "The farmer needed a watchdog."
+ },
+ {
+  "term": "weasel",
+  "pt": "doninha",
+  "meaning": "A small thin animal that eats chickens.",
+  "example": "Four weasels came to the chicken house."
+ },
+ {
+  "term": "pigeon",
+  "pt": "pombo",
+  "meaning": "A grey bird.",
+  "example": "A pigeon carried him to the sea."
+ },
+ {
+  "term": "shark",
+  "pt": "tubarão",
+  "meaning": "A very big dangerous fish.",
+  "example": "The Terrible Shark ate Geppetto."
+ },
+ {
+  "term": "donkey",
+  "pt": "burro",
+  "meaning": "An animal like a small horse with long ears.",
+  "example": "He became a donkey."
+ },
+ {
+  "term": "circus",
+  "pt": "circo",
+  "meaning": "A show with animals and clowns.",
+  "example": "A circus owner bought the donkey."
+ },
+ {
+  "term": "hoop",
+  "pt": "aro",
+  "meaning": "A big ring.",
+  "example": "The donkey jumped through a hoop."
+ },
+ {
+  "term": "tuna",
+  "pt": "atum",
+  "meaning": "A big sea fish.",
+  "example": "A big tuna carried them to the shore."
+ },
+ {
+  "term": "real boy",
+  "pt": "menino de verdade",
+  "meaning": "A boy, not a puppet.",
+  "example": "At last he was a real boy."
+ }
+]

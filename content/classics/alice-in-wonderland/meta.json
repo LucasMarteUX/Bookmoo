@@ -1,0 +1,27 @@
+{
+  "n": 20,
+  "slug": "alice-in-wonderland",
+  "title": "Alice's Adventures in Wonderland: Down the Rabbit-Hole",
+  "galleryTitle": "Alice's Adventures in Wonderland: Down the Rabbit-Hole",
+  "author": "Lewis Carroll",
+  "authorFull": "Lewis Carroll (Charles Lutwidge Dodgson, 1832–1898)",
+  "originalTitle": "Alice's Adventures in Wonderland",
+  "originalYear": 1865,
+  "category": "fantasy",
+  "level": "A2",
+  "language": "en",
+  "readingWpm": 100,
+  "descriptionEn": "A rich retelling of Lewis Carroll's famous story in simple English (A2). Ten chapters with full scenes and dialogue: the rabbit-hole, the pool of tears, the Caucus-race, the Caterpillar, the Duchess and the Cheshire Cat, the mad tea-party, the Queen's croquet-ground, the Mock Turtle and the trial of the Knave of Hearts, with a vocabulary guide.",
+  "descriptionPt": "Um reconto rico da famosa história de Lewis Carroll em inglês simples (A2). Dez capítulos com cenas e diálogos completos: a toca do coelho, o lago de lágrimas, a corrida do Caucus, a Lagarta, a Duquesa e o Gato de Cheshire, o chá maluco, o jardim de croquê da Rainha, a Tartaruga Falsa e o julgamento do Valete de Copas, com guia de vocabulário.",
+  "adaptationCredit": "Adapted for beginner learners (A2) for Bookmoo. Newly written in simple English from the events of Lewis Carroll's 1865 story; chapters were condensed to ten and the language was simplified (short sentences, common words). Not an official CEFR certification.",
+  "sources": [
+    "Lewis Carroll, Alice's Adventures in Wonderland (Macmillan, 1865), the author's own English text (Project Gutenberg #11), used to check events, characters and order. Tenniel's illustrations are not used."
+  ],
+  "rights": "Lewis Carroll died in 1898, so his text is in the public domain worldwide. This edition is based directly on his English text and uses no film, stage or illustrator material (no Disney 1951 or Burton designs, no Tenniel pictures). Cover: original artwork made for Bookmoo.",
+  "cover": {
+    "bg1": "#2a3a6a",
+    "bg2": "#0d1228",
+    "accent": "#c8372d",
+    "paper": "#f3e9d2"
+  }
+}
