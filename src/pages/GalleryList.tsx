@@ -1,7 +1,7 @@
 // Galeria: destaque editorial, prateleiras por tema e todos os livros com filtros na URL.
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { ArrowRight, BookOpen, Search, Sparkles, X } from 'lucide-react'
+import { ArrowRight, ArrowUpDown, BookOpen, Image as ImageIcon, Search, Sparkles, Star, X } from 'lucide-react'
 import { BookCard, BookCover } from '@/components/book/BookCard'
 import { BookCardSkeleton } from '@/components/BookCardSkeleton'
 import { AvatarStack } from '@/components/community/AvatarStack'
@@ -13,8 +13,23 @@ import { BOOK_CATEGORIES, categoryName, listCatalog, type BookCategory, type Cat
 import { loadCatalogSocial, type CatalogSocial } from '@/lib/social'
 
 const muted = { color: 'var(--theme-text-secondary)' }
+/** Média ponderada (nota média 4 com peso de 3 avaliações) para ordenar por avaliação. */
+function bayes(row?: { rating: number | null; ratings: number }) {
+  if (!row?.rating || !row.ratings) return 0
+  return (row.rating * row.ratings + 4 * 3) / (row.ratings + 3)
+}
 /** Com poucos livros, as prateleiras só repetiriam os mesmos títulos. */
 const SHELVES_FROM = 6
+
+type SortId = 'featured' | 'popular' | 'trending' | 'rating' | 'new' | 'az'
+const SORTS: { id: SortId; pt: string; en: string }[] = [
+  { id: 'featured', pt: 'Em destaque', en: 'Featured' },
+  { id: 'popular', pt: 'Mais lidos', en: 'Most read' },
+  { id: 'trending', pt: 'Em alta (30 dias)', en: 'Trending (30 days)' },
+  { id: 'rating', pt: 'Mais bem avaliados', en: 'Top rated' },
+  { id: 'new', pt: 'Mais recentes', en: 'Newest' },
+  { id: 'az', pt: 'Título (A–Z)', en: 'Title (A–Z)' },
+]
 
 /** Filtros guardados na URL. A busca tem estado próprio: um input preso à URL perde caracteres ao digitar. */
 function useGalleryFilters() {
@@ -26,7 +41,7 @@ function useGalleryFilters() {
   const writtenQuery = useRef(urlQuery)
 
   // Lê a URL atual, não a do render: a busca escreve com atraso e não pode desfazer outro filtro.
-  const setFilter = (key: 'level' | 'cat' | 'author' | 'q', value: string) => {
+  const setFilter = (key: 'level' | 'cat' | 'author' | 'q' | 'sort' | 'stars' | 'art', value: string) => {
     const next = new URLSearchParams(window.location.search)
     if (value && value !== 'all') next.set(key, value)
     else next.delete(key)
@@ -52,6 +67,9 @@ function useGalleryFilters() {
     level: (CEFR.some(band => band.id === rawLevel) ? rawLevel : 'all') as CefrId | 'all',
     category: (BOOK_CATEGORIES.some(item => item.id === rawCategory) ? rawCategory : 'all') as BookCategory | 'all',
     author: params.get('author') ?? 'all',
+    sort: (SORTS.some(item => item.id === params.get('sort')) ? params.get('sort') : 'featured') as SortId,
+    minStars: params.get('stars') === '4' ? 4 : 0,
+    withArt: params.get('art') === '1',
     query,
     search: params.toString(),
     setQuery,
@@ -70,7 +88,7 @@ export function GalleryList() {
   const [books, setBooks] = useState<CatalogBook[] | null>(null)
   const [social, setSocial] = useState<CatalogSocial>({})
   const [error, setError] = useState('')
-  const { level, category, author: urlAuthor, query, search, setQuery, setFilter, clear } = useGalleryFilters()
+  const { level, category, author: urlAuthor, sort, minStars, withArt, query, search, setQuery, setFilter, clear } = useGalleryFilters()
   useEffect(() => {
     listCatalog().then(setBooks).catch(() => setError(pt ? 'A galeria ainda não está disponível.' : 'The gallery is not available yet.'))
     void loadCatalogSocial().then(setSocial)
@@ -82,18 +100,32 @@ export function GalleryList() {
   }, [books])
   // Link antigo pode citar um autor que saiu da galeria.
   const author = books && !authors.includes(urlAuthor) ? 'all' : urlAuthor
-  const filtered = level !== 'all' || category !== 'all' || author !== 'all' || !!query.trim()
+  const filtered = level !== 'all' || category !== 'all' || author !== 'all' || !!query.trim() || sort !== 'featured' || minStars > 0 || withArt
 
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase()
-    return (books ?? []).filter(book => {
+    const list = (books ?? []).filter(book => {
       if (level !== 'all' && book.level !== level) return false
       if (category !== 'all' && book.category !== category) return false
       if (author !== 'all' && book.author !== author) return false
       if (q && !`${book.title} ${book.author ?? ''} ${book.description ?? ''}`.toLowerCase().includes(q)) return false
+      if (minStars && (social[book.id]?.rating ?? 0) < minStars) return false
+      if (withArt && !(social[book.id]?.illustrated ?? 0)) return false
       return true
     })
-  }, [books, level, category, author, query])
+    const s = (book: CatalogBook) => social[book.id]
+    const newer = (a: CatalogBook, b: CatalogBook) => (b.createdAt ?? '').localeCompare(a.createdAt ?? '')
+    const by: Record<SortId, (a: CatalogBook, b: CatalogBook) => number> = {
+      featured: (a, b) => (s(b)?.readers ?? 0) - (s(a)?.readers ?? 0) || newer(a, b),
+      popular: (a, b) => (s(b)?.readers ?? 0) - (s(a)?.readers ?? 0) || newer(a, b),
+      trending: (a, b) => (s(b)?.recent ?? 0) - (s(a)?.recent ?? 0) || (s(b)?.readers ?? 0) - (s(a)?.readers ?? 0),
+      // Média com peso: 1 avaliação 5★ não passa na frente de 20 avaliações 4,8★.
+      rating: (a, b) => bayes(s(b)) - bayes(s(a)) || (s(b)?.ratings ?? 0) - (s(a)?.ratings ?? 0),
+      new: newer,
+      az: (a, b) => a.title.localeCompare(b.title, pt ? 'pt-BR' : 'en'),
+    }
+    return list.sort(by[sort])
+  }, [books, level, category, author, query, sort, minStars, withArt, social, pt])
 
   const readers = (book: CatalogBook) => social[book.id]?.readers ?? 0
   const featured = useMemo(() => {
@@ -109,7 +141,11 @@ export function GalleryList() {
     if (list.length < SHELVES_FROM) return []
     const rows: { id: string; title: string; hint: string; books: CatalogBook[]; onAll?: () => void }[] = []
     const popular = list.filter(book => readers(book) > 0).sort((a, b) => readers(b) - readers(a)).slice(0, 12)
-    if (popular.length >= 3) rows.push({ id: 'popular', title: pt ? 'Em alta na comunidade' : 'Trending in the community', hint: pt ? 'O que mais gente tem na estante' : 'On the most shelves', books: popular })
+    if (popular.length >= 3) rows.push({ id: 'popular', title: pt ? 'Mais lidos' : 'Most read', hint: pt ? 'O que mais gente tem na estante' : 'On the most shelves', books: popular, onAll: () => setFilter('sort', 'popular') })
+    const top = list.filter(book => (social[book.id]?.ratings ?? 0) > 0).sort((a, b) => bayes(social[b.id]) - bayes(social[a.id])).slice(0, 12)
+    if (top.length >= 3) rows.push({ id: 'top', title: pt ? 'Mais bem avaliados' : 'Top rated', hint: pt ? 'O que os leitores mais gostaram' : 'What readers liked most', books: top, onAll: () => setFilter('sort', 'rating') })
+    const art = list.filter(book => (social[book.id]?.illustrated ?? 0) > 0).sort((a, b) => (social[b.id]?.illustrated ?? 0) - (social[a.id]?.illustrated ?? 0)).slice(0, 12)
+    if (art.length >= 3) rows.push({ id: 'art', title: pt ? 'Já ilustrados' : 'Already illustrated', hint: pt ? 'Leia com as imagens prontas' : 'Read with ready-made art', books: art, onAll: () => setFilter('art', '1') })
     const easy = list.filter(book => book.level === 'A1' || book.level === 'A2')
     if (easy.length >= 3) rows.push({ id: 'easy', title: pt ? 'Para começar' : 'To get started', hint: pt ? 'Textos A1 e A2' : 'A1 and A2 texts', books: easy, onAll: () => setFilter('level', 'A1') })
     const fresh = [...list].sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? '')).slice(0, 12)
@@ -123,7 +159,7 @@ export function GalleryList() {
 
   const card = (book: CatalogBook, className?: string) => (
     <BookCard key={book.id} to={`/gallery/${book.id}`} title={book.title} subtitle={book.author || categoryName(book.category, pt)} coverData={book.coverData} level={book.level} pt={pt}
-      linkState={{ gallerySearch: search }} readers={readers(book)} faces={social[book.id]?.faces} className={className} />
+      linkState={{ gallerySearch: search }} readers={readers(book)} faces={social[book.id]?.faces} rating={social[book.id]?.rating} ratings={social[book.id]?.ratings} illustrated={social[book.id]?.illustrated} className={className} />
   )
 
   return (
@@ -163,6 +199,19 @@ export function GalleryList() {
               )
             })}
           </div>
+          <label className="relative inline-flex items-center">
+            <ArrowUpDown className="absolute left-3 w-3.5 h-3.5 pointer-events-none" style={muted} />
+            <select value={sort} onChange={e => setFilter('sort', e.target.value === 'featured' ? 'all' : e.target.value)} aria-label={pt ? 'Ordenar por' : 'Sort by'}
+              className="ui-hover h-10 rounded-full border pl-8 pr-3.5 text-[13px] outline-none" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-text)' }}>
+              {SORTS.map(item => <option key={item.id} value={item.id}>{pt ? item.pt : item.en}</option>)}
+            </select>
+          </label>
+          <Chip on={minStars === 4} onClick={() => setFilter('stars', minStars === 4 ? 'all' : '4')}>
+            <Star className="w-3.5 h-3.5" style={{ color: minStars === 4 ? undefined : '#E8A93B', fill: minStars === 4 ? 'currentColor' : '#E8A93B' }} />{pt ? '4 ou mais' : '4 and up'}
+          </Chip>
+          <Chip on={withArt} onClick={() => setFilter('art', withArt ? 'all' : '1')}>
+            <ImageIcon className="w-3.5 h-3.5" />{pt ? 'Com ilustrações' : 'Illustrated'}
+          </Chip>
           {authors.length > 1 && (
             <select value={author} onChange={e => setFilter('author', e.target.value)} aria-label={pt ? 'Autor' : 'Author'}
               className="h-10 rounded-full border px-3.5 text-[13px] outline-none cursor-pointer" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-text)' }}>
@@ -227,7 +276,7 @@ export function GalleryList() {
         <section id="all">
           <div className="mb-4 flex items-end justify-between gap-3">
             <h2 className="font-display text-[24px] leading-tight">
-              {filtered ? (pt ? 'Resultados' : 'Results') : (pt ? 'Todos os livros' : 'All books')}
+              {filtered ? (sort !== 'featured' && level === 'all' && category === 'all' && author === 'all' && !query.trim() && !minStars && !withArt ? (pt ? SORTS.find(x => x.id === sort)!.pt : SORTS.find(x => x.id === sort)!.en) : (pt ? 'Resultados' : 'Results')) : (pt ? 'Todos os livros' : 'All books')}
             </h2>
             <span className="text-[13px] tabular-nums" style={muted}>{shown.length} {pt ? (shown.length === 1 ? 'livro' : 'livros') : (shown.length === 1 ? 'book' : 'books')}</span>
           </div>
@@ -243,7 +292,7 @@ export function GalleryList() {
 function Chip({ on, onClick, children }: { on: boolean; onClick: () => void; children: ReactNode }) {
   return (
     <button type="button" onClick={onClick} aria-pressed={on}
-      className="h-9 px-4 shrink-0 inline-flex items-center gap-1.5 rounded-full border text-[13px] whitespace-nowrap transition-colors"
+      className="h-9 px-4 shrink-0 inline-flex items-center gap-1.5 rounded-full border text-[13px] whitespace-nowrap transition-[background-color,color,border-color,transform] duration-150 active:scale-[0.96]"
       style={{
         borderColor: on ? 'var(--theme-text)' : 'var(--theme-border)',
         backgroundColor: on ? 'var(--theme-text)' : 'var(--theme-card-bg)',

@@ -48,7 +48,7 @@ export type PostComment = {
   canDelete: boolean
 }
 
-export type CatalogSocial = Record<string, { readers: number; faces: Author[] }>
+export type CatalogSocial = Record<string, { readers: number; recent: number; rating: number | null; ratings: number; illustrated: number; faces: Author[] }>
 export type Connection = Author & { relation: Relation; isMe: boolean }
 export type Requests = { followIn: (Author & { at: string })[]; friendIn: (Author & { at: string })[]; friendOut: (Author & { at: string })[] }
 
@@ -451,7 +451,7 @@ export async function loadCatalogSocial(): Promise<CatalogSocial> {
   const result: CatalogSocial = {}
   for (const [catalogId, value] of Object.entries(data as Record<string, unknown>)) {
     const row = value as Record<string, unknown>
-    result[catalogId] = { readers: num(row.readers), faces: Array.isArray(row.faces) ? row.faces.map(authorOf) : [] }
+    result[catalogId] = { readers: num(row.readers), recent: num(row.recent), rating: row.rating == null ? null : Number(row.rating), ratings: num(row.ratings), illustrated: num(row.illustrated), faces: Array.isArray(row.faces) ? row.faces.map(authorOf) : [] }
   }
   return result
 }

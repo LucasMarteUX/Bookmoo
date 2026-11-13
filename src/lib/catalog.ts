@@ -146,6 +146,18 @@ export async function updateCatalogMeta(id: string, patch: { level?: CefrId | nu
 }
 
 /** Imagens oficiais de um livro da galeria num estilo (a primeira pessoa que gera cada página define). */
+/**
+ * Remove o livro da galeria (só admin, pela política do banco). Apaga junto avaliações, imagens
+ * compartilhadas, versões, comentários e vínculos; as cópias na estante de cada leitor continuam
+ * como livro próprio. Posts que citavam o livro ficam sem o vínculo.
+ */
+export async function deleteCatalogBook(id: string): Promise<void> {
+  if (!supabase) throw new Error('supabase_not_configured')
+  const { data, error } = await supabase.from('catalog_books').delete().eq('id', id).select('id')
+  if (error) throw error
+  if (!data?.length) throw new Error('not_allowed')
+}
+
 export async function fetchSharedImages(catalogId: string, styleId: string): Promise<Record<number, string>> {
   if (!supabase) return {}
   const { data, error } = await supabase.from('catalog_comic_pages').select('page, image_url').eq('catalog_id', catalogId).eq('style_id', styleId)

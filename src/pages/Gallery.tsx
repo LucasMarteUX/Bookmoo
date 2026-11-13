@@ -1,6 +1,9 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
+import { Trash2 } from 'lucide-react'
+import { askConfirm } from '@/components/ui/confirm'
+import { toast } from '@/components/ui/toast'
 import { BookCover } from '@/components/book/BookCard'
 import { BookReviews } from '@/components/community/BookReviews'
 import { StyleCard, StylePickerDialog, useStyleBank } from '@/components/book/StylePicker'
@@ -15,7 +18,7 @@ import { countWords } from '@/lib/utils'
 import { upsertBook } from '@/lib/supabaseSync'
 import { supabase } from '@/lib/supabase'
 import {
-  addCatalogBook, addFeedback, BOOK_CATEGORIES, categoryName, getCatalogBook, listFeedback, listVersions, rateVersion, saveBookLink, updateCatalogMeta,
+  addCatalogBook, addFeedback, deleteCatalogBook, BOOK_CATEGORIES, categoryName, getCatalogBook, listFeedback, listVersions, rateVersion, saveBookLink, updateCatalogMeta,
   type BookCategory, type BookFeedback, type CatalogBook, type CatalogVersion,
 } from '@/lib/catalog'
 
@@ -112,6 +115,24 @@ function GalleryBook({ id }: { id: string }) {
       reload()
     } catch {
       setMetaNote(pt ? 'Não salvou. Confira se esta é a conta de admin.' : 'It did not save. Check that this is the admin account.')
+    }
+  }
+
+  const removeFromGallery = async () => {
+    const ok = await askConfirm(pt ? `Remover “${book.title}” da galeria?` : `Remove “${book.title}” from the gallery?`, {
+      detail: pt
+        ? 'Some para todos: avaliações, imagens compartilhadas, versões e comentários deste livro são apagados. Quem já tem o livro na estante continua com a própria cópia. Não dá para desfazer.'
+        : 'It disappears for everyone: reviews, shared images, versions and comments are deleted. Readers keep their own copy. This cannot be undone.',
+      confirmLabel: pt ? 'Remover da galeria' : 'Remove from gallery',
+      danger: true,
+    })
+    if (!ok) return
+    try {
+      await deleteCatalogBook(id)
+      toast(pt ? `“${book.title}” saiu da galeria` : `“${book.title}” removed from the gallery`)
+      navigate(gallerySearch ? `/gallery?${gallerySearch}` : '/gallery', { replace: true })
+    } catch {
+      toast(pt ? 'Não foi possível remover' : 'Could not remove', { tone: 'error', detail: pt ? 'Confira se esta é a conta de admin e tente de novo.' : 'Check this is the admin account and try again.' })
     }
   }
 
@@ -233,6 +254,17 @@ function GalleryBook({ id }: { id: string }) {
               {pt ? 'Salvar classificação' : 'Save classification'}
             </button>
             {metaNote && <p className="text-[13px]" style={{ color: 'var(--theme-text-secondary)' }}>{metaNote}</p>}
+          </div>
+          <div className="mt-6 pt-5 border-t flex flex-wrap items-center justify-between gap-3" style={{ borderColor: 'var(--theme-border)' }}>
+            <div className="min-w-0">
+              <p className="text-[14px] font-semibold" style={{ color: 'var(--color-destructive)' }}>{pt ? 'Remover da galeria' : 'Remove from gallery'}</p>
+              <p className="text-[13px]" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? 'Apaga o livro para todos, com avaliações e imagens compartilhadas.' : 'Deletes the book for everyone, with reviews and shared images.'}</p>
+            </div>
+            <button type="button" onClick={() => { void removeFromGallery() }}
+              className="ui-hover h-9 px-4 rounded-lg border text-[13.5px] font-medium inline-flex items-center gap-1.5"
+              style={{ borderColor: 'color-mix(in srgb, var(--color-destructive) 45%, transparent)', color: 'var(--color-destructive)' }}>
+              <Trash2 className="w-4 h-4" />{pt ? 'Remover' : 'Remove'}
+            </button>
           </div>
         </section>
       )}
