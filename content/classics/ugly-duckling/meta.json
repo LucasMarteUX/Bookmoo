@@ -1,0 +1,27 @@
+{
+  "n": 10,
+  "slug": "ugly-duckling",
+  "title": "The Ugly Duckling: From Duckling to Swan",
+  "galleryTitle": "The Ugly Duckling: From Duckling to Swan",
+  "author": "Hans Christian Andersen",
+  "authorFull": "Hans Christian Andersen (1805–1875)",
+  "originalTitle": "Den grimme Ælling (The Ugly Duckling)",
+  "originalYear": 1843,
+  "category": "children",
+  "level": "A1",
+  "language": "en",
+  "readingWpm": 100,
+  "descriptionEn": "A rich, beginner-friendly English retelling of the tale by Hans Christian Andersen. Five chapters with the biggest egg, the duck yard, the long winter and the beautiful swans, with a vocabulary guide.",
+  "descriptionPt": "Um reconto rico e acessível, em inglês simples, do conto O Patinho Feio de Hans Christian Andersen. Cinco capítulos: o maior ovo, o quintal dos patos, o inverno longo e os belos cisnes, com guia de vocabulário.",
+  "adaptationCredit": "Adapted for beginner learners (A1) for Bookmoo. New text written from the structure of Andersen's tale; not a copy of any published translation.",
+  "sources": [
+    "Hans Christian Andersen, Den grimme Ælling (The Ugly Duckling), first published 11 November 1843 (Nye Eventyr). Events checked against a historical English translation in Project Gutenberg #27200 (Fairy Tales of Hans Christian Andersen, 19th century); this edition is newly written text."
+  ],
+  "rights": "Original tale: Hans Christian Andersen died in 1875, so the work is in the public domain worldwide. The adaptation is new original text written for Bookmoo and copies no modern translation. It uses no songs, names or designs from film or musical versions. Cover: original artwork made for Bookmoo.",
+  "cover": {
+    "bg1": "#2a4f5a",
+    "bg2": "#0e2128",
+    "accent": "#c8372d",
+    "paper": "#f3e9d2"
+  }
+}

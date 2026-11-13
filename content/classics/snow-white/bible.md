@@ -1,0 +1,8 @@
+# Bíblia — Snow White and the Seven Dwarfs
+
+**Autor/tradição:** Irmãos Grimm, "Schneewittchen" (KHM 53), 1812; texto final de 1857. Lido para esta pesquisa: tradução histórica Taylor/Edwardes (Gutenberg #2591, "Snowdrop"), conferida com a estrutura de 1857 (caçador, pulmão e fígado de javali, sapatos de ferro em brasa).
+**Versão seguida:** Grimm 1857. Adaptação nova, escrita do zero; não copia a tradução. Sem nomes de anões (os da Disney: Doc, Grumpy etc. não aparecem) — são "o primeiro anão … o sétimo anão". Sem beijo do príncipe: a maçã cai quando os servos tropeçam (Grimm).
+**Personagens:** rainha-mãe (morre ao dar à luz), rei, madrasta vaidosa, espelho mágico, caçador, Snow White, sete anões (mineiros), príncipe e seus servos, pássaros (coruja, corvo, pomba).
+**Eventos obrigatórios:** gotas de sangue na neve/ébano e o desejo; morte da mãe; nova rainha e o espelho; Snow White aos sete anos mais bela; caçador ordenado a matá-la e prova (pulmão e fígado); poupa-a; floresta; casinha com sete camas, pratos, copos; anões chegam e perguntam "Who sat on my chair?"; ela fica e cuida da casa; aviso "let no one in"; espelho revela; tentativa 1 (cadarços), 2 (pente envenenado), 3 (maçã meio vermelha, meio envenenada); anões a velam três dias; caixão de vidro com letras de ouro; os pássaros choram; príncipe quer levá-la; servos tropeçam, o pedaço de maçã sai; ela acorda; casamento; a rainha convidada, vê a noiva, é obrigada a dançar com sapatos de ferro em brasa até cair morta.
+**Intocáveis:** três tentativas, espelho em verso, caixão de vidro, final da rainha.
+**Fontes:** Grimm KHM 53 (1812/1857); Gutenberg #2591.

@@ -1,0 +1,22 @@
+{
+  "n": 2,
+  "slug": "snow-white",
+  "title": "Snow White and the Seven Dwarfs: The Poisoned Apple",
+  "galleryTitle": "Snow White and the Seven Dwarfs: The Poisoned Apple",
+  "author": "Brothers Grimm",
+  "authorFull": "Jacob Grimm (1785–1863) and Wilhelm Grimm (1786–1859)",
+  "originalTitle": "Schneewittchen (Snow White), KHM 53",
+  "originalYear": 1812,
+  "category": "fantasy",
+  "level": "A1",
+  "language": "en",
+  "readingWpm": 100,
+  "descriptionEn": "A rich, beginner-friendly English retelling of the Brothers Grimm tale Snow White. Twelve chapters with full scenes and dialogue: the magic mirror, the three visits of the queen, the glass coffin and the iron shoes, with a vocabulary guide.",
+  "descriptionPt": "Um reconto rico e acessível, em inglês simples, de Branca de Neve dos Irmãos Grimm. Doze capítulos com o espelho mágico, as três visitas da rainha, o caixão de vidro e os sapatos de ferro, com guia de vocabulário.",
+  "adaptationCredit": "Adapted for beginner learners (A1) for Bookmoo. New text written from the structure of the tale; not a copy of any published translation. The seven dwarfs have no personal names, as in the Grimm tale.",
+  "sources": [
+    "Brothers Grimm, Kinder- und Haus-Märchen, KHM 53 'Schneewittchen' (1st ed. 1812; final text 1857). Read in the historical English translation in Project Gutenberg #2591 (Edgar Taylor / Marian Edwardes, titled 'Snowdrop') and checked against the structure of the 1857 text (the huntsman, the three visits, the iron shoes)."
+  ],
+  "rights": "Original tale: Jacob and Wilhelm Grimm died in 1863 and 1859, so the work is in the public domain worldwide. The adaptation is new original text written for Bookmoo and copies no translation. It uses no names, songs, designs or characters from film versions. Cover: original artwork made for Bookmoo.",
+  "cover": { "bg1": "#2b1a3a", "bg2": "#140b1f", "accent": "#c8372d", "paper": "#f3e9d2" }
+}

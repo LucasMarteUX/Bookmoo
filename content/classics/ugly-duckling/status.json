@@ -1,0 +1,39 @@
+{
+  "slug": "ugly-duckling",
+  "stages": {
+    "manuscript": {
+      "ok": false,
+      "at": "2026-11-13T13:58:53.971Z"
+    },
+    "cover": {
+      "ok": true,
+      "jpgBytes": 124852,
+      "thumbBytes": 10466
+    },
+    "epub": {
+      "ok": true,
+      "file": "content/classics/ugly-duckling/build/ugly-duckling-a1-expanded.epub",
+      "bytes": 119205,
+      "epubcheck": {
+        "errors": 0,
+        "warnings": 0
+      }
+    },
+    "validated": {
+      "ok": true,
+      "at": "2026-11-13T14:02:50.583Z"
+    },
+    "published": {
+      "ok": true,
+      "id": "50816462-efe0-4392-9222-a06d14d65623",
+      "at": "2026-11-13T14:05:33.906Z",
+      "verifiedPages": 42
+    }
+  },
+  "chapters": 5,
+  "storyWords": 3683,
+  "glossary": 41,
+  "updatedAt": "2026-11-13T14:05:33.908Z",
+  "pages": 42,
+  "readingMinutes": 37
+}

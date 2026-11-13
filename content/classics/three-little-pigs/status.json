@@ -1,0 +1,35 @@
+{
+  "slug": "three-little-pigs",
+  "stages": {
+    "cover": {
+      "ok": true,
+      "jpgBytes": 120128,
+      "thumbBytes": 11052
+    },
+    "epub": {
+      "ok": true,
+      "file": "content/classics/three-little-pigs/build/three-little-pigs-a1-expanded.epub",
+      "bytes": 114180,
+      "epubcheck": {
+        "errors": 0,
+        "warnings": 0
+      }
+    },
+    "validated": {
+      "ok": true,
+      "at": "2026-11-13T13:49:18.652Z"
+    },
+    "published": {
+      "ok": true,
+      "id": "1c6cddbd-a4c9-468a-a62b-2672896ad995",
+      "at": "2026-11-13T13:50:08.813Z",
+      "verifiedPages": 34
+    }
+  },
+  "updatedAt": "2026-11-13T13:50:08.816Z",
+  "chapters": 5,
+  "storyWords": 3378,
+  "glossary": 48,
+  "pages": 34,
+  "readingMinutes": 34
+}

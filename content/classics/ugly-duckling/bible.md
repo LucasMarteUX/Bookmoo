@@ -1,0 +1,5 @@
+# Bíblia — The Ugly Duckling
+
+**Autor:** Hans Christian Andersen (1805–1875), "Den grimme Ælling", 11 nov. 1843 (*Nye Eventyr*). PD mundial (autor morto em 1875).
+**Versão seguida:** o conto de Andersen. Lido em tradução inglesa histórica (Project Gutenberg #27200, *Fairy Tales of Hans Christian Andersen*; a tradução de Mrs. H. B. Paull/Lucas, séc. XIX, também PD); esta adaptação é texto novo, sem copiar a tradução; nada de musicais/filmes (sem Disney 1939, sem canções).
+**Eventos obrigatórios:** verão, fazenda, ninho, ovos chocam; o maior ovo demora; "turkey egg" (conselho da velha pata); o patinho é grande e feio, mas nada bem; pátio dos patos; maltratado por patos, galinhas e pela criada; foge por cima da cerca; pântano, patos selvagens; gansos selvagens; tiros dos caçadores e cães; casa da velha com galinha e gato; "can you lay eggs/purr"; ele vai embora; outono, cisnes brancos voando; inverno, gelo, ele quase morre; fazendeiro o salva, as crianças o assustam; leite derramado; inverno duro nos juncos; primavera, voa; jardim, cisnes; reflexo; "I never dreamed of so much happiness".

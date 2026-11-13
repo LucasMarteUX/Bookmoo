@@ -1,0 +1,6 @@
+# Bíblia — Goldilocks and the Three Bears
+
+**Tradição:** conto inglês. Primeira versão impressa: Robert Southey, *The Doctor* (1837), "The Story of the Three Bears" (a intrusa é uma velha). A menina de cabelos dourados aparece depois (Joseph Cundall 1849 "Silver-Hair"; "Goldilocks" no séc. XX). Fonte lida inteira: Joseph Jacobs, *English Fairy Tales* (1890), Gutenberg #7439, "The Story of the Three Bears" (Southey adaptado).
+**Decisão:** o título pedido é "Goldilocks and the Three Bears"; a intrusa é uma menina de cabelos dourados chamada Goldilocks (nome da tradição oral/impressa do séc. XX, sem proteção de nenhum autor identificável; texto desta adaptação é novo). Ursos sem nomes: o Grande Urso Enorme (Great Huge Bear), o Urso Médio, o Pequeno Urso Pequenino (Little Small Wee Bear). Sem nomes de Disney/Papai Urso etc.
+**Eventos obrigatórios:** três ursos, três tigelas, três cadeiras, três camas; saem para passear enquanto o mingau esfria; a menina espia, entra; mingau (quente, frio, certo — come tudo); cadeiras (dura, mole, certa — quebra o fundo); camas (alta na cabeça, alta nos pés, certa — dorme); ursos voltam; "Somebody has been..." nas três vozes; "and here she is!"; ela acorda com a voz aguda, pula pela janela e foge; nunca mais é vista.
+**Tamanho:** muito curto (1.500–3.500). Não inflar.

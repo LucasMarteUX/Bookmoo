@@ -1,0 +1,35 @@
+{
+  "slug": "goldilocks",
+  "stages": {
+    "cover": {
+      "ok": true,
+      "jpgBytes": 130937,
+      "thumbBytes": 13342
+    },
+    "epub": {
+      "ok": true,
+      "file": "content/classics/goldilocks/build/goldilocks-a1-expanded.epub",
+      "bytes": 125745,
+      "epubcheck": {
+        "errors": 0,
+        "warnings": 0
+      }
+    },
+    "validated": {
+      "ok": true,
+      "at": "2026-11-13T13:54:28.354Z"
+    },
+    "published": {
+      "ok": true,
+      "id": "9fa104fd-3e04-4f33-9224-6e5d0f547839",
+      "at": "2026-11-13T13:54:42.653Z",
+      "verifiedPages": 29
+    }
+  },
+  "updatedAt": "2026-11-13T13:54:42.653Z",
+  "chapters": 4,
+  "storyWords": 2915,
+  "glossary": 43,
+  "pages": 29,
+  "readingMinutes": 29
+}

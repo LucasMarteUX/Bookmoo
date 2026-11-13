@@ -1,0 +1,27 @@
+{
+  "n": 8,
+  "slug": "goldilocks",
+  "title": "Goldilocks and the Three Bears: Just Right",
+  "galleryTitle": "Goldilocks and the Three Bears: Just Right",
+  "author": "Traditional (English folktale)",
+  "authorFull": "Traditional English tale, first printed by Robert Southey (1837); edition used: Joseph Jacobs, English Fairy Tales (1890)",
+  "originalTitle": "The Story of the Three Bears",
+  "originalYear": 1837,
+  "category": "children",
+  "level": "A1",
+  "language": "en",
+  "readingWpm": 100,
+  "descriptionEn": "A rich, beginner-friendly English retelling of the traditional tale of the three bears. Four short chapters with the porridge, the chairs, the beds and the bears' three voices, with a vocabulary guide.",
+  "descriptionPt": "Um reconto rico e acessível, em inglês simples, do conto tradicional inglês Os Três Ursos (Cachinhos Dourados). Quatro capítulos curtos: o mingau, as cadeiras, as camas e as três vozes dos ursos, com guia de vocabulário.",
+  "adaptationCredit": "Adapted for beginner learners (A1) for Bookmoo. New text written from the structure of the traditional tale; not a copy of any published text.",
+  "sources": [
+    "Robert Southey, The Story of the Three Bears, in The Doctor (1837), the earliest printed version (with an old woman as the intruder); later versions replace her with a little girl (Cundall 1849; 'Goldilocks' in the 20th century). Read in full in Joseph Jacobs, English Fairy Tales (1890), Project Gutenberg #7439, to confirm events: the three pots, chairs and beds, the three voices, 'and here she is!', the escape through the window."
+  ],
+  "rights": "Original tale: English folk tradition first printed by Southey (d. 1843); Jacobs (d. 1916). All in the public domain worldwide. The adaptation is new original text written for Bookmoo; the little girl named Goldilocks follows the later tradition and no modern text, song or illustration is copied. Cover: original artwork made for Bookmoo.",
+  "cover": {
+    "bg1": "#6a4a1c",
+    "bg2": "#26180a",
+    "accent": "#c8372d",
+    "paper": "#f6ecd6"
+  }
+}

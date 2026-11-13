@@ -1,0 +1,27 @@
+{
+  "n": 6,
+  "slug": "beauty-and-the-beast",
+  "title": "Beauty and the Beast: The Rose and the Castle",
+  "galleryTitle": "Beauty and the Beast: The Rose and the Castle",
+  "author": "Jeanne-Marie Leprince de Beaumont",
+  "authorFull": "Jeanne-Marie Leprince de Beaumont (1711–1780)",
+  "originalTitle": "La Belle et la Bête",
+  "originalYear": 1756,
+  "category": "romance",
+  "level": "A1",
+  "language": "en",
+  "readingWpm": 100,
+  "descriptionEn": "A rich, beginner-friendly English retelling of the 1756 fairy tale by Madame Leprince de Beaumont. Eleven chapters with full scenes and dialogue: the merchant, the rose, the castle, the Beast and his question, the dream and the true ending, with a vocabulary guide.",
+  "descriptionPt": "Um reconto rico e acessível, em inglês simples, do conto A Bela e a Fera de Madame Leprince de Beaumont (1756). Onze capítulos: o mercador, a rosa, o castelo, a Fera e sua pergunta, o sonho e o verdadeiro final, com guia de vocabulário.",
+  "adaptationCredit": "Adapted for beginner learners (A1) for Bookmoo. New text written from the structure of the 1756 tale; not a copy of any published translation.",
+  "sources": [
+    "Jeanne-Marie Leprince de Beaumont, La Belle et la Bête, in Magasin des enfants (London, 1756), a shortening of Gabrielle-Suzanne de Villeneuve's longer tale (1740). Events checked against the historical English text in Andrew Lang, The Blue Fairy Book (Project Gutenberg #503)."
+  ],
+  "rights": "Original tale: Madame Leprince de Beaumont died in 1780 (Villeneuve in 1755), so the work is in the public domain worldwide. The adaptation is new original text written for Bookmoo and copies no translation. It uses no characters, songs, designs or scenes from film, stage or television versions. Cover: original artwork made for Bookmoo.",
+  "cover": {
+    "bg1": "#5a1a2a",
+    "bg2": "#22090f",
+    "accent": "#c8372d",
+    "paper": "#f3e9d2"
+  }
+}

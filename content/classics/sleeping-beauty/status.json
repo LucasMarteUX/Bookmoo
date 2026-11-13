@@ -1,0 +1,35 @@
+{
+  "slug": "sleeping-beauty",
+  "stages": {
+    "cover": {
+      "ok": true,
+      "jpgBytes": 163131,
+      "thumbBytes": 14654
+    },
+    "epub": {
+      "ok": true,
+      "file": "content/classics/sleeping-beauty/build/sleeping-beauty-a1-expanded.epub",
+      "bytes": 170581,
+      "epubcheck": {
+        "errors": 0,
+        "warnings": 0
+      }
+    },
+    "validated": {
+      "ok": true,
+      "at": "2026-11-13T13:22:35.317Z"
+    },
+    "published": {
+      "ok": true,
+      "id": "af38d7ec-0711-41aa-bff3-b8576d14f176",
+      "at": "2026-11-13T13:22:57.812Z",
+      "verifiedPages": 91
+    }
+  },
+  "updatedAt": "2026-11-13T13:22:57.812Z",
+  "chapters": 9,
+  "storyWords": 8411,
+  "glossary": 48,
+  "pages": 91,
+  "readingMinutes": 84
+}

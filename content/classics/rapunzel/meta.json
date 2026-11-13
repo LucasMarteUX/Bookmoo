@@ -1,0 +1,27 @@
+{
+  "n": 4,
+  "slug": "rapunzel",
+  "title": "Rapunzel: The Girl in the Tower",
+  "galleryTitle": "Rapunzel: The Girl in the Tower",
+  "author": "Brothers Grimm",
+  "authorFull": "Jacob Grimm (1785–1863) and Wilhelm Grimm (1786–1859)",
+  "originalTitle": "Rapunzel, KHM 12",
+  "originalYear": 1812,
+  "category": "fantasy",
+  "level": "A1",
+  "language": "en",
+  "readingWpm": 100,
+  "descriptionEn": "A rich, beginner-friendly English retelling of the Brothers Grimm tale Rapunzel. Nine chapters with full scenes and dialogue: the garden, the witch, the tower, the golden hair, the long search and the two tears, with a vocabulary guide.",
+  "descriptionPt": "Um reconto rico e acessível, em inglês simples, de Rapunzel dos Irmãos Grimm. Nove capítulos: o jardim, a bruxa, a torre, os cabelos dourados, a longa busca e as duas lágrimas, com guia de vocabulário.",
+  "adaptationCredit": "Adapted for beginner learners (A1) for Bookmoo. New text written from the structure of the Grimm tale; not a copy of any published translation.",
+  "sources": [
+    "Brothers Grimm, Kinder- und Haus-Märchen, KHM 12 'Rapunzel' (1st ed. 1812; final text 1857). Read in the historical English translation in Project Gutenberg #2591 (Edgar Taylor / Marian Edwardes) to confirm events and order. Earlier versions (Schulz 1790, Mlle de la Force 1698, Basile 1634) are only historical context."
+  ],
+  "rights": "Original tale: Jacob and Wilhelm Grimm died in 1863 and 1859, so the work is in the public domain worldwide. The adaptation is new original text written for Bookmoo and copies no translation. It uses no names, songs, designs or characters from film, stage or opera versions. Cover: original artwork made for Bookmoo.",
+  "cover": {
+    "bg1": "#2d3d1f",
+    "bg2": "#121a0c",
+    "accent": "#c8372d",
+    "paper": "#f3e9d2"
+  }
+}

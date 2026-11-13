@@ -1,0 +1,35 @@
+{
+  "slug": "beauty-and-the-beast",
+  "stages": {
+    "cover": {
+      "ok": true,
+      "jpgBytes": 114804,
+      "thumbBytes": 10712
+    },
+    "epub": {
+      "ok": true,
+      "file": "content/classics/beauty-and-the-beast/build/beauty-and-the-beast-a1-expanded.epub",
+      "bytes": 129052,
+      "epubcheck": {
+        "errors": 0,
+        "warnings": 0
+      }
+    },
+    "validated": {
+      "ok": true,
+      "at": "2026-11-13T13:49:09.834Z"
+    },
+    "published": {
+      "ok": true,
+      "id": "93abe22e-f24d-4bb2-bd11-2749e230b660",
+      "at": "2026-11-13T13:49:48.836Z",
+      "verifiedPages": 114
+    }
+  },
+  "updatedAt": "2026-11-13T13:49:48.837Z",
+  "chapters": 11,
+  "storyWords": 10677,
+  "glossary": 49,
+  "pages": 114,
+  "readingMinutes": 107
+}

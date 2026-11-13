@@ -1,0 +1,6 @@
+# Bíblia — The Emperor's New Clothes
+
+**Autor:** Hans Christian Andersen (1805–1875), "Kejserens nye Klæder", 7 abr. 1837 (*Eventyr, fortalte for Børn*, 3º caderno). PD mundial. Origem: conto espanhol medieval (Don Juan Manuel, *El conde Lucanor*, c. 1335) — apenas contexto.
+**Versão seguida:** Andersen; lido (≈1.600 palavras) na tradução histórica Project Gutenberg #27200 (séc. XIX, PD, "The Emperor's New Suit"). Esta adaptação é texto novo.
+**Eventos obrigatórios:** imperador louco por roupas, "um casaco para cada hora"; dois impostores dizem ser tecelões; pano lindo, invisível para quem é inapto ao cargo ou muito tolo; imperador dá dinheiro, seda e ouro; teares vazios; manda o velho ministro honesto: não vê nada, finge; manda outro oficial: finge; o imperador vai ver com cortesãos, não vê nada, finge; nomeado "Imperial Court weavers"; noite de véspera, 16 velas, tesouras, agulhas sem linha; vestir diante do espelho: "calça, casaco, manto"; os camaristas fingem segurar a cauda; procissão sob o dossel; o povo elogia; a criança: "But he has nothing on at all!"; o pai: "voz da inocência"; todo o povo grita; o imperador sente que têm razão, mas pensa "devo continuar até o fim", e os camaristas carregam a cauda inexistente.
+**Tamanho:** curto; ≈ 3.000 palavras.

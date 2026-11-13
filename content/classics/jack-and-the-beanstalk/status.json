@@ -1,0 +1,35 @@
+{
+  "slug": "jack-and-the-beanstalk",
+  "stages": {
+    "cover": {
+      "ok": true,
+      "jpgBytes": 123890,
+      "thumbBytes": 11104
+    },
+    "epub": {
+      "ok": true,
+      "file": "content/classics/jack-and-the-beanstalk/build/jack-and-the-beanstalk-a1-expanded.epub",
+      "bytes": 122109,
+      "epubcheck": {
+        "errors": 0,
+        "warnings": 0
+      }
+    },
+    "validated": {
+      "ok": true,
+      "at": "2026-11-13T13:54:31.804Z"
+    },
+    "published": {
+      "ok": true,
+      "id": "006e0903-e85b-4f6b-ad15-125c750cc340",
+      "at": "2026-11-13T13:54:49.849Z",
+      "verifiedPages": 65
+    }
+  },
+  "updatedAt": "2026-11-13T13:54:49.849Z",
+  "chapters": 7,
+  "storyWords": 6327,
+  "glossary": 46,
+  "pages": 65,
+  "readingMinutes": 63
+}

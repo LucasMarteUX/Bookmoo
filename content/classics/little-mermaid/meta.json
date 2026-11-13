@@ -1,0 +1,27 @@
+{
+  "n": 11,
+  "slug": "little-mermaid",
+  "title": "The Little Mermaid: The Voice and the Sea Foam",
+  "galleryTitle": "The Little Mermaid: The Voice and the Sea Foam",
+  "author": "Hans Christian Andersen",
+  "authorFull": "Hans Christian Andersen (1805–1875)",
+  "originalTitle": "Den lille Havfrue (The Little Mermaid)",
+  "originalYear": 1837,
+  "category": "fantasy",
+  "level": "A1",
+  "language": "en",
+  "readingWpm": 100,
+  "descriptionEn": "A rich, beginner-friendly English retelling of the original tale by Hans Christian Andersen, with its true ending. Ten chapters with full scenes and dialogue: the sea palace, the storm, the sea witch, the dance, the wedding night and the daughters of the air, with a vocabulary guide.",
+  "descriptionPt": "Um reconto rico e acessível, em inglês simples, do conto original A Pequena Sereia de Hans Christian Andersen, com o final verdadeiro. Dez capítulos: o palácio no mar, a tempestade, a bruxa do mar, a dança, a noite de núpcias e as filhas do ar, com guia de vocabulário.",
+  "adaptationCredit": "Adapted for beginner learners (A1) for Bookmoo. New text written from the structure of Andersen's tale; not a copy of any published translation. The ending is Andersen's own, not a happy ending.",
+  "sources": [
+    "Hans Christian Andersen, Den lille Havfrue (The Little Mermaid), first published 7 April 1837 (Eventyr, fortalte for Børn). Events and ending checked against a historical English translation in Project Gutenberg #27200 (Fairy Tales of Hans Christian Andersen, 19th century)."
+  ],
+  "rights": "Original tale: Hans Christian Andersen died in 1875, so the work is in the public domain worldwide. The adaptation is new text written for Bookmoo and copies no modern translation. It uses no names, songs, characters or designs from film or stage versions (no Ariel, Ursula, Sebastian or Eric). Cover: original artwork made for Bookmoo.",
+  "cover": {
+    "bg1": "#0f4a6a",
+    "bg2": "#06202e",
+    "accent": "#c8372d",
+    "paper": "#f3e9d2"
+  }
+}

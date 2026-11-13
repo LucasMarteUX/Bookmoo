@@ -1,0 +1,35 @@
+{
+  "slug": "rapunzel",
+  "stages": {
+    "cover": {
+      "ok": true,
+      "jpgBytes": 118443,
+      "thumbBytes": 10624
+    },
+    "epub": {
+      "ok": true,
+      "file": "content/classics/rapunzel/build/rapunzel-a1-expanded.epub",
+      "bytes": 124808,
+      "epubcheck": {
+        "errors": 0,
+        "warnings": 0
+      }
+    },
+    "validated": {
+      "ok": true,
+      "at": "2026-11-13T13:29:28.465Z"
+    },
+    "published": {
+      "ok": true,
+      "id": "e122e274-8a18-4a0d-9211-e0a4902a493e",
+      "at": "2026-11-13T13:29:43.013Z",
+      "verifiedPages": 86
+    }
+  },
+  "updatedAt": "2026-11-13T13:29:43.013Z",
+  "chapters": 9,
+  "storyWords": 8187,
+  "glossary": 49,
+  "pages": 86,
+  "readingMinutes": 82
+}

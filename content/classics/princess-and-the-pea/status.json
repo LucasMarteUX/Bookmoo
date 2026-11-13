@@ -1,0 +1,35 @@
+{
+  "slug": "princess-and-the-pea",
+  "stages": {
+    "cover": {
+      "ok": true,
+      "jpgBytes": 121940,
+      "thumbBytes": 10416
+    },
+    "epub": {
+      "ok": true,
+      "file": "content/classics/princess-and-the-pea/build/princess-and-the-pea-a1-expanded.epub",
+      "bytes": 100841,
+      "epubcheck": {
+        "errors": 0,
+        "warnings": 0
+      }
+    },
+    "validated": {
+      "ok": true,
+      "at": "2026-11-13T14:11:37.712Z"
+    },
+    "published": {
+      "ok": true,
+      "id": "30ba678d-ea48-419e-9d02-ab54fbc6a15f",
+      "at": "2026-11-13T14:11:57.927Z",
+      "verifiedPages": 16
+    }
+  },
+  "updatedAt": "2026-11-13T14:11:57.927Z",
+  "chapters": 3,
+  "storyWords": 1601,
+  "glossary": 37,
+  "pages": 16,
+  "readingMinutes": 16
+}

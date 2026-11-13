@@ -12,3 +12,4 @@ coverage/
 .claude/
 .cursor/
 supabase/.temp/
+content/classics/*/build/

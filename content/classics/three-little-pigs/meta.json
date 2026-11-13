@@ -1,0 +1,27 @@
+{
+  "n": 7,
+  "slug": "three-little-pigs",
+  "title": "The Three Little Pigs: The Wolf and the Brick House",
+  "galleryTitle": "The Three Little Pigs: The Wolf and the Brick House",
+  "author": "Traditional (English folktale)",
+  "authorFull": "Anonymous English folktale, first printed by J. O. Halliwell (c. 1843); edition used: Joseph Jacobs, English Fairy Tales (1890)",
+  "originalTitle": "The Story of the Three Little Pigs",
+  "originalYear": 1843,
+  "category": "children",
+  "level": "A1",
+  "language": "en",
+  "readingWpm": 100,
+  "descriptionEn": "A rich, beginner-friendly English retelling of the traditional English tale of the three little pigs. Five short chapters with the house of straw, the house of sticks, the house of bricks and the clever third pig, with a vocabulary guide.",
+  "descriptionPt": "Um reconto rico e acessível, em inglês simples, do conto tradicional inglês Os Três Porquinhos. Cinco capítulos curtos: a casa de palha, a casa de gravetos, a casa de tijolos e o terceiro porquinho esperto, com guia de vocabulário.",
+  "adaptationCredit": "Adapted for beginner learners (A1) for Bookmoo. New text written from the structure of the traditional tale; not a copy of any published text.",
+  "sources": [
+    "Traditional English folktale; earliest known print: J. O. Halliwell, Nursery Rhymes and Nursery Tales of England (c. 1843). Read in full in Joseph Jacobs, English Fairy Tales (1890), Project Gutenberg #7439, to confirm events: straw, furze/sticks and bricks, the turnip field, the apple tree, the fair and the butter churn, the chimney and the pot of water."
+  ],
+  "rights": "Original tale: anonymous folk tradition; the 19th-century collectors (Halliwell d. 1889, Jacobs d. 1916) are in the public domain worldwide. The adaptation is new original text written for Bookmoo and copies no published text. It uses no names, songs or designs from the 1933 film or other modern versions. Cover: original artwork made for Bookmoo.",
+  "cover": {
+    "bg1": "#3a5f3a",
+    "bg2": "#142414",
+    "accent": "#c8372d",
+    "paper": "#f6ecd6"
+  }
+}

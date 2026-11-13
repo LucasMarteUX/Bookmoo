@@ -1,0 +1,27 @@
+{
+  "n": 12,
+  "slug": "princess-and-the-pea",
+  "title": "The Princess and the Pea: A Real Princess",
+  "galleryTitle": "The Princess and the Pea: A Real Princess",
+  "author": "Hans Christian Andersen",
+  "authorFull": "Hans Christian Andersen (1805–1875)",
+  "originalTitle": "Prinsessen paa Ærten (The Princess and the Pea)",
+  "originalYear": 1835,
+  "category": "short",
+  "level": "A1",
+  "language": "en",
+  "readingWpm": 100,
+  "descriptionEn": "A beginner-friendly English retelling of the short tale by Hans Christian Andersen. Three short chapters: the prince who wanted a real princess, the stormy night and the small green pea, with a vocabulary guide.",
+  "descriptionPt": "Um reconto acessível, em inglês simples, do curto conto A Princesa e a Ervilha de Hans Christian Andersen. Três capítulos curtos: o príncipe que queria uma princesa de verdade, a noite de tempestade e a pequena ervilha verde, com guia de vocabulário.",
+  "adaptationCredit": "Adapted for beginner learners (A1) for Bookmoo. New text written from the structure of Andersen's tale; not a copy of any published translation.",
+  "sources": [
+    "Hans Christian Andersen, Prinsessen paa Ærten (The Princess and the Pea), first published 8 May 1835 (Eventyr, fortalte for Børn). The very short tale (about 380 words in a historical English translation, Project Gutenberg #27200) was read in full; the adaptation keeps its events and adds only scenes and dialogue, without stretching it."
+  ],
+  "rights": "Original tale: Hans Christian Andersen died in 1875, so the work is in the public domain worldwide. The adaptation is new text written for Bookmoo and copies no modern translation. It uses no film, stage or television versions. Cover: original artwork made for Bookmoo.",
+  "cover": {
+    "bg1": "#3a2a5a",
+    "bg2": "#150f26",
+    "accent": "#c8372d",
+    "paper": "#f3e9d2"
+  }
+}

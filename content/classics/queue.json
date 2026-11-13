@@ -1,0 +1,22 @@
+[
+  {"n": 1,  "slug": "little-red-riding-hood", "title": "Little Red Riding Hood", "author": "Brothers Grimm", "category": "short"},
+  {"n": 2,  "slug": "snow-white", "title": "Snow White and the Seven Dwarfs", "author": "Brothers Grimm", "category": "fantasy"},
+  {"n": 3,  "slug": "sleeping-beauty", "title": "Sleeping Beauty", "author": "Brothers Grimm", "category": "fantasy"},
+  {"n": 4,  "slug": "rapunzel", "title": "Rapunzel", "author": "Brothers Grimm", "category": "fantasy"},
+  {"n": 5,  "slug": "hansel-and-gretel", "title": "Hansel and Gretel", "author": "Brothers Grimm", "category": "short"},
+  {"n": 6,  "slug": "beauty-and-the-beast", "title": "Beauty and the Beast", "author": "Jeanne-Marie Leprince de Beaumont", "category": "romance"},
+  {"n": 7,  "slug": "three-little-pigs", "title": "The Three Little Pigs", "author": "Traditional (English folktale)", "category": "children"},
+  {"n": 8,  "slug": "goldilocks", "title": "Goldilocks and the Three Bears", "author": "Traditional (English folktale)", "category": "children"},
+  {"n": 9,  "slug": "jack-and-the-beanstalk", "title": "Jack and the Beanstalk", "author": "Joseph Jacobs", "category": "adventure"},
+  {"n": 10, "slug": "ugly-duckling", "title": "The Ugly Duckling", "author": "Hans Christian Andersen", "category": "children"},
+  {"n": 11, "slug": "little-mermaid", "title": "The Little Mermaid", "author": "Hans Christian Andersen", "category": "fantasy"},
+  {"n": 12, "slug": "princess-and-the-pea", "title": "The Princess and the Pea", "author": "Hans Christian Andersen", "category": "short"},
+  {"n": 13, "slug": "emperors-new-clothes", "title": "The Emperor's New Clothes", "author": "Hans Christian Andersen", "category": "short"},
+  {"n": 14, "slug": "snow-queen", "title": "The Snow Queen", "author": "Hans Christian Andersen", "category": "fantasy"},
+  {"n": 15, "slug": "frog-prince", "title": "The Frog Prince", "author": "Brothers Grimm", "category": "fantasy"},
+  {"n": 16, "slug": "rumpelstiltskin", "title": "Rumpelstiltskin", "author": "Brothers Grimm", "category": "fantasy"},
+  {"n": 17, "slug": "elves-and-the-shoemaker", "title": "The Elves and the Shoemaker", "author": "Brothers Grimm", "category": "short"},
+  {"n": 18, "slug": "pinocchio", "title": "Pinocchio", "author": "Carlo Collodi", "category": "adventure"},
+  {"n": 19, "slug": "wizard-of-oz", "title": "The Wonderful Wizard of Oz", "author": "L. Frank Baum", "category": "fantasy", "note": "Já existe na galeria a edição original (A2, 40k palavras). A versão A1 entra como título distinto, sem tocar no registro existente."},
+  {"n": 20, "slug": "alice-in-wonderland", "title": "Alice's Adventures in Wonderland", "author": "Lewis Carroll", "category": "fantasy"}
+]

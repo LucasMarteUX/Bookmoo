@@ -17,6 +17,7 @@ import { SignUp } from '@/pages/SignUp'
 import { LegalPage } from '@/pages/legal/LegalPage'
 import { Gallery } from '@/pages/Gallery'
 import { AdminPage } from '@/pages/Admin'
+import { AdminBookEdit } from '@/pages/AdminBookEdit'
 import { MePage } from '@/pages/Me'
 import { Community, ConnectionsPage, NotificationsPage, PostPage, PublicProfile } from '@/pages/Community'
 
@@ -76,6 +77,7 @@ export default function App() {
             <Route path="u/:handle/:list" element={<ConnectionsPage />} />
             <Route path="notifications" element={<NotificationsPage />} />
             <Route path="admin" element={<AdminPage />} />
+            <Route path="admin/books/:id" element={<AdminBookEdit />} />
             <Route path="me" element={<MePage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />

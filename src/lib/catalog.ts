@@ -79,24 +79,60 @@ function pagesOf(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((page): page is string => typeof page === 'string') : []
 }
 
+let listCache: { at: number; limit?: number; data: CatalogBook[] } | null = null
+let listInflight: Promise<CatalogBook[]> | null = null
+const LIST_TTL = 60_000
+
+/** Redimensiona uma capa (data URL) para uma miniatura leve usada nas listas. */
+export async function makeCoverThumb(dataUrl: string, width = 320): Promise<string | null> {
+  try {
+    const img = new Image()
+    img.src = dataUrl
+    await img.decode()
+    const scale = Math.min(1, width / img.naturalWidth)
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.round(img.naturalWidth * scale)
+    canvas.height = Math.round(img.naturalHeight * scale)
+    canvas.getContext('2d')?.drawImage(img, 0, 0, canvas.width, canvas.height)
+    return canvas.toDataURL('image/webp', 0.72)
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Lista da galeria. Usa a miniatura da capa (a completa só na página do livro) e guarda o
+ * resultado por 1 minuto: galeria, comunidade e admin não repetem a mesma consulta.
+ */
 export async function listCatalog(limit?: number): Promise<CatalogBook[]> {
   if (!supabase) return []
-  const request = supabase.from('catalog_books').select('id, title, author, description, language_code, cover_data, cefr_level, category, created_at').order('created_at', { ascending: false })
-  const { data, error } = await (limit ? request.limit(limit) : request)
-  if (error) throw error
-  return (data ?? []).map(row => ({
-    id: row.id,
-    title: row.title ?? '',
-    author: row.author ?? undefined,
-    description: row.description ?? undefined,
-    languageCode: row.language_code ?? 'en',
-    coverData: row.cover_data ?? undefined,
-    level: levelOf(row.cefr_level),
-    category: categoryOf(row.category),
-    pages: [],
-    createdAt: row.created_at,
-  }))
+  if (listCache && listCache.limit === limit && Date.now() - listCache.at < LIST_TTL) return listCache.data
+  if (listInflight && !limit) return listInflight
+  const run = (async () => {
+    const request = supabase!.from('catalog_books').select('id, title, author, description, language_code, cover_thumb, cefr_level, category, created_at').order('created_at', { ascending: false })
+    const { data, error } = await (limit ? request.limit(limit) : request)
+    if (error) throw error
+    const rows: CatalogBook[] = (data ?? []).map(row => ({
+      id: row.id,
+      title: row.title ?? '',
+      author: row.author ?? undefined,
+      description: row.description ?? undefined,
+      languageCode: row.language_code ?? 'en',
+      coverData: row.cover_thumb ?? undefined,
+      level: levelOf(row.cefr_level),
+      category: categoryOf(row.category),
+      pages: [],
+      createdAt: row.created_at,
+    }))
+    listCache = { at: Date.now(), limit, data: rows }
+    return rows
+  })()
+  if (!limit) listInflight = run.finally(() => { listInflight = null })
+  return run
 }
+
+/** Esquece a lista guardada (depois de adicionar, editar ou remover um livro). */
+export function invalidateCatalogList() { listCache = null }
 
 export async function getCatalogBook(id: string): Promise<CatalogBook | null> {
   if (!supabase) return null
@@ -119,30 +155,59 @@ export async function getCatalogBook(id: string): Promise<CatalogBook | null> {
 
 export async function addCatalogBook(book: Omit<CatalogBook, 'id'>, userId: string): Promise<string> {
   if (!supabase) throw new Error('Sem conexão.')
+  const thumb = book.coverData ? await makeCoverThumb(book.coverData) : null
   const { data, error } = await supabase.from('catalog_books').insert({
     title: book.title,
     author: book.author ?? null,
     description: book.description ?? null,
     language_code: book.languageCode,
     cover_data: book.coverData ?? null,
+    cover_thumb: thumb,
     cefr_level: book.level ?? null,
     category: book.category ?? null,
     pages: book.pages,
     created_by: userId,
   }).select('id').single()
   if (error) throw error
+  invalidateCatalogList()
   return data.id as string
 }
 
 /** A área admin ajusta nível, categoria e capa de um livro que já está na galeria. */
 export async function updateCatalogMeta(id: string, patch: { level?: CefrId | null; category?: BookCategory | null; coverData?: string | null }): Promise<void> {
   if (!supabase) throw new Error('Sem conexão.')
-  const row: { cefr_level?: string | null; category?: string | null; cover_data?: string | null } = {}
+  const row: { cefr_level?: string | null; category?: string | null; cover_data?: string | null; cover_thumb?: string | null } = {}
   if ('level' in patch) row.cefr_level = patch.level ?? null
   if ('category' in patch) row.category = patch.category ?? null
-  if ('coverData' in patch) row.cover_data = patch.coverData ?? null
+  if ('coverData' in patch) { row.cover_data = patch.coverData ?? null; row.cover_thumb = patch.coverData ? await makeCoverThumb(patch.coverData) : null }
   const { error } = await supabase.from('catalog_books').update(row).eq('id', id)
   if (error) throw error
+  invalidateCatalogList()
+}
+
+/**
+ * Edição completa de um livro já publicado (só admin, pela política do banco): dados e texto.
+ * A capa só é enviada quando trocada (a lista traz apenas a miniatura). As cópias que os leitores
+ * já têm na estante não mudam; quem baixar o livro depois recebe esta versão.
+ */
+export async function updateCatalogBook(id: string, patch: {
+  title?: string; author?: string | null; description?: string | null; languageCode?: string
+  level?: CefrId | null; category?: BookCategory | null; coverData?: string | null; pages?: string[]
+}): Promise<void> {
+  if (!supabase) throw new Error('Sem conexão.')
+  const row: Record<string, unknown> = {}
+  if (patch.title !== undefined) row.title = patch.title
+  if ('author' in patch) row.author = patch.author ?? null
+  if ('description' in patch) row.description = patch.description ?? null
+  if (patch.languageCode !== undefined) row.language_code = patch.languageCode
+  if ('level' in patch) row.cefr_level = patch.level ?? null
+  if ('category' in patch) row.category = patch.category ?? null
+  if ('coverData' in patch) { row.cover_data = patch.coverData ?? null; row.cover_thumb = patch.coverData ? await makeCoverThumb(patch.coverData) : null }
+  if (patch.pages) row.pages = patch.pages
+  const { data, error } = await supabase.from('catalog_books').update(row).eq('id', id).select('id')
+  if (error) throw error
+  if (!data?.length) throw new Error('not_allowed')
+  invalidateCatalogList()
 }
 
 /** Imagens oficiais de um livro da galeria num estilo (a primeira pessoa que gera cada página define). */
@@ -156,6 +221,7 @@ export async function deleteCatalogBook(id: string): Promise<void> {
   const { data, error } = await supabase.from('catalog_books').delete().eq('id', id).select('id')
   if (error) throw error
   if (!data?.length) throw new Error('not_allowed')
+  invalidateCatalogList()
 }
 
 export async function fetchSharedImages(catalogId: string, styleId: string): Promise<Record<number, string>> {

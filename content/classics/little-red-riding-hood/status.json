@@ -1,0 +1,39 @@
+{
+  "slug": "little-red-riding-hood",
+  "stages": {
+    "manuscript": {
+      "ok": true,
+      "at": "2026-11-13T12:59:56.362Z"
+    },
+    "cover": {
+      "ok": true,
+      "jpgBytes": 127140,
+      "thumbBytes": 11502
+    },
+    "epub": {
+      "ok": true,
+      "file": "content/classics/little-red-riding-hood/build/little-red-riding-hood-a1-expanded.epub",
+      "bytes": 132818,
+      "epubcheck": {
+        "errors": 0,
+        "warnings": 0
+      }
+    },
+    "validated": {
+      "ok": true,
+      "at": "2026-11-13T13:22:24.439Z"
+    },
+    "published": {
+      "ok": true,
+      "id": "e7ed6aab-a437-4f10-9dd4-7b556c13255e",
+      "at": "2026-11-13T13:23:09.963Z",
+      "verifiedPages": 79
+    }
+  },
+  "chapters": 10,
+  "storyWords": 7905,
+  "glossary": 50,
+  "updatedAt": "2026-11-13T13:23:09.963Z",
+  "pages": 79,
+  "readingMinutes": 79
+}

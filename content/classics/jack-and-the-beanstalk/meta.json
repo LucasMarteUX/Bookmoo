@@ -1,0 +1,27 @@
+{
+  "n": 9,
+  "slug": "jack-and-the-beanstalk",
+  "title": "Jack and the Beanstalk: The Giant in the Sky",
+  "galleryTitle": "Jack and the Beanstalk: The Giant in the Sky",
+  "author": "Joseph Jacobs",
+  "authorFull": "Joseph Jacobs (1854–1916), collector of the traditional English tale, in English Fairy Tales (1890)",
+  "originalTitle": "Jack and the Beanstalk",
+  "originalYear": 1890,
+  "category": "adventure",
+  "level": "A1",
+  "language": "en",
+  "readingWpm": 100,
+  "descriptionEn": "A rich, beginner-friendly English retelling of the traditional English tale Jack and the Beanstalk. Seven chapters with full scenes and dialogue: the magic beans, the giant in the sky, the golden hen and the golden harp, with a vocabulary guide.",
+  "descriptionPt": "Um reconto rico e acessível, em inglês simples, do conto tradicional inglês João e o Pé de Feijão. Sete capítulos: os feijões mágicos, o gigante no céu, a galinha dos ovos de ouro e a harpa dourada, com guia de vocabulário.",
+  "adaptationCredit": "Adapted for beginner learners (A1) for Bookmoo. New text written from the structure of the traditional tale; not a copy of any published text.",
+  "sources": [
+    "Traditional English folktale; earliest known print: The History of Jack and the Bean-Stalk (1734). Read in full in Joseph Jacobs, English Fairy Tales (1890), Project Gutenberg #7439, to confirm events: Milky-white, the five beans, the beanstalk, the giant's wife, the bag of gold, the hen that lays golden eggs, the harp, the chase and the fall."
+  ],
+  "rights": "Original tale: English folk tradition; the collector Joseph Jacobs died in 1916, so the text and the tale are in the public domain worldwide. The adaptation is new original text written for Bookmoo and copies no published text. It uses no names, songs or designs from modern films or musicals. Cover: original artwork made for Bookmoo.",
+  "cover": {
+    "bg1": "#1c4a6a",
+    "bg2": "#0a1e2e",
+    "accent": "#c8372d",
+    "paper": "#f3e9d2"
+  }
+}

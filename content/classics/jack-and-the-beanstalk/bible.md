@@ -1,0 +1,6 @@
+# Bíblia — Jack and the Beanstalk
+
+**Autor/tradição:** conto folclórico inglês (primeira impressão conhecida: *The History of Jack and the Bean-Stalk*, 1734; versão de referência: Joseph Jacobs, *English Fairy Tales*, 1890, Gutenberg #7439, lida inteira). Jacobs (1854–1916) é PD.
+**Versão seguida:** Jacobs 1890. Sem elementos de adaptações modernas (sem nomes para a esposa do gigante, sem "Giant" musicais, sem filmes). Os nomes tradicionais permanecem: Jack, sua mãe viúva, a vaca Milky-white (nome tradicional, tira-se de Jacobs). O gigante é chamado "ogre" em Jacobs; a história usa "giant".
+**Eventos obrigatórios:** viúva pobre, Jack e a vaca Milky-white que para de dar leite; mercado; velho que troca a vaca por feijões "mágicos" ("how many beans make five?"); mãe furiosa, joga os feijões pela janela, Jack dorme sem jantar; pé de feijão até o céu; estrada, casa grande, a esposa grande; gigante "Fee-fi-fo-fum, I smell the blood of an Englishman"; forno; saco de ouro; segunda visita: galinha dos ovos de ouro, "Lay"; terceira: harpa dourada que canta, "Master! Master!"; gigante persegue; Jack grita pela machadinha; corta o pé de feijão; gigante cai e morre; ricos e felizes (harpa).
+**Tamanho:** curto com vários eventos (4.000–7.000).

@@ -1,0 +1,38 @@
+{
+  "slug": "snow-white",
+  "stages": {
+    "manuscript": {
+      "ok": false
+    },
+    "cover": {
+      "ok": true,
+      "jpgBytes": 121617,
+      "thumbBytes": 12084
+    },
+    "epub": {
+      "ok": true,
+      "file": "content/classics/snow-white/build/snow-white-a1-expanded.epub",
+      "bytes": 134465,
+      "epubcheck": {
+        "errors": 0,
+        "warnings": 0
+      }
+    },
+    "validated": {
+      "ok": true,
+      "at": "2026-11-13T13:22:30.356Z"
+    },
+    "published": {
+      "ok": true,
+      "id": "a32726a1-dbc1-432f-bc41-3354946163ab",
+      "at": "2026-11-13T13:23:30.487Z",
+      "verifiedPages": 100
+    }
+  },
+  "updatedAt": "2026-11-13T13:23:30.487Z",
+  "chapters": 12,
+  "storyWords": 9878,
+  "glossary": 48,
+  "pages": 100,
+  "readingMinutes": 99
+}

@@ -1,0 +1,296 @@
+[
+ {
+  "term": "merchant",
+  "pt": "mercador",
+  "meaning": "A person who buys and sells goods.",
+  "example": "He was a rich merchant."
+ },
+ {
+  "term": "ship",
+  "pt": "navio",
+  "meaning": "A big boat that goes on the sea.",
+  "example": "He lost every ship he had."
+ },
+ {
+  "term": "pirates",
+  "pt": "piratas",
+  "meaning": "People who attack ships at sea to steal.",
+  "example": "A ship was lost to pirates."
+ },
+ {
+  "term": "cottage",
+  "pt": "casinha",
+  "meaning": "A small house in the country.",
+  "example": "They went to live in a cottage."
+ },
+ {
+  "term": "proud",
+  "pt": "orgulhoso",
+  "meaning": "Thinking you are better than other people.",
+  "example": "Her sisters were proud and selfish."
+ },
+ {
+  "term": "selfish",
+  "pt": "egoísta",
+  "meaning": "Thinking only about yourself.",
+  "example": "They were proud and selfish."
+ },
+ {
+  "term": "fashion",
+  "pt": "moda",
+  "meaning": "The style of clothes that people like now.",
+  "example": "She did not care about fashion."
+ },
+ {
+  "term": "peasant",
+  "pt": "camponês",
+  "meaning": "A poor person who works on the land.",
+  "example": "They had to live like peasants."
+ },
+ {
+  "term": "rose",
+  "pt": "rosa",
+  "meaning": "A flower with a sweet smell and thorns.",
+  "example": "Please bring me a rose."
+ },
+ {
+  "term": "pleaded",
+  "pt": "suplicou; defendeu",
+  "meaning": "Asked in a strong and sad way.",
+  "example": "He pleaded for his rights."
+ },
+ {
+  "term": "court",
+  "pt": "tribunal",
+  "meaning": "The place where judges decide what is right.",
+  "example": "He went to the court of justice."
+ },
+ {
+  "term": "howl",
+  "pt": "uivar",
+  "meaning": "To make a long loud cry, like a wolf.",
+  "example": "The wolves began to howl."
+ },
+ {
+  "term": "avenue",
+  "pt": "alameda",
+  "meaning": "A wide road with trees on both sides.",
+  "example": "A long avenue of orange trees."
+ },
+ {
+  "term": "torch",
+  "pt": "tocha",
+  "meaning": "A stick with fire at one end.",
+  "example": "Torches burned on the walls."
+ },
+ {
+  "term": "couch",
+  "pt": "sofá",
+  "meaning": "A long soft seat.",
+  "example": "A comfortable couch stood by the fire."
+ },
+ {
+  "term": "hospitality",
+  "pt": "hospitalidade",
+  "meaning": "Kind treatment of guests.",
+  "example": "I am grateful for your hospitality."
+ },
+ {
+  "term": "beast",
+  "pt": "besta; fera",
+  "meaning": "A big wild animal.",
+  "example": "Behind him stood a Beast."
+ },
+ {
+  "term": "fierce",
+  "pt": "feroz",
+  "meaning": "Very angry and strong.",
+  "example": "His eyes were fierce and yellow."
+ },
+ {
+  "term": "velvet",
+  "pt": "veludo",
+  "meaning": "A very soft, thick cloth.",
+  "example": "He wore a coat of velvet."
+ },
+ {
+  "term": "flattery",
+  "pt": "bajulação",
+  "meaning": "Too much praise to get something.",
+  "example": "I do not like flattery."
+ },
+ {
+  "term": "settle",
+  "pt": "resolver; acertar",
+  "meaning": "To decide and finish a problem.",
+  "example": "I will tell you how this can be settled."
+ },
+ {
+  "term": "of her own free will",
+  "pt": "por vontade própria",
+  "meaning": "Because she wants to, not because someone forces her.",
+  "example": "She must come of her own free will."
+ },
+ {
+  "term": "chest",
+  "pt": "baú",
+  "meaning": "A big strong box.",
+  "example": "The chest was full of gold."
+ },
+ {
+  "term": "harpsichord",
+  "pt": "cravo (instrumento)",
+  "meaning": "An old instrument like a piano.",
+  "example": "She played the harpsichord."
+ },
+ {
+  "term": "invisible",
+  "pt": "invisível",
+  "meaning": "Not able to be seen.",
+  "example": "Invisible hands served her meals."
+ },
+ {
+  "term": "honest",
+  "pt": "honesto",
+  "meaning": "Telling the truth.",
+  "example": "She was honest and could not tell a lie."
+ },
+ {
+  "term": "wit",
+  "pt": "inteligência; espírito",
+  "meaning": "The power to think quickly and well.",
+  "example": "I have no wit."
+ },
+ {
+  "term": "obliged",
+  "pt": "grato; obrigado",
+  "meaning": "Thankful for a kindness.",
+  "example": "I am very much obliged to you."
+ },
+ {
+  "term": "mirror",
+  "pt": "espelho",
+  "meaning": "Glass where you see your face.",
+  "example": "The mirror showed her father."
+ },
+ {
+  "term": "ring",
+  "pt": "anel",
+  "meaning": "A circle of metal that you wear on a finger.",
+  "example": "He gave her a gold ring."
+ },
+ {
+  "term": "grief",
+  "pt": "tristeza profunda",
+  "meaning": "Very deep sadness.",
+  "example": "I will die of grief."
+ },
+ {
+  "term": "jealous",
+  "pt": "com ciúme",
+  "meaning": "Sad because someone has what you want.",
+  "example": "The sisters were jealous."
+ },
+ {
+  "term": "vain",
+  "pt": "vaidoso",
+  "meaning": "Too proud of how you look.",
+  "example": "He was very vain."
+ },
+ {
+  "term": "onion",
+  "pt": "cebola",
+  "meaning": "A round vegetable that makes your eyes water.",
+  "example": "They rubbed their eyes with onions."
+ },
+ {
+  "term": "sob",
+  "pt": "soluçar",
+  "meaning": "To cry with short sounds.",
+  "example": "The second sister began to sob."
+ },
+ {
+  "term": "promise",
+  "pt": "prometer; promessa",
+  "meaning": "To say that you will surely do something.",
+  "example": "I promise that I will return."
+ },
+ {
+  "term": "dream",
+  "pt": "sonho",
+  "meaning": "Pictures and stories in your mind when you sleep.",
+  "example": "She had a dream."
+ },
+ {
+  "term": "cave",
+  "pt": "caverna",
+  "meaning": "A big hole in a hill or under the ground.",
+  "example": "The Beast lay in a cave."
+ },
+ {
+  "term": "paw",
+  "pt": "pata",
+  "meaning": "The foot of an animal.",
+  "example": "She held his big paw."
+ },
+ {
+  "term": "spell",
+  "pt": "feitiço",
+  "meaning": "Magic words that change things.",
+  "example": "A wicked fairy put a spell on me."
+ },
+ {
+  "term": "fairy",
+  "pt": "fada",
+  "meaning": "A small magic woman in stories.",
+  "example": "The fairy was tall and kind."
+ },
+ {
+  "term": "reward",
+  "pt": "recompensa",
+  "meaning": "A good thing that you get for good work.",
+  "example": "You have your reward."
+ },
+ {
+  "term": "servants",
+  "pt": "criados",
+  "meaning": "People who work in a house for a rich family.",
+  "example": "Servants came out of every door."
+ },
+ {
+  "term": "carriage",
+  "pt": "carruagem",
+  "meaning": "A vehicle with wheels pulled by horses.",
+  "example": "A great carriage drove into the yard."
+ },
+ {
+  "term": "blessing",
+  "pt": "bênção",
+  "meaning": "A wish or sign of good things from a person.",
+  "example": "I hope that you will give us your blessing."
+ },
+ {
+  "term": "statue",
+  "pt": "estátua",
+  "meaning": "A person or animal made of stone.",
+  "example": "Two statues stood at the gate."
+ },
+ {
+  "term": "faults",
+  "pt": "defeitos",
+  "meaning": "Bad parts of your character.",
+  "example": "They must see their faults."
+ },
+ {
+  "term": "wedding",
+  "pt": "casamento",
+  "meaning": "A party when two people get married.",
+  "example": "The wedding was splendid."
+ },
+ {
+  "term": "ballroom",
+  "pt": "salão de baile",
+  "meaning": "A big room for dancing.",
+  "example": "Four hundred candles burned in the ballroom."
+ }
+]

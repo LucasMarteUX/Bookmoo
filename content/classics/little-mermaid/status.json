@@ -1,0 +1,35 @@
+{
+  "slug": "little-mermaid",
+  "stages": {
+    "cover": {
+      "ok": true,
+      "jpgBytes": 129786,
+      "thumbBytes": 11896
+    },
+    "epub": {
+      "ok": true,
+      "file": "content/classics/little-mermaid/build/little-mermaid-a1-expanded.epub",
+      "bytes": 136212,
+      "epubcheck": {
+        "errors": 0,
+        "warnings": 0
+      }
+    },
+    "validated": {
+      "ok": true,
+      "at": "2026-11-13T14:05:20.967Z"
+    },
+    "published": {
+      "ok": true,
+      "id": "948be4cb-2e4b-467a-9462-a55dddcf1b74",
+      "at": "2026-11-13T14:05:29.988Z",
+      "verifiedPages": 87
+    }
+  },
+  "updatedAt": "2026-11-13T14:05:29.988Z",
+  "chapters": 10,
+  "storyWords": 7601,
+  "glossary": 47,
+  "pages": 87,
+  "readingMinutes": 76
+}

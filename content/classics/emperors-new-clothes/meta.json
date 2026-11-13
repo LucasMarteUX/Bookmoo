@@ -1,0 +1,27 @@
+{
+  "n": 13,
+  "slug": "emperors-new-clothes",
+  "title": "The Emperor's New Clothes: The Cloth That Was Not There",
+  "galleryTitle": "The Emperor's New Clothes: The Cloth That Was Not There",
+  "author": "Hans Christian Andersen",
+  "authorFull": "Hans Christian Andersen (1805–1875)",
+  "originalTitle": "Kejserens nye Klæder (The Emperor's New Clothes)",
+  "originalYear": 1837,
+  "category": "short",
+  "level": "A1",
+  "language": "en",
+  "readingWpm": 100,
+  "descriptionEn": "A rich, beginner-friendly English retelling of the tale by Hans Christian Andersen. Five chapters with full scenes and dialogue: the emperor who loved clothes, the two weavers, the honest minister, the procession and the child who told the truth, with a vocabulary guide.",
+  "descriptionPt": "Um reconto rico e acessível, em inglês simples, do conto A Roupa Nova do Imperador de Hans Christian Andersen. Cinco capítulos: o imperador que amava roupas, os dois tecelões, o ministro honesto, o desfile e a criança que disse a verdade, com guia de vocabulário.",
+  "adaptationCredit": "Adapted for beginner learners (A1) for Bookmoo. New text written from the structure of Andersen's tale; not a copy of any published translation.",
+  "sources": [
+    "Hans Christian Andersen, Kejserens nye Klæder (The Emperor's New Clothes), first published 7 April 1837 (Eventyr, fortalte for Børn). Read in full in a historical English translation (Project Gutenberg #27200, 'The Emperor's New Suit'). The older Spanish tale by Don Juan Manuel (El conde Lucanor, c. 1335) is only historical context."
+  ],
+  "rights": "Original tale: Hans Christian Andersen died in 1875, so the work is in the public domain worldwide. The adaptation is new text written for Bookmoo and copies no modern translation. It uses no film, stage or television versions. Cover: original artwork made for Bookmoo.",
+  "cover": {
+    "bg1": "#5a2a3a",
+    "bg2": "#210e16",
+    "accent": "#c8372d",
+    "paper": "#f6ecd6"
+  }
+}

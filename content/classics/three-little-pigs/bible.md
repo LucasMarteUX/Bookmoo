@@ -1,0 +1,5 @@
+# Bíblia — The Three Little Pigs
+
+**Tradição:** conto folclórico inglês, primeira versão impressa conhecida em J. O. Halliwell, *Nursery Rhymes and Nursery Tales of England* (c. 1843); edição de referência: Joseph Jacobs, *English Fairy Tales* (1890), Project Gutenberg #7439 (lido inteiro). Autor/tradição: anônimo (folclore); Halliwell (1820–1889) e Jacobs (1854–1916) são PD.
+**Versão seguida:** Halliwell/Jacobs: porca manda os filhotes buscarem fortuna; palha, gravetos (furze), tijolos; "Little pig, little pig, let me come in" / "No, no, by the hair of my chiny chin chin" / "I'll huff and I'll puff and I'll blow your house in"; os dois primeiros porquinhos são comidos; o terceiro engana o lobo: nabos (6h/5h), maçãs (5h/4h; joga uma maçã), a feira em Shanklin (barril de manteiga, roda morro abaixo); o lobo tenta descer pela chaminé; o porquinho ferve água, o lobo cai na panela, o porquinho o cozinha e come. Sem versões modernas (a de Disney de 1933: Fifer, Fiddler, Practical; não usada). Os nomes não existem.
+**Tamanho:** curto; sem inflar.

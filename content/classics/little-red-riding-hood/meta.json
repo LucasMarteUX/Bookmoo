@@ -1,0 +1,23 @@
+{
+  "n": 1,
+  "slug": "little-red-riding-hood",
+  "title": "Little Red Riding Hood: The Girl in the Red Cap",
+  "galleryTitle": "Little Red Riding Hood: The Girl in the Red Cap",
+  "author": "Brothers Grimm",
+  "authorFull": "Jacob Grimm (1785–1863) and Wilhelm Grimm (1786–1859)",
+  "originalTitle": "Rotkäppchen (Little Red Cap), KHM 26",
+  "originalYear": 1812,
+  "category": "short",
+  "level": "A1",
+  "language": "en",
+  "readingWpm": 100,
+  "descriptionEn": "A rich, beginner-friendly English retelling of the Brothers Grimm tale Little Red Cap. Ten chapters with full scenes and dialogue, the second wolf from the original story, and a vocabulary guide.",
+  "descriptionPt": "Um reconto rico e acessível, em inglês simples, do conto Chapeuzinho Vermelho dos Irmãos Grimm. Dez capítulos com cenas e diálogos completos, o segundo lobo do conto original e um guia de vocabulário.",
+  "adaptationCredit": "Adapted for beginner learners (A1) for Bookmoo. New text written from the structure of the tale; not a copy of any published translation.",
+  "sources": [
+    "Brothers Grimm, Kinder- und Haus-Märchen, KHM 26 'Rotkäppchen' (1st ed. 1812; 7th ed. 1857). Read in the historical English translation in Project Gutenberg #2591 (Edgar Taylor / Marian Edwardes) to confirm events and order.",
+    "Charles Perrault, Le Petit Chaperon rouge (1697): historical context only."
+  ],
+  "rights": "Original tale: Jacob and Wilhelm Grimm died in 1863 and 1859, so the work is in the public domain worldwide (Brazil: life + 70 years, long expired). The adaptation is new original text written for Bookmoo and copies no translation. Cover: original artwork made for Bookmoo, with no film characters or third-party marks.",
+  "cover": { "bg1": "#16352c", "bg2": "#0b1f1a", "accent": "#c8372d", "paper": "#f3e9d2" }
+}

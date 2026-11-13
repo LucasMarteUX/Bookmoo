@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
+import { Pencil, Trash2 } from 'lucide-react'
+import { askConfirm } from '@/components/ui/confirm'
+import { toast } from '@/components/ui/toast'
 import { useAuth } from '@/contexts/AuthContext'
 import { useLanguage } from '@/store/useLanguage'
 import { CEFR, type CefrId } from '@/lib/cefr'
-import { adminOverview, BOOK_CATEGORIES, listCatalog, updateCatalogMeta, type BookCategory, type CatalogBook } from '@/lib/catalog'
+import { adminOverview, BOOK_CATEGORIES, deleteCatalogBook, listCatalog, updateCatalogMeta, type BookCategory, type CatalogBook } from '@/lib/catalog'
 import { AdminGalleryForm } from './Gallery'
 import { AdminReports } from '@/components/community/AdminReports'
 import { StyleBankAdmin } from '@/components/book/StyleBankAdmin'
@@ -56,21 +59,87 @@ export function AdminPage() {
   )
 }
 
+const PAGE_SIZE = 10
+
 function PublishedBooks({ pt, books, onChange }: { pt: boolean; books: CatalogBook[]; onChange: () => void }) {
+  const [query, setQuery] = useState('')
+  const [category, setCategory] = useState<BookCategory | 'none' | ''>('')
+  const [level, setLevel] = useState<CefrId | 'none' | ''>('')
+  const [page, setPage] = useState(1)
+  const field = 'h-9 rounded-lg border px-2 text-[13px] outline-none'
+  const style = { borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg)', color: 'var(--theme-text)' }
+
+  const needle = query.trim().toLowerCase()
+  const filtered = books.filter(book => {
+    if (needle && !`${book.title} ${book.author ?? ''}`.toLowerCase().includes(needle)) return false
+    if (category && (category === 'none' ? book.category : book.category !== category)) return false
+    if (level && (level === 'none' ? book.level : book.level !== level)) return false
+    return true
+  })
+  const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const current = Math.min(page, pages)
+  const visible = filtered.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE)
+  const filtering = !!(needle || category || level)
+  const pageBtn = 'h-8 px-3 rounded-lg border text-[13px] font-medium disabled:opacity-40'
+
   return (
     <section>
       <h2 className="text-[15px] font-semibold">{pt ? 'Livros publicados' : 'Published books'}</h2>
       <p className="mt-1 text-[13px]" style={{ color: 'var(--theme-text-secondary)' }}>
         {pt ? 'Troque a capa, o nível ou a categoria e salve. Nada muda antes do botão.' : 'Change the cover, level or category, then save. Nothing updates before the button.'}
       </p>
+      {books.length > 0 && (
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <input type="search" className={`${field} flex-1 min-w-[180px]`} style={style} value={query}
+            placeholder={pt ? 'Pesquisar por título ou autor' : 'Search by title or author'}
+            aria-label={pt ? 'Pesquisar livros' : 'Search books'}
+            onChange={e => { setQuery(e.target.value); setPage(1) }} />
+          <select aria-label={pt ? 'Filtrar por categoria' : 'Filter by category'} className={`${field} cursor-pointer`} style={style} value={category}
+            onChange={e => { setCategory(e.target.value as BookCategory | 'none' | ''); setPage(1) }}>
+            <option value="">{pt ? 'Todas as categorias' : 'All categories'}</option>
+            {BOOK_CATEGORIES.map(item => <option key={item.id} value={item.id}>{pt ? item.pt : item.en}</option>)}
+            <option value="none">{pt ? 'Sem categoria' : 'No category'}</option>
+          </select>
+          <select aria-label={pt ? 'Filtrar por nível' : 'Filter by level'} className={`${field} cursor-pointer`} style={style} value={level}
+            onChange={e => { setLevel(e.target.value as CefrId | 'none' | ''); setPage(1) }}>
+            <option value="">{pt ? 'Todos os níveis' : 'All levels'}</option>
+            {CEFR.map(band => <option key={band.id} value={band.id}>{band.id}</option>)}
+            <option value="none">{pt ? 'Sem nível' : 'No level'}</option>
+          </select>
+          {filtering && (
+            <button type="button" className={pageBtn} style={style} onClick={() => { setQuery(''); setCategory(''); setLevel(''); setPage(1) }}>
+              {pt ? 'Limpar' : 'Clear'}
+            </button>
+          )}
+        </div>
+      )}
+      {books.length > 0 && (
+        <p className="mt-3 text-[12.5px]" role="status" style={{ color: 'var(--theme-text-secondary)' }}>
+          {filtering
+            ? (pt ? `${filtered.length} de ${books.length} livros` : `${filtered.length} of ${books.length} books`)
+            : (pt ? `${books.length} livros` : `${books.length} books`)}
+        </p>
+      )}
       {books.length === 0 && (
         <p className="mt-4 text-[14px]" style={{ color: 'var(--theme-text-secondary)' }}>
           {pt ? 'Nenhum livro na galeria ainda.' : 'No books in the gallery yet.'}
         </p>
       )}
-      <ul className="mt-4 space-y-3">
-        {books.map(book => <PublishedBook key={book.id} book={book} pt={pt} onSaved={onChange} />)}
+      {books.length > 0 && filtered.length === 0 && (
+        <p className="mt-4 text-[14px]" style={{ color: 'var(--theme-text-secondary)' }}>
+          {pt ? 'Nenhum livro com esses filtros.' : 'No books match these filters.'}
+        </p>
+      )}
+      <ul className="mt-3 space-y-3">
+        {visible.map(book => <PublishedBook key={book.id} book={book} pt={pt} onSaved={onChange} />)}
       </ul>
+      {pages > 1 && (
+        <nav className="mt-4 flex items-center justify-center gap-3" aria-label={pt ? 'Páginas' : 'Pages'}>
+          <button type="button" className={pageBtn} style={style} disabled={current <= 1} onClick={() => setPage(current - 1)}>{pt ? 'Anterior' : 'Previous'}</button>
+          <span className="text-[13px] tabular-nums" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? `Página ${current} de ${pages}` : `Page ${current} of ${pages}`}</span>
+          <button type="button" className={pageBtn} style={style} disabled={current >= pages} onClick={() => setPage(current + 1)}>{pt ? 'Próxima' : 'Next'}</button>
+        </nav>
+      )}
     </section>
   )
 }
@@ -100,6 +169,24 @@ function PublishedBook({ book, pt, onSaved }: { book: CatalogBook; pt: boolean; 
     }
   }
 
+  const remove = async () => {
+    const ok = await askConfirm(pt ? `Remover “${book.title}” da galeria?` : `Remove “${book.title}” from the gallery?`, {
+      detail: pt
+        ? 'Some para todos: avaliações, imagens compartilhadas, versões e comentários deste livro são apagados. Quem já tem o livro na estante continua com a própria cópia. Não dá para desfazer.'
+        : 'It disappears for everyone: reviews, shared images, versions and comments are deleted. Readers keep their own copy. This cannot be undone.',
+      confirmLabel: pt ? 'Remover da galeria' : 'Remove from gallery',
+      danger: true,
+    })
+    if (!ok) return
+    try {
+      await deleteCatalogBook(book.id)
+      toast(pt ? `“${book.title}” saiu da galeria` : `“${book.title}” removed from the gallery`)
+      onSaved()
+    } catch {
+      toast(pt ? 'Não foi possível remover' : 'Could not remove', { tone: 'error', detail: pt ? 'Confira se esta é a conta de admin e tente de novo.' : 'Check this is the admin account and try again.' })
+    }
+  }
+
   const save = async () => {
     setSaving(true)
     setNote('')
@@ -107,7 +194,8 @@ function PublishedBook({ book, pt, onSaved }: { book: CatalogBook; pt: boolean; 
       await updateCatalogMeta(book.id, {
         level: (level || null) as CefrId | null,
         category: (category || null) as BookCategory | null,
-        coverData: cover || null,
+        // A lista traz só a miniatura: a capa só é enviada quando a pessoa escolheu uma nova.
+        ...(cover !== (book.coverData ?? '') ? { coverData: cover || null } : {}),
       })
       setNote(pt ? 'Salvo.' : 'Saved.')
       onSaved()
@@ -145,6 +233,15 @@ function PublishedBook({ book, pt, onSaved }: { book: CatalogBook; pt: boolean; 
             {saving ? (pt ? 'Salvando…' : 'Saving…') : (pt ? 'Salvar' : 'Save')}
           </button>
           {note && <span className="text-[12.5px]" style={{ color: 'var(--theme-text-secondary)' }}>{note}</span>}
+          <Link to={`/admin/books/${book.id}`} aria-label={pt ? `Editar texto de ${book.title}` : `Edit text of ${book.title}`}
+            className="ui-hover ml-auto h-8 px-3 rounded-lg border text-[13px] font-medium inline-flex items-center gap-1.5" style={{ borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }}>
+            <Pencil className="w-3.5 h-3.5" />{pt ? 'Editar' : 'Edit'}
+          </Link>
+          <button type="button" onClick={() => { void remove() }} aria-label={pt ? `Remover ${book.title} da galeria` : `Remove ${book.title} from the gallery`}
+            className="ui-hover h-8 px-3 rounded-lg border text-[13px] font-medium inline-flex items-center gap-1.5"
+            style={{ borderColor: 'color-mix(in srgb, var(--color-destructive) 45%, transparent)', color: 'var(--color-destructive)' }}>
+            <Trash2 className="w-3.5 h-3.5" />{pt ? 'Remover' : 'Remove'}
+          </button>
         </div>
       </div>
     </li>
