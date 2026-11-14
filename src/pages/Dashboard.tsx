@@ -355,7 +355,7 @@ export function Dashboard() {
         </div>
       </header>
 
-      <GalleryBanner />
+      {books.length === 0 && <GalleryBanner />}
 
       {/* Continuar lendo + hoje */}
       <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
