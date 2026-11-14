@@ -9,17 +9,24 @@ export const MODEL_HOST = ((import.meta.env.VITE_MODEL_HOST as string | undefine
 const HF = 'https://huggingface.co/'
 
 export function configureModelEnv(env: OnnxEnv) {
-  if (MODEL_HOST) env.remoteHost = `${MODEL_HOST}/`
-  const wasm = env.backends?.onnx?.wasm
+  // Os downloads continuam apontando para o Hugging Face; o espelho entra por redirectHuggingFaceFetch (com fallback nos dois sentidos).
+  void env
+  const wasm = (env as OnnxEnv).backends?.onnx?.wasm
   if (wasm) wasm.wasmPaths = `${self.location.origin}/ort/`
 }
 
-/** Dentro do worker: troca downloads diretos do Hugging Face (ex.: vozes do kokoro-js) pelo espelho. */
+/** Dentro do worker: com espelho próprio, tenta o espelho primeiro e cai no Hugging Face se falhar (e vice-versa). */
 export function redirectHuggingFaceFetch() {
   if (!MODEL_HOST) return
   const original = self.fetch.bind(self)
-  self.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
+  self.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
-    return original(url.startsWith(HF) ? `${MODEL_HOST}/${url.slice(HF.length)}` : input, init)
+    if (!url.startsWith(HF)) return original(input, init)
+    const mirror = `${MODEL_HOST}/${url.slice(HF.length)}`
+    try {
+      const res = await original(mirror, init)
+      if (res.ok || res.status === 206) return res
+    } catch { /* espelho fora do ar */ }
+    return original(input, init)
   }) as typeof fetch
 }

@@ -1,7 +1,8 @@
 // Guarda uma cópia local dos modelos de voz e escuta usados pelo app (licenças Apache-2.0 e MIT permitem),
 // na mesma estrutura do Hugging Face, para subir num espelho próprio (VITE_MODEL_HOST) se a fonte sair do ar.
 //   npx tsx scripts/models/backup-models.mts   ->  content/models-backup/<repo>/resolve/main/<arquivo>
-import { createWriteStream, existsSync, mkdirSync, statSync } from 'node:fs'
+import { createReadStream, createWriteStream, existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs'
+import { createHash } from 'node:crypto'
 import { dirname, join } from 'node:path'
 import { Readable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
@@ -29,4 +30,18 @@ for (const { repo, keep } of REPOS) {
     console.log('  ✓', f.path)
   }
 }
-console.log('Pronto em content/models-backup')
+// Manifesto com SHA-256 de cada arquivo: serve para conferir a cópia e o espelho depois.
+import { readdirSync } from 'node:fs'
+const manifest: Record<string, string> = {}
+const walk = async (dir: string) => {
+  for (const e of readdirSync(dir, { withFileTypes: true })) {
+    const full = join(dir, e.name)
+    if (e.isDirectory()) { await walk(full); continue }
+    if (e.name === 'MANIFEST.json') continue
+    const h = createHash('sha256'); await pipeline(createReadStream(full), h)
+    manifest[full.slice(OUT.length + 1)] = h.digest('hex')
+  }
+}
+await walk(OUT)
+writeFileSync(join(OUT, 'MANIFEST.json'), JSON.stringify(manifest, null, 2))
+console.log('Pronto em content/models-backup (MANIFEST.json com SHA-256)')
