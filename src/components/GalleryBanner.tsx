@@ -6,6 +6,13 @@ import { Button } from '@/components/ui/button'
 import { useLanguage } from '@/store/useLanguage'
 
 const BANNER = '/banners/gallery-home.webp'
+const PICKS = [
+  'cb8a5443-6910-4b1c-9b63-9b684689d73b', // Alice's Adventures in Wonderland
+  'b58684d3-fb1b-4ec7-80c8-0891e1062a9b', // Moby Dick
+  'ce9c6a7f-6dfc-401d-98c3-e8e9c959e96f', // The Adventures of Sherlock Holmes
+  'e06fbad9-54dd-43e8-92e6-4078e351cc5c', // Frankenstein
+  '182b957a-4297-49ff-a47e-976b58320dfc', // Anne of the Island
+]
 
 /** Faixa de largura total na Home que leva à galeria. Usa a arte em /banners/gallery-home.webp quando existir;
  *  enquanto isso mostra capas reais do catálogo sobre fundo chapado. */
@@ -14,7 +21,7 @@ export function GalleryBanner() {
   const { locale } = useLanguage()
   const pt = locale === 'pt-BR'
   const [art, setArt] = useState<boolean | null>(null)
-  const [covers, setCovers] = useState<string[]>([])
+  const [covers, setCovers] = useState<{ id: string; cover: string; title: string }[]>([])
 
   useEffect(() => {
     const img = new Image()
@@ -25,19 +32,11 @@ export function GalleryBanner() {
 
   useEffect(() => {
     if (art !== false || !supabase) return
-    // Mistura de categorias: 3 adultas (uma de cada categoria) e 2 infantis, intercaladas.
-    supabase.from('catalog_books').select('cover_thumb, category, age_min').not('cover_thumb', 'is', null).limit(200)
+    // Seleção fixa, na ordem: Alice, Moby Dick, Sherlock Holmes, Frankenstein, Anne of the Island.
+    supabase.from('catalog_books').select('id, title, cover_thumb').in('id', PICKS).not('cover_thumb', 'is', null)
       .then(({ data }) => {
-        const rows = (data ?? []) as { cover_thumb: string; category: string; age_min: number | null }[]
-        const seen = new Set<string>(); const adult: string[] = []; const kids: string[] = []
-        for (const r of rows) {
-          if (r.category === 'children') { if (kids.length < 2) kids.push(r.cover_thumb); continue }
-          if ((r.age_min ?? 12) < 12 || seen.has(r.category)) continue
-          seen.add(r.category); adult.push(r.cover_thumb)
-        }
-        const a5 = adult.slice(0, 3); const mixed: string[] = []
-        a5.forEach((c, i) => { mixed.push(c); if (i === 0 && kids[0]) mixed.push(kids[0]); if (i === 1 && kids[1]) mixed.push(kids[1]) })
-        setCovers(mixed)
+        const rows = (data ?? []) as { id: string; title: string; cover_thumb: string }[]
+        setCovers(PICKS.map(id => rows.find(r => r.id === id)).filter(Boolean).map(r => ({ id: r!.id, title: r!.title, cover: r!.cover_thumb })))
       })
   }, [art])
 
@@ -46,15 +45,14 @@ export function GalleryBanner() {
   const cta = pt ? 'Explorar a galeria' : 'Explore the gallery'
 
   return (
-    <div onClick={() => navigate('/gallery')}
-      className="relative block w-full cursor-pointer overflow-hidden rounded-2xl border text-left" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg-secondary)' }}>
+    <div className="relative block w-full overflow-hidden rounded-2xl border text-left" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg-secondary)' }}>
       {art ? (
         <>
           <img src={BANNER} alt="" className="w-full h-[200px] sm:h-[240px] md:h-[280px] object-cover object-right" />
           <div className="absolute inset-0 flex flex-col justify-center gap-3 p-5 md:p-10 max-w-[60%] sm:max-w-[55%]" style={{ color: '#fff' }}>
             <h2 className="font-display text-[22px] sm:text-[30px] md:text-[38px] leading-[1.05]">{title}</h2>
             <p className="hidden sm:block text-[14px] opacity-90">{sub}</p>
-            <Button className="self-start">{cta}<ArrowRight className="w-4 h-4" /></Button>
+            <Button className="self-start" onClick={() => navigate('/gallery')}>{cta}<ArrowRight className="w-4 h-4" /></Button>
           </div>
         </>
       ) : (
@@ -62,10 +60,15 @@ export function GalleryBanner() {
           <div className="min-w-0 flex-1">
             <h2 className="font-display text-[22px] md:text-[32px] leading-[1.08]" style={{ color: 'var(--theme-text)' }}>{title}</h2>
             <p className="mt-1 text-[14px]" style={{ color: 'var(--theme-text-secondary)' }}>{sub}</p>
-            <Button className="mt-4">{cta}<ArrowRight className="w-4 h-4" /></Button>
+            <Button className="mt-4" onClick={() => navigate('/gallery')}>{cta}<ArrowRight className="w-4 h-4" /></Button>
           </div>
           <div className="hidden sm:flex -space-x-5">
-            {covers.map((c, i) => <img key={i} src={c} alt="" className="book-cover w-[68px] md:w-[88px] aspect-[2/3] rounded-md object-cover" style={{ transform: `rotate(${(i - 2) * 3}deg)` }} />)}
+            {covers.map((c, i) => (
+              <button key={c.id} type="button" onClick={() => navigate(`/gallery/${c.id}`)} aria-label={c.title} title={c.title}
+                className="book-cover w-[68px] md:w-[88px] aspect-[2/3] rounded-md overflow-hidden transition-transform hover:-translate-y-1" style={{ transform: `rotate(${(i - 2) * 3}deg)` }}>
+                <img src={c.cover} alt="" className="w-full h-full object-cover" />
+              </button>
+            ))}
           </div>
         </div>
       )}
