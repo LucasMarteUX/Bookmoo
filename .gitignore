@@ -13,3 +13,9 @@ coverage/
 .cursor/
 supabase/.temp/
 content/classics/*/build/
+
+# Importação de EPUBs: arquivos pesados e temporários (os relatórios na raiz de content/epubs ficam versionados)
+content/epubs/*/
+content/collections/*/*.sql
+content/collections/*/banner-art.jpg
+content/collections/*/banner-preview.jpg
