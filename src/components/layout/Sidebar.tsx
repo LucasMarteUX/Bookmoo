@@ -37,7 +37,7 @@ export function Sidebar({ isMobileDrawer, onClose }: SidebarProps) {
   const { t } = useTranslations(locale)
   const pt = locale === 'pt-BR'
   const { user, signOut, isAdmin } = useAuth()
-  const { sidebarCollapsed, toggleSidebar, setCommandOpen, requestAddBook } = useUiStore()
+  const { sidebarCollapsed, toggleSidebar, setCommandOpen } = useUiStore()
   const unread = useUnreadNotifications()
   const books = useBookStore(s => s.books)
   const vocab = useVocabularyStore(s => s.vocabularies)
@@ -188,12 +188,6 @@ export function Sidebar({ isMobileDrawer, onClose }: SidebarProps) {
             <Search className="w-4 h-4" />
             <span className="flex-1 text-left">{pt ? 'Buscar' : 'Search'}</span>
             <kbd className="kbd">{MOD_KEY} K</kbd>
-          </button>
-          <button type="button" onClick={() => { go(); if (location.pathname !== '/') navigate('/'); requestAddBook() }}
-            className="w-full flex items-center gap-2.5 h-8 px-2 rounded-md text-[13.5px] transition-colors hover:bg-[var(--ui-hover)]"
-            style={{ color: 'var(--theme-nav-text-muted)' }}>
-            <Plus className="w-4 h-4" />
-            <span>{t('addBook')}</span>
           </button>
         </div>
 

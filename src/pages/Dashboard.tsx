@@ -83,9 +83,10 @@ export function Dashboard() {
   const xp = useMemo(() => xpSummary(xpEvents), [xpEvents])
   // Pedido vindo da sidebar ou da paleta (⌘K): abre o "Adicionar livro".
   useEffect(() => { if (addBookRequest) setIsAddModalOpen(true) }, [addBookRequest])
+  useEffect(() => { if (isAddModalOpen) setRightsOk(false) }, [isAddModalOpen])
  
   const handleAddBook = async () => {
-    if (!newTitle.trim() || savingBook) return
+    if (!newTitle.trim() || savingBook || !rightsOk) return
     setSavingBook(true)
     setBookError('')
     const totalPagesNum = newTotalPages.trim() ? parseInt(newTotalPages, 10) : undefined
@@ -129,6 +130,8 @@ export function Dashboard() {
   const [epubStatus, setEpubStatus] = useState<{ busy: boolean; msg: string | null; kind?: 'EPUB' | 'PDF' }>({ busy: false, msg: null })
   const [importProgress, setImportProgress] = useState(0)
   const [importStep, setImportStep] = useState('')
+  const [rightsOk, setRightsOk] = useState(false)
+  useEffect(() => { if (isAddModalOpen) setRightsOk(false) }, [isAddModalOpen])
   const [importNotes, setImportNotes] = useState<string[]>([])
   const [convertedEpub, setConvertedEpub] = useState<{ url: string; name: string } | null>(null)
   const clearConverted = () => setConvertedEpub(prev => { if (prev) URL.revokeObjectURL(prev.url); return null })
@@ -597,12 +600,20 @@ export function Dashboard() {
               <Label style={{ color: 'var(--theme-text)' }}>{t('totalPages')}</Label>
               <Input type="number" min={1} value={newTotalPages} onChange={(e) => setNewTotalPages(e.target.value)} placeholder={t('totalPagesPlaceholder')} className="rounded-xl h-11" style={{ borderColor: 'var(--theme-border)' }} />
             </div>
+            <label className="flex cursor-pointer items-start gap-3 rounded-2xl border p-3.5 text-[13px] leading-snug" style={{ borderColor: rightsOk ? 'var(--theme-text)' : 'var(--theme-border)' }}>
+              <input type="checkbox" checked={rightsOk} onChange={e => setRightsOk(e.target.checked)} className="mt-0.5 size-4 shrink-0 cursor-pointer accent-[var(--theme-primary)]" />
+              <span style={{ color: 'var(--theme-text-secondary)' }}>
+                {pt ? 'Declaro que este conteúdo é de minha autoria, está em domínio público ou tenho autorização de quem detém os direitos para usá-lo. Sei que EPUBs e PDFs protegidos por direitos autorais são proibidos, que o livro fica só na minha biblioteca (não é compartilhado) e que respondo por esta declaração. '
+                  : 'I declare this content is my own work, in the public domain, or that I have permission from the rightsholder to use it. I understand copyrighted EPUBs and PDFs are forbidden, that the book stays in my library only (not shared) and that I am responsible for this declaration. '}
+                <a href="/terms#livros" target="_blank" rel="noreferrer" className="font-medium underline underline-offset-2" style={{ color: 'var(--theme-text)' }} onClick={e => e.stopPropagation()}>{pt ? 'Ver os Termos' : 'See the Terms'}</a>
+              </span>
+            </label>
           </div>
 
           {/* Cabeçalho e rodapé fixos; só o formulário rola. */}
           <div className="shrink-0 flex gap-3 border-t px-5 py-4 sm:px-6" style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-border)' }}>
             <Button variant="outline" className="flex-1 rounded-full h-11 font-semibold" style={{ borderColor: 'var(--theme-border)' }} onClick={() => setIsAddModalOpen(false)}>{t('cancel')}</Button>
-            <Button className="flex-[2] rounded-full h-11 px-8 font-semibold" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }} onClick={handleAddBook} disabled={!newTitle.trim() || savingBook || epubStatus.busy}>
+            <Button className="flex-[2] rounded-full h-11 px-8 font-semibold" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }} onClick={handleAddBook} disabled={!newTitle.trim() || !rightsOk || savingBook || epubStatus.busy}>
               {savingBook ? (pt ? 'Salvando…' : 'Saving…') : t('saveBook')}
             </Button>
           </div>

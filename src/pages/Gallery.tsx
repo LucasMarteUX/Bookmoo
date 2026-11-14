@@ -1,12 +1,13 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
-import { Trash2 } from 'lucide-react'
+import { Palette, Trash2 } from 'lucide-react'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { askConfirm } from '@/components/ui/confirm'
 import { toast } from '@/components/ui/toast'
 import { BookCover } from '@/components/book/BookCard'
 import { BookReviews } from '@/components/community/BookReviews'
-import { StyleCard, StylePickerDialog, useStyleBank } from '@/components/book/StylePicker'
+import { StyleCard, useStyleBank } from '@/components/book/StylePicker'
 import { bookStyleKey, catalogStyleOptions, LEGACY_STYLE } from '@/lib/comicStyles'
 import { GalleryList } from '@/pages/GalleryList'
 import { LevelBadge } from '@/components/ui/level-badge'
@@ -46,7 +47,7 @@ function GalleryBook({ id }: { id: string }) {
   const [metaNote, setMetaNote] = useState('')
   const [styleOptions, setStyleOptions] = useState<{ styleId: string; pages: number; isDefault: boolean }[]>([])
   const [chosenStyle, setChosenStyle] = useState<string | null>(null)
-  const [pickingStyle, setPickingStyle] = useState(false)
+  const [styleOpen, setStyleOpen] = useState(false)
   const bank = useStyleBank(pt)
 
   const reload = () => {
@@ -69,6 +70,10 @@ function GalleryBook({ id }: { id: string }) {
   }, [book])
 
   const owned = books.find(item => item.catalogId === id)
+  const setCurrentBook = useBookStore(s => s.setCurrentBook)
+  const defaultStyleId = styleOptions.find(option => option.isDefault)?.styleId ?? chosenStyle
+  const defaultStyle = defaultStyleId && defaultStyleId !== LEGACY_STYLE ? bank?.find(item => item.id === defaultStyleId) : undefined
+  const defaultOption = styleOptions.find(option => option.styleId === defaultStyleId)
 
   const pull = async () => {
     if (!book || !user) return
@@ -148,68 +153,54 @@ function GalleryBook({ id }: { id: string }) {
             {book.level && <LevelBadge id={book.level} pt={pt} />}
             {book.category && <Pill>{categoryName(book.category, pt)}</Pill>}
             <Pill>{lang}</Pill>
+            {defaultStyle && (
+              <button type="button" onClick={() => setStyleOpen(true)} title={pt ? 'Estilo das ilustrações' : 'Illustration style'}
+                className="inline-flex items-center gap-1.5 h-[26px] px-2.5 rounded-full text-[12px] font-medium border transition-colors hover:bg-[var(--ui-hover)]"
+                style={{ borderColor: 'var(--theme-border)', color: 'var(--theme-text-secondary)' }}>
+                <Palette className="w-3.5 h-3.5" />{defaultStyle.name}
+              </button>
+            )}
           </div>
           <dl className="mt-5 grid grid-cols-3 gap-2 max-w-md">
             <Fact label={pt ? 'Páginas' : 'Pages'} value={book.pages.length ? String(book.pages.length) : '–'} />
             <Fact label={pt ? 'Palavras' : 'Words'} value={words ? words.toLocaleString(pt ? 'pt-BR' : 'en-US') : '–'} />
             <Fact label={pt ? 'Idioma' : 'Language'} value={lang} />
           </dl>
-          <button type="button" disabled={busy || !!owned} onClick={pull}
-            className="mt-6 h-11 px-5 rounded-xl text-[14.5px] font-medium disabled:opacity-60"
-            style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
-            {owned ? (pt ? 'Já está na sua estante' : 'Already on your shelf') : (pt ? 'Levar para a minha estante' : 'Add to my shelf')}
-          </button>
-        </div>
-      </div>
-
-      <section className="mt-10">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h2 className="text-[15px] font-semibold">{pt ? 'Estilo das ilustrações' : 'Illustration style'}</h2>
-            <p className="mt-1 text-[13px] max-w-xl" style={{ color: 'var(--theme-text-secondary)' }}>
-              {owned
-                ? (pt ? 'Para trocar o estilo do seu exemplar, abra o livro e vá em direção de arte. Trocar recomeça as imagens do zero.' : 'To change your copy’s style, open the book and go to art direction. Changing restarts the images from scratch.')
-                : styleOptions.length
-                  ? (pt ? 'A primeira pessoa que gerou este livro definiu o estilo. Escolha um dos que já existem ou comece outro do zero.' : 'The first reader to generate this book set its style. Pick an existing one or start another from scratch.')
-                  : (pt ? 'Ninguém gerou imagens deste livro ainda. Sem escolha, o estilo sai do tipo do livro e vale para quem vier depois.' : 'Nobody has generated this book yet. Without a choice, the style follows the book type and applies to everyone after you.')}
-            </p>
-          </div>
-          {!owned && (
-            <button type="button" onClick={() => setPickingStyle(true)} className="h-9 px-3.5 rounded-full border text-[13px]" style={{ borderColor: 'var(--theme-border)' }}>
-              {styleOptions.length ? (pt ? 'Outro estilo' : 'Another style') : (pt ? 'Escolher estilo' : 'Choose a style')}
+          {owned ? (
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              <button type="button" onClick={() => { setCurrentBook(owned.id); navigate(`/book/${owned.id}`) }}
+                className="h-11 px-5 rounded-xl text-[14.5px] font-medium"
+                style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
+                {owned.currentPage > 0 ? (pt ? 'Continuar a ler' : 'Continue reading') : (pt ? 'Começar a ler' : 'Start reading')}
+              </button>
+              <span className="text-[13px]" style={{ color: 'var(--theme-text-secondary)' }}>
+                {pt ? 'Na sua estante' : 'On your shelf'}{owned.currentPage > 0 ? ` · ${pt ? 'página' : 'page'} ${owned.currentPage + 1}${book.pages.length ? ` ${pt ? 'de' : 'of'} ${book.pages.length}` : ''}` : ''}
+              </span>
+            </div>
+          ) : (
+            <button type="button" disabled={busy} onClick={pull}
+              className="mt-6 h-11 px-5 rounded-xl text-[14.5px] font-medium disabled:opacity-60"
+              style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
+              {pt ? 'Levar para a minha estante' : 'Add to my shelf'}
             </button>
           )}
         </div>
-        {(() => {
-          const shown = owned
-            ? [bookStyleKey(owned)].filter(styleId => styleId !== LEGACY_STYLE || styleOptions.some(option => option.styleId === LEGACY_STYLE))
-            : [...styleOptions.map(option => option.styleId), ...(chosenStyle && !styleOptions.some(option => option.styleId === chosenStyle) ? [chosenStyle] : [])]
-          if (!shown.length) return null
-          return (
-            <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 max-w-3xl">
-              {shown.map(styleId => {
-                const option = styleOptions.find(item => item.styleId === styleId)
-                const meta = bank?.find(item => item.id === styleId)
-                const note = option
-                  ? `${option.isDefault ? (pt ? 'Padrão · ' : 'Default · ') : ''}${option.pages} ${pt ? (option.pages === 1 ? 'página pronta' : 'páginas prontas') : 'pages ready'}`
-                  : (pt ? 'Novo: começa do zero' : 'New: starts from scratch')
-                if (styleId === LEGACY_STYLE) {
-                  return <StyleCard key={styleId} pt={pt} compact note={note} preview={book.coverData}
-                    style={{ id: LEGACY_STYLE, name: pt ? 'Estilo original' : 'Original style', look: '', ready: true }}
-                    selected={!owned && chosenStyle === styleId} onClick={owned ? undefined : () => setChosenStyle(styleId)} />
-                }
-                return meta
-                  ? <StyleCard key={styleId} style={meta} pt={pt} compact note={note} selected={!owned && chosenStyle === styleId} onClick={owned ? undefined : () => setChosenStyle(styleId)} />
-                  : null
-              })}
-            </div>
-          )
-        })()}
-        <StylePickerDialog open={pickingStyle} onOpenChange={setPickingStyle} value={chosenStyle} pt={pt} confirmLabel={pt ? 'Escolher este estilo' : 'Choose this style'}
-          notes={Object.fromEntries(styleOptions.map(option => [option.styleId, `${option.pages} ${pt ? 'páginas prontas' : 'pages ready'}`]))}
-          description={pt ? 'Um estilo que já tem páginas usa as imagens prontas. Um estilo novo começa do zero e passa a ser oferecido a quem puxar o livro depois.' : 'A style with pages reuses the ready images. A new style starts from scratch and is offered to readers after you.'}
-          onPick={styleId => { setChosenStyle(styleId); setPickingStyle(false) }} />
-      </section>
+      </div>
+
+      <Dialog open={styleOpen} onOpenChange={setStyleOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{pt ? 'Estilo das ilustrações' : 'Illustration style'}</DialogTitle>
+            <DialogDescription>{pt ? 'Estilo padrão deste livro' : 'This book’s default style'}</DialogDescription>
+          </DialogHeader>
+          {defaultStyle && <StyleCard style={defaultStyle} pt={pt} compact note={defaultOption ? `${defaultOption.pages} ${pt ? (defaultOption.pages === 1 ? 'página pronta' : 'páginas prontas') : 'pages ready'}` : undefined} />}
+          <div className="space-y-2.5 text-[13.5px] leading-relaxed" style={{ color: 'var(--theme-text-secondary)' }}>
+            <p>{pt ? 'Este é o estilo padrão do livro e ele não muda aqui. As imagens geradas nele são compartilhadas com a comunidade: quem gera uma página ajuda todos os outros leitores do livro.' : 'This is the book’s default style and it can’t be changed here. Images generated in it are shared with the community: whoever generates a page helps every other reader of the book.'}</p>
+            <p>{pt ? 'Quer um estilo próprio? Troque na hora de ler, em direção de arte. Ao trocar, as imagens que você gerou são zeradas e você começa uma coleção só sua, que não é compartilhada com a comunidade.' : 'Want your own style? Change it while reading, in art direction. Switching clears the images you generated and starts a collection that is yours alone, not shared with the community.'}</p>
+            <p>{pt ? 'Incentivamos você a ajudar no estilo escolhido: gere imagens no estilo padrão para contribuir com os outros leitores.' : 'We encourage you to help with the chosen style: generate images in the default style to contribute to other readers.'}</p>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {book.description && (
         <section className="mt-10 max-w-2xl">

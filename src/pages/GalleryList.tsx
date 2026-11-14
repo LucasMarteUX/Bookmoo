@@ -352,13 +352,11 @@ function ScrollRail({ children, className = '', label, arrowsTop = '50%', top = 
   )
 }
 
-/** Destaque: capa grande sobre o próprio desfoque, texto editorial e quem está lendo. */
+/** Destaque: capa grande, texto editorial e quem está lendo, sobre fundo liso (o app é flat). */
 function Featured({ book, social, pt }: { book: CatalogBook; social: CatalogSocial; pt: boolean }) {
   const data = social[book.id]
   return (
     <section className="relative overflow-hidden rounded-[28px] border" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-card-bg)' }}>
-      {book.coverData && <img src={book.coverData} alt="" aria-hidden className="absolute inset-0 w-full h-full object-cover scale-125 blur-3xl opacity-40" />}
-      <div className="absolute inset-0" style={{ background: 'linear-gradient(100deg, var(--theme-card-bg) 30%, color-mix(in srgb, var(--theme-card-bg) 55%, transparent) 75%, color-mix(in srgb, var(--theme-card-bg) 20%, transparent))' }} />
       <div className="relative grid md:grid-cols-[minmax(0,1fr)_auto] gap-8 md:gap-12 items-center p-6 sm:p-10">
         <div className="min-w-0 order-2 md:order-1">
           <p className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold uppercase tracking-[0.12em]" style={muted}>
