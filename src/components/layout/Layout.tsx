@@ -5,6 +5,7 @@ import { VoiceRequiredDialog } from '@/components/reader/VoiceRequiredDialog'
 import { markVoicePromptSeen, subscribeVoicePrompt } from '@/lib/voiceGate'
 import { useLanguage } from '@/store/useLanguage'
 import { Sidebar } from './Sidebar'
+import { GuidedTour } from '@/components/onboarding/GuidedTour'
 import { CommandPalette } from './CommandPalette'
 import { useReaderSettings } from '@/store/useReaderSettings'
 import { useHydrateOnLogin } from '@/hooks/useHydrateOnLogin'
@@ -66,6 +67,7 @@ export function Layout() {
         </main>
       </div>
 
+      <GuidedTour />
       <CommandPalette />
       <Toaster />
       <ConfirmHost />

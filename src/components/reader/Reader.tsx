@@ -16,7 +16,7 @@ import { bookStyleKey } from '@/lib/comicStyles'
 import { StylePickerDialog, useApplyBookStyle, useStyleBank } from '@/components/book/StylePicker'
 import { VocabularyModal, type VocabTab } from '../vocabulary/VocabularyModal'
 import { useMediaSession, useWakeLock } from '@/hooks/useNativeMedia'
-import { ChevronLeft, ChevronRight, MousePointer2, Type, Pin, PinOff, Pencil, Trash2, Play, Image as ImageIcon, Loader2, WandSparkles, Pause, Settings, X, RefreshCw } from 'lucide-react'
+import { ChevronLeft, ChevronRight, MousePointer2, Type, Pin, PinOff, Pencil, Trash2, Play, Image as ImageIcon, Loader2, WandSparkles, Pause, Settings, X, RefreshCw, Eye, EyeOff, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
@@ -149,7 +149,7 @@ export function Reader({ book, autoPlay = false, headerSlot }: ReaderProps) {
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const { locale } = useLanguage()
   const { t } = useTranslations(locale)
-  const { theme, fontSize, lineHeight, showHighlights, playbackRate, setPlaybackRate, fontFamily, setFontSize, setLineHeight, setFontFamily } = useReaderSettings()
+  const { theme, fontSize, lineHeight, showHighlights, hiddenMarks, setHiddenMarks, playbackRate, setPlaybackRate, fontFamily, setFontSize, setLineHeight, setFontFamily } = useReaderSettings()
 
   const readerFontFamily = fontFamily === 'sans' ? '"Inter", ui-sans-serif, system-ui, sans-serif' : '"Playfair Display", ui-serif, Georgia, serif'
   const { updateBook } = useBookStore()
@@ -235,12 +235,26 @@ export function Reader({ book, autoPlay = false, headerSlot }: ReaderProps) {
   }, [book.catalogId, book.imageMode, sharedStyle])
 
   // Make vocabularies reactive so the component re-renders when a new word is saved
-  const vocabularies = useVocabularyStore(state => state.vocabularies).filter(v => v.bookId === book.id)
+  const allVocabularies = useVocabularyStore(state => state.vocabularies)
+  const vocabularies = useMemo(() => allVocabularies.filter(v => v.bookId === book.id), [allVocabularies, book.id])
+  // Marcações compartilhadas entre livros: a mesma palavra aparece marcada em qualquer livro. Vale a deste livro; senão, a mais recente.
+  const markVocabularies = useMemo(() => {
+    const best = new Map<string, { v: (typeof allVocabularies)[number]; rank: number }>()
+    for (const v of allVocabularies) {
+      const key = v.text.trim().toLowerCase()
+      if (!key) continue
+      const rank = (v.bookId === book.id ? 1e15 : 0) + v.createdAt
+      const cur = best.get(key)
+      if (!cur || rank > cur.rank) best.set(key, { v, rank })
+    }
+    return [...best.values()].map(item => item.v).filter(v => !hiddenMarks.includes(v.status))
+  }, [allVocabularies, book.id, hiddenMarks])
   const deleteVocabulary = useVocabularyStore(state => state.deleteVocabulary)
   const addVocabulary = useVocabularyStore(state => state.addVocabulary)
   const updateVocabulary = useVocabularyStore(state => state.updateVocabulary)
   const [wordTip, setWordTip] = useState<WordTooltipState | null>(null)
   const [toolbarSlot, setToolbarSlot] = useState<HTMLDivElement | null>(null)
+  const [nudgeHidden, setNudgeHidden] = useState(() => { try { return sessionStorage.getItem(`illustrate-nudge:${book.id}`) === '1' } catch { return false } })
   const pendingPlaybackRef = useRef<{ startWord?: number; rate?: number } | null>(null)
   useEffect(() => subscribeKokoro(() => {
     if (!activeKokoroVoice() || !pendingPlaybackRef.current) return
@@ -357,8 +371,8 @@ export function Reader({ book, autoPlay = false, headerSlot }: ReaderProps) {
 
     let segments = [{ text: currentContent.slice(charStart, charEnd), isVocab: false, vocabId: null as string | null, status: null as string | null }]
 
-    if (showHighlights && vocabularies.length > 0) {
-      const sortedVocab = [...vocabularies].sort((a, b) => b.text.length - a.text.length)
+    if (showHighlights && markVocabularies.length > 0) {
+      const sortedVocab = [...markVocabularies].sort((a, b) => b.text.length - a.text.length)
 
       sortedVocab.forEach(vocab => {
         if (!vocab.text.trim()) return
@@ -437,7 +451,7 @@ export function Reader({ book, autoPlay = false, headerSlot }: ReaderProps) {
     })
 
     return finalHtml
-  }, [currentContent, charToWord, vocabularies, showHighlights, interactionMode, selectedRange, ttsHighlightWordIndices, popWordIdx, pins, book.id, currentPage, expressionIdx])
+  }, [currentContent, charToWord, markVocabularies, showHighlights, interactionMode, selectedRange, ttsHighlightWordIndices, popWordIdx, pins, book.id, currentPage, expressionIdx])
   const contentWithHighlights = useMemo(() => buildWordsHtml(0, currentContent.length), [buildWordsHtml, currentContent])
 
   const handleContentClick = (e: React.MouseEvent) => {
@@ -500,7 +514,8 @@ export function Reader({ book, autoPlay = false, headerSlot }: ReaderProps) {
   // Status rápido pelo tooltip: cria ou atualiza a palavra no vocabulário.
   const vocabForText = (text: string) => {
     const key = text.trim().toLowerCase()
-    return useVocabularyStore.getState().vocabularies.find((v) => v.bookId === book.id && v.text.trim().toLowerCase() === key)
+    const all = useVocabularyStore.getState().vocabularies.filter((v) => v.text.trim().toLowerCase() === key)
+    return all.find((v) => v.bookId === book.id) ?? all.sort((a, b) => b.createdAt - a.createdAt)[0]
   }
   const setWordStatus = (text: string, status: VocabStatus) => {
     const existing = vocabForText(text)
@@ -1284,6 +1299,30 @@ export function Reader({ book, autoPlay = false, headerSlot }: ReaderProps) {
                 hint={locale === 'pt-BR' ? 'Ler só o texto' : 'Read the text only'} onClick={() => setViewMode('text')} />
               <ToolButton icon={<ImageIcon className="w-4 h-4" />} label={t('comic')} compact active={viewMode === 'comic'}
                 hint={locale === 'pt-BR' ? 'Ler com as ilustrações da página' : 'Read with the page illustrations'} onClick={openComicMode} />
+              <ToolDivider />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <ToolButton icon={hiddenMarks.length >= 3 ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />} active={hiddenMarks.length > 0}
+                    hint={locale === 'pt-BR' ? 'Esconder marcações das palavras' : 'Hide word marks'} aria-label={locale === 'pt-BR' ? 'Esconder marcações' : 'Hide marks'} />
+                </PopoverTrigger>
+                <PopoverContent className="w-60 p-3" align="start" sideOffset={8}>
+                  <p className="text-[12.5px] font-medium">{locale === 'pt-BR' ? 'Esconder marcações' : 'Hide marks'}</p>
+                  <div className="mt-2 space-y-1">
+                    {([['learned', locale === 'pt-BR' ? 'Aprendidas' : 'Learned'], ['review', locale === 'pt-BR' ? 'Em revisão' : 'Review'], ['important', locale === 'pt-BR' ? 'Importantes' : 'Important']] as const).map(([id, label]) => (
+                      <label key={id} className="flex cursor-pointer items-center gap-2.5 rounded-md px-1.5 py-1.5 text-[13px] hover:bg-[var(--ui-hover)]">
+                        <input type="checkbox" className="size-4 cursor-pointer accent-[var(--theme-primary)]" checked={hiddenMarks.includes(id)}
+                          onChange={e => setHiddenMarks(e.target.checked ? [...hiddenMarks, id] : hiddenMarks.filter(m => m !== id))} />
+                        {label}
+                      </label>
+                    ))}
+                  </div>
+                  <div className="mt-2 flex gap-2">
+                    <button type="button" onClick={() => setHiddenMarks(['learned', 'review', 'important'])} className="h-8 flex-1 rounded-lg border text-[12.5px]" style={{ borderColor: 'var(--theme-border)' }}>{locale === 'pt-BR' ? 'Esconder tudo' : 'Hide all'}</button>
+                    <button type="button" onClick={() => setHiddenMarks([])} className="h-8 flex-1 rounded-lg border text-[12.5px]" style={{ borderColor: 'var(--theme-border)' }}>{locale === 'pt-BR' ? 'Mostrar tudo' : 'Show all'}</button>
+                  </div>
+                  <p className="mt-2 text-[11.5px] leading-snug" style={{ color: 'var(--theme-text-secondary)' }}>{locale === 'pt-BR' ? 'As marcações valem em todos os livros: o que você marca em um aparece nos outros.' : 'Marks work across all books: what you mark in one shows up in the others.'}</p>
+                </PopoverContent>
+              </Popover>
               {showComicPage && <><ToolDivider /><div ref={setToolbarSlot} className="flex items-center" /></>}
               {viewMode === 'comic' && !comicImage && <>
                 <ToolDivider />
@@ -1374,6 +1413,23 @@ export function Reader({ book, autoPlay = false, headerSlot }: ReaderProps) {
 
         {!showComicPage ? (
           <>
+            {viewMode === 'text' && !comicImage && !nudgeHidden && (
+              <div className="mb-5 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl border px-4 py-3" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg-secondary)' }}>
+                <span className="grid size-9 shrink-0 place-items-center rounded-xl" style={{ backgroundColor: 'var(--theme-card-bg)' }}><Sparkles className="w-4 h-4" /></span>
+                <div className="min-w-0 flex-1 basis-56">
+                  <p className="text-[13.5px] font-medium">{locale === 'pt-BR' ? 'Esta página ainda não tem ilustração' : 'This page has no illustration yet'}</p>
+                  <p className="text-[12.5px] leading-snug" style={{ color: 'var(--theme-text-secondary)' }}>
+                    {book.catalogId && book.imageMode !== 'personal'
+                      ? (locale === 'pt-BR' ? 'Seja a primeira pessoa a ilustrar: a imagem fica para todo mundo que ler este livro.' : 'Be the first to illustrate it: the image is shared with everyone who reads this book.')
+                      : (locale === 'pt-BR' ? 'Dê vida à história com um quadrinho desta página.' : 'Bring the story to life with a comic of this page.')}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button type="button" onClick={() => { void openComicMode().then(() => handleGenerateComic()) }} className="h-9 px-4 rounded-full text-[13px] font-medium" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>{locale === 'pt-BR' ? 'Ilustrar esta página' : 'Illustrate this page'}</button>
+                  <button type="button" onClick={() => { try { sessionStorage.setItem(`illustrate-nudge:${book.id}`, '1') } catch { /* sem armazenamento */ } setNudgeHidden(true) }} className="h-9 px-3 rounded-full text-[13px]" style={{ color: 'var(--theme-text-secondary)' }}>{locale === 'pt-BR' ? 'Agora não' : 'Not now'}</button>
+                </div>
+              </div>
+            )}
             {viewMode === 'comic' && comicError?.page === currentPage && (
               <p role="alert" className="mb-4 text-sm rounded-xl px-3 py-2" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>{comicError.message}</p>
             )}

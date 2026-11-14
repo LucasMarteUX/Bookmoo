@@ -10,6 +10,8 @@ interface ReaderSettingsState {
   fontSize: number
   lineHeight: number
   showHighlights: boolean
+  /** Marcações de palavras escondidas no texto: 'learned' | 'review' | 'important'. */
+  hiddenMarks: string[]
   playbackRate: number
   voiceGender: 'female' | 'male'
   fontFamily: FontFamily
@@ -19,6 +21,7 @@ interface ReaderSettingsState {
   setLineHeight: (height: number) => void
   toggleHighlights: () => void
   setShowHighlights: (show: boolean) => void
+  setHiddenMarks: (marks: string[]) => void
   setPlaybackRate: (rate: number) => void
   setVoiceGender: (gender: 'female' | 'male') => void
   setFontFamily: (font: FontFamily) => void
@@ -32,6 +35,7 @@ export const useReaderSettings = create<ReaderSettingsState>()(
       fontSize: 18,
       lineHeight: 1.8,
       showHighlights: true,
+      hiddenMarks: [],
       playbackRate: 1,
       voiceGender: 'male',
       fontFamily: 'serif',
@@ -41,6 +45,7 @@ export const useReaderSettings = create<ReaderSettingsState>()(
       setLineHeight: (lineHeight) => set({ lineHeight }),
       toggleHighlights: () => set((state) => ({ showHighlights: !state.showHighlights })),
       setShowHighlights: (showHighlights) => set({ showHighlights }),
+      setHiddenMarks: (hiddenMarks) => set({ hiddenMarks }),
       setPlaybackRate: (playbackRate) => set({ playbackRate }),
       setVoiceGender: (voiceGender) => set({ voiceGender }),
       setFontFamily: (fontFamily) => set({ fontFamily }),
@@ -62,6 +67,7 @@ export const useReaderSettings = create<ReaderSettingsState>()(
         fontSize: state.fontSize,
         lineHeight: state.lineHeight,
         showHighlights: state.showHighlights,
+        hiddenMarks: state.hiddenMarks,
         playbackRate: state.playbackRate,
         voiceGender: state.voiceGender,
         fontFamily: state.fontFamily,

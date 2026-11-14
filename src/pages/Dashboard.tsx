@@ -343,7 +343,7 @@ export function Dashboard() {
             <FileText className="w-4 h-4" />
             {epubStatus.busy && epubStatus.kind === 'PDF' ? (pt ? 'Lendo PDF…' : 'Reading PDF…') : (pt ? 'Importar PDF' : 'Import PDF')}
           </Button>
-          <Button onClick={() => setIsAddModalOpen(true)}>
+          <Button data-tour="add-book" onClick={() => setIsAddModalOpen(true)}>
             <Plus className="w-4 h-4" />
             {t('addBook')}
           </Button>

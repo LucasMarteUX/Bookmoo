@@ -11,6 +11,7 @@ import { Camera, Coffee, KeyRound, Lock, Moon, Palette, Sparkles, Sun, User, Vol
 import { VoiceSettings } from '@/components/settings/VoiceSettings'
 import { AiConnections } from '@/components/settings/AiConnections'
 import { ProfileSection } from '@/components/settings/ProfileSection'
+import { restartTour } from '@/components/onboarding/GuidedTour'
 
 /** Seção de configurações: título com ícone e um cartão com as linhas. */
 function Section({ id, icon, title, description, children }: { id: string; icon: ReactNode; title: string; description?: string; children: ReactNode }) {
@@ -123,6 +124,12 @@ export function Settings() {
         </nav>
 
         <div className="space-y-10 min-w-0">
+          <Section id="tutorial" icon={<Sparkles className="w-4 h-4" />} title={pt ? 'Tutorial' : 'Tutorial'}>
+            <Row label={pt ? 'Rever o tutorial' : 'Replay the tutorial'} hint={pt ? 'Um passeio rápido pelas principais funções do Bookmoo.' : 'A quick tour of Bookmoo’s main features.'}>
+              <button type="button" onClick={restartTour} className="h-9 px-4 rounded-full border text-[13px]" style={{ borderColor: 'var(--theme-border)' }}>{pt ? 'Começar tutorial' : 'Start tutorial'}</button>
+            </Row>
+          </Section>
+
           <Section id="appearance" icon={<Palette className="w-4 h-4" />} title={pt ? 'Aparência' : 'Appearance'}>
             <Row label={pt ? 'Tema' : 'Theme'} hint={pt ? 'Vale para o app e para a leitura.' : 'Applies to the app and the reader.'}>
               <div className="inline-grid grid-cols-3 gap-1 p-0.5 rounded-lg" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
