@@ -25,8 +25,16 @@ export function GalleryBanner() {
 
   useEffect(() => {
     if (art !== false || !supabase) return
-    supabase.from('catalog_books').select('cover_thumb').not('cover_thumb', 'is', null).eq('cefr_level', 'A2').limit(8)
-      .then(({ data }) => setCovers((data ?? []).map((r: { cover_thumb: string }) => r.cover_thumb).slice(0, 6)))
+    // Mistura de categorias adultas (uma capa de cada), sem infantil, para o banner não ficar com cara de livro de criança.
+    supabase.from('catalog_books').select('cover_thumb, category, age_min').not('cover_thumb', 'is', null).neq('category', 'children').limit(120)
+      .then(({ data }) => {
+        const seen = new Set<string>(); const out: string[] = []
+        for (const r of (data ?? []) as { cover_thumb: string; category: string; age_min: number | null }[]) {
+          if ((r.age_min ?? 12) < 12 || seen.has(r.category)) continue
+          seen.add(r.category); out.push(r.cover_thumb)
+        }
+        setCovers(out.slice(0, 5))
+      })
   }, [art])
 
   const title = pt ? 'Sua próxima leitura está na galeria' : 'Your next read is in the gallery'
