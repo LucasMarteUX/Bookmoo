@@ -25,7 +25,7 @@ export function GalleryBanner() {
 
   useEffect(() => {
     if (art !== false || !supabase) return
-    // Mistura de categorias: 5 adultas (uma de cada) e 2 infantis, intercaladas.
+    // Mistura de categorias: 3 adultas (uma de cada categoria) e 2 infantis, intercaladas.
     supabase.from('catalog_books').select('cover_thumb, category, age_min').not('cover_thumb', 'is', null).limit(200)
       .then(({ data }) => {
         const rows = (data ?? []) as { cover_thumb: string; category: string; age_min: number | null }[]
@@ -35,8 +35,8 @@ export function GalleryBanner() {
           if ((r.age_min ?? 12) < 12 || seen.has(r.category)) continue
           seen.add(r.category); adult.push(r.cover_thumb)
         }
-        const a5 = adult.slice(0, 5); const mixed: string[] = []
-        a5.forEach((c, i) => { mixed.push(c); if (i === 1 && kids[0]) mixed.push(kids[0]); if (i === 3 && kids[1]) mixed.push(kids[1]) })
+        const a5 = adult.slice(0, 3); const mixed: string[] = []
+        a5.forEach((c, i) => { mixed.push(c); if (i === 0 && kids[0]) mixed.push(kids[0]); if (i === 1 && kids[1]) mixed.push(kids[1]) })
         setCovers(mixed)
       })
   }, [art])
@@ -65,7 +65,7 @@ export function GalleryBanner() {
             <Button className="mt-4">{cta}<ArrowRight className="w-4 h-4" /></Button>
           </div>
           <div className="hidden sm:flex -space-x-5">
-            {covers.map((c, i) => <img key={i} src={c} alt="" className="book-cover w-[60px] md:w-[76px] aspect-[2/3] rounded-md object-cover" style={{ transform: `rotate(${(i - 2) * 3}deg)` }} />)}
+            {covers.map((c, i) => <img key={i} src={c} alt="" className="book-cover w-[68px] md:w-[88px] aspect-[2/3] rounded-md object-cover" style={{ transform: `rotate(${(i - 2) * 3}deg)` }} />)}
           </div>
         </div>
       )}
