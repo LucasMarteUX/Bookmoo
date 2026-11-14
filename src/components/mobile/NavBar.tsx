@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { ChevronLeft, Search } from 'lucide-react'
 import { useLanguage } from '@/store/useLanguage'
 import { useUiStore } from '@/store/useUiStore'
@@ -34,7 +34,7 @@ export function NavBar() {
     return () => window.removeEventListener('scroll', onScroll)
   }, [pathname])
 
-  const showTitle = !root || scrolled
+  const showTitle = !root
   const btn = 'pressable min-w-[var(--hit)] h-[var(--hit)] grid place-items-center rounded-full'
 
   return (
@@ -42,7 +42,12 @@ export function NavBar() {
       style={{ paddingTop: 'var(--safe-t)', paddingLeft: 'var(--safe-l)', paddingRight: 'var(--safe-r)', borderBottom: `1px solid ${scrolled || !root ? 'var(--theme-border)' : 'transparent'}` }}>
       <div className="grid grid-cols-[1fr_auto_1fr] items-center px-1.5" style={{ height: 'var(--navbar-h)' }}>
         <div className="flex items-center">
-          {root ? null : (
+          {root ? (
+            <Link to="/" aria-label="Bookmoo" className="pressable flex items-center gap-2 h-[var(--hit)] pl-2 pr-2">
+              <span className="grid place-items-center w-7 h-7 rounded-lg text-[15px] font-semibold font-display" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>B</span>
+              <span className="text-[16px] font-semibold tracking-tight" style={{ color: 'var(--theme-text)' }}>Bookmoo</span>
+            </Link>
+          ) : (
             <button type="button" onClick={() => { haptics.selection(); goBack(navigate, pathname) }}
               className="pressable h-[var(--hit)] flex items-center pr-2 text-[17px]" style={{ color: 'var(--theme-accent, var(--theme-text))' }}
               aria-label={pt ? 'Voltar' : 'Back'}>
