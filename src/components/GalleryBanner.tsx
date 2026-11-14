@@ -52,8 +52,8 @@ export function GalleryBanner() {
             <p className="mt-1 text-[14px]" style={{ color: 'var(--theme-text-secondary)' }}>{sub}</p>
             <Button className="mt-4">{cta}<ArrowRight className="w-4 h-4" /></Button>
           </div>
-          <div className="hidden sm:flex gap-3">
-            {covers.slice(0, 5).map((c, i) => <img key={i} src={c} alt="" className="book-cover w-[68px] md:w-[88px] aspect-[2/3] rounded-md object-cover" />)}
+          <div className="hidden sm:flex -space-x-5">
+            {covers.slice(0, 5).map((c, i) => <img key={i} src={c} alt="" className="book-cover w-[68px] md:w-[88px] aspect-[2/3] rounded-md object-cover" style={{ transform: `rotate(${(i - 2) * 3}deg)` }} />)}
           </div>
         </div>
       )}
