@@ -385,11 +385,10 @@ export function Dashboard() {
           <div className="rounded-2xl border p-6 flex items-center gap-6" style={{ borderColor: 'var(--theme-border)' }}>
             <img src="/illustrations/reading.svg" alt="" className="illo w-32 hidden sm:block" />
             <div>
-              <h2 className="font-display text-[26px] leading-tight">{pt ? 'Sua estante está esperando' : 'Your shelf is waiting'}</h2>
-              <p className="mt-1 text-[14px]" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? 'Escolha um clássico na galeria e comece a ler em inglês, no seu nível, do A1 ao C2.' : 'Pick a classic from the gallery and start reading in English, at your level, from A1 to C2.'}</p>
-              <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
-                <Button onClick={() => navigate('/gallery')}><Library className="w-4 h-4" />{pt ? 'Escolher um livro na galeria' : 'Pick a book from the gallery'}</Button>
-                <button type="button" onClick={() => setIsAddModalOpen(true)} className="text-[13.5px] underline underline-offset-2" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? 'ou adicione o seu próprio livro' : 'or add your own book'}</button>
+              <h2 className="font-display text-[22px] leading-tight">{pt ? 'Tem um livro seu?' : 'Got a book of your own?'}</h2>
+              <p className="mt-1 text-[14px]" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? 'Importe um EPUB ou PDF seu. Ele fica só na sua conta, nunca é compartilhado.' : 'Import your own EPUB or PDF. It stays in your account and is never shared.'}</p>
+              <div className="mt-4">
+                <Button variant="outline" onClick={() => setIsAddModalOpen(true)}><Plus className="w-4 h-4" />{t('addBook')}</Button>
               </div>
             </div>
           </div>
