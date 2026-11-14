@@ -26,6 +26,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { canOpenCatalog, useEntitlements } from '@/store/useEntitlements'
 import { openPaywall } from '@/components/billing/Paywall'
 import { ReaderTutor } from '@/components/reader/ReaderTutor'
+import { BookTour } from '@/components/onboarding/BookTour'
 
 export function BookPage() {
   const { id } = useParams<{ id: string }>()
@@ -163,11 +164,11 @@ export function BookPage() {
           {/* Ajustes do livro direto no topo: miniatura do estilo, voz do narrador e tamanho da página. */}
           <div className="ml-auto flex items-center gap-1 shrink-0">
             <button type="button" onClick={() => setStyleOpen(true)} title={pt ? 'Estilo de arte das ilustrações' : 'Illustration art style'}
-              className="h-9 pl-1 pr-2.5 inline-flex items-center gap-2 rounded-lg text-[13px] font-medium transition-colors hover:bg-[var(--ui-hover)]" style={{ color: 'var(--theme-text-secondary)' }}>
+              aria-label={pt ? 'Estilo de arte das ilustrações' : 'Illustration art style'}
+              className="h-9 px-1 inline-flex items-center rounded-lg text-[13px] font-medium transition-colors hover:bg-[var(--ui-hover)]" style={{ color: 'var(--theme-text-secondary)' }}>
               {book.comicStyleDoc?.styleId
                 ? <img src={stylePreview(book.comicStyleDoc.styleId)} alt="" className="w-7 h-7 rounded-md object-cover" />
                 : <span className="w-7 h-7 grid place-items-center"><Palette className="w-4 h-4" /></span>}
-              <span className="hidden xl:inline max-w-[140px] truncate">{bank?.find(st => st.id === book.comicStyleDoc?.styleId)?.name ?? (pt ? 'Estilo de arte' : 'Art style')}</span>
             </button>
             <button type="button" onClick={() => setCastOpen(true)} title={pt ? 'Vozes da leitura' : 'Reading voices'}
               className="h-9 w-9 grid place-items-center rounded-lg transition-colors hover:bg-[var(--ui-hover)]">
@@ -197,6 +198,8 @@ export function BookPage() {
           </>
         )}
       </div>
+
+      <BookTour ready={mode === 'read' && !!book.pages?.length} />
 
       <VoiceCastDialog book={book} open={castOpen} pt={locale === 'pt-BR'} onOpenChange={setCastOpen}
         onSave={(doc) => updateBookAndSync(book.id, { comicStyleDoc: doc })} />

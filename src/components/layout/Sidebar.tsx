@@ -20,8 +20,7 @@ import { useUnreadNotifications } from '@/components/community/NotificationBell'
 import { Avatar } from '@/components/ui/avatar'
 import { useMyAvatar } from '@/hooks/useMyAvatar'
 import { UsageMeters } from '@/components/billing/UsageMeters'
-import { MessagesSquare, Brain, Crown } from 'lucide-react'
-import { useEntitlements } from '@/store/useEntitlements'
+import { MessagesSquare, Brain } from 'lucide-react'
 
 interface SidebarProps {
   isMobileDrawer?: boolean
@@ -43,7 +42,6 @@ export function Sidebar({ isMobileDrawer, onClose }: SidebarProps) {
   const { user, signOut, isAdmin } = useAuth()
   const { sidebarCollapsed, toggleSidebar, setCommandOpen } = useUiStore()
   const unread = useUnreadNotifications()
-  const ent = useEntitlements(s => s.data)
   const books = useBookStore(s => s.books)
   const vocab = useVocabularyStore(s => s.vocabularies)
   const events = useXpStore(s => s.events)
@@ -64,7 +62,6 @@ export function Sidebar({ isMobileDrawer, onClose }: SidebarProps) {
     { title: pt ? 'Progresso' : 'Progress', items: [
       { to: '/stats', icon: ChartNoAxesColumn, label: t('stats') },
       { to: '/raio-x', icon: Brain, label: pt ? 'Raio-X' : 'Insights' },
-      { to: '/assinatura', icon: Crown, label: ent?.plan && ent.plan !== 'free' ? (pt ? `Plano ${ent.plan_name}` : `${ent.plan_name} plan`) : (pt ? 'Planos' : 'Plans') },
     ] },
     { title: pt ? 'Juntos' : 'Together', items: [
       { to: '/gallery', icon: Library, label: pt ? 'Galeria' : 'Gallery' },

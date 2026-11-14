@@ -80,14 +80,10 @@ export function MePage() {
           </p>
         </div>
       </header>
-      <section className="rounded-2xl border p-4" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-card-bg)' }}>
-        <UsageMeters />
-        <div className="mt-3 grid grid-cols-3 gap-2 text-[13px]">
-          <Link to="/assinatura" className="h-10 rounded-xl grid place-items-center border" style={{ borderColor: 'var(--theme-border)' }}>{pt ? 'Assinatura' : 'Subscription'}</Link>
-          <Link to="/conversar" className="h-10 rounded-xl grid place-items-center border" style={{ borderColor: 'var(--theme-border)' }}>{pt ? 'Conversar' : 'Talk'}</Link>
-          <Link to="/raio-x" className="h-10 rounded-xl grid place-items-center border" style={{ borderColor: 'var(--theme-border)' }}>{pt ? 'Raio-X' : 'Report'}</Link>
-        </div>
-      </section>
+      <div className="grid gap-2">
+        <UsageMeters compact />
+        <Link to="/raio-x" className="h-11 rounded-xl px-3 flex items-center justify-between text-[14px] border" style={{ borderColor: 'var(--theme-border)' }}>{pt ? 'Raio-X do meu inglês' : 'My English report'}<ChevronRight className="w-4 h-4" style={{ color: 'var(--theme-text-secondary)' }} /></Link>
+      </div>
 
       <div className="grid grid-cols-3 gap-2" role="list" aria-label={pt ? 'Resumo' : 'Summary'}>
         {[

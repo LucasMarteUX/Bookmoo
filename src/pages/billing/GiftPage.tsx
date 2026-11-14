@@ -28,20 +28,20 @@ export function GiftPage() {
           <AnimatePresence>
             {stage !== 'card' && (
               <motion.div key="envelope" className="absolute inset-x-6 top-10 h-48 rounded-2xl shadow-2xl"
-                style={{ background: 'linear-gradient(160deg, #f6d6a8, #e7a96b)' }}
+                style={{ backgroundColor: 'var(--theme-card-bg)', border: '1px solid var(--theme-border)' }}
                 initial={{ y: 40, opacity: 0, scale: 0.9 }} animate={{ y: 0, opacity: 1, scale: 1 }} exit={{ y: 120, opacity: 0 }}
                 transition={{ type: 'spring', stiffness: 200, damping: 18 }}>
                 <motion.div className="absolute inset-x-0 top-0 h-28 origin-top rounded-t-2xl"
-                  style={{ background: 'linear-gradient(180deg, #e9b47d, #d99358)', clipPath: 'polygon(0 0, 100% 0, 50% 100%)' }}
+                  style={{ backgroundColor: 'var(--theme-bg-secondary)', clipPath: 'polygon(0 0, 100% 0, 50% 100%)' }}
                   animate={{ rotateX: stage === 'open' ? 180 : 0 }} transition={{ duration: 0.6, ease: 'easeInOut' }} />
-                <div className="absolute inset-0 grid place-items-center"><Gift className="w-12 h-12 text-white/90" /></div>
+                <div className="absolute inset-0 grid place-items-center"><Gift className="w-12 h-12" strokeWidth={1.4} style={{ color: 'var(--theme-text-secondary)' }} /></div>
               </motion.div>
             )}
           </AnimatePresence>
           <AnimatePresence>
             {stage === 'card' && (
               <motion.div key="card" className="absolute inset-x-2 top-0 h-72 rounded-3xl shadow-2xl p-6 flex flex-col items-center justify-center"
-                style={{ background: 'linear-gradient(145deg, #1f2937, #4b5563)', color: '#fff' }}
+                style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}
                 initial={{ rotateY: 180, y: 60, opacity: 0 }} animate={{ rotateY: 0, y: 0, opacity: 1 }}
                 transition={{ type: 'spring', stiffness: 120, damping: 14 }}>
                 <span className="text-[13px] uppercase tracking-[0.2em] opacity-70">{pt ? 'Cartão-presente' : 'Gift card'}</span>

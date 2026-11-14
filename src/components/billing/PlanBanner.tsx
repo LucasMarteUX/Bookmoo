@@ -22,7 +22,7 @@ export function PlanBanner({ pt }: { pt: boolean }) {
   const box = (tone: 'warn' | 'gift' | 'promo', children: React.ReactNode, onClose?: () => void) => (
     <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
       className="relative rounded-2xl p-4 pr-10 flex flex-wrap items-center gap-3 justify-between border"
-      style={{ borderColor: 'var(--theme-border)', background: tone === 'warn' ? 'color-mix(in srgb, #f59e0b 14%, var(--theme-card-bg))' : 'linear-gradient(120deg, color-mix(in srgb, var(--theme-accent) 18%, var(--theme-card-bg)), var(--theme-card-bg))' }}>
+      style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-card-bg)' }}>
       {children}
       {onClose && <button type="button" onClick={onClose} aria-label={pt ? 'Fechar' : 'Close'} className="absolute right-2 top-2 w-8 h-8 grid place-items-center rounded-full" style={{ color: 'var(--theme-text-secondary)' }}><X className="w-4 h-4" /></button>}
     </motion.div>

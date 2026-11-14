@@ -5,7 +5,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
-export type XpKind = 'speak' | 'write' | 'learned' | 'read' | 'recovered' | 'community'
+export type XpKind = 'speak' | 'write' | 'learned' | 'read' | 'recovered' | 'community' | 'quiz'
 export interface XpEvent { key: string; amount: number; at: number }
 
 /** Regras de pontuação (fonte única, usada pelas telas e pelo histórico). */
@@ -14,6 +14,8 @@ export const XP = {
   writePage: (correct: number, stars: number) => correct + stars * 5,
   learnedWord: 1,
   readPage: 2,
+  /** Desafio da página: 2 por acerto, +5 se acertar tudo, e mais nos níveis difíceis. */
+  quiz: (correct: number, total: number, tier: number) => correct * (1 + tier) + (correct === total ? 5 * tier : 0),
   /** Palavra que tinha errado antes e agora acertou: 2 pontos (o dobro de uma palavra certa). */
   recoveredWord: 2,
   /** Mosaico gerado para a comunidade (fica disponível para todos). */

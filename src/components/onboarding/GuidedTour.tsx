@@ -7,7 +7,8 @@ import { ArrowLeft, ArrowRight, X } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useLanguage } from '@/store/useLanguage'
 
-type Step = { selector?: string; route?: string; pt: [string, string]; en: [string, string] }
+export type TourStep = { selector?: string; route?: string; pt: [string, string]; en: [string, string] }
+type Step = TourStep
 
 const STEPS: Step[] = [
   { route: '/', pt: ['Bem-vindo ao Bookmoo', 'Você aprende inglês lendo livros de verdade. Em poucos passos mostramos onde fica cada coisa. Dá para pular quando quiser.'], en: ['Welcome to Bookmoo', 'You learn English by reading real books. In a few steps we will show where everything is. You can skip anytime.'] },
@@ -25,13 +26,59 @@ const STEPS: Step[] = [
 const keyFor = (id?: string) => `bookmoo.tour.v1.${id ?? 'anon'}`
 export const restartTour = () => window.dispatchEvent(new Event('bookmoo:tour'))
 
-function targetRect(selector?: string) {
+export function targetRect(selector?: string) {
   if (!selector) return null
   for (const el of Array.from(document.querySelectorAll(selector))) {
     const r = el.getBoundingClientRect()
     if (r.width > 0 && r.height > 0) { el.scrollIntoView({ block: 'nearest' }); return el.getBoundingClientRect() }
   }
   return null
+}
+
+/** Balão do tutorial com recorte no elemento destacado. Usado pelo tutorial do app e pelo do livro. */
+export function TourOverlay({ steps, step, rect, pt, onStep, onClose, doneLabel }: {
+  steps: TourStep[]; step: number; rect: DOMRect | null; pt: boolean
+  onStep: (n: number) => void; onClose: () => void; doneLabel?: string
+}) {
+  const STEPS = steps
+  const s = STEPS[step]
+  const [title, body] = pt ? s.pt : s.en
+  const last = step === STEPS.length - 1
+  const W = 340, M = 12
+  const vw = window.innerWidth, vh = window.innerHeight
+  let left = (vw - W) / 2, top = vh / 2 - 110
+  if (rect) {
+    const toRight = rect.right + W + 24 < vw && rect.left < vw * 0.5
+    left = toRight ? rect.right + 16 : Math.min(Math.max(M, rect.left + rect.width / 2 - W / 2), vw - W - M)
+    top = toRight ? Math.min(Math.max(M, rect.top + rect.height / 2 - 90), vh - 250) : (rect.bottom + 16 + 230 < vh ? rect.bottom + 16 : Math.max(M, rect.top - 16 - 230))
+  }
+  const close = onClose
+  return createPortal(
+    <div className="fixed inset-0 z-[200]" role="dialog" aria-modal="true" aria-label="Tutorial">
+      <svg className="absolute inset-0 h-full w-full" onClick={close} aria-hidden>
+        <defs><mask id="tour-hole"><rect width="100%" height="100%" fill="white" />{rect && <rect x={rect.left - 6} y={rect.top - 6} width={rect.width + 12} height={rect.height + 12} rx="10" fill="black" />}</mask></defs>
+        <rect width="100%" height="100%" fill="rgba(0,0,0,0.6)" mask="url(#tour-hole)" />
+        {rect && <rect x={rect.left - 6} y={rect.top - 6} width={rect.width + 12} height={rect.height + 12} rx="10" fill="none" stroke="rgba(255,255,255,0.85)" strokeWidth="2" />}
+      </svg>
+      <div className="absolute rounded-2xl border p-5 shadow-2xl" style={{ left, top, width: Math.min(W, vw - 2 * M), backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }}>
+        <button type="button" onClick={close} aria-label={pt ? 'Pular tutorial' : 'Skip tutorial'} className="absolute right-2 top-2 grid size-8 place-items-center rounded-full hover:bg-[var(--ui-hover)]" style={{ color: 'var(--theme-text-secondary)' }}><X className="w-4 h-4" /></button>
+        <p className="text-[11.5px] font-semibold uppercase tracking-[0.12em]" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? 'Passo' : 'Step'} {step + 1}/{STEPS.length}</p>
+        <h2 className="mt-1.5 pr-6 font-display text-[22px] leading-tight">{title}</h2>
+        <p className="mt-2 text-[14px] leading-relaxed" style={{ color: 'var(--theme-text-secondary)' }}>{body}</p>
+        <div className="mt-4 flex items-center justify-between gap-2">
+          <div className="flex gap-1" aria-hidden>{STEPS.map((_, i) => <span key={i} className="h-1.5 rounded-full transition-all" style={{ width: i === step ? 16 : 6, backgroundColor: i === step ? 'var(--theme-text)' : 'var(--theme-border)' }} />)}</div>
+          <div className="flex items-center gap-2">
+            {step > 0 && <button type="button" onClick={() => onStep(step - 1)} className="h-9 px-3 inline-flex items-center gap-1 rounded-full border text-[13px]" style={{ borderColor: 'var(--theme-border)' }}><ArrowLeft className="w-3.5 h-3.5" />{pt ? 'Voltar' : 'Back'}</button>}
+            <button type="button" onClick={() => (last ? close() : onStep(step + 1))} className="h-9 px-4 inline-flex items-center gap-1.5 rounded-full text-[13px] font-medium" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
+              {last ? (doneLabel ?? (pt ? 'Começar' : 'Start')) : (pt ? 'Próximo' : 'Next')}{!last && <ArrowRight className="w-3.5 h-3.5" />}
+            </button>
+          </div>
+        </div>
+        {!last && <button type="button" onClick={close} className="mt-3 text-[12.5px] underline-offset-2 hover:underline" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? 'Pular tutorial' : 'Skip tutorial'}</button>}
+      </div>
+    </div>,
+    document.body,
+  )
 }
 
 export function GuidedTour() {
@@ -75,43 +122,5 @@ export function GuidedTour() {
   }, [step, measure, close])
 
   if (step === null) return null
-  const s = STEPS[step]
-  const [title, body] = pt ? s.pt : s.en
-  const last = step === STEPS.length - 1
-  const W = 340, M = 12
-  const vw = window.innerWidth, vh = window.innerHeight
-  let left = (vw - W) / 2, top = vh / 2 - 110
-  if (rect) {
-    const pad = 6
-    const toRight = rect.right + W + 24 < vw && rect.left < vw * 0.5
-    left = toRight ? rect.right + 16 : Math.min(Math.max(M, rect.left + rect.width / 2 - W / 2), vw - W - M)
-    top = toRight ? Math.min(Math.max(M, rect.top + rect.height / 2 - 90), vh - 230) : (rect.bottom + 16 + 210 < vh ? rect.bottom + 16 : Math.max(M, rect.top - 16 - 200))
-    void pad
-  }
-  return createPortal(
-    <div className="fixed inset-0 z-[200]" role="dialog" aria-modal="true" aria-label={pt ? 'Tutorial' : 'Tutorial'}>
-      <svg className="absolute inset-0 h-full w-full" onClick={close} aria-hidden>
-        <defs><mask id="tour-hole"><rect width="100%" height="100%" fill="white" />{rect && <rect x={rect.left - 6} y={rect.top - 6} width={rect.width + 12} height={rect.height + 12} rx="10" fill="black" />}</mask></defs>
-        <rect width="100%" height="100%" fill="rgba(0,0,0,0.6)" mask="url(#tour-hole)" />
-        {rect && <rect x={rect.left - 6} y={rect.top - 6} width={rect.width + 12} height={rect.height + 12} rx="10" fill="none" stroke="rgba(255,255,255,0.85)" strokeWidth="2" />}
-      </svg>
-      <div className="absolute rounded-2xl border p-5 shadow-2xl" style={{ left, top, width: Math.min(W, vw - 2 * M), backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }}>
-        <button type="button" onClick={close} aria-label={pt ? 'Pular tutorial' : 'Skip tutorial'} className="absolute right-2 top-2 grid size-8 place-items-center rounded-full hover:bg-[var(--ui-hover)]" style={{ color: 'var(--theme-text-secondary)' }}><X className="w-4 h-4" /></button>
-        <p className="text-[11.5px] font-semibold uppercase tracking-[0.12em]" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? 'Passo' : 'Step'} {step + 1}/{STEPS.length}</p>
-        <h2 className="mt-1.5 pr-6 font-display text-[22px] leading-tight">{title}</h2>
-        <p className="mt-2 text-[14px] leading-relaxed" style={{ color: 'var(--theme-text-secondary)' }}>{body}</p>
-        <div className="mt-4 flex items-center justify-between gap-2">
-          <div className="flex gap-1" aria-hidden>{STEPS.map((_, i) => <span key={i} className="h-1.5 rounded-full transition-all" style={{ width: i === step ? 16 : 6, backgroundColor: i === step ? 'var(--theme-text)' : 'var(--theme-border)' }} />)}</div>
-          <div className="flex items-center gap-2">
-            {step > 0 && <button type="button" onClick={() => setStep(step - 1)} className="h-9 px-3 inline-flex items-center gap-1 rounded-full border text-[13px]" style={{ borderColor: 'var(--theme-border)' }}><ArrowLeft className="w-3.5 h-3.5" />{pt ? 'Voltar' : 'Back'}</button>}
-            <button type="button" onClick={() => (last ? close() : setStep(step + 1))} className="h-9 px-4 inline-flex items-center gap-1.5 rounded-full text-[13px] font-medium" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
-              {last ? (pt ? 'Começar' : 'Start') : (pt ? 'Próximo' : 'Next')}{!last && <ArrowRight className="w-3.5 h-3.5" />}
-            </button>
-          </div>
-        </div>
-        {!last && <button type="button" onClick={close} className="mt-3 text-[12.5px] underline-offset-2 hover:underline" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? 'Pular tutorial' : 'Skip tutorial'}</button>}
-      </div>
-    </div>,
-    document.body,
-  )
+  return <TourOverlay steps={STEPS} step={step} rect={rect} pt={pt} onStep={setStep} onClose={close} />
 }

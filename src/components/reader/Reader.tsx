@@ -16,7 +16,7 @@ import { bookStyleKey, catalogStyleOptions } from '@/lib/comicStyles'
 import { StylePickerDialog, useApplyBookStyle, useStyleBank } from '@/components/book/StylePicker'
 import { VocabularyModal, type VocabTab } from '../vocabulary/VocabularyModal'
 import { useMediaSession, useWakeLock } from '@/hooks/useNativeMedia'
-import { ChevronLeft, ChevronRight, MousePointer2, Type, Pin, PinOff, Pencil, Trash2, Play, Image as ImageIcon, Loader2, WandSparkles, Pause, Settings, X, RefreshCw, Eye, EyeOff, Sparkles } from 'lucide-react'
+import { ChevronLeft, ChevronRight, MousePointer2, Type, Pin, PinOff, Pencil, Trash2, Play, Image as ImageIcon, Loader2, WandSparkles, Pause, Settings, X, RefreshCw, Eye, EyeOff, Sparkles, Lightbulb, Dices } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
@@ -26,7 +26,6 @@ import {
   inspectComicPage,
   locateComicFaces,
   AiRequestError,
-  isNoApiKeyError,
   aiErrorMessage,
 } from '@/lib/ai'
 import { detectLetteringTheme, letteringThemeFor, type LetteringThemeId } from '@/lib/comicThemes'
@@ -35,6 +34,7 @@ import { needsVoiceInstall } from './VoiceRequiredDialog'
 import { askVoiceOnce } from '@/lib/voiceGate'
 import { XP, useXpStore } from '@/store/useXpStore'
 import { AmbientSoundButton, stopAmbience } from '@/components/reader/AmbientSound'
+import { PageGrammarDialog, PageQuizDialog } from '@/components/reader/PageGrammar'
 import { motion, useReducedMotion } from 'motion/react'
 import { ComicPageView, type ComicStage } from './ComicPageView'
 import { saveComicPage } from '@/lib/comicPersistence'
@@ -149,7 +149,9 @@ export function Reader({ book, autoPlay = false, headerSlot }: ReaderProps) {
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const { locale } = useLanguage()
   const { t } = useTranslations(locale)
-  const { theme, fontSize, lineHeight, showHighlights, hiddenMarks, setHiddenMarks, playbackRate, setPlaybackRate, fontFamily, setFontSize, setLineHeight, setFontFamily } = useReaderSettings()
+  const { theme, fontSize, lineHeight, showHighlights, hiddenMarks, setHiddenMarks, playbackRate, setPlaybackRate, fontFamily, setFontSize, setLineHeight, setFontFamily, grammarHelp } = useReaderSettings()
+  const [grammarOpen, setGrammarOpen] = useState(false)
+  const [quizOpen, setQuizOpen] = useState(false)
 
   const readerFontFamily = fontFamily === 'sans' ? '"Inter", ui-sans-serif, system-ui, sans-serif' : '"Playfair Display", ui-serif, Georgia, serif'
   const { updateBook } = useBookStore()
@@ -186,10 +188,8 @@ export function Reader({ book, autoPlay = false, headerSlot }: ReaderProps) {
   const [comicStage, setComicStage] = useState<ComicStage>(null)
   const [comicError, setComicError] = useState<{ page: number; message: string } | null>(null)
   const isGeneratingComic = comicStage !== null
-  const [showConnectApi, setShowConnectApi] = useState(false)
   // Primeira geração do livro: escolher o estilo (com sugestão) antes de desenhar.
   const [firstStyle, setFirstStyle] = useState<{ suggested: string | null; note?: string; loading: boolean } | null>(null)
-  const connectApiShownRef = useRef(false)
   const readerRootRef = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
   
@@ -748,8 +748,9 @@ export function Reader({ book, autoPlay = false, headerSlot }: ReaderProps) {
       }
     } catch (error) {
       console.error('Failed to generate comic:', error)
-      if (isNoApiKeyError(error)) setShowConnectApi(true)
-      else setComicError({ page: pageIndex, message: aiErrorMessage(error) })
+      // Erros de plano (sem créditos, recurso pago) já abriram o convite de assinatura no cliente de IA.
+      const code = error instanceof AiRequestError ? error.code : ''
+      if (!['no_credits', 'cap_reached', 'plan_required'].includes(code)) setComicError({ page: pageIndex, message: aiErrorMessage(error) })
     } finally {
       comicOperation.current = false
       setComicStage(null)
@@ -760,7 +761,7 @@ export function Reader({ book, autoPlay = false, headerSlot }: ReaderProps) {
     if (comicOperation.current || !book.comicPages?.[currentPage]) return
     const pt = locale === 'pt-BR'
     if (!await askConfirm(pt ? 'Apagar a ilustração desta página?' : 'Delete this page’s illustration?',
-      { detail: pt ? 'A página volta a ser só texto. Para ter a imagem de novo é preciso gerar outra vez (usa sua chave de IA).' : 'The page goes back to text only. Getting an image again means generating it again (uses your AI key).', confirmLabel: pt ? 'Apagar' : 'Delete' })) return
+      { detail: pt ? 'A página volta a ser só texto. Para ter a imagem de novo é preciso gerar outra vez (usa 10 créditos).' : 'The page goes back to text only. Getting an image again means generating it again (uses 10 credits).', confirmLabel: pt ? 'Apagar' : 'Delete' })) return
     comicOperation.current = true
     try { await saveComicPage(book, currentPage, null, null) }
     catch (error) { console.error('Comic delete failed:', error); toast(aiErrorMessage(error), { tone: 'error' }) }
@@ -1300,6 +1301,16 @@ export function Reader({ book, autoPlay = false, headerSlot }: ReaderProps) {
                 hint={locale === 'pt-BR' ? 'Ler com as ilustrações da página' : 'Read with the page illustrations'} onClick={openComicMode} />
               <ToolDivider />
               <AmbientSoundButton pt={locale === 'pt-BR'} />
+              {grammarHelp && (
+                <>
+                  <ToolButton icon={<Lightbulb className="w-4 h-4" />} label={locale === 'pt-BR' ? 'Decifrar' : 'Decode'} compact
+                    hint={locale === 'pt-BR' ? 'Entender as regras de gramática desta página' : 'Understand the grammar rules on this page'} onClick={() => setGrammarOpen(true)} />
+                  {currentPage >= 1 && (
+                    <ToolButton icon={<Dices className="w-4 h-4" />} aria-label={locale === 'pt-BR' ? 'Desafio da página' : 'Page challenge'}
+                      hint={locale === 'pt-BR' ? 'Desafio: treine esta página' : 'Challenge: practise this page'} onClick={() => setQuizOpen(true)} />
+                  )}
+                </>
+              )}
               <Popover>
                 <PopoverTrigger asChild>
                   <ToolButton icon={hiddenMarks.length >= 3 ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />} active={hiddenMarks.length > 0}
@@ -1333,7 +1344,7 @@ export function Reader({ book, autoPlay = false, headerSlot }: ReaderProps) {
                       ? { prepare: 'Preparando a arte…', image: 'Desenhando a página…', layout: 'Encaixando os balões…' }[comicStage]
                       : { prepare: 'Preparing the art…', image: 'Drawing the page…', layout: 'Fitting balloons…' }[comicStage])
                     : (locale === 'pt-BR' ? 'Ilustrar esta página' : 'Illustrate this page')}
-                  hint={locale === 'pt-BR' ? 'Desenha esta página como quadrinho, com o texto nos balões. Usa sua chave de IA.' : 'Draws this page as a comic with the text in balloons. Uses your AI key.'} />
+                  hint={locale === 'pt-BR' ? 'Desenha esta página como quadrinho, com o texto nos balões. Usa 10 créditos.' : 'Draws this page as a comic with the text in balloons. Uses 10 credits.'} />
               </>}
             </ToolGroup>
   )
@@ -1815,6 +1826,13 @@ export function Reader({ book, autoPlay = false, headerSlot }: ReaderProps) {
         }}
       />
 
+      {grammarHelp && (
+        <>
+          <PageGrammarDialog open={grammarOpen} onOpenChange={setGrammarOpen} book={{ id: book.id, title: book.title, currentPage }} />
+          <PageQuizDialog open={quizOpen} onOpenChange={setQuizOpen} book={{ id: book.id, title: book.title, currentPage }} />
+        </>
+      )}
+
       <VocabularyModal
         isOpen={isModalOpen}
         onClose={() => {
@@ -1866,30 +1884,6 @@ export function Reader({ book, autoPlay = false, headerSlot }: ReaderProps) {
             void handleGenerateComic({ styleChosen: true })
           })
         }} />
-      <Dialog open={showConnectApi} onOpenChange={setShowConnectApi}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{locale === 'pt-BR' ? 'Conecte sua API' : 'Connect your API'}</DialogTitle>
-            <DialogDescription>
-              {locale === 'pt-BR'
-                ? 'Para gerar quadrinhos, conecte sua própria chave da OpenAI em Configurações. Os custos vão para a sua conta no provedor, e a chave fica guardada cifrada no servidor.'
-                : 'To generate comics, connect your own OpenAI key in Settings. Usage is billed to your provider account, and the key is stored encrypted on the server.'}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" className="rounded-xl" onClick={() => setShowConnectApi(false)}>
-              {locale === 'pt-BR' ? 'Agora não' : 'Not now'}
-            </Button>
-            <Button
-              className="rounded-xl"
-              style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}
-              onClick={() => { setShowConnectApi(false); navigate('/settings') }}
-            >
-              {locale === 'pt-BR' ? 'Ir para Configurações' : 'Go to Settings'}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

@@ -98,3 +98,34 @@ export const coach = {
   insights: (level: string) => callFn<{ insight: Insight; next_at: string; reused?: boolean }>('coach', { action: 'insights', level }),
   story: (level: string, words?: string[], focus?: string) => callFn<{ story: ReinforcementStory }>('coach', { action: 'story', level, words, focus }).finally(refreshEntitlements),
 }
+
+// ---------------------------------------------------------------------------
+// Decifrar a página (gramática) e Desafio (quiz)
+// ---------------------------------------------------------------------------
+export type GrammarContent = {
+  summary: string
+  rules: { title: string; explanation: string; examples: string[] }[]
+  tenses: { sentence: string; tense: string; why: string }[]
+  questions_negatives: { sentence: string; why: string }[]
+  phrasal: { phrase: string; together: string; apart: string }[]
+  tip: string
+}
+export type QuizQuestion =
+  | { type: 'choice'; prompt: string; options: string[]; answer: number; explain: string }
+  | { type: 'order'; prompt: string; words: string[]; answer: string; explain: string }
+export type Quiz = { title: string; questions: QuizQuestion[] }
+
+export const grammar = {
+  get: (bookId: string, page: number, lang: 'pt' | 'en') =>
+    callFn<{ found: boolean; content: GrammarContent | null; shared: boolean }>('grammar', { action: 'get', bookId, page, lang }, { paywall: false }),
+  generate: (bookId: string, page: number, lang: 'pt' | 'en', level: string) =>
+    callFn<{ found: boolean; content: GrammarContent; shared: boolean; charged: boolean }>('grammar', { action: 'generate', bookId, page, lang, level }).finally(refreshEntitlements),
+  quizGet: (bookId: string, page: number, tier: number, lang: 'pt' | 'en') =>
+    callFn<{ quiz: Quiz | null; tier: number }>('grammar', { action: 'quiz-get', bookId, page, tier, lang }, { paywall: false }),
+  quiz: (bookId: string, page: number, tier: number, lang: 'pt' | 'en', level: string) =>
+    callFn<{ quiz: Quiz; tier: number; charged: boolean }>('grammar', { action: 'quiz', bookId, page, tier, lang, level }).finally(refreshEntitlements),
+  result: (bookId: string, page: number, tier: number, correct: number, total: number) =>
+    callFn<{ ok: true }>('grammar', { action: 'quiz-result', bookId, page, tier, correct, total }, { paywall: false }),
+  history: (bookId: string) =>
+    callFn<{ results: { correct: number; total: number; tier: number; page: number }[] }>('grammar', { action: 'quiz-history', bookId }, { paywall: false }),
+}

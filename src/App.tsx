@@ -21,6 +21,9 @@ import { AdminPage } from '@/pages/Admin'
 import { AdminBookEdit } from '@/pages/AdminBookEdit'
 import { MePage } from '@/pages/Me'
 import { Community, ConnectionsPage, NotificationsPage, PostPage, PublicProfile } from '@/pages/Community'
+import { SurveyPage } from '@/pages/auth/SurveyPage'
+import { AdminUsers } from '@/pages/AdminUsers'
+import { AdminBroadcasts } from '@/pages/AdminBroadcasts'
 import { PaywallHost } from '@/components/billing/Paywall'
 import { PlansPage } from '@/pages/billing/PlansPage'
 import { GiftPage } from '@/pages/billing/GiftPage'
@@ -66,6 +69,7 @@ export default function App() {
           <Route path="/nova-senha" element={<NewPasswordPage />} />
           {/* Primeiro acesso e pagamento: telas cheias, sem a barra lateral. */}
           <Route path="/completar-cadastro" element={<ProtectedRoute><CompleteProfilePage /></ProtectedRoute>} />
+          <Route path="/conhecendo-voce" element={<ProtectedRoute><SurveyPage /></ProtectedRoute>} />
           <Route path="/planos" element={<ProtectedRoute><PlansPage /></ProtectedRoute>} />
           <Route path="/presente" element={<ProtectedRoute><GiftPage /></ProtectedRoute>} />
           <Route path="/checkout/retorno" element={<ProtectedRoute><CheckoutReturn /></ProtectedRoute>} />
@@ -103,6 +107,8 @@ export default function App() {
             <Route path="conversar" element={<ConversePage />} />
             <Route path="raio-x" element={<InsightsPage />} />
             <Route path="admin/financeiro" element={<AdminFinance />} />
+            <Route path="admin/usuarios" element={<AdminUsers />} />
+            <Route path="admin/avisos" element={<AdminBroadcasts />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

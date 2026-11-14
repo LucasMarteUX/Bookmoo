@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { Bell } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { unreadNotifications } from '@/lib/social'
+import { unreadAnnouncements } from '@/lib/announcements'
 import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
 
@@ -14,7 +15,7 @@ export function useUnreadNotifications() {
   useEffect(() => {
     if (!user) return
     let alive = true
-    const refresh = () => { void unreadNotifications(user.id).then(next => { if (alive) setCount(next) }) }
+    const refresh = () => { void Promise.all([unreadNotifications(user.id), unreadAnnouncements()]).then(([a, b]) => { if (alive) setCount(a + b) }) }
     refresh()
     const timer = window.setInterval(refresh, 60_000)
     const onVisible = () => { if (document.visibilityState === 'visible') refresh() }

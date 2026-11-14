@@ -68,3 +68,22 @@ Quem entra pelo Google cai em `/completar-cadastro` (data de nascimento + aceite
 - Confirmar com a Zouti: formato do webhook, cancelamento/estorno via API (para automatizar o que hoje vira alerta), valor diferente na primeira cobrança (hoje o pró-rata do upgrade vira créditos bônus).
 - CNPJ e regime tributário (ajustar `Impostos (%)` em Admin → Financeiro).
 - Teste técnico da voz no iPhone e no Android (latência do Tutor e das Cenas).
+
+## 7. Custo do plano Grátis (revisão de 2026-11-15)
+
+Pior caso por pessoa no Grátis, em um mês (câmbio R$ 6,00): 3 páginas ilustradas × ~US$ 0,07–0,10 = **~R$ 1,30–1,80**, mais ~10 créditos de texto/voz (~R$ 0,10). Total **≈ R$ 1,50–2,00**. O uso típico fica perto de **R$ 0,40–0,70**, porque as páginas que a comunidade já gerou não custam nada e a maioria não usa tudo.
+
+Receita de quem converte (Essencial, líquida): ~R$ 22/mês, com sobra de ~R$ 9–10 depois do custo de IA.
+
+| Cenário | Conversão grátis→pago necessária para o Grátis se pagar |
+|---|---|
+| Uso típico (R$ 0,55) | ~2,5% |
+| Pior caso (R$ 2,00) | ~9% |
+
+Ajustes feitos: créditos do Grátis 60 → 40, mosaicos 5 → 3 por mês, e crédito só com e-mail confirmado. O que realmente pesa é o teto de **3 páginas ilustradas**. Se o custo medido no Admin → Financeiro passar de ~R$ 1,00 por usuário grátis, a alavanca certa é reduzir esse teto (por exemplo 3 páginas só no 1º mês e 1 por mês depois), não os créditos.
+
+## 8. Espelho das vozes (para não depender do Hugging Face)
+
+1. `npx tsx scripts/models/backup-models.mts` (a cópia local em `content/models-backup` já existe, 630 MB).
+2. A migration cria o bucket público `voice-models`. Suba os arquivos: `SUPABASE_URL=… SUPABASE_SERVICE_ROLE_KEY=… npx tsx scripts/models/upload-models.mts`. O modelo completo tem ~310 MB: o limite de upload do projeto (Settings → Storage) precisa ser maior que isso.
+3. No Vercel, defina `VITE_MODEL_HOST=https://ywnmeacpvmcuhzhshpwz.supabase.co/storage/v1/object/public/voice-models`. O app passa a baixar daí e cai no Hugging Face só se o espelho falhar.

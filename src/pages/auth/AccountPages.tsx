@@ -54,7 +54,7 @@ export function CompleteProfilePage() {
     setBusy(false)
     if (e) { setError(pt ? 'Não foi possível salvar. Tente de novo.' : 'Could not save. Try again.'); return }
     await load()
-    navigate('/planos?welcome=1', { replace: true })
+    navigate('/conhecendo-voce', { replace: true })
   }
   return (
     <Shell title={pt ? `Quase lá${user?.user_metadata?.full_name ? `, ${String(user.user_metadata.full_name).split(' ')[0]}` : ''}!` : 'Almost there!'}

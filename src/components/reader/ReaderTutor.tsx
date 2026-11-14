@@ -15,7 +15,7 @@ import { useStudyLevel } from '@/hooks/useStudyLevel'
 import { conversation } from '@/lib/billingApi'
 import { openPaywall } from '@/components/billing/Paywall'
 import { toast } from '@/components/ui/toast'
-import { VoiceOrb, PlayStopButton } from '@/components/voice/VoiceOrb'
+import { TutorAvatar, PlayStopButton } from '@/components/voice/TutorAvatar'
 
 const HIDDEN_KEY = 'bookmoo-tutor-hidden'
 const CAPTIONS_KEY = 'bookmoo-tutor-captions'
@@ -54,6 +54,7 @@ export function ReaderTutor({ book }: { book: Book }) {
     continuous: true,
     rate: slow ? 0.8 : 0.95,
     bargeIn: true,
+    gender: 'female',
     fillers: ['Hmm, let me look at the page…', 'Ooh, good one…', 'Well…', 'Let me think…'],
     onIdle: () => setPaused(true),
     onTurn: async (text, filler) => {
@@ -139,7 +140,7 @@ export function ReaderTutor({ book }: { book: Book }) {
             </div>
 
             <div className="flex flex-col items-center pb-4">
-              <VoiceOrb state={voice.state} level={voice.level} size={84} />
+              <TutorAvatar kind="woman" state={voice.state} speakingText={voice.speakingText} rate={slow ? 0.8 : 0.95} size={104} />
               <p className="-mt-2 text-[12.5px] text-center px-4" style={{ color: 'var(--theme-text-secondary)' }} aria-live="polite">{statusText}</p>
               <div className="mt-3"><PlayStopButton active={running} onClick={toggle} label={running ? (pt ? 'Parar' : 'Stop') : (pt ? 'Começar a conversar' : 'Start talking')} /></div>
             </div>
@@ -149,11 +150,9 @@ export function ReaderTutor({ book }: { book: Book }) {
 
       <motion.button type="button" layout onClick={() => (allowed ? setOpen(o => !o) : openPaywall('tutor'))}
         whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.06 }}
-        className="pointer-events-auto relative w-14 h-14 rounded-full shadow-xl grid place-items-center overflow-hidden"
+        className="pointer-events-auto relative w-14 h-14 rounded-full shadow-xl grid place-items-center overflow-hidden border" style={{ borderColor: 'var(--theme-border)' }}
         aria-label={allowed ? (pt ? 'Abrir tutor de leitura' : 'Open reading tutor') : (pt ? 'Tutor de leitura (Plus)' : 'Reading tutor (Plus)')}
         title={allowed ? (pt ? 'Converse com a tutora sobre o livro' : 'Talk with the tutor about the book') : (pt ? 'Tutor de leitura — disponível no Plus' : 'Reading tutor — Plus plan')}>
-        <motion.span className="absolute inset-[-30%]" style={{ background: 'conic-gradient(from 0deg, #8b5cf6, #ec4899, #f59e0b, #3b82f6, #8b5cf6)' }}
-          animate={{ rotate: 360 }} transition={{ duration: running ? 3 : 12, repeat: Infinity, ease: 'linear' }} />
         <motion.span className="absolute inset-[3px] rounded-full grid place-items-center text-[22px]" style={{ backgroundColor: 'var(--theme-card-bg)' }}
           animate={running ? { scale: 1 + voice.level * 0.08 } : { scale: [1, 1.04, 1] }} transition={running ? { type: 'spring', stiffness: 300, damping: 15 } : { duration: 4, repeat: Infinity }}>
           <AudioLines className="w-5 h-5" strokeWidth={1.8} />

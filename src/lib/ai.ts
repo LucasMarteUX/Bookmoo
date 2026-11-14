@@ -8,22 +8,17 @@ import { supabase } from "@/lib/supabase"
 import { paywallForError } from "@/components/billing/Paywall"
 import { refreshEntitlements } from "@/store/useEntitlements"
 
-export const API_KEY_REQUIRED_MESSAGE =
-  "A IA está temporariamente indisponível. Tente de novo em instantes."
+const AI_UNAVAILABLE = "A IA está temporariamente indisponível. Tente de novo em instantes."
 
 /** Erro de IA com código estável (ex.: 'no_api_key', 'invalid_key', 'quota'). */
 export class AiRequestError extends Error {
   constructor(public code: string, message?: string) { super(message ?? code) }
 }
 
-export function isNoApiKeyError(e: unknown) {
-  return e instanceof AiRequestError && e.code === "no_api_key"
-}
-
 /** Mensagem amigável para os erros mais comuns. */
 export function aiErrorMessage(e: unknown): string {
   const code = e instanceof AiRequestError ? e.code : ""
-  if (code === "no_api_key") return API_KEY_REQUIRED_MESSAGE
+  if (code === "no_api_key") return AI_UNAVAILABLE
   if (code === "no_credits") return "Seus créditos de IA deste mês acabaram."
   if (code === "cap_reached") return "Você chegou ao limite deste recurso no mês."
   if (code === "plan_required") return "Este recurso faz parte dos planos pagos."

@@ -20,6 +20,7 @@ import { ProfileBanner } from '@/components/community/ProfileBanner'
 import {
   Block, CurrentlyReading, FavoriteShelf, ProfileHeader, ReadingGoalCard, Results, SocialBookshelf, StudyingWords, type ProfileTab,
 } from '@/components/community/ProfileView'
+import { loadAnnouncements, markAnnouncementRead, type Announcement } from '@/lib/announcements'
 import { cardStyle, FriendButton, muted, UserListItem } from '@/components/community/social-ui'
 import { Avatar } from '@/components/ui/avatar'
 import { EmptyState } from '@/components/ui/empty-state'
@@ -108,6 +109,7 @@ export function Community() {
             ['people', pt ? 'Pessoas' : 'People', Search],
           ]} />
 
+          {(tab === 'following' || tab === 'friends') && me?.userId && me.handle && <PeopleList key={tab} userId={me.userId} handle={me.handle} kind={tab} pt={pt} />}
           {tab === 'people'
             ? <DiscoverPeople initial={others} pt={pt} />
             : <Feed key={tab} scope={tab} covers={covers} pt={pt} canPost={canPost} refreshKey={refresh} empty={empty[tab]} />}
@@ -161,6 +163,45 @@ export function Community() {
         </aside>
       </div>
     </div>
+  )
+}
+
+/** Quem eu sigo / meus amigos, direto na aba (antes só aparecia o feed de publicações). */
+function PeopleList({ userId, handle, kind, pt }: { userId: string; handle: string; kind: 'following' | 'friends'; pt: boolean }) {
+  const [people, setPeople] = useState<Connection[] | null>(null)
+  const [failed, setFailed] = useState(false)
+  useEffect(() => {
+    let alive = true
+    const load = () => {
+      void loadConnections(userId, kind).then(list => { if (alive) { setPeople(list); setFailed(false) } }).catch(() => { if (alive) setFailed(true) })
+    }
+    load()
+    const onVisible = () => { if (document.visibilityState === 'visible') load() }
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('bookmoo:notifications', load)
+    return () => { alive = false; document.removeEventListener('visibilitychange', onVisible); window.removeEventListener('bookmoo:notifications', load) }
+  }, [userId, kind])
+  const title = kind === 'friends' ? (pt ? 'Seus amigos' : 'Your friends') : (pt ? 'Quem você segue' : 'People you follow')
+  if (people === null && !failed) return <div className="h-24 rounded-3xl animate-pulse" style={{ backgroundColor: 'var(--theme-bg-secondary)' }} />
+  if (failed) return <p className="text-[13px]" style={muted}>{pt ? 'Não foi possível carregar a lista agora. Tente de novo.' : 'Could not load the list. Try again.'}</p>
+  const list = people ?? []
+  return (
+    <section className="rounded-3xl border overflow-hidden" style={card}>
+      <div className="flex items-center justify-between px-5 pt-4 pb-2">
+        <h2 className="text-[14.5px] font-semibold">{title}{list.length ? ` · ${list.length}` : ''}</h2>
+        {list.length > 5 && <Link to={`/u/${handle}/${kind === 'friends' ? 'amigos' : 'seguindo'}`} className="text-[13px] underline" style={muted}>{pt ? 'Ver todos' : 'See all'}</Link>}
+      </div>
+      {list.length === 0
+        ? <p className="px-5 pb-5 text-[13.5px]" style={muted}>{kind === 'friends' ? (pt ? 'Você ainda não tem amigos. Procure alguém na aba Pessoas.' : 'No friends yet. Find someone in People.') : (pt ? 'Você ainda não segue ninguém. Procure alguém na aba Pessoas.' : 'You are not following anyone yet. Find someone in People.')}</p>
+        : <div className="divide-y" style={{ borderColor: 'var(--theme-border)' }}>
+            {list.slice(0, 5).map(person => (
+              <UserListItem key={person.userId} person={person} pt={pt} subtitle={person.relation.followsMe && !person.isMe ? (pt ? 'Segue você' : 'Follows you') : undefined}
+                action={person.isMe ? null : kind === 'friends'
+                  ? <FriendButton userId={person.userId} state={person.relation.friend} pt={pt} size="sm" />
+                  : <FollowButton userId={person.userId} following={person.relation.following} pending={person.relation.followPending} pt={pt} size="sm" />} />
+            ))}
+          </div>}
+    </section>
   )
 }
 
@@ -476,7 +517,7 @@ export function ConnectionsPage() {
     setPeople(null)
     void loadProfileView({ handle }).then(next => {
       setView(next)
-      if (next && !next.restricted) void loadConnections(next.userId, kind).then(setPeople)
+      if (next && !next.restricted) void loadConnections(next.userId, kind).then(setPeople).catch(() => setPeople([]))
       else setPeople([])
     })
   }, [handle, kind])
@@ -529,6 +570,7 @@ export function ConnectionsPage() {
 
 /** /notifications — pedidos pendentes no topo e as notificações. Abrir a página marca como lidas. */
 export function NotificationsPage() {
+  const [notices, setNotices] = useState<Announcement[]>([])
   const { locale } = useLanguage()
   const pt = locale === 'pt-BR'
   const navigate = useNavigate()
@@ -541,6 +583,7 @@ export function NotificationsPage() {
     if (!user) return
     void loadNotifications().then(next => { setItems(next); setMore(next.length >= 30) })
     void loadRequests().then(setRequests)
+    void loadAnnouncements().then(list => { setNotices(list); if (list.some(n => !n.read)) void markAnnouncementRead().then(() => window.dispatchEvent(new Event('bookmoo:notifications'))) })
   }, [user])
 
   const markAll = async () => {
@@ -573,6 +616,22 @@ export function NotificationsPage() {
         <h1 className="font-display text-[32px] md:text-[40px] leading-[1.05]">{pt ? 'Notificações' : 'Notifications'}</h1>
         {unread && <button type="button" onClick={() => { void markAll() }} className="h-9 px-3.5 inline-flex items-center gap-1.5 rounded-full border text-[13px]" style={{ borderColor: 'var(--theme-border)' }}><Check className="w-3.5 h-3.5" />{pt ? 'Marcar todas como lidas' : 'Mark all as read'}</button>}
       </header>
+
+      {notices.length > 0 && (
+        <section className="rounded-3xl border overflow-hidden" style={card}>
+          <h2 className="px-5 pt-4 pb-2 text-[14.5px] font-semibold">{pt ? 'Avisos do Bookmoo' : 'From Bookmoo'}</h2>
+          <div className="divide-y" style={{ borderColor: 'var(--theme-border)' }}>
+            {notices.map(n => (
+              <button key={n.id} type="button" onClick={() => { if (n.link) { if (n.link.startsWith('/')) navigate(n.link); else window.open(n.link, '_blank', 'noopener') } }}
+                className="w-full text-left px-5 py-3.5 transition-colors hover:bg-[var(--ui-hover)]" style={{ cursor: n.link ? 'pointer' : 'default' }}>
+                <span className="block text-[14.5px] font-medium">{n.title}</span>
+                {n.body && <span className="block mt-0.5 text-[13.5px] leading-snug" style={muted}>{n.body}</span>}
+                <span className="block mt-1 text-[12px]" style={muted}>{new Date(n.at).toLocaleDateString(pt ? 'pt-BR' : 'en-US', { day: 'numeric', month: 'short' })}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
       {requests && pending > 0 && user && (
         <section className="rounded-3xl border overflow-hidden" style={card}>

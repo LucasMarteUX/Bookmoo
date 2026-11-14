@@ -47,6 +47,8 @@ export const CREDIT_COST = {
   'vocab-image': 1,
   'transcribe-page': 1,
   'scene-cover': 2,
+  'page-grammar': 1,
+  'page-quiz': 1,
 } as const
 export type CreditOp = keyof typeof CREDIT_COST
 

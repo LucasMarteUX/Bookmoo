@@ -40,7 +40,11 @@ export function AdminPage() {
     <div className="max-w-3xl mx-auto space-y-8">
       <header>
         <h1 className="font-display text-[34px] leading-none">{pt ? 'Área admin' : 'Admin'}</h1>
-        <Link to="/admin/financeiro" className="mt-3 inline-flex h-9 px-3 rounded-lg items-center text-[13.5px] font-medium border" style={{ borderColor: 'var(--theme-border)' }}>{pt ? 'Financeiro: receita × custo de IA' : 'Finance: revenue × AI cost'}</Link>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {([['/admin/financeiro', pt ? 'Financeiro' : 'Finance'], ['/admin/usuarios', pt ? 'Usuários' : 'Users'], ['/admin/avisos', pt ? 'Avisos' : 'Announcements']] as const).map(([to, label]) => (
+            <Link key={to} to={to} className="inline-flex h-9 px-3 rounded-lg items-center text-[13.5px] font-medium border" style={{ borderColor: 'var(--theme-border)' }}>{label}</Link>
+          ))}
+        </div>
         <p className="mt-2 text-[14.5px]" style={{ color: 'var(--theme-text-secondary)' }}>
           {pt ? 'Quem está lendo e os livros gratuitos da galeria.' : 'Who is reading, and the free books in the gallery.'}
         </p>

@@ -28,7 +28,7 @@ export type Entitlements = {
   }
   last_subscription_status: string | null
   gift: null | { catalog_id: string; redeemed_at: string; swapped: boolean }
-  onboarding_step: 'complete_profile' | 'plans' | 'gift' | 'done'
+  onboarding_step: 'complete_profile' | 'survey' | 'plans' | 'gift' | 'done'
   birth_date: string | null
   flagged: boolean
 }
@@ -38,6 +38,8 @@ type State = {
   loading: boolean
   /** O banco ainda não tem as tabelas de planos (migration não aplicada): tudo segue liberado como antes. */
   unavailable: boolean
+  /** Conta bloqueada pelo admin. */
+  blocked: boolean
   load: () => Promise<Entitlements | null>
   clear: () => void
 }
@@ -48,6 +50,7 @@ export const useEntitlements = create<State>((set) => ({
   data: null,
   loading: false,
   unavailable: false,
+  blocked: false,
   load: async () => {
     if (!supabase) return null
     if (inflight) return inflight
@@ -56,6 +59,7 @@ export const useEntitlements = create<State>((set) => ({
       const { data, error } = await supabase!.rpc('get_entitlements')
       inflight = null
       if (error) {
+        if (/account_blocked/.test(error.message)) { set({ loading: false, blocked: true }); return null }
         const missing = /get_entitlements|does not exist|schema cache/i.test(error.message)
         set({ loading: false, unavailable: missing })
         return null
@@ -65,7 +69,7 @@ export const useEntitlements = create<State>((set) => ({
     })()
     return inflight
   },
-  clear: () => set({ data: null, unavailable: false }),
+  clear: () => set({ data: null, unavailable: false, blocked: false }),
 }))
 
 /** Recarrega o saldo depois de qualquer uso de IA (chamado pelo cliente de IA). */

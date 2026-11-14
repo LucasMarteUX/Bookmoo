@@ -16,6 +16,9 @@ interface ReaderSettingsState {
   voiceGender: 'female' | 'male'
   fontFamily: FontFamily
   bgTone: BgTone
+  /** Botões "Decifrar a página" e "Desafio" no leitor (dá para desligar a partir do B1). */
+  grammarHelp: boolean
+  setGrammarHelp: (on: boolean) => void
   setTheme: (theme: Theme) => void
   setFontSize: (size: number) => void
   setLineHeight: (height: number) => void
@@ -40,6 +43,8 @@ export const useReaderSettings = create<ReaderSettingsState>()(
       voiceGender: 'male',
       fontFamily: 'serif',
       bgTone: 'medium',
+      grammarHelp: true,
+      setGrammarHelp: (grammarHelp) => set({ grammarHelp }),
       setTheme: (theme) => set({ theme }),
       setFontSize: (fontSize) => set({ fontSize }),
       setLineHeight: (lineHeight) => set({ lineHeight }),

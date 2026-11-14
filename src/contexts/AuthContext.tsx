@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import type { User, Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
-import { resetAiStatus } from '@/lib/aiKeys'
 
 const ADMIN_EMAILS = ['lucasmarteux@gmail.com']
 
@@ -55,10 +54,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let accountId: string | undefined
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (claimDevice(session?.user)) { window.location.reload(); return }
-      if (accountId !== session?.user.id) {
-        accountId = session?.user.id
-        resetAiStatus()
-      }
+      if (accountId !== session?.user.id) accountId = session?.user.id
       setSession(session)
       setUser(session?.user ?? null)
       setLoading(false)
@@ -96,7 +92,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const signOut = async () => {
-    resetAiStatus()
     if (supabase) await supabase.auth.signOut()
     clearAccountData()
     try { localStorage.removeItem(OWNER_KEY) } catch { /* ignore */ }

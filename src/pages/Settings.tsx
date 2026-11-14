@@ -1,4 +1,6 @@
 import { useState, useEffect, type ReactNode } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useBookStore } from '@/store/useBookStore'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
 import { useLanguage, type Locale } from '@/store/useLanguage'
@@ -12,6 +14,7 @@ import { VoiceSettings } from '@/components/settings/VoiceSettings'
 import { PlanCreditsCard } from '@/components/billing/PlanCreditsCard'
 import { ProfileSection } from '@/components/settings/ProfileSection'
 import { restartTour } from '@/components/onboarding/GuidedTour'
+import { restartBookTour } from '@/components/onboarding/BookTour'
 import { BirthDateField } from '@/components/settings/BirthDate'
 
 /** Seção de configurações: título com ícone e um cartão com as linhas. */
@@ -46,6 +49,7 @@ function Feedback({ state, ok, error }: { state: 'success' | 'error' | null; ok:
 }
 
 export function Settings() {
+  const navigate = useNavigate()
   const { locale, setLocale } = useLanguage()
   const { t } = useTranslations(locale)
   const pt = locale === 'pt-BR'
@@ -131,9 +135,24 @@ export function Settings() {
             </Row>
           </Section>
 
+          <Section id="reading-help" icon={<Sparkles className="w-4 h-4" />} title={pt ? 'Ajuda na leitura' : 'Reading help'}>
+            <Row label={pt ? 'Decifrar a página e Desafio' : 'Decode the page and Challenge'} hint={pt ? 'Botões no leitor com as regras de gramática da página e um quiz. A partir do nível B1 você pode desligar.' : 'Reader buttons with the page grammar rules and a quiz. From B1 you can turn them off.'}>
+              <GrammarHelpToggle />
+            </Row>
+          </Section>
+
           <Section id="tutorial" icon={<Sparkles className="w-4 h-4" />} title={pt ? 'Tutorial' : 'Tutorial'}>
             <Row label={pt ? 'Rever o tutorial' : 'Replay the tutorial'} hint={pt ? 'Um passeio rápido pelas principais funções do Bookmoo.' : 'A quick tour of Bookmoo’s main features.'}>
               <button type="button" onClick={restartTour} className="h-9 px-4 rounded-full border text-[13px]" style={{ borderColor: 'var(--theme-border)' }}>{pt ? 'Começar tutorial' : 'Start tutorial'}</button>
+            </Row>
+            <Row label={pt ? 'Rever o tutorial do livro' : 'Replay the book tutorial'} hint={pt ? 'Como estudar dentro de um livro. Abre no seu último livro.' : 'How to study inside a book. Opens your latest book.'}>
+              <button type="button" onClick={() => {
+                const books = useBookStore.getState().books
+                const last = [...books].sort((a, b) => +new Date(b.lastRead) - +new Date(a.lastRead))[0]
+                if (!last) return
+                navigate(`/book/${last.id}`)
+                window.setTimeout(restartBookTour, 900)
+              }} className="h-9 px-4 rounded-full border text-[13px]" style={{ borderColor: 'var(--theme-border)' }}>{pt ? 'Começar tutorial' : 'Start tutorial'}</button>
             </Row>
           </Section>
 
@@ -256,5 +275,15 @@ export function Settings() {
         </div>
       </div>
     </div>
+  )
+}
+
+function GrammarHelpToggle() {
+  const { grammarHelp, setGrammarHelp } = useReaderSettings()
+  return (
+    <button type="button" role="switch" aria-checked={grammarHelp} onClick={() => setGrammarHelp(!grammarHelp)}
+      className="h-6 w-11 rounded-full relative transition-colors" style={{ backgroundColor: grammarHelp ? 'var(--theme-primary)' : 'var(--theme-border)' }}>
+      <span className="absolute top-0.5 h-5 w-5 rounded-full transition-all" style={{ left: grammarHelp ? 22 : 2, backgroundColor: 'var(--theme-bg)' }} />
+    </button>
   )
 }

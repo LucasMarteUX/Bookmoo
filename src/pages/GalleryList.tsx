@@ -241,7 +241,7 @@ export function GalleryList() {
       </header>
 
       {giftMode && ent && !ent.gift && (
-        <div className="rounded-2xl p-4 sm:p-5 flex items-center gap-4" style={{ background: 'linear-gradient(120deg, color-mix(in srgb, var(--theme-accent) 20%, transparent), transparent)', border: '1px solid var(--theme-border)' }}>
+        <div className="rounded-2xl p-4 sm:p-5 flex items-center gap-4" style={{ backgroundColor: 'var(--theme-card-bg)', border: '1px solid var(--theme-border)' }}>
           <span className="w-11 h-11 rounded-xl grid place-items-center shrink-0" style={{ backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-accent)' }} aria-hidden><Gift className="w-5 h-5" strokeWidth={1.8} /></span>
           <div className="min-w-0">
             <p className="text-[16px] font-semibold">{pt ? 'Escolha seu livro-presente' : 'Choose your gift book'}</p>

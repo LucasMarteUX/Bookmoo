@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { motion } from 'motion/react'
-import { ArrowLeft, Check, Loader2, Sparkles } from 'lucide-react'
+import { ArrowLeft, Check, Loader2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useLanguage } from '@/store/useLanguage'
 import { useEntitlements } from '@/store/useEntitlements'
@@ -105,8 +105,8 @@ export function PlansPage() {
             return (
               <motion.section key={plan.id} id={`plan-${plan.id}`} initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 * i, type: 'spring', stiffness: 260, damping: 24 }}
                 className="relative rounded-3xl border p-5 flex flex-col"
-                style={{ borderColor: best ? 'var(--theme-accent)' : 'var(--theme-border)', borderWidth: best ? 2 : 1, backgroundColor: 'var(--theme-card-bg)', boxShadow: best ? '0 18px 40px -20px color-mix(in srgb, var(--theme-accent) 60%, transparent)' : undefined }}>
-                {plan.highlight && <span className="absolute -top-3 left-5 h-6 px-2.5 rounded-full text-[11.5px] font-semibold inline-flex items-center gap-1" style={{ backgroundColor: 'var(--theme-accent)', color: '#fff' }}><Sparkles className="w-3.5 h-3.5" />{pt ? 'Mais escolhido' : 'Most popular'}</span>}
+                style={{ borderColor: best ? 'var(--theme-text)' : 'var(--theme-border)', borderWidth: best ? 2 : 1, backgroundColor: 'var(--theme-card-bg)' }}>
+                {plan.highlight && <span className="absolute -top-3 left-1/2 -translate-x-1/2 h-6 px-3 rounded-full text-[11.5px] font-semibold inline-flex items-center whitespace-nowrap" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>{pt ? 'Mais escolhido' : 'Most popular'}</span>}
                 <h2 className="text-[18px] font-semibold">{plan.name}</h2>
                 <p className="text-[13px] mt-0.5" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? plan.tagline.pt : plan.tagline.en}</p>
                 <p className="mt-4 text-[32px] font-semibold tabular-nums leading-none">
@@ -115,7 +115,7 @@ export function PlansPage() {
                 <p className="mt-2 text-[12.5px]" style={{ color: 'var(--theme-text-secondary)' }}>{plan.credits.toLocaleString(pt ? 'pt-BR' : 'en-US')} {pt ? 'créditos de IA por mês' : 'AI credits a month'}</p>
                 <ul className="mt-4 space-y-2 flex-1">
                   {plan.benefits.map(b => (
-                    <li key={b.pt} className="flex gap-2 text-[13.5px] leading-snug"><Check className="w-4 h-4 shrink-0 mt-0.5" style={{ color: 'var(--theme-accent)' }} />{pt ? b.pt : b.en}</li>
+                    <li key={b.pt} className="flex gap-2 text-[13.5px] leading-snug"><Check className="w-4 h-4 shrink-0 mt-0.5" strokeWidth={2} />{pt ? b.pt : b.en}</li>
                   ))}
                 </ul>
                 {q?.kind === 'upgrade' && (q.bonusCredits ?? 0) > 0 && (
@@ -148,14 +148,9 @@ export function PlansPage() {
           })}
         </div>
 
-        <section className="mt-12 grid gap-4 sm:grid-cols-3 text-[13.5px] leading-relaxed" style={{ color: 'var(--theme-text-secondary)' }}>
-          <p><b style={{ color: 'var(--theme-text)' }}>{pt ? 'Créditos de IA' : 'AI credits'}</b><br />{pt ? 'Um saldo só para tudo: página ilustrada = 10, conversa por voz = 1 por minuto, explicação ou imagem do mosaico = 1. O que a comunidade já gerou é grátis. Renovam todo mês e não acumulam.' : 'One balance for everything: illustrated page = 10, voice conversation = 1 per minute, explanation or mosaic image = 1. Community content is free. Renews monthly, no rollover.'}</p>
-          <p><b style={{ color: 'var(--theme-text)' }}>{pt ? 'Cancele quando quiser' : 'Cancel anytime'}</b><br />{pt ? 'Você mantém o plano até o fim do período pago. Arrependeu-se? Reembolso integral em até 7 dias da primeira compra.' : 'You keep your plan until the end of the paid period. Full refund within 7 days of your first purchase.'}</p>
-          <p><b style={{ color: 'var(--theme-text)' }}>{pt ? 'Upgrade a qualquer momento' : 'Upgrade anytime'}</b><br />{pt ? 'No upgrade o novo ciclo começa no dia, e o que sobrou do plano atual vira créditos bônus.' : 'When you upgrade the new cycle starts that day, and what is left of your current plan becomes bonus credits.'}</p>
-        </section>
-        <p className="mt-8 text-center text-[12.5px]" style={{ color: 'var(--theme-text-secondary)' }}>
-          {pt ? 'Pagamento seguro pela Zouti. Preços em reais, impostos inclusos. ' : 'Secure payment by Zouti. Prices in BRL, taxes included. '}
-          <Link to="/terms?back=/planos#planos" className="underline underline-offset-2">{pt ? 'Termos' : 'Terms'}</Link>
+        <p className="mt-10 text-center text-[13.5px]" style={{ color: 'var(--theme-text-secondary)' }}>
+          {pt ? 'Um saldo de créditos para tudo, renovado todo mês. Cancele quando quiser, com 7 dias de garantia.' : 'One credit balance for everything, renewed monthly. Cancel anytime, 7-day guarantee.'}{' '}
+          <Link to="/faq?back=/planos#creditos" className="underline underline-offset-4" style={{ color: 'var(--theme-text)' }}>{pt ? 'Saiba mais' : 'Learn more'}</Link>
         </p>
       </div>
     </div>

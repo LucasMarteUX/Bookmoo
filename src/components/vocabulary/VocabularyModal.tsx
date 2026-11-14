@@ -6,7 +6,7 @@ import { BookOpenText, Check, Eye, EyeOff, Images, Info, Loader2, MessageSquareQ
 import { InfoHint } from '@/components/ui/info-hint'
 import { useVocabularyStore, type VocabStatus, type VocabType, type GrammarExample } from '@/store/useVocabularyStore'
 import { useBookStore } from '@/store/useBookStore'
-import { generateExplanation, generateVariantStory, API_KEY_REQUIRED_MESSAGE, aiErrorMessage } from '@/lib/ai'
+import { generateExplanation, generateVariantStory, aiErrorMessage } from '@/lib/ai'
 import { glossPt } from '@/lib/glossPt'
 import { showsGloss, studyLevel } from '@/lib/cefr'
 import { useXpStore, xpSummary } from '@/store/useXpStore'
@@ -31,7 +31,7 @@ const TEXTS = {
     examplesEmpty: 'Gere a explicação para ver a palavra em frases afirmativas, negativas e perguntas.',
     storyEmptyTitle: 'Uma história para lembrar', storyEmptyText: 'Uma cena curta e nova usando a palavra — memória por contexto.',
     createStory: 'Criar história', creating: 'Escrevendo…', storyPh: 'Ou escreva sua própria história…',
-    cancel: 'Cancelar', save: 'Salvar', delete: 'Excluir', aiKey: 'Conecte sua chave de IA em Configurações para usar a explicação automática.',
+    cancel: 'Cancelar', save: 'Salvar', delete: 'Excluir',
     myNotes: 'Suas anotações', myNotesPh: 'Escreva o que quiser sobre esta palavra ou frase…',
     glossEmpty: 'Você não tem pontos para revelar.',
     peek: 'Espiar',
@@ -50,7 +50,7 @@ const TEXTS = {
     examplesEmpty: 'Generate the explanation to see the word in affirmative, negative and question sentences.',
     storyEmptyTitle: 'A story to remember', storyEmptyText: 'A short, new scene using the word — memory through context.',
     createStory: 'Create story', creating: 'Writing…', storyPh: 'Or write your own story…',
-    cancel: 'Cancel', save: 'Save', delete: 'Delete', aiKey: 'Connect your AI key in Settings to use automatic explanations.',
+    cancel: 'Cancel', save: 'Save', delete: 'Delete',
     myNotes: 'Your notes', myNotesPh: 'Write whatever you want about this word or phrase…',
     glossEmpty: 'You don’t have points to reveal it.',
     peek: 'Peek',
@@ -460,9 +460,6 @@ export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId,
           )}
           {savedHint && !error && (
             <p className="mb-4 text-[13px]" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? 'Salvo na sua lista.' : 'Saved to your list.'}</p>
-          )}
-          {explanation.startsWith(API_KEY_REQUIRED_MESSAGE) && (
-            <p className="mb-4 rounded-lg px-3 py-2 text-[13px]" style={{ backgroundColor: 'var(--pastel-amber-bg)', color: 'var(--pastel-amber-fg)' }}>{L.aiKey}</p>
           )}
 
           {tab === 'meaning' && (

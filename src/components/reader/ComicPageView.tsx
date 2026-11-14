@@ -446,7 +446,7 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
                 description={pt ? 'Localiza os rostos e reposiciona as caixas para não cobri-los. Não gera outra imagem.' : 'Finds the faces and moves the text boxes off them. No new image.'}
                 onClick={() => { setMenuOpen(false); props.onRelayout() }} />}
               <MenuItem icon={<RefreshCw className="w-4 h-4" />} label={labels.regenerate}
-                description={pt ? 'Desenha de novo, com outra composição. Usa sua chave de IA.' : 'Draws it again with a new composition. Uses your AI key.'}
+                description={pt ? 'Desenha de novo, com outra composição. Usa 10 créditos.' : 'Draws it again with a new composition. Uses 10 credits.'}
                 onClick={() => { setMenuOpen(false); onGenerate() }} />
               <MenuItem icon={<Trash2 className="w-4 h-4" />} label={labels.delete} tone="danger"
                 description={pt ? 'Volta a página para o modo só texto' : 'Returns this page to text only'}

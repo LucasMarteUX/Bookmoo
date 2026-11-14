@@ -324,7 +324,8 @@ export async function loadBlocked(): Promise<Author[]> {
 export async function loadConnections(userId: string, kind: 'followers' | 'following' | 'friends'): Promise<Connection[]> {
   if (!supabase) return []
   const { data, error } = await supabase.rpc('community_connections', { p_user: userId, p_kind: kind })
-  if (error || !Array.isArray(data)) return []
+  if (error) { console.error('community_connections', error); throw new SocialError('unknown') }
+  if (!Array.isArray(data)) return []
   return data.map(value => {
     const row = value as Record<string, unknown>
     return { ...authorOf(row), relation: relationOfRow(row.relation), isMe: row.is_me === true }

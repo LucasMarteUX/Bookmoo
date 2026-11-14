@@ -243,7 +243,7 @@ function GalleryBook({ id }: { id: string }) {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{pt ? 'Este será o seu livro-presente' : 'This will be your gift book'}</DialogTitle>
-            <DialogDescription>{pt ? `“${book.title}” fica na sua estante para sempre, mesmo no plano Grátis. Você pode trocar uma única vez nos próximos 7 dias.` : `“${book.title}” stays on your shelf forever, even on Free. You can swap it once in the next 7 days.`}</DialogDescription>
+            <DialogDescription>{pt ? `“${book.title}” fica na sua estante para sempre, mesmo no plano Grátis. A escolha é definitiva e não pode ser trocada.` : `“${book.title}” stays on your shelf forever, even on Free. The choice is final and cannot be changed.`}</DialogDescription>
           </DialogHeader>
           <div className="mt-2 flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
             <button type="button" onClick={() => setGiftAsk(false)} className="h-11 px-4 rounded-xl text-[14px] border" style={{ borderColor: 'var(--theme-border)' }}>{pt ? 'Escolher outro' : 'Pick another'}</button>

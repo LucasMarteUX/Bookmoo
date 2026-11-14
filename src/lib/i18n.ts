@@ -175,7 +175,7 @@ const en = {
   loading: 'Loading...',
   supabaseRequired: 'Account management requires Supabase. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to .env.local.',
 
-  noDefinition: 'Connect your AI key (OpenAI or Gemini) in Settings to use this feature.'
+  noDefinition: 'This feature is temporarily unavailable. Please try again in a moment.'
 } as const
 
 const ptBr: Record<TranslationKey, string> = {
@@ -340,7 +340,7 @@ const ptBr: Record<TranslationKey, string> = {
   loginErrorGeneric: 'Não foi possível entrar. Tente novamente.',
   loading: 'Carregando...',
   supabaseRequired: 'A gestão da conta exige Supabase. Adicione VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no .env.local.',
-  noDefinition: 'Conecte sua chave de IA (OpenAI ou Gemini) em Configurações para usar esta função.'
+  noDefinition: 'Esta função está temporariamente indisponível. Tente de novo em instantes.'
 }
 
 const messages: Record<Locale, Record<TranslationKey, string>> = { en, 'pt-BR': ptBr }

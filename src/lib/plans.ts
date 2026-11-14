@@ -14,13 +14,13 @@ export type PlanCard = {
 
 export const PLANS: PlanCard[] = [
   {
-    id: 'free', name: 'Grátis', priceCents: 0, credits: 60,
+    id: 'free', name: 'Grátis', priceCents: 0, credits: 40,
     tagline: { pt: 'Para conhecer e se apaixonar', en: 'To try it and fall in love' },
     benefits: [
       { pt: 'Leitura com áudio, vocabulário, prática de fala e ditado', en: 'Audio reading, vocabulary, speaking and dictation practice' },
       { pt: '1 livro da galeria de presente, seu para sempre', en: '1 gallery book as a gift, yours forever' },
       { pt: '3 páginas ilustradas por IA por mês', en: '3 AI-illustrated pages per month' },
-      { pt: '~30 explicações de palavras por mês', en: '~30 word explanations per month' },
+      { pt: 'Até 10 explicações ou histórias por mês', en: 'Up to 10 explanations or stories per month' },
       { pt: 'Experimente uma Cena de conversa por voz', en: 'Try one voice conversation Scene' },
     ],
   },
@@ -82,6 +82,7 @@ export const COST_TABLE: { pt: string; en: string; credits: string }[] = [
   { pt: 'Editar um quadro', en: 'Edit a panel', credits: '5' },
   { pt: 'Conversa por voz (Cenas e tutores)', en: 'Voice conversation (Scenes and tutors)', credits: '1 / min' },
   { pt: 'Explicação, história ou exemplo', en: 'Explanation, story or example', credits: '1' },
+  { pt: 'Decifrar a página e Desafio (1ª vez)', en: 'Decode the page and Challenge (first time)', credits: '1' },
   { pt: 'Imagem do mosaico', en: 'Mosaic image', credits: '1' },
   { pt: 'O que a comunidade já gerou', en: 'What the community already generated', credits: '0' },
 ]

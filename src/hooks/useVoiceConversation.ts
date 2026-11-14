@@ -5,7 +5,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createRecognizer, defaultEngine, MicPermissionError, type Recognizer } from '@/lib/speech/recognizers'
 import { isTtsConfigured, speak, stopSpeaking } from '@/lib/tts'
-import { activeKokoroVoice, kokoroAudioUrl } from '@/lib/kokoro/engine'
+import { activeKokoroVoice, getKokoroState, kokoroAudioUrl } from '@/lib/kokoro/engine'
+import { getKokoroVoice } from '@/lib/kokoro/voices'
 import { pickFiller } from '../../supabase/functions/_shared/scenes'
 
 export type VoiceState = 'idle' | 'listening' | 'thinking' | 'speaking' | 'error'
@@ -19,10 +20,17 @@ const MAX_SILENCE = 2300
 const IDLE_MS = 45_000
 const MAX_UTTERANCE_MS = 40_000
 
-async function say(text: string, rate: number, alive: () => boolean): Promise<void> {
+/** Voz instalada que combina com o gênero do personagem (senão, a voz ativa). */
+export function voiceForGender(gender: 'female' | 'male' | undefined): string | undefined {
+  if (!gender) return undefined
+  const installed = getKokoroState().voices
+  return installed.find(id => getKokoroVoice(id)?.gender === gender)
+}
+
+async function say(text: string, rate: number, alive: () => boolean, voice?: string): Promise<void> {
   if (!alive() || !text.trim()) return
   if (activeKokoroVoice() || isTtsConfigured()) {
-    const h = await speak(text, { rate, context: 'phrase' })
+    const h = await speak(text, { rate, context: 'phrase', kokoroVoice: voice })
     await h.done
     return
   }
@@ -65,12 +73,15 @@ export function useVoiceConversation(opts: {
   rate?: number
   /** Permite interromper a IA falando por cima. */
   bargeIn?: boolean
+  /** Gênero da voz do personagem. */
+  gender?: 'female' | 'male'
 }) {
   const [state, setState] = useState<VoiceState>('idle')
   const [bubbles, setBubbles] = useState<Bubble[]>([])
   const [interim, setInterim] = useState('')
   const [level, setLevel] = useState(0)
   const [error, setError] = useState<string | null>(null)
+  const [speakingText, setSpeakingText] = useState('')
   const optsRef = useRef(opts)
   optsRef.current = opts
 
@@ -155,8 +166,10 @@ export function useVoiceConversation(opts: {
     set('speaking')
     for (const s of sentences) {
       if (!alive()) return false
-      await say(s, optsRef.current.rate ?? 0.95, alive)
+      setSpeakingText(s)
+      await say(s, optsRef.current.rate ?? 0.95, alive, voiceForGender(optsRef.current.gender))
     }
+    setSpeakingText('')
     metrics.current.aiEndedAt = performance.now()
     return alive()
   }, [])
@@ -170,7 +183,8 @@ export function useVoiceConversation(opts: {
     const token = ++speakToken.current
     const alive = () => token === speakToken.current && active.current
     set(filler ? 'speaking' : 'thinking')
-    const fillerDone = filler ? say(filler, o.rate ?? 0.95, alive) : Promise.resolve()
+    if (filler) setSpeakingText(filler)
+    const fillerDone = filler ? say(filler, o.rate ?? 0.95, alive, voiceForGender(o.gender)) : Promise.resolve()
     const turn = o.onTurn(text, filler)
     try {
       await fillerDone
@@ -301,5 +315,5 @@ export function useVoiceConversation(opts: {
 
   useEffect(() => () => { stop() }, [stop])
 
-  return { state, bubbles, interim, level, error, start, listen, stop, preload, getMetrics, setBubbles, active: () => active.current }
+  return { state, bubbles, interim, level, error, speakingText, start, listen, stop, preload, getMetrics, setBubbles, active: () => active.current }
 }

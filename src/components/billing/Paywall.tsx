@@ -4,7 +4,7 @@ import { create } from 'zustand'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
 import { AudioLines, BookOpen, BookText, Brain, Check, Crown, Image as ImageIcon, Images, MessageCircle, MessagesSquare, Mic, Palette, PenLine, Sparkles, Upload, type LucideIcon } from 'lucide-react'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { useLanguage } from '@/store/useLanguage'
 import { useEntitlements } from '@/store/useEntitlements'
 import { formatBRL, nextPlan, PLANS, type PlanId } from '@/lib/plans'
@@ -80,62 +80,55 @@ export function PaywallHost() {
 
   return (
     <Dialog open onOpenChange={o => { if (!o) close() }}>
-      <DialogContent className="sm:max-w-2xl p-0 overflow-hidden">
-        <div className="relative px-6 pt-8 pb-6 text-center overflow-hidden"
-          style={{ background: 'radial-gradient(120% 90% at 50% 0%, color-mix(in srgb, var(--theme-accent) 22%, transparent), transparent 70%)' }}>
-          <motion.div initial={{ scale: 0.6, opacity: 0, rotate: -8 }} animate={{ scale: 1, opacity: 1, rotate: 0 }} transition={{ type: 'spring', stiffness: 260, damping: 16 }}
-            className="mx-auto w-14 h-14 rounded-2xl grid place-items-center shadow-lg" style={{ backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-accent)' }}>
-            <copy.icon className="w-6 h-6" strokeWidth={1.8} />
+      <DialogContent className="sm:max-w-3xl">
+        <div className="text-center px-2 sm:px-6 pt-2">
+          <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 300, damping: 22 }}
+            className="mx-auto w-12 h-12 rounded-2xl grid place-items-center border" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg-secondary)' }}>
+            <copy.icon className="w-5 h-5" strokeWidth={1.7} />
           </motion.div>
-          <DialogHeader className="mt-4">
-            <DialogTitle className="font-display text-[28px] leading-tight text-center">{(pt ? copy.pt : copy.en)[0]}</DialogTitle>
-            <DialogDescription className="text-center text-[15px] max-w-md mx-auto">{(pt ? copy.pt : copy.en)[1]}</DialogDescription>
-          </DialogHeader>
+          <DialogTitle className="mt-4 font-display text-[28px] sm:text-[32px] leading-tight text-center !pr-0">{(pt ? copy.pt : copy.en)[0]}</DialogTitle>
+          <DialogDescription className="mt-2 text-center text-[15px] max-w-md mx-auto !pr-0">{(pt ? copy.pt : copy.en)[1]}</DialogDescription>
         </div>
 
-        <div className="px-5 pb-6 max-h-[60dvh] overflow-y-auto">
-          {isTop ? (
-            <div className="rounded-2xl border p-5 text-center" style={{ borderColor: 'var(--theme-border)' }}>
-              <p className="text-[15px]">{pt ? `Você já está no plano mais completo. Seu saldo renova em ${renews}.` : `You're on the top plan. Your balance renews on ${renews}.`}</p>
-              <button type="button" onClick={close} className="mt-4 h-11 px-5 rounded-xl text-[14.5px] font-medium" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>{pt ? 'Entendi' : 'Got it'}</button>
+        {isTop ? (
+          <div className="mt-2 rounded-2xl border p-5 text-center" style={{ borderColor: 'var(--theme-border)' }}>
+            <p className="text-[15px]">{pt ? `Você já está no plano mais completo. Seu saldo renova em ${renews}.` : `You're on the top plan. Your balance renews on ${renews}.`}</p>
+            <button type="button" onClick={close} className="mt-4 h-11 px-6 rounded-xl text-[14.5px] font-medium" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>{pt ? 'Entendi' : 'Got it'}</button>
+          </div>
+        ) : (
+          <div className="mt-3">
+            <div className={`grid gap-4 pt-4 ${options.length >= 3 ? 'md:grid-cols-3' : options.length === 2 ? 'md:grid-cols-2' : ''}`}>
+              {options.map(plan => {
+                const best = plan.id === recommended
+                return (
+                  <motion.button key={plan.id} type="button" onClick={() => go(plan.id)} whileTap={{ scale: 0.98 }}
+                    className="relative text-left rounded-2xl border p-5 flex flex-col"
+                    style={{ borderColor: best ? 'var(--theme-text)' : 'var(--theme-border)', borderWidth: best ? 2 : 1, backgroundColor: 'var(--theme-card-bg)' }}>
+                    {best && <span className="absolute -top-3 left-1/2 -translate-x-1/2 h-6 px-3 rounded-full text-[11.5px] font-semibold inline-flex items-center whitespace-nowrap" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>{pt ? 'Mais escolhido' : 'Most popular'}</span>}
+                    <span className="text-[15px] font-semibold">{plan.name}</span>
+                    <span className="mt-1 text-[26px] font-semibold tabular-nums leading-tight">{formatBRL(plan.priceCents)}<span className="text-[13px] font-normal" style={{ color: 'var(--theme-text-secondary)' }}>/{pt ? 'mês' : 'mo'}</span></span>
+                    <span className="mt-0.5 text-[12.5px]" style={{ color: 'var(--theme-text-secondary)' }}>{plan.credits.toLocaleString(pt ? 'pt-BR' : 'en-US')} {pt ? 'créditos de IA por mês' : 'AI credits a month'}</span>
+                    <ul className="mt-4 space-y-2 flex-1">
+                      {plan.benefits.filter((b, i) => i > 0 && !/créditos de IA|AI credits/.test(b.pt + b.en)).slice(0, 4).map(b => (
+                        <li key={b.pt} className="flex gap-2 text-[13px] leading-snug"><Check className="w-4 h-4 shrink-0 mt-px" strokeWidth={2} />{pt ? b.pt : b.en}</li>
+                      ))}
+                    </ul>
+                    <span className="mt-5 h-11 rounded-xl grid place-items-center text-[14px] font-semibold"
+                      style={best ? { backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' } : { backgroundColor: 'var(--theme-bg-secondary)', color: 'var(--theme-text)' }}>
+                      {upgrade ? (pt ? 'Fazer upgrade' : 'Upgrade') : (pt ? `Assinar ${plan.name}` : `Get ${plan.name}`)}
+                    </span>
+                  </motion.button>
+                )
+              })}
             </div>
-          ) : (
-            <>
-              <div className={`grid gap-3 ${options.length >= 3 ? 'sm:grid-cols-3' : options.length === 2 ? 'sm:grid-cols-2' : ''}`}>
-                {options.map((plan, i) => {
-                  const best = plan.id === recommended
-                  return (
-                    <motion.button key={plan.id} type="button" onClick={() => go(plan.id)}
-                      initial={{ y: 16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.06 * i, type: 'spring', stiffness: 300, damping: 24 }}
-                      whileHover={{ y: -3 }} whileTap={{ scale: 0.97 }}
-                      className="relative text-left rounded-2xl border p-4 flex flex-col gap-1.5 transition-shadow hover:shadow-lg"
-                      style={{ borderColor: best ? 'var(--theme-accent)' : 'var(--theme-border)', borderWidth: best ? 2 : 1, backgroundColor: 'var(--theme-card-bg)' }}>
-                      {best && <span className="absolute -top-2.5 left-4 px-2 h-5 rounded-full text-[11px] font-semibold inline-flex items-center gap-1" style={{ backgroundColor: 'var(--theme-accent)', color: '#fff' }}><Sparkles className="w-3 h-3" />{pt ? 'Mais escolhido' : 'Most popular'}</span>}
-                      <span className="text-[15px] font-semibold">{plan.name}</span>
-                      <span className="text-[22px] font-semibold tabular-nums">{formatBRL(plan.priceCents)}<span className="text-[12.5px] font-normal" style={{ color: 'var(--theme-text-secondary)' }}>/{pt ? 'mês' : 'mo'}</span></span>
-                      <span className="text-[12.5px]" style={{ color: 'var(--theme-text-secondary)' }}>{plan.credits.toLocaleString(pt ? 'pt-BR' : 'en-US')} {pt ? 'créditos de IA por mês' : 'AI credits a month'}</span>
-                      <ul className="mt-1 space-y-1">
-                        {plan.benefits.slice(plan.id === 'essencial' ? 0 : 1, plan.id === 'essencial' ? 4 : 4).map(b => (
-                          <li key={b.pt} className="flex gap-1.5 text-[12.5px] leading-snug"><Check className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: 'var(--theme-accent)' }} />{pt ? b.pt : b.en}</li>
-                        ))}
-                      </ul>
-                      <span className="mt-2 h-10 rounded-xl grid place-items-center text-[14px] font-semibold"
-                        style={{ backgroundColor: best ? 'var(--theme-primary)' : 'var(--theme-bg-secondary)', color: best ? 'var(--theme-primary-text)' : 'var(--theme-text)' }}>
-                        {upgrade ? (pt ? `Fazer upgrade` : 'Upgrade') : (pt ? `Assinar ${plan.name}` : `Get ${plan.name}`)}
-                      </span>
-                    </motion.button>
-                  )
-                })}
-              </div>
-              {paid && (trigger === 'credits' || trigger === 'minutes') && renews && (
-                <p className="mt-4 text-center text-[13px]" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? `Ou espere a renovação em ${renews}.` : `Or wait for your renewal on ${renews}.`}</p>
-              )}
-              <p className="mt-4 text-center text-[12.5px]" style={{ color: 'var(--theme-text-secondary)' }}>
-                {pt ? 'Cancele quando quiser · 7 dias de garantia' : 'Cancel anytime · 7-day guarantee'}
-              </p>
-            </>
-          )}
-        </div>
+            {paid && (trigger === 'credits' || trigger === 'minutes') && renews && (
+              <p className="mt-4 text-center text-[13px]" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? `Ou espere a renovação em ${renews}.` : `Or wait for your renewal on ${renews}.`}</p>
+            )}
+            <p className="mt-4 text-center text-[12.5px]" style={{ color: 'var(--theme-text-secondary)' }}>
+              {pt ? 'Cancele quando quiser · 7 dias de garantia' : 'Cancel anytime · 7-day guarantee'}
+            </p>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   )

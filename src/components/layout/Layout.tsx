@@ -10,6 +10,7 @@ import { CommandPalette } from './CommandPalette'
 import { useReaderSettings } from '@/store/useReaderSettings'
 import { useHydrateOnLogin } from '@/hooks/useHydrateOnLogin'
 import { useGamification } from '@/hooks/useGamification'
+import { useAutoInstallVoices } from '@/hooks/useAutoInstallVoices'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { SIDEBAR_WIDTH, useUiStore } from '@/store/useUiStore'
 import { TabBar } from '@/components/mobile/TabBar'
@@ -32,6 +33,7 @@ export function Layout() {
   useEffect(() => subscribeVoicePrompt(() => setVoicePrompt(true)), [])
   useHydrateOnLogin()
   useGamification()
+  useAutoInstallVoices(true)
   const collapsed = useUiStore(state => state.sidebarCollapsed)
 
   const isBookPage = /^\/book\/[^/]+$/.test(location.pathname)

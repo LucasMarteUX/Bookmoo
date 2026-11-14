@@ -2,7 +2,7 @@
 // A situação (conversa livre ou uma Cena) e os ajustes ficam em painéis discretos.
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { Captions, CaptionsOff, Check, ChevronDown, Languages, LifeBuoy, Lock, Mic, MicOff, Plus, SlidersHorizontal, X } from 'lucide-react'
+import { Captions, CaptionsOff, Check, ChevronDown, History, Languages, LifeBuoy, Lock, Mic, MicOff, Plus, SlidersHorizontal, X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useLanguage } from '@/store/useLanguage'
 import { useEntitlements } from '@/store/useEntitlements'
@@ -10,7 +10,7 @@ import { useStudyLevel } from '@/hooks/useStudyLevel'
 import { conversation, type Feedback } from '@/lib/billingApi'
 import { openPaywall } from '@/components/billing/Paywall'
 import { useVoiceConversation } from '@/hooks/useVoiceConversation'
-import { VoiceOrb } from '@/components/voice/VoiceOrb'
+import { TutorAvatar, avatarKindFor } from '@/components/voice/TutorAvatar'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { toast } from '@/components/ui/toast'
 import { CATEGORY_LABEL, DEMO_SCENE_KEY, SCENES, type Scene, type SceneCategory } from '../../supabase/functions/_shared/scenes'
@@ -39,6 +39,7 @@ export function ConversePage() {
   const [choice, setChoice] = useState<Choice>(() => canFree ? { kind: 'tutor' } : { kind: 'scene', scene: SCENES.find(s => s.key === DEMO_SCENE_KEY)! })
   const [picker, setPicker] = useState(false)
   const [settings, setSettings] = useState(false)
+  const [history, setHistory] = useState(false)
   const [creating, setCreating] = useState(false)
   const [rate, setRate] = useState<number>(() => readPref('bookmoo-voice-rate', 0.95))
   const [captions, setCaptions] = useState<boolean>(() => readPref('bookmoo-voice-captions', true))
@@ -75,7 +76,7 @@ export function ConversePage() {
   return (
     <>
       <Session key={`${choice.kind}:${choice.kind === 'scene' ? choice.scene.key : ''}`} choice={choice} pt={pt} level={level.id} rate={rate} captions={captions} minutes={Math.min(minutes, maxMin)}
-        title={title} subtitle={subtitle} onOpenPicker={() => setPicker(true)} onOpenSettings={() => setSettings(true)} onToggleCaptions={() => setCaptions(c => !c)}
+        title={title} subtitle={subtitle} onOpenPicker={() => setPicker(true)} onOpenSettings={() => setSettings(true)} onOpenHistory={() => setHistory(true)} onToggleCaptions={() => setCaptions(c => !c)}
         onFeedback={setFeedback} />
 
       <Dialog open={picker} onOpenChange={setPicker}>
@@ -109,6 +110,8 @@ export function ConversePage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <HistoryDialog open={history} onOpenChange={setHistory} pt={pt} />
 
       <Dialog open={settings} onOpenChange={setSettings}>
         <DialogContent className="sm:max-w-sm">
@@ -167,9 +170,9 @@ function Seg<T extends number>({ label, options, value, onChange }: { label: str
 // ---------------------------------------------------------------------------
 // Sessão
 // ---------------------------------------------------------------------------
-function Session({ choice, pt, level, rate, captions, minutes, title, subtitle, onOpenPicker, onOpenSettings, onToggleCaptions, onFeedback }: {
+function Session({ choice, pt, level, rate, captions, minutes, title, subtitle, onOpenPicker, onOpenSettings, onOpenHistory, onToggleCaptions, onFeedback }: {
   choice: Choice; pt: boolean; level: string; rate: number; captions: boolean; minutes: number; title: string; subtitle: string
-  onOpenPicker: () => void; onOpenSettings: () => void; onToggleCaptions: () => void; onFeedback: (f: Feedback | null | 'loading' | 'short') => void
+  onOpenPicker: () => void; onOpenSettings: () => void; onOpenHistory: () => void; onToggleCaptions: () => void; onFeedback: (f: Feedback | null | 'loading' | 'short') => void
 }) {
   const [phase, setPhase] = useState<'ready' | 'starting' | 'live'>('ready')
   const [planned, setPlanned] = useState(0)
@@ -185,6 +188,7 @@ function Session({ choice, pt, level, rate, captions, minutes, title, subtitle, 
   const voice = useVoiceConversation({
     continuous: true,
     bargeIn: true,
+    gender: scene?.persona.gender ?? 'female',
     rate,
     fillers: scene?.fillers,
     keywords: scene?.usefulPhrases.flatMap(p => p.replace(/[…?.!,]/g, '').split(' ').filter(w => w.length > 4)),
@@ -263,6 +267,7 @@ function Session({ choice, pt, level, rate, captions, minutes, title, subtitle, 
         </button>
         <div className="flex items-center gap-1">
           {planned > 0 && live && <span className="text-[13px] tabular-nums px-2" style={{ color: remaining < 30 ? '#dc2626' : 'var(--theme-text-secondary)' }}>{mm}:{String(ss).padStart(2, '0')}</span>}
+          {!live && <IconBtn label={pt ? 'Histórico de conversas' : 'Conversation history'} onClick={onOpenHistory}><History className="w-[18px] h-[18px]" /></IconBtn>}
           <IconBtn label={pt ? 'Ajustes' : 'Settings'} onClick={onOpenSettings}><SlidersHorizontal className="w-[18px] h-[18px]" /></IconBtn>
         </div>
       </header>
@@ -276,7 +281,7 @@ function Session({ choice, pt, level, rate, captions, minutes, title, subtitle, 
       )}
 
       <div className="flex-1 flex flex-col items-center justify-center py-6">
-        <VoiceOrb state={live ? voice.state : 'idle'} level={voice.level} size={150} />
+        <TutorAvatar kind={scene ? avatarKindFor(scene.persona, scene.category) : 'woman'} state={live ? voice.state : 'idle'} speakingText={voice.speakingText} rate={rate} size={190} />
         <AnimatePresence mode="wait">
           <motion.p key={status} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="mt-2 h-5 text-[13px] tracking-wide" style={muted} aria-live="polite">{status}</motion.p>
         </AnimatePresence>
@@ -344,7 +349,7 @@ function IconBtn({ label, onClick, children, ring }: { label: string; onClick: (
 // Resultado da Cena
 // ---------------------------------------------------------------------------
 function FeedbackView({ feedback, pt, goals, onExit }: { feedback: Feedback | 'loading' | 'short'; pt: boolean; goals: string[]; onExit: () => void }) {
-  if (feedback === 'loading') return <div className="max-w-xl mx-auto py-28 text-center"><VoiceOrb state="thinking" level={0} size={90} /><p className="mt-2 text-[15px]" style={muted}>{pt ? 'Avaliando sua conversa' : 'Scoring your conversation'}</p></div>
+  if (feedback === 'loading') return <div className="max-w-xl mx-auto py-28 text-center"><TutorAvatar kind="woman" state="thinking" size={120} /><p className="mt-2 text-[15px]" style={muted}>{pt ? 'Avaliando sua conversa' : 'Scoring your conversation'}</p></div>
   if (feedback === 'short') return (
     <div className="max-w-md mx-auto py-24 text-center">
       <h1 className="font-display text-[26px]">{pt ? 'Conversa curta demais para avaliar' : 'Too short to score'}</h1>
@@ -456,5 +461,61 @@ function CreateScene({ pt, level, onDone }: { pt: boolean; level: string; onDone
         {busy ? (pt ? 'Montando a cena…' : 'Building the scene…') : (pt ? 'Criar cena' : 'Create scene')}
       </button>
     </div>
+  )
+}
+
+
+// ---------------------------------------------------------------------------
+// Histórico: toda conversa fica salva com data, duração, nota e feedback
+// ---------------------------------------------------------------------------
+type HistoryRow = {
+  id: string; kind: 'scene' | 'tutor' | 'reader'; title: string | null; started_at: string; used_seconds: number; planned_seconds: number; score: number | null
+  conversation_feedback: { score: number; cefr: string | null; summary: string | null; tips: string[]; corrections: { said: string; better: string; why: string }[]; criteria: Record<string, number> } | { score: number }[] | null
+}
+
+function HistoryDialog({ open, onOpenChange, pt }: { open: boolean; onOpenChange: (o: boolean) => void; pt: boolean }) {
+  const [rows, setRows] = useState<HistoryRow[] | null>(null)
+  const [sel, setSel] = useState<string | null>(null)
+  useEffect(() => {
+    if (!open || !supabase) return
+    void supabase.from('conversation_sessions')
+      .select('id, kind, title, started_at, used_seconds, planned_seconds, score, conversation_feedback(score, cefr, summary, tips, corrections, criteria)')
+      .order('started_at', { ascending: false }).limit(60)
+      .then(({ data }) => setRows((data ?? []) as unknown as HistoryRow[]))
+  }, [open])
+  const kindLabel = (k: HistoryRow['kind']) => k === 'scene' ? (pt ? 'Cena' : 'Scene') : k === 'tutor' ? (pt ? 'Conversa livre' : 'Free talk') : (pt ? 'Tutor de leitura' : 'Reading tutor')
+  const fb = (r: HistoryRow) => Array.isArray(r.conversation_feedback) ? (r.conversation_feedback[0] as HistoryRow['conversation_feedback'] & object) : r.conversation_feedback
+  const mins = (r: HistoryRow) => { const s = r.used_seconds || 0; return s >= 60 ? `${Math.round(s / 60)} min` : s ? `${s}s` : '—' }
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-xl">
+        <DialogHeader><DialogTitle>{pt ? 'Histórico de conversas' : 'Conversation history'}</DialogTitle><DialogDescription>{pt ? 'Data, duração e nota de cada conversa.' : 'Date, length and score of every conversation.'}</DialogDescription></DialogHeader>
+        {rows === null ? <div className="h-32 rounded-2xl animate-pulse" style={{ backgroundColor: 'var(--theme-bg-secondary)' }} /> : rows.length === 0 ? <p className="text-[14px]" style={muted}>{pt ? 'Suas conversas aparecem aqui.' : 'Your conversations show up here.'}</p> : (
+          <ul className="divide-y rounded-2xl border" style={{ borderColor: 'var(--theme-border)' }}>
+            {rows.map(r => {
+              const f = fb(r) as { score?: number; cefr?: string | null; summary?: string | null; tips?: string[]; corrections?: { said: string; better: string }[] } | null
+              const score = f?.score ?? r.score
+              return (
+                <li key={r.id} style={{ borderColor: 'var(--theme-border)' }}>
+                  <button type="button" onClick={() => setSel(sel === r.id ? null : r.id)} className="w-full px-4 py-3 flex items-center justify-between gap-3 text-left hover:bg-[var(--ui-hover)]">
+                    <span className="min-w-0"><span className="block text-[14.5px] font-medium truncate">{r.title || kindLabel(r.kind)}</span>
+                      <span className="block text-[12.5px]" style={muted}>{kindLabel(r.kind)} · {new Date(r.started_at).toLocaleDateString(pt ? 'pt-BR' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' })} · {mins(r)}</span></span>
+                    <span className="text-[18px] font-semibold tabular-nums">{score ?? '–'}</span>
+                  </button>
+                  {sel === r.id && f && (
+                    <div className="px-4 pb-4 space-y-2 text-[13.5px]">
+                      {f.cefr && <p style={muted}>{pt ? 'Nível nesta conversa' : 'Level'}: {f.cefr}</p>}
+                      {f.summary && <p>{f.summary}</p>}
+                      {f.tips?.length ? <ul className="list-disc pl-5">{f.tips.map(t => <li key={t}>{t}</li>)}</ul> : null}
+                      {f.corrections?.slice(0, 3).map((c, i) => <p key={i}><s style={muted}>{c.said}</s> → <b>{c.better}</b></p>)}
+                    </div>
+                  )}
+                </li>
+              )
+            })}
+          </ul>
+        )}
+      </DialogContent>
+    </Dialog>
   )
 }
