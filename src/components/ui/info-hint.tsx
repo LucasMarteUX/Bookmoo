@@ -1,7 +1,7 @@
 // Ajuda contextual "(i)": explica um recurso em uma ou duas frases e leva para a pergunta certa do FAQ.
 // Uso: <InfoHint title="Status da palavra" faq="status">Aprendi tira a palavra da revisão…</InfoHint>
 import { useState, type ReactNode } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { Info, ArrowRight } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { useLanguage } from '@/store/useLanguage'
@@ -17,6 +17,7 @@ export function InfoHint({ title, children, faq, side = 'bottom', align = 'start
 }) {
   const pt = useLanguage().locale === 'pt-BR'
   const [open, setOpen] = useState(false)
+  const here = useLocation()
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -29,7 +30,7 @@ export function InfoHint({ title, children, faq, side = 'bottom', align = 'start
         {title && <p className="text-[13.5px] font-semibold mb-1">{title}</p>}
         <div className="text-[13.5px] leading-relaxed" style={{ color: 'var(--theme-text-secondary)' }}>{children}</div>
         {faq && (
-          <Link to={`/faq#${faq}`} onClick={() => setOpen(false)}
+          <Link to={`/faq?back=${encodeURIComponent(here.pathname + here.search)}#${faq}`} onClick={() => setOpen(false)}
             className="group mt-3 inline-flex items-center gap-1 text-[13px] font-medium" style={{ color: 'var(--theme-text)' }}>
             {pt ? 'Saiba mais no FAQ' : 'Learn more in the FAQ'}
             <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />

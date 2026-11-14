@@ -54,7 +54,7 @@ export function CommunityMosaic({ text, lang, pt, onCount }: { text: string; lan
     } catch (e) {
       const code = e instanceof AiRequestError ? e.code : ''
       setMessage({ tone: 'error', text: code === 'no_api_key'
-        ? (pt ? 'Conecte sua chave da OpenAI ou do Gemini em Configurações para criar imagens.' : 'Connect your OpenAI or Gemini key in Settings to create images.')
+        ? (pt ? 'A criação de imagens está indisponível no momento.' : 'Image creation is unavailable right now.')
         : code === 'daily_limit'
           ? (pt ? 'Você atingiu o limite de imagens de hoje. Volte amanhã!' : 'You reached today’s image limit. Come back tomorrow!')
           : (pt ? 'Não foi possível criar a imagem agora. Tente de novo.' : 'Could not create the image right now. Try again.') })

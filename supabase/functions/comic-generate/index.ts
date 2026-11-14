@@ -1,5 +1,6 @@
 import { adminClient, corsHeaders, getUser, json, log } from '../_shared/tts.ts'
 import { AiError, generateImage, llmJson, pickProvider, type ImageReference } from '../_shared/ai.ts'
+import { entitlements, measured, metered, requireFeature } from '../_shared/billing.ts'
 import { sentenceSpans } from '../_shared/comic.ts'
 import { fullComicText } from '../_shared/comicText.ts'
 import {
@@ -45,7 +46,7 @@ async function editPanel(sb: ReturnType<typeof adminClient>, userId: string, boo
   }
   const { data, error } = await sb.storage.from(BUCKET).download(path)
   if (error || !data || data.size > 12 * 1024 * 1024) throw new AiError('Could not read the source artwork', 502, 'image_fetch_failed')
-  const { key } = await pickProvider(userId, ['openai']).catch((e) => {
+  const { key } = await pickProvider(userId, ['openai'], { strict: true }).catch((e) => {
     if (e instanceof AiError && e.code === 'no_api_key') throw new AiError('Panel editing requires OpenAI', 412, 'comic_panel_key')
     throw e
   })
@@ -127,10 +128,13 @@ Deno.serve(async (req) => {
     // Sem revisão (livro novo ou estilo trocado): refaz a direção, mantendo referências e o estilo escolhido.
     let style: StyleDocument = savedStyle.revision ? savedStyle : { references: savedStyle.references, styleId: savedStyle.styleId }
     const cast = (Array.isArray(book.comic_characters) ? book.comic_characters : []) as Character[]
+    const ent = await entitlements(user.id)
     if (b.panelId) {
       const layout = book.comic_layouts?.[page] as EditorialLayout | undefined
       if (layout?.v !== 3) return json({ error: 'invalid_target' }, 400)
-      return json(await editPanel(sb, user.id, bookId, page, b, layout, book.comic_pages?.[page], cast))
+      requireFeature(ent, ent.limits.custom_style, 'panel_edit')
+      return json(await metered(user.id, 'comic-panel',
+        () => editPanel(sb, user.id, bookId, page, b, layout, book.comic_pages?.[page], cast), { plan: ent.plan, ref: `${bookId}:${page}` }))
     }
     if (b.action !== 'prepare-art' && b.action !== 'suggest-style' && (pageText.length > 12000 || !pageText.trim())) return json({ error: 'invalid_page_text' }, 400)
     // Estilo: a escolha da pessoa (styleId no documento); senão o da galeria, definido pela primeira
@@ -149,17 +153,17 @@ Deno.serve(async (req) => {
       if (isReady(catalogStyle)) return json({ styleId: catalogStyle, source: 'community' })
       const category = (catalog as { category?: string | null } | null)?.category ?? null
       try {
-        const textAi = await pickProvider(user.id, ['gemini', 'openai'])
+        const textAi = await pickProvider(user.id, ['openai', 'gemini'])
         const about = [cleanText(book.title, 200), cleanText(book.author, 120), cleanText(book.description, 1200),
           cleanText(book.context || b.bookContext, 1200), cleanText(pageText, 1500)].filter(Boolean).join('\n')
-        const answer = await llmJson<{ styleId?: unknown; reason?: unknown }>(textAi.provider, textAi.key, {
+        const answer = await measured(user.id, 'suggest-style', () => llmJson<{ styleId?: unknown; reason?: unknown }>(textAi.provider, textAi.key, {
           prompt: `Choose the illustration style that best fits this book for a reader app. Judge by genre, audience, era and tone (for example: children's tales and fables, epic fantasy, gothic horror, science fiction, romance, detective noir, historical fiction).
 Book:
 ${about}
 ${category ? `Gallery category: ${category}` : ''}
 Styles: ${JSON.stringify(ready.map(item => ({ id: item.id, look: item.look, use: item.use })))}
 Return JSON {"styleId": one id from the list, "reason": one short sentence in Portuguese}.`,
-        })
+        }), ent.plan)
         const picked = cleanText(answer.styleId, 40)
         if (isReady(picked)) return json({ styleId: picked, source: 'ai', reason: cleanText(answer.reason, 200) })
       } catch (e) {
@@ -167,9 +171,20 @@ Return JSON {"styleId": one id from the list, "reason": one short sentence in Po
       }
       return json({ styleId: styleForCategory(category, ready) ?? ready[0]?.id ?? null, source: 'category' })
     }
+    // Estilo próprio num livro da galeria (diferente do padrão da comunidade) é recurso pago.
+    if (link?.catalog_id && catalogStyle && fixedStyle && fixedStyle !== catalogStyle) requireFeature(ent, ent.limits.custom_style, 'custom_style')
+    const generatePage = b.action !== 'prepare-art'
+    // Página nova: 10 créditos (Grátis: até 3 por mês). Preparar a direção de arte só mede o custo.
+    const run = <T,>(fn: () => Promise<T>) => generatePage
+      ? metered(user.id, b.replan ? 'comic-replan' : 'comic-page', fn, {
+        plan: ent.plan, ref: `${bookId}:${page}`, capField: ent.limits.pages != null ? 'pages' : undefined,
+        cap: ent.is_admin ? null : ent.limits.pages,
+      })
+      : measured(user.id, 'prepare-art', fn, ent.plan)
+    return json(await run(async () => {
     const brief = { ...book, category: (catalog as { category?: string | null } | null)?.category ?? null, styleId: fixedStyle }
     const fingerprint = await briefFingerprint(brief)
-    const imgAi = await pickProvider(user.id, ['openai'])
+    const imgAi = await pickProvider(user.id, ['openai'], { strict: true })
     if (style.research?.fingerprint !== fingerprint) {
       const researched = await researchArtBible(imgAi.key, brief, style, fingerprint, ready, fixedStyle)
       const update = sb.from('books').update({ comic_style_doc: researched }).eq('id', bookId).eq('user_id', user.id)
@@ -185,11 +200,11 @@ Return JSON {"styleId": one id from the list, "reason": one short sentence in Po
       if (!catalogStyle) await sb.from('catalog_books').update({ style_id: style.styleId }).eq('id', link.catalog_id).is('style_id', null)
       if (link.style_id !== style.styleId) await sb.from('book_links').update({ style_id: style.styleId }).eq('book_id', bookId).eq('user_id', user.id)
     }
-    if (b.action === 'prepare-art') return json({ styleDoc: style })
+    if (b.action === 'prepare-art') return { styleDoc: style }
     const spans = sentenceSpans(pageText)
-    if (!spans.length) return json({ error: 'invalid_page_text' }, 400)
+    if (!spans.length) throw new AiError('invalid_page_text', 400, 'invalid_page_text')
     const { references, images } = await loadReferences(sb, user.id, bookId, style)
-    const textAi = await pickProvider(user.id, ['gemini', 'openai'])
+    const textAi = await pickProvider(user.id, ['openai', 'gemini'])
     const context = [cleanText(book.description, 1800), cleanText(book.context || b.bookContext, 1200)].filter(Boolean).join('\n\n')
     const ask = (feedback?: string) => planPrompt(cleanText(book.title, 200), context,
       style, cast, spans.map(([a, z]) => pageText.slice(a, z)), pageText, feedback, cleanText(b.priorContext, 1500))
@@ -231,14 +246,15 @@ Return JSON {"styleId": one id from the list, "reason": one short sentence in Po
     }
     const imageUrl = await uploadImage(sb, user.id, bookId, page, generation.id, img)
     generation.imageUrl = imageUrl
-    return json({
+    return {
       imageUrl, rows, grid: rows.map(r => r.rightStack ? 3 : r.cols.length), beats: plan.beats,
       context: plan.context, editorialIssues: plan.editorialIssues, characters: plan.cast, styleDoc: plan.style, generation,
       previousCharacters: cast, previousStyleRevision: style.revision ?? null,
       panels: plan.beats.map(beat => ({
         charStart: spans[beat.sourceSentenceIds[0]][0], charEnd: spans[beat.sourceSentenceIds.at(-1)!][1], kind: 'caption',
       })),
-    })
+    }
+    }))
   } catch (e) {
     const err = e instanceof AiError ? e : new AiError(String((e as Error)?.message ?? e))
     log('comic-generate', 'error', { code: err.code, msg: err.code === 'comic_plan_invalid' ? 'Storyboard rejected' : err.message.slice(0, 200) })

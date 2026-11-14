@@ -1,7 +1,8 @@
-// Utilidades de IA para as Edge Functions: chaves por usuário (Vault), clientes HTTP mínimos
-// para OpenAI e Gemini (sem SDK) e saída JSON robusta. A chave do usuário só existe aqui,
-// no servidor, durante a requisição — nunca é devolvida ao navegador.
+// Utilidades de IA para as Edge Functions: chave da plataforma (secrets OPENAI_API_KEY / GEMINI_API_KEY),
+// clientes HTTP mínimos para OpenAI e Gemini (sem SDK) e saída JSON robusta. Nenhuma chave vai ao navegador.
+// Cada chamada registra tokens/imagens em billing.ts para o painel de custo.
 import { adminClient } from './tts.ts'
+import { recordImage, recordText } from './billing.ts'
 
 export type Provider = 'openai' | 'gemini'
 export type ImagePart = { mime: string; data: string }
@@ -31,12 +32,31 @@ export async function getKey(userId: string, provider: Provider): Promise<string
   return (data as string | null) ?? null
 }
 
-/** Escolhe o provedor conforme a preferência da tarefa e o que o usuário conectou. */
-export async function pickProvider(userId: string, prefer: Provider[]): Promise<{ provider: Provider; key: string }> {
+function platformKey(provider: Provider): string | null {
+  const key = Deno.env.get(provider === 'openai' ? 'OPENAI_API_KEY' : 'GEMINI_API_KEY')
+  return key && key.trim() ? key.trim() : null
+}
+
+/**
+ * Escolhe o provedor: primeiro a chave da plataforma (créditos do plano), na ordem de preferência.
+ * Transição: sem o secret daquele provedor, usa a chave antiga que a pessoa conectou.
+ * `strict`: só os provedores pedidos (ex.: quadrinhos dependem da API da OpenAI).
+ */
+export async function pickProvider(userId: string, prefer: Provider[], opts: { strict?: boolean } = {}): Promise<{ provider: Provider; key: string }> {
+  for (const p of prefer) {
+    const key = platformKey(p)
+    if (key) return { provider: p, key }
+  }
   const have = await connectedProviders(userId)
   for (const p of prefer) {
     if (have.includes(p)) {
       const key = await getKey(userId, p)
+      if (key) return { provider: p, key }
+    }
+  }
+  if (!opts.strict) {
+    for (const p of ['openai', 'gemini'] as Provider[]) {
+      const key = platformKey(p)
       if (key) return { provider: p, key }
     }
   }
@@ -60,7 +80,38 @@ async function openaiChat(key: string, opts: { system?: string; prompt: string; 
   })
   const j = await r.json().catch(() => ({}))
   if (!r.ok) throw providerError('openai', r.status, j)
+  recordText('openai', MODELS.openaiText, Number(j.usage?.prompt_tokens ?? 0), Number(j.usage?.completion_tokens ?? 0))
   return String(j.choices?.[0]?.message?.content ?? '')
+}
+
+/** Conversa com histórico (Cenas, Tutor). Respostas curtas, rápidas. */
+export async function llmChat(provider: Provider, key: string, opts: {
+  system: string; messages: { role: 'user' | 'assistant'; content: string }[]; json?: boolean; maxTokens?: number; temperature?: number
+}): Promise<string> {
+  if (provider === 'openai') {
+    const r = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: MODELS.openaiText,
+        messages: [{ role: 'system', content: opts.system }, ...opts.messages],
+        max_tokens: opts.maxTokens ?? 220,
+        temperature: opts.temperature ?? 0.8,
+        ...(opts.json ? { response_format: { type: 'json_object' } } : {}),
+      }),
+      signal: AbortSignal.timeout(45_000),
+    })
+    const j = await r.json().catch(() => ({}))
+    if (!r.ok) throw providerError('openai', r.status, j)
+    recordText('openai', MODELS.openaiText, Number(j.usage?.prompt_tokens ?? 0), Number(j.usage?.completion_tokens ?? 0))
+    return String(j.choices?.[0]?.message?.content ?? '')
+  }
+  const j = await geminiGenerate(key, MODELS.geminiText, {
+    contents: opts.messages.map((m) => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] })),
+    systemInstruction: { parts: [{ text: opts.system }] },
+    generationConfig: { maxOutputTokens: opts.maxTokens ?? 220, temperature: opts.temperature ?? 0.8, ...(opts.json ? { responseMimeType: 'application/json' } : {}) },
+  })
+  return (j.candidates?.[0]?.content?.parts ?? []).map((p) => p.text ?? '').join('')
 }
 
 async function geminiGenerate(key: string, model: string, body: Record<string, unknown>) {
@@ -72,6 +123,7 @@ async function geminiGenerate(key: string, model: string, body: Record<string, u
   })
   const j = await r.json().catch(() => ({}))
   if (!r.ok) throw providerError('gemini', r.status, j)
+  if (model === MODELS.geminiText) recordText('gemini', model, Number(j.usageMetadata?.promptTokenCount ?? 0), Number(j.usageMetadata?.candidatesTokenCount ?? 0))
   return j as { candidates?: { content?: { parts?: { text?: string; inlineData?: { data: string; mimeType: string } }[] } }[] }
 }
 
@@ -158,6 +210,7 @@ export async function generateImage(provider: Provider, key: string, prompt: str
     if (!r.ok) throw providerError('openai', r.status, j)
     const b64 = j.data?.[0]?.b64_json
     if (!b64) throw new AiError('no_image_returned')
+    recordImage('openai', MODELS.openaiImage, quality, size, refs.length)
     return { bytes: b64ToBytes(b64), mime: 'image/jpeg' }
   }
   const parts: unknown[] = await Promise.all(refs.map(async (ref) => ({
@@ -173,6 +226,7 @@ export async function generateImage(provider: Provider, key: string, prompt: str
   })
   const img = (j.candidates?.[0]?.content?.parts ?? []).find((p) => p.inlineData)?.inlineData
   if (!img) throw new AiError('no_image_returned')
+  recordImage('gemini', MODELS.geminiImage, quality, size, refs.length)
   return { bytes: b64ToBytes(img.data), mime: img.mimeType || 'image/png' }
 }
 

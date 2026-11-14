@@ -220,6 +220,9 @@ export function Login({ mode = 'login' }: { mode?: Mode }) {
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </span>
+                {!signup && (
+                  <Link to="/esqueci-senha" className="mt-1.5 inline-block text-[12.5px] underline underline-offset-2" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? 'Esqueci minha senha' : 'Forgot my password'}</Link>
+                )}
               </label>
               {signup && (
                 <label className="block">
@@ -255,11 +258,11 @@ export function Login({ mode = 'login' }: { mode?: Mode }) {
                     className="mt-0.5 w-4 h-4 shrink-0 accent-[var(--theme-text)]" />
                   <span className="text-[13px] leading-snug" style={{ color: 'var(--theme-text-secondary)' }}>
                     {pt ? 'Li e aceito os ' : 'I have read and accept the '}
-                    <Link to="/terms" target="_blank" className="underline underline-offset-2" style={{ color: 'var(--theme-text)' }}>{pt ? 'Termos de uso' : 'Terms of use'}</Link>
+                    <Link to="/terms?back=/signup&tab=1" target="_blank" className="underline underline-offset-2" style={{ color: 'var(--theme-text)' }}>{pt ? 'Termos de uso' : 'Terms of use'}</Link>
                     {pt ? ', a ' : ', the '}
-                    <Link to="/privacy" target="_blank" className="underline underline-offset-2" style={{ color: 'var(--theme-text)' }}>{pt ? 'Política de privacidade' : 'Privacy policy'}</Link>
+                    <Link to="/privacy?back=/signup&tab=1" target="_blank" className="underline underline-offset-2" style={{ color: 'var(--theme-text)' }}>{pt ? 'Política de privacidade' : 'Privacy policy'}</Link>
                     {pt ? ' e o ' : ' and the '}
-                    <Link to="/faq" target="_blank" className="underline underline-offset-2" style={{ color: 'var(--theme-text)' }}>FAQ</Link>.
+                    <Link to="/faq?back=/signup&tab=1" target="_blank" className="underline underline-offset-2" style={{ color: 'var(--theme-text)' }}>FAQ</Link>.
                   </span>
                 </label>
               )}
@@ -285,15 +288,15 @@ export function Login({ mode = 'login' }: { mode?: Mode }) {
             {!signup && (
               <p className="mt-3 text-center text-[12px] leading-snug" style={{ color: 'var(--theme-text-secondary)' }}>
                 {pt ? 'Ao continuar, você concorda com os ' : 'By continuing, you agree to the '}
-                <Link to="/terms" className="underline underline-offset-2">{pt ? 'Termos' : 'Terms'}</Link>
+                <Link to={`/terms?back=${signup ? '/signup' : '/login'}`} className="underline underline-offset-2">{pt ? 'Termos' : 'Terms'}</Link>
                 {pt ? ' e a ' : ' and the '}
-                <Link to="/privacy" className="underline underline-offset-2">{pt ? 'Privacidade' : 'Privacy policy'}</Link>.
+                <Link to={`/privacy?back=${signup ? '/signup' : '/login'}`} className="underline underline-offset-2">{pt ? 'Privacidade' : 'Privacy policy'}</Link>.
               </p>
             )}
             <nav className="mt-8 flex justify-center gap-4 text-[12.5px]" style={{ color: 'var(--theme-text-secondary)' }}>
-              <Link to="/faq" className="hover:underline">FAQ</Link>
-              <Link to="/terms" className="hover:underline">{pt ? 'Termos' : 'Terms'}</Link>
-              <Link to="/privacy" className="hover:underline">{pt ? 'Privacidade' : 'Privacy'}</Link>
+              <Link to={`/faq?back=${signup ? '/signup' : '/login'}`} className="hover:underline">FAQ</Link>
+              <Link to={`/terms?back=${signup ? '/signup' : '/login'}`} className="hover:underline">{pt ? 'Termos' : 'Terms'}</Link>
+              <Link to={`/privacy?back=${signup ? '/signup' : '/login'}`} className="hover:underline">{pt ? 'Privacidade' : 'Privacy'}</Link>
             </nav>
           </div>
         </div>

@@ -3,6 +3,7 @@
 // o navegador lê direto das tabelas via RLS. Aqui também ficam a moderação mínima e os limites.
 import { adminClient } from './tts.ts'
 import { AiError, generateImage, llmJson, llmText, pickProvider, type Provider } from './ai.ts'
+import { metered, type Entitlements } from './billing.ts'
 
 export const LANG_NAMES: Record<string, string> = { pt: 'Portuguese', es: 'Spanish', fr: 'French', de: 'German', ja: 'Japanese', zh: 'Chinese', en: 'English', it: 'Italian' }
 
@@ -153,7 +154,7 @@ type Body = Record<string, unknown>
 
 const EXPL_COLS = 'id, ui_lang, definition, pronunciation, examples, grammar_examples, usage_note, created_at'
 
-export async function sharedExplain(userId: string, b: Body) {
+export async function sharedExplain(userId: string, b: Body, ent?: Entitlements) {
   const term = validateTerm(b.text)
   const lang = normalizeLang(b.lang)
   const uiLang = uiLangOf(b.uiLang)
@@ -164,8 +165,10 @@ export async function sharedExplain(userId: string, b: Body) {
   if ((existing?.length ?? 0) >= CAPS.explanations) return { capped: true, termId }
   await assertDailyText(userId)
   const avoid = (existing ?? []).flatMap((r) => ((r.grammar_examples ?? []) as GrammarExample[]).map((g) => g.context)).filter(Boolean)
-  const { provider, key } = await pickProvider(userId, ['gemini', 'openai'])
-  const e = await explainTerm(provider, key, term, level, uiLang, avoid)
+  const { e, provider } = await metered(userId, 'vocab-explain', async () => {
+    const { provider, key } = await pickProvider(userId, ['openai', 'gemini'])
+    return { e: await explainTerm(provider, key, term, level, uiLang, avoid), provider }
+  }, { plan: ent?.plan, ref: term })
   const { data, error } = await db.from('vocab_explanations').insert({
     term_id: termId, ui_lang: uiLang, definition: e.definition, pronunciation: e.ipa, examples: e.examples,
     grammar_examples: e.grammarExamples, usage_note: e.usageNote, provider, created_by: userId,
@@ -174,7 +177,7 @@ export async function sharedExplain(userId: string, b: Body) {
   return { termId, explanation: data }
 }
 
-export async function sharedStory(userId: string, b: Body) {
+export async function sharedStory(userId: string, b: Body, ent?: Entitlements) {
   const term = validateTerm(b.text)
   const lang = normalizeLang(b.lang)
   const uiLang = uiLangOf(b.uiLang)
@@ -184,9 +187,12 @@ export async function sharedStory(userId: string, b: Body) {
   if ((existing?.length ?? 0) >= CAPS.stories) return { capped: true, termId }
   await assertDailyText(userId)
   const avoid = (existing ?? []).map((r) => String(r.story).split('\n').find((l) => l.trim()) ?? '').map((l) => l.slice(0, 90))
-  const { provider, key } = await pickProvider(userId, ['gemini', 'openai'])
-  const story = await storyForTerm(provider, key, term, uiLang, avoid)
-  if (!story) throw new AiError('empty_story', 502, 'provider_error')
+  const { story, provider } = await metered(userId, 'vocab-story', async () => {
+    const { provider, key } = await pickProvider(userId, ['openai', 'gemini'])
+    const story = await storyForTerm(provider, key, term, uiLang, avoid)
+    if (!story) throw new AiError('empty_story', 502, 'provider_error')
+    return { story, provider }
+  }, { plan: ent?.plan, ref: term })
   const { data, error } = await db.from('vocab_stories').insert({ term_id: termId, ui_lang: uiLang, story, provider, created_by: userId })
     .select('id, ui_lang, story, created_at').single()
   if (error) throw new AiError(`insert_failed: ${error.message}`, 500, 'db_error')
@@ -225,7 +231,7 @@ const IMAGE_CONCEPTS = [
 ]
 
 /** Gera um mosaico de HQ (quadrado, qualidade baixa) com usos do termo e salva no Storage + galeria do termo. */
-export async function sharedImages(userId: string, b: Body) {
+export async function sharedImages(userId: string, b: Body, ent?: Entitlements) {
   const term = validateTerm(b.text)
   const lang = normalizeLang(b.lang)
   const termId = await ensureTerm(term, lang)
@@ -251,7 +257,9 @@ Layout: a 2x2 grid of four equal panels, separated by thin clean gutters. Each p
 Each panel shows a DIFFERENT real-life situation where someone uses or experiences "${term}", so the four scenes together show the range of its meaning. Emphasize this setting in one of the panels: ${concept}. The other three stay clearly different (home, work or school, outdoors, with friends).
 Style: high-quality Pixar-style 3D animated characters. Expressive large eyes, charming facial features, soft rounded shapes, stylized proportions, detailed textures, vibrant yet harmonious colors, cinematic lighting, soft shadows, subtle subsurface scattering, global illumination, beautiful depth of field, polished 3D rendering, warm atmosphere, professional animated feature film quality. Keep each character recognizable within their own panel.
 Strictly no text, letters, speech balloons, captions, watermarks or words anywhere. No real or famous people, no logos or brands, nothing violent or adult.`
-    const img = await generateImage(provider, key, prompt, [], { square: true, quality: 'low' })
+    // Grátis: até N mosaicos por mês (teto do plano); pagos: 1 crédito cada.
+    const img = await metered(userId, 'vocab-image', () => generateImage(provider, key, prompt, [], { square: true, quality: 'low' }),
+      { plan: ent?.plan, ref: term, capField: ent?.limits.mosaic != null ? 'mosaic' : undefined, cap: ent?.is_admin ? null : ent?.limits.mosaic ?? null })
     if (img.bytes.length > 5_000_000) throw new AiError('image_too_large', 413, 'image_too_large')
     const ext = img.mime === 'image/png' ? 'png' : img.mime === 'image/webp' ? 'webp' : 'jpg'
     const path = `${termId}/${crypto.randomUUID()}.${ext}`

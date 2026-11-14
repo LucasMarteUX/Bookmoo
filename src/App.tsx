@@ -21,6 +21,15 @@ import { AdminPage } from '@/pages/Admin'
 import { AdminBookEdit } from '@/pages/AdminBookEdit'
 import { MePage } from '@/pages/Me'
 import { Community, ConnectionsPage, NotificationsPage, PostPage, PublicProfile } from '@/pages/Community'
+import { PaywallHost } from '@/components/billing/Paywall'
+import { PlansPage } from '@/pages/billing/PlansPage'
+import { GiftPage } from '@/pages/billing/GiftPage'
+import { CheckoutReturn } from '@/pages/billing/CheckoutReturn'
+import { SubscriptionPage } from '@/pages/billing/SubscriptionPage'
+import { ConversePage } from '@/pages/ConversePage'
+import { InsightsPage } from '@/pages/InsightsPage'
+import { AdminFinance } from '@/pages/AdminFinance'
+import { CompleteProfilePage, ForgotPasswordPage, NewPasswordPage } from '@/pages/auth/AccountPages'
 
 function ThemeToBody() {
   const { theme } = useReaderSettings()
@@ -49,9 +58,17 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <ThemeToBody />
+        <PaywallHost />
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<SignUp />} />
+          <Route path="/esqueci-senha" element={<ForgotPasswordPage />} />
+          <Route path="/nova-senha" element={<NewPasswordPage />} />
+          {/* Primeiro acesso e pagamento: telas cheias, sem a barra lateral. */}
+          <Route path="/completar-cadastro" element={<ProtectedRoute><CompleteProfilePage /></ProtectedRoute>} />
+          <Route path="/planos" element={<ProtectedRoute><PlansPage /></ProtectedRoute>} />
+          <Route path="/presente" element={<ProtectedRoute><GiftPage /></ProtectedRoute>} />
+          <Route path="/checkout/retorno" element={<ProtectedRoute><CheckoutReturn /></ProtectedRoute>} />
           <Route path="/terms" element={<LegalPage doc="terms" />} />
           <Route path="/privacy" element={<LegalPage doc="privacy" />} />
           <Route path="/faq" element={<LegalPage doc="faq" />} />
@@ -82,6 +99,10 @@ export default function App() {
             <Route path="admin" element={<AdminPage />} />
             <Route path="admin/books/:id" element={<AdminBookEdit />} />
             <Route path="me" element={<MePage />} />
+            <Route path="assinatura" element={<SubscriptionPage />} />
+            <Route path="conversar" element={<ConversePage />} />
+            <Route path="raio-x" element={<InsightsPage />} />
+            <Route path="admin/financeiro" element={<AdminFinance />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

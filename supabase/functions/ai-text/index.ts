@@ -1,8 +1,9 @@
 // Tarefas de texto/visão que antes rodavam no navegador com uma chave exposta.
-// Usa a chave do próprio usuário (Gemini preferido para texto/visão; OpenAI como alternativa).
+// Usa a chave da plataforma e cobra créditos do plano (billing.ts).
 import { corsHeaders, getUser, json, log } from '../_shared/tts.ts'
 import { AiError, llmJson, llmText, pickProvider, type ImagePart } from '../_shared/ai.ts'
 import { explainTerm, glossTerm, sharedExamples, sharedExplain, sharedImages, sharedStory, storyForTerm } from '../_shared/vocab.ts'
+import { entitlements, measured, metered, requireFeature } from '../_shared/billing.ts'
 
 const MAX_IMAGE_B64 = 5_500_000
 
@@ -16,48 +17,59 @@ function imageFromDataUrl(dataUrl: unknown): ImagePart {
 type Body = Record<string, unknown> & { action?: string }
 
 async function handle(userId: string, b: Body) {
+  const ent = await entitlements(userId)
+  const plan = ent.plan
   switch (b.action) {
     case 'explain': {
       const text = String(b.text ?? '').slice(0, 300)
       const level = ['A2', 'B1', 'B2'].includes(String(b.level)) ? String(b.level) : 'B1'
-      const { provider, key } = await pickProvider(userId, ['gemini', 'openai'])
-      return await explainTerm(provider, key, text, level, String(b.languageCode ?? 'en'), [], b.nativeLanguageCode ? String(b.nativeLanguageCode).slice(0, 5).toLowerCase() : undefined)
+      return await metered(userId, 'explain', async () => {
+        const { provider, key } = await pickProvider(userId, ['openai', 'gemini'])
+        return await explainTerm(provider, key, text, level, String(b.languageCode ?? 'en'), [], b.nativeLanguageCode ? String(b.nativeLanguageCode).slice(0, 5).toLowerCase() : undefined)
+      }, { plan })
     }
     case 'gloss': {
       const text = String(b.text ?? '').slice(0, 120)
-      const { provider, key } = await pickProvider(userId, ['gemini', 'openai'])
-      return { gloss: await glossTerm(provider, key, text, String(b.languageCode ?? 'pt')) }
+      return await measured(userId, 'gloss', async () => {
+        const { provider, key } = await pickProvider(userId, ['openai', 'gemini'])
+        return { gloss: await glossTerm(provider, key, text, String(b.languageCode ?? 'pt')) }
+      }, plan)
     }
     case 'variant-story': {
       const text = String(b.text ?? '').slice(0, 300)
-      const { provider, key } = await pickProvider(userId, ['gemini', 'openai'])
-      return { story: await storyForTerm(provider, key, text, String(b.languageCode ?? '')) }
+      return await metered(userId, 'variant-story', async () => {
+        const { provider, key } = await pickProvider(userId, ['openai', 'gemini'])
+        return { story: await storyForTerm(provider, key, text, String(b.languageCode ?? '')) }
+      }, { plan })
     }
     // Banco compartilhado de vocabulário: gera um item novo, salva para todos e devolve a linha.
-    case 'vocab-explain': return await sharedExplain(userId, b)
-    case 'vocab-story': return await sharedStory(userId, b)
+    case 'vocab-explain': return await sharedExplain(userId, b, ent)
+    case 'vocab-story': return await sharedStory(userId, b, ent)
     case 'vocab-examples': return await sharedExamples(userId, b)
-    case 'vocab-images': return await sharedImages(userId, b)
+    case 'vocab-images': return await sharedImages(userId, b, ent)
     case 'search-context': {
       // Referências visuais via busca do Google: só existe no Gemini. Sem Gemini, devolve vazio.
       let picked
       try { picked = await pickProvider(userId, ['gemini']) } catch { return { text: '' } }
+      if (picked.provider !== 'gemini') return { text: '' }
       try {
-        const text = await llmText(picked.provider, picked.key, {
+        const text = await measured(userId, 'search-context', () => llmText(picked.provider, picked.key, {
           search: true,
           prompt: `For a comic book adaptation, suggest brief visual references (movies, animated series, book covers, existing character designs or art style) that could inspire the look of this story. Be very concise (max 4–5 short bullet points).
 Book title: ${String(b.bookTitle ?? '').slice(0, 200)}
 Story context: ${String(b.bookContext ?? '').slice(0, 800)}
 This page: ${String(b.pageText ?? '').slice(0, 600)}
 Reply with only the bullet points, no intro.`,
-        })
+        }), plan)
         return { text: text.trim() }
       } catch { return { text: '' } }
     }
     case 'style-extract': {
+      requireFeature(ent, ent.limits.custom_style, 'custom_style')
       const image = imageFromDataUrl(b.imageDataUrl)
       const pageText = String(b.pageText ?? '').slice(0, 1500)
-      const { provider, key } = await pickProvider(userId, ['gemini', 'openai'])
+      return await metered(userId, 'style-extract', async () => {
+      const { provider, key } = await pickProvider(userId, ['openai', 'gemini'])
       const r = await llmJson<{ styleDoc?: Record<string, string>; characters?: { name?: string; visualDescription?: string; firstPage?: number }[] }>(provider, key, {
         images: [image],
         prompt: `Analyze this comic page. ${pageText ? `Page text (for character names):\n${pageText}` : 'Describe the visible style and any characters.'}
@@ -70,11 +82,13 @@ Include every character visible in the page.`,
         styleDoc: r.styleDoc ?? {},
         characters: (r.characters ?? []).map((c) => ({ name: String(c.name ?? ''), visualDescription: String(c.visualDescription ?? ''), firstPage: typeof c.firstPage === 'number' ? c.firstPage : undefined })),
       }
+      }, { plan })
     }
     case 'detect-characters': {
       const pageText = String(b.pageText ?? '').slice(0, 3000)
       const existing = Array.isArray(b.existingNames) ? (b.existingNames as unknown[]).map(String).slice(0, 50) : []
-      const { provider, key } = await pickProvider(userId, ['gemini', 'openai'])
+      return await metered(userId, 'detect-characters', async () => {
+      const { provider, key } = await pickProvider(userId, ['openai', 'gemini'])
       const r = await llmJson<{ characters?: { name?: string; visualDescription?: string }[] }>(provider, key, {
         prompt: `This is a page from a story:
 """
@@ -84,11 +98,14 @@ ${existing.length ? `Already documented characters (do NOT include these again):
 {"characters": [{"name": "Name", "visualDescription": "description"}]}`,
       })
       return { characters: (r.characters ?? []).map((c) => ({ name: String(c.name ?? ''), visualDescription: String(c.visualDescription ?? '') })) }
+      }, { plan })
     }
     case 'transcribe-page': {
+      requireFeature(ent, ent.limits.imports !== 0, 'imports')
       const image = imageFromDataUrl(b.imageDataUrl)
       const languageCode = String(b.languageCode ?? 'en').slice(0, 5)
-      const { provider, key } = await pickProvider(userId, ['gemini', 'openai'])
+      return await metered(userId, 'transcribe-page', async () => {
+      const { provider, key } = await pickProvider(userId, ['openai', 'gemini'])
       const text = await llmText(provider, key, {
         images: [image],
         prompt: `Você está analisando uma fotografia de uma página de livro.
@@ -108,6 +125,7 @@ Regras:
       })
       if (!text.trim()) throw new AiError('no_legible_text', 422, 'no_legible_text')
       return { text: text.trim() }
+      }, { plan })
     }
     default:
       throw new AiError('unknown_action', 400, 'unknown_action')

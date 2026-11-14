@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { Image as ImageIcon, Star } from 'lucide-react'
+import { Crown, Image as ImageIcon, Star } from 'lucide-react'
 import { LevelBadge } from '@/components/ui/level-badge'
 import { AvatarStack } from '@/components/community/AvatarStack'
 import type { CefrId } from '@/lib/cefr'
@@ -24,7 +24,7 @@ export function BookCover({ title, coverData, pending, className, children }: { 
   )
 }
 
-export function BookCard({ to, title, subtitle, coverData, coverPending, ageMin, ageInfo, level, pt, linkState, className, readers = 0, faces = [], rating, ratings = 0, illustrated = 0 }: {
+export function BookCard({ to, title, subtitle, coverData, coverPending, ageMin, ageInfo, level, pt, linkState, className, readers = 0, faces = [], rating, ratings = 0, illustrated = 0, premium = false }: {
   to: string
   title: string
   subtitle?: string
@@ -46,6 +46,8 @@ export function BookCard({ to, title, subtitle, coverData, coverPending, ageMin,
   ratings?: number
   /** Páginas já ilustradas na galeria. */
   illustrated?: number
+  /** Livro só para assinantes (selo Premium na capa). */
+  premium?: boolean
 }) {
   return (
     <Link to={to} state={linkState} className={cn('group block', className)}>
@@ -56,6 +58,12 @@ export function BookCard({ to, title, subtitle, coverData, coverPending, ageMin,
             style={{ backgroundColor: 'color-mix(in srgb, var(--theme-card-bg) 85%, transparent)', color: 'var(--theme-text)' }}
             title={pt ? `${illustrated} páginas ilustradas` : `${illustrated} illustrated pages`}>
             <ImageIcon className="w-3 h-3" />{illustrated}
+          </span>
+        )}
+        {premium && (
+          <span className="absolute left-1.5 bottom-1.5 h-5 px-1.5 rounded-full inline-flex items-center gap-1 text-[10.5px] font-semibold backdrop-blur-md"
+            style={{ backgroundColor: 'color-mix(in srgb, #111 70%, transparent)', color: '#FCD34D' }}>
+            <Crown className="w-3 h-3" />Premium
           </span>
         )}
       </BookCover>

@@ -23,6 +23,9 @@ import { VoiceAvatar } from '@/components/settings/VoiceAvatar'
 import { getKokoroVoice } from '@/lib/kokoro/voices'
 import { activeKokoroVoice } from '@/lib/kokoro/engine'
 import { useAuth } from '@/contexts/AuthContext'
+import { canOpenCatalog, useEntitlements } from '@/store/useEntitlements'
+import { openPaywall } from '@/components/billing/Paywall'
+import { ReaderTutor } from '@/components/reader/ReaderTutor'
 
 export function BookPage() {
   const { id } = useParams<{ id: string }>()
@@ -54,6 +57,7 @@ export function BookPage() {
   })
 
   const book = books.find(b => b.id === id)
+  const ent = useEntitlements(st => st.data)
   const pt = locale === 'pt-BR'
   const bank = useStyleBank(pt)
   const placeholder = { id: '', comicPages: {} } as unknown as NonNullable<typeof book>
@@ -77,6 +81,23 @@ export function BookPage() {
       <div className="flex flex-col items-center justify-center h-full space-y-4">
         <h2 className="text-2xl font-bold text-zinc-800">Livro não encontrado</h2>
         <Button onClick={() => navigate('/')}>Voltar ao Início</Button>
+      </div>
+    )
+  }
+
+  // Livro da galeria sem acesso (voltou ao Grátis): progresso guardado, leitura só com assinatura.
+  if (!canOpenCatalog(ent, book.catalogId)) {
+    return (
+      <div className="max-w-md mx-auto text-center py-16 px-4">
+        <div className="text-[48px]" aria-hidden>📚</div>
+        <h1 className="mt-4 font-display text-[28px] leading-tight">{pt ? `“${book.title}” é Premium` : `“${book.title}” is Premium`}</h1>
+        <p className="mt-3 text-[15px]" style={{ color: 'var(--theme-text-secondary)' }}>
+          {pt ? `Seu progresso (página ${book.currentPage + 1}), notas e vocabulário estão guardados. Assine para continuar de onde parou.` : `Your progress (page ${book.currentPage + 1}), notes and vocabulary are saved. Subscribe to continue where you left off.`}
+        </p>
+        <div className="mt-6 flex flex-col gap-2">
+          <Button onClick={() => openPaywall('book')}>{pt ? 'Ver planos' : 'See plans'}</Button>
+          <Button variant="outline" onClick={() => navigate('/')}>{pt ? 'Voltar ao início' : 'Back home'}</Button>
+        </div>
       </div>
     )
   }
@@ -170,7 +191,10 @@ export function BookPage() {
         ) : mode === 'speak' ? (
           <SpeakPractice book={book} />
         ) : (
-          <Reader book={book} autoPlay={mode === 'listen'} headerSlot={headerSlot} />
+          <>
+            <Reader book={book} autoPlay={mode === 'listen'} headerSlot={headerSlot} />
+            <ReaderTutor book={book} />
+          </>
         )}
       </div>
 

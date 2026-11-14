@@ -44,6 +44,8 @@ export interface Book {
   imageMode?: 'shared' | 'personal'
   /** Dificuldade marcada na galeria. Livro enviado pela pessoa não tem. */
   cefrLevel?: 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2'
+  /** Origem (limites do plano): EPUB/PDF importado, texto colado, galeria ou história de reforço. */
+  source?: 'epub' | 'pdf' | 'text' | 'catalog' | 'story'
 }
 
 interface BookState {

@@ -29,7 +29,6 @@ import {
   isNoApiKeyError,
   aiErrorMessage,
 } from '@/lib/ai'
-import { getAiStatus, useAiStatus } from '@/lib/aiKeys'
 import { detectLetteringTheme, letteringThemeFor, type LetteringThemeId } from '@/lib/comicThemes'
 import { ToolButton, ToolDivider, ToolGroup } from '@/components/ui/toolbar'
 import { needsVoiceInstall } from './VoiceRequiredDialog'
@@ -192,7 +191,6 @@ export function Reader({ book, autoPlay = false, headerSlot }: ReaderProps) {
   const [firstStyle, setFirstStyle] = useState<{ suggested: string | null; note?: string; loading: boolean } | null>(null)
   const connectApiShownRef = useRef(false)
   const readerRootRef = useRef<HTMLDivElement>(null)
-  const { status: aiStatus } = useAiStatus()
   const navigate = useNavigate()
   
   // TTS State — native browser SpeechSynthesis only
@@ -682,9 +680,7 @@ export function Reader({ book, autoPlay = false, headerSlot }: ReaderProps) {
     setComicError(null)
     const pageText = currentContent
     try {
-      const status = aiStatus ?? await getAiStatus().catch(() => null)
-      if (!status) throw new AiRequestError('ai_status_unavailable')
-      if (!status.openai.connected) { setShowConnectApi(true); return }
+      // A IA vem do plano (créditos): sem chave para conectar. Sem saldo, o servidor recusa e o convite abre.
       // Livro ainda sem estilo escolhido: primeiro o banco de estilos (com sugestão), depois desenha.
       if (!opts?.styleChosen && !book.comicStyleDoc?.styleId) { askFirstStyle(); return }
       setComicStage('prepare')
@@ -794,11 +790,6 @@ export function Reader({ book, autoPlay = false, headerSlot }: ReaderProps) {
   const openComicMode = async () => {
     setViewMode('comic')
     stopPlayback()
-    const status = aiStatus ?? await getAiStatus().catch(() => null)
-    if (status && !status?.openai?.connected && !connectApiShownRef.current) {
-      connectApiShownRef.current = true
-      setShowConnectApi(true)
-    }
   }
 
   // TTS — camada centralizada (VoiceStudio via Supabase, fallback para voz do navegador em src/lib/tts.ts)

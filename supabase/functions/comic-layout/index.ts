@@ -2,6 +2,7 @@
 // neles, na ordem de leitura. Devolve caixas normalizadas (0–1) com charStart/charEnd.
 import { corsHeaders, getUser, json, log } from '../_shared/tts.ts'
 import { AiError, bytesToB64, llmJson, pickProvider } from '../_shared/ai.ts'
+import { measured } from '../_shared/billing.ts'
 import { inspectComic } from './inspect.ts'
 import { locateFaces } from './faces.ts'
 import type { Segment } from '../_shared/comic.ts'
@@ -101,14 +102,14 @@ Deno.serve(async (req) => {
     const bytes = new Uint8Array(await r.arrayBuffer())
     const mime = r.headers.get('content-type') ?? 'image/jpeg'
 
-    const { provider, key } = await pickProvider(user.id, ['gemini', 'openai'])
-    const res = await llmJson<Detected[] | { boxes?: Detected[] }>(provider, key, {
+    const { provider, key } = await pickProvider(user.id, ['openai', 'gemini'])
+    const res = await measured(user.id, 'comic-layout', () => llmJson<Detected[] | { boxes?: Detected[] }>(provider, key, {
       images: [{ mime, data: bytesToB64(bytes) }],
       prompt: `This is a comic page whose speech bubbles and caption boxes are EMPTY (blank, meant to receive text).
 Detect EVERY empty speech bubble and empty caption box. Do not include panels, faces or other objects.
 Return JSON only: {"boxes": [{"box_2d": [ymin, xmin, ymax, xmax], "label": "speech" | "caption"}]}
 Coordinates are integers normalized to 0–1000 relative to the full image (0,0 is the top-left corner). The box must tightly enclose the white interior of the bubble/box.`,
-    })
+    }))
     const detected = Array.isArray(res) ? res : (res.boxes ?? [])
     let boxes: Box[] = detected
       .filter((d) => Array.isArray(d.box_2d) && d.box_2d.length === 4)

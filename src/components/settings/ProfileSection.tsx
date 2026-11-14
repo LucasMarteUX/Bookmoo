@@ -9,6 +9,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
 import { AvatarCropDialog } from './AvatarCropDialog'
+import { announceAvatar } from '@/hooks/useMyAvatar'
 import { ProfileView } from '@/components/community/ProfileView'
 import {
   BIO_MAX, cleanHandle, GOAL_MAX, HANDLE_PATTERN, loadOwnProfile, loadProfileView, NO_RELATION, ProfileSaveError, removeCover, saveAvatarUrl, saveOwnProfile, uploadCover,
@@ -84,6 +85,7 @@ export function ProfileSection({ pt }: { pt: boolean }) {
       try { localStorage.setItem(`bookmoo-avatar-${user.id}`, dataUrl) } catch { /* foto grande demais para o aparelho */ }
       held.current = dataUrl
       setAvatar(dataUrl)
+      announceAvatar(dataUrl)
       setUploading(false)
       setMessage({ tone: 'error', text: pt ? 'A foto ficou só neste aparelho. A comunidade continua vendo a inicial.' : 'The photo stayed on this device. The community still sees your initial.' })
       return
@@ -95,6 +97,7 @@ export function ProfileSection({ pt }: { pt: boolean }) {
     try { localStorage.removeItem(`bookmoo-avatar-${user.id}`) } catch { /* ignore */ }
     held.current = fresh
     setAvatar(fresh)
+    announceAvatar(fresh)
     setProfile(current => current && { ...current, avatarUrl: fresh })
     setUploading(false)
     setMessage({ tone: 'ok', text: pt ? 'Foto atualizada.' : 'Photo updated.' })

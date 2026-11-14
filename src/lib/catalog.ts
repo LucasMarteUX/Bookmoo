@@ -19,6 +19,10 @@ export type CatalogBook = {
   ageInfo?: AgeInfo
   pages: string[]
   createdAt?: string
+  /** Sem acesso (plano Grátis sem ser o presente): `pages` traz só a amostra. */
+  locked?: boolean
+  /** Total de páginas do livro (mesmo quando só a amostra veio). */
+  pageCount?: number
 }
 
 export type AgeInfo = { bookmoo?: number; escala_br?: string; temas?: string[]; nivel?: string; fonte?: string }
@@ -203,9 +207,24 @@ export function invalidateCatalogList() { listCache = null; liteCache = null }
 
 export async function getCatalogBook(id: string): Promise<CatalogBook | null> {
   if (!supabase) return null
-  const { data, error } = await supabase.from('catalog_books').select('*').eq('id', id).maybeSingle()
+  // O texto (pages) não sai da tabela: vem de catalog_open (com acesso) ou da amostra (3 páginas).
+  const { data, error } = await supabase.from('catalog_books')
+    .select('id, title, author, description, language_code, cover_data, cefr_level, category, categories, age_min, age_info, created_at')
+    .eq('id', id).maybeSingle()
   if (error) throw error
   if (!data) return null
+  let pages: unknown = null
+  let locked = false
+  const open = await supabase.rpc('catalog_open', { p_id: id })
+  if (!open.error) pages = open.data
+  else if (/plan_required/.test(open.error.message)) {
+    locked = true
+    pages = (await supabase.rpc('catalog_sample', { p_id: id })).data
+  } else if (/catalog_open|does not exist|schema cache/i.test(open.error.message)) {
+    // Banco ainda sem a proteção (migration não aplicada): leitura antiga.
+    pages = (await supabase.from('catalog_books').select('pages').eq('id', id).maybeSingle()).data?.pages
+  } else throw open.error
+  const pageCount = locked ? Number((await supabase.rpc('catalog_page_count', { p_id: id })).data ?? 0) : undefined
   return {
     id: data.id,
     title: data.title ?? '',
@@ -218,8 +237,10 @@ export async function getCatalogBook(id: string): Promise<CatalogBook | null> {
     categories: categoriesOf(data.categories, categoryOf(data.category)),
     ageMin: data.age_min ?? undefined,
     ageInfo: data.age_info ?? undefined,
-    pages: pagesOf(data.pages),
+    pages: pagesOf(pages),
     createdAt: data.created_at,
+    locked,
+    pageCount: pageCount ?? pagesOf(pages).length,
   }
 }
 

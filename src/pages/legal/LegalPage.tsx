@@ -4,11 +4,12 @@ import { useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import { useLanguage } from '@/store/useLanguage'
+import { useAuth } from '@/contexts/AuthContext'
 
 export type LegalDoc = 'terms' | 'privacy' | 'faq'
 type Block = { h: string; p: string[]; id?: string }
 
-const UPDATED = '2026-11-13'
+const UPDATED = '2026-11-15'
 
 const DOCS: Record<LegalDoc, { pt: { title: string; intro: string; blocks: Block[] }; en: { title: string; intro: string; blocks: Block[] } }> = {
   terms: {
@@ -21,7 +22,10 @@ const DOCS: Record<LegalDoc, { pt: { title: string; intro: string; blocks: Block
         { h: '3. Faixa etária dos livros', id: 'faixa-etaria', p: ['Cada livro da galeria mostra uma faixa etária indicada, e ao passar o mouse sobre o selo você vê as outras faixas de referência usadas. Trata-se de uma orientação editorial do Bookmoo, feita a partir de fontes públicas e do conteúdo da obra (temas, linguagem e violência). Não é uma classificação indicativa oficial do governo.', 'Livros acima da sua faixa etária não são exibidos. Responsáveis podem pedir ajustes pelo contato abaixo.'] },
         { h: '4. Livros que você envia (EPUB e PDF)', id: 'livros', p: ['Os EPUBs e PDFs que você envia ficam somente na sua biblioteca. Eles não vão para a galeria, não são compartilhados com a comunidade e não aparecem em coleções. De um PDF o Bookmoo aproveita apenas o texto; imagens e figuras são ignoradas.', 'É proibido enviar EPUB ou PDF protegido pela lei de propriedade intelectual sem autorização de quem detém os direitos (por exemplo, livros comprados, cópias piratas ou materiais com DRM). Envie somente conteúdo de sua autoria, em domínio público ou que você tenha permissão para usar.', 'Ao salvar um livro você confirma, em uma caixa de seleção, que o conteúdo é de sua autoria, está em domínio público ou tem autorização para uso, e que você responde por essa declaração. Podemos remover conteúdo e suspender contas que violem esta regra.'] },
         { h: '5. Galeria, coleções e direitos autorais', id: 'galeria', p: ['A galeria reúne obras em domínio público. Antes de publicar, verificamos a obra, a tradução, as ilustrações, a capa e o arquivo da edição (por exemplo, edições do Standard Ebooks, que dedica suas contribuições ao domínio público, e do Project Gutenberg). Uma obra pode estar em domínio público em um país e não em outro: quando a situação é incerta, não publicamos.', 'Coleções agrupam livros que já estão na galeria, sem duplicá-los. O texto dos livros é o original; não o reescrevemos nem resumimos.', 'Se você é titular de direitos e acredita que algo na galeria viola seus direitos, escreva para o contato abaixo com a identificação da obra e do trecho; analisaremos e removeremos quando cabível.'] },
-        { h: '6. Ilustrações geradas por IA', id: 'ilustracoes', p: ['Cada livro da galeria tem um estilo de ilustração padrão e um estilo padrão para o texto das legendas. As imagens geradas no estilo padrão são compartilhadas com todos os leitores do livro, e quem contribui ajuda a comunidade e ganha 5 pontos por página.', 'Você pode criar um estilo próprio na hora de ler. Nesse caso as imagens que você já gerou são zeradas e você começa uma coleção individual, que não é compartilhada com a comunidade. Alterações de estilo, de balões e de legendas valem só para você. Incentivamos que você ajude gerando imagens no estilo padrão.', 'As imagens são geradas por modelos de IA com a sua chave (OpenAI ou Gemini) e podem conter imprecisões. Os custos são cobrados pelo provedor diretamente na sua conta.'] },
+        { h: '6. Ilustrações geradas por IA', id: 'ilustracoes', p: ['Cada livro da galeria tem um estilo de ilustração padrão e um estilo padrão para o texto das legendas. As imagens geradas no estilo padrão são compartilhadas com todos os leitores do livro, e quem contribui ajuda a comunidade e ganha 5 pontos por página.', 'Você pode criar um estilo próprio na hora de ler. Nesse caso as imagens que você já gerou são zeradas e você começa uma coleção individual, que não é compartilhada com a comunidade. Alterações de estilo, de balões e de legendas valem só para você. Incentivamos que você ajude gerando imagens no estilo padrão.', 'As imagens são geradas por modelos de IA (OpenAI) e podem conter imprecisões. Cada geração nova consome créditos de IA do seu plano; páginas que a comunidade já gerou não consomem créditos.'] },
+        { h: '6-A. Planos, créditos e minutos', id: 'planos', p: ['O Bookmoo tem o plano Grátis e os planos pagos Essencial, Plus e Pro, com benefícios descritos na página de planos. A partir do Essencial, toda a biblioteca da galeria é liberada, assim como a importação de EPUB e PDF.', 'Cada plano inclui, por período, uma quantidade de créditos de IA (ilustrações, explicações, histórias, imagens) e de minutos de conversa por voz. Créditos e minutos renovam a cada período, não acumulam para o período seguinte, não têm valor monetário e não são reembolsáveis separadamente. O custo de cada operação aparece no app antes do uso.', 'No plano Grátis você ganha 1 livro da galeria de presente, que fica com você para sempre. Ele pode ser trocado uma única vez nos primeiros 7 dias. Os créditos do Grátis exigem e-mail confirmado.'] },
+        { h: '6-B. Assinatura, cobrança e cancelamento', id: 'assinatura', p: ['A assinatura é mensal, com renovação automática, cobrada pelo nosso parceiro de pagamentos (Zouti). O plano só é liberado após a confirmação do pagamento. Preços em reais, com impostos inclusos.', 'Upgrade: vale na hora e inicia um novo ciclo de cobrança no mesmo dia; o que sobrou do plano anterior vira créditos bônus no novo ciclo. Mudança para um plano menor e cancelamento valem no fim do período já pago, sem reembolso proporcional.', 'Direito de arrependimento: até 7 dias da primeira compra você pode pedir reembolso integral (Código de Defesa do Consumidor, art. 49); o acesso pago termina quando o estorno é processado.', 'Se uma renovação não for aprovada, você mantém o acesso por 3 dias para regularizar. Depois disso, a conta volta para o Grátis. Ao voltar para o Grátis, seu progresso, notas e vocabulário são preservados; os livros da galeria (exceto o presente) ficam travados até uma nova assinatura. Contestações de pagamento (chargeback) encerram o acesso imediatamente.', 'Menores de 18 anos só assinam com autorização de um responsável; menores de 12 não podem assinar.'] },
+        { h: '6-C. Conversas por voz, tutor e análise de perfil', id: 'conversa', p: ['Nas Cenas, na conversa livre e no Tutor de leitura, sua fala é transformada em texto no seu aparelho (ou pelo serviço de reconhecimento do navegador) e só o texto é enviado à IA. Não gravamos seu áudio. As notas e correções são orientações pedagógicas geradas por IA e podem conter imprecisões.', 'Cenas criadas por você passam por moderação automática e não podem envolver conteúdo sexual, discriminatório, violento ou imitar pessoas reais.'] },
         { h: '7. O que é compartilhado e o que é só seu', id: 'compartilhado', p: ['São compartilhados com a comunidade: textos de explicação gerados por IA, histórias, imagens do mosaico de vocabulário e imagens geradas no estilo padrão de livros da galeria.', 'Ficam somente com você: suas notas, seu progresso, suas configurações, os livros que você envia e as imagens em estilo próprio.'] },
         { h: '8. Comunidade', p: ['Seja respeitoso. Não publique conteúdo ilegal, ofensivo ou que viole direitos de terceiros. Denúncias são analisadas e podemos remover conteúdo ou suspender contas. Seu perfil é privado até você torná-lo público.'] },
         { h: '9. Pontos e gamificação', p: ['Pontos, sequências e estrelas não têm valor monetário e podem ser ajustados para evitar abuso. Contribuições no estilo padrão podem render pontos conforme as regras vigentes.'] },
@@ -39,7 +43,10 @@ const DOCS: Record<LegalDoc, { pt: { title: string; intro: string; blocks: Block
         { h: '3. Book age ratings', id: 'faixa-etaria', p: ['Each gallery book shows a suggested age; hover the badge to see the other reference ages. This is Bookmoo’s editorial guidance, built from public sources and the work’s content (themes, language, violence). It is not an official government rating.', 'Books above your age range are not shown. Guardians can ask for adjustments via the contact below.'] },
         { h: '4. Books you upload (EPUB and PDF)', id: 'livros', p: ['EPUBs and PDFs you upload stay in your library only. They are not added to the gallery, not shared with the community and not placed in collections. From a PDF, Bookmoo uses only the text; images and figures are ignored.', 'Uploading an EPUB or PDF protected by intellectual-property law without the rightsholder’s permission is forbidden (for example purchased books, pirated copies or DRM material). Upload only content you wrote, that is in the public domain, or that you are allowed to use.', 'When saving a book you confirm, in a checkbox, that the content is your own, in the public domain or authorized for use, and that you are responsible for this declaration. We may remove content and suspend accounts that break this rule.'] },
         { h: '5. Gallery, collections and copyright', id: 'galeria', p: ['The gallery contains public-domain works. Before publishing we check the work, the translation, the illustrations, the cover and the edition file (for example Standard Ebooks editions, whose contributions are dedicated to the public domain, and Project Gutenberg). A work can be public domain in one country and not in another: when the situation is unclear, we do not publish.', 'Collections group books already in the gallery without duplicating them. Book text is the original; we do not rewrite or summarize it.', 'If you hold rights and believe something in the gallery infringes them, write to the contact below identifying the work and passage; we will review and remove it when appropriate.'] },
-        { h: '6. AI-generated illustrations', id: 'ilustracoes', p: ['Every gallery book has a default illustration style and a default caption text style. Images generated in the default style are shared with all readers of the book, and contributors help the community and earn 5 points per page.', 'You can create your own style while reading. When you do, the images you generated are cleared and you start an individual collection that is not shared with the community. Changes to style, balloons and captions apply only to you. We encourage you to help by generating images in the default style.', 'Images are generated by AI models with your own key (OpenAI or Gemini) and may contain inaccuracies. Costs are billed by the provider to your account.'] },
+        { h: '6. AI-generated illustrations', id: 'ilustracoes', p: ['Every gallery book has a default illustration style and a default caption text style. Images generated in the default style are shared with all readers of the book, and contributors help the community and earn 5 points per page.', 'You can create your own style while reading. When you do, the images you generated are cleared and you start an individual collection that is not shared with the community. Changes to style, balloons and captions apply only to you. We encourage you to help by generating images in the default style.', 'Images are generated by AI models (OpenAI) and may contain inaccuracies. Each new generation uses AI credits from your plan; pages the community already generated are free.'] },
+        { h: '6-A. Plans, credits and minutes', id: 'planos', p: ['Bookmoo has a Free plan and the paid plans Essencial, Plus and Pro. From Essencial up, the whole gallery and EPUB/PDF import are unlocked.', 'Each plan includes AI credits and voice-conversation minutes per period. They renew each period, do not roll over, have no monetary value and are not refundable separately.', 'On Free you get 1 gallery book as a gift, yours forever, swappable once within 7 days. Free credits require a confirmed email.'] },
+        { h: '6-B. Subscription, billing and cancellation', id: 'assinatura', p: ['Subscriptions are monthly with automatic renewal, billed by our payment partner (Zouti). Plans unlock only after payment is confirmed.', 'Upgrades apply immediately and start a new billing cycle; what is left of the previous plan becomes bonus credits. Downgrades and cancellations take effect at the end of the paid period, without prorated refunds.', 'You may request a full refund within 7 days of your first purchase. If a renewal fails you keep access for 3 days. Back on Free, your progress, notes and vocabulary are kept and gallery books (except your gift) lock until you subscribe again. Chargebacks end access immediately.', 'Under-18s need a guardian’s permission to subscribe; under-12s cannot subscribe.'] },
+        { h: '6-C. Voice conversations, tutor and profile analysis', id: 'conversa', p: ['Your speech is turned into text on your device (or by your browser’s speech service) and only the text is sent to the AI. We do not record your audio. Scores and corrections are AI-generated guidance and may be inaccurate.', 'Scenes you create are moderated and cannot involve sexual, hateful or violent content or impersonate real people.'] },
         { h: '7. What is shared and what is yours alone', id: 'compartilhado', p: ['Shared with the community: AI-generated explanation texts, stories, vocabulary mosaic images and images generated in the default style of gallery books.', 'Yours alone: your notes, progress, settings, the books you upload and images in your own style.'] },
         { h: '8. Community', p: ['Be respectful. Do not post illegal or offensive content or content that infringes others’ rights. Reports are reviewed and we may remove content or suspend accounts. Your profile is private until you make it public.'] },
         { h: '9. Points', p: ['Points, streaks and stars have no monetary value and may be adjusted to prevent abuse. Contributions in the default style may earn points under the current rules.'] },
@@ -58,7 +65,7 @@ const DOCS: Record<LegalDoc, { pt: { title: string; intro: string; blocks: Block
         { h: 'Para que usamos', p: ['Oferecer o serviço (salvar seu progresso, sincronizar entre aparelhos), gerar estatísticas para você e manter a plataforma segura.', 'A data de nascimento é usada para mostrar livros adequados à sua faixa etária e aplicar regras de proteção de crianças e adolescentes. Não a usamos para publicidade.', 'Não vendemos seus dados e não usamos seu conteúdo para publicidade.'] },
         { h: 'Crianças e adolescentes', p: ['Para menores de 12 anos, o tratamento de dados depende de consentimento específico de um responsável legal (LGPD, art. 14). Menores de 18 anos devem usar o app com ciência dos responsáveis, que podem pedir revisão ou exclusão dos dados pelo contato abaixo.'] },
         { h: 'Seus livros enviados', p: ['EPUBs e PDFs que você envia ficam apenas na sua biblioteca. Não são publicados na galeria, nem compartilhados com a comunidade ou com outros usuários. De PDFs usamos só o texto. Ao salvar, registramos a sua declaração de que o conteúdo é seu, de domínio público ou autorizado; livros protegidos por direitos autorais sem permissão são proibidos.'] },
-        { h: 'Chaves e conteúdo de IA', p: ['Suas chaves da OpenAI ou do Gemini são guardadas cifradas no servidor e nunca voltam para o navegador. Os textos que você pede para explicar e as páginas para ilustrar são enviados ao provedor escolhido, que os trata conforme a política dele.', 'Explicações, histórias, imagens do mosaico e imagens geradas no estilo padrão de livros da galeria são compartilhadas com a comunidade. Notas e imagens em estilo próprio não são.'] },
+        { h: 'IA, pagamentos e e-mails', p: ['Os textos que você pede para explicar, as páginas para ilustrar e as transcrições das suas conversas por voz são enviados à OpenAI (operadora de IA), que os trata conforme a política dela. Não guardamos o áudio da sua voz; guardamos a transcrição das conversas, que você pode apagar.', 'Os dados de pagamento (cartão, Pix) ficam com a Zouti, nosso parceiro de pagamentos; guardamos apenas o status, o valor e as datas das cobranças. Para a análise de perfil usamos seu vocabulário, suas práticas e os erros das conversas. E-mails transacionais são enviados pela Resend.', 'Explicações, histórias, imagens do mosaico e imagens geradas no estilo padrão de livros da galeria são compartilhadas com a comunidade. Notas e imagens em estilo próprio não são.'] },
         { h: 'O que fica público', p: ['Seu perfil é privado por padrão. Se você o tornar público, outras pessoas veem o que você escolheu mostrar (estatísticas, livros da galeria que está lendo, versões compartilhadas e avaliações).'] },
         { h: 'Voz e microfone', p: ['As vozes de leitura e o reconhecimento de fala rodam no seu aparelho. O áudio da prática de fala não é enviado ao servidor.'] },
         { h: 'Seus direitos', p: ['Você pode confirmar o tratamento, acessar, corrigir, exportar, anonimizar ou excluir seus dados e revogar consentimentos a qualquer momento nas Configurações ou pelo contato abaixo (LGPD, art. 18).'] },
@@ -74,7 +81,7 @@ const DOCS: Record<LegalDoc, { pt: { title: string; intro: string; blocks: Block
         { h: 'How we use it', p: ['To provide the service, sync across devices, show your stats and keep the platform safe.', 'Date of birth is used to show age-appropriate books and apply child-protection rules. We do not use it for advertising.', 'We never sell your data.'] },
         { h: 'Children and teens', p: ['For users under 12, data processing depends on a legal guardian’s specific consent. Users under 18 should use the app with a guardian’s knowledge; guardians can request review or deletion via the contact below.'] },
         { h: 'Books you upload', p: ['EPUBs and PDFs you upload stay in your library only. They are not published to the gallery or shared with the community or other users. From PDFs we use only the text. When saving, we record your declaration that the content is yours, public domain or authorized; copyrighted books without permission are forbidden.'] },
-        { h: 'AI keys and content', p: ['Your OpenAI or Gemini keys are stored encrypted on the server and never sent back to the browser. Texts you ask to explain and pages to illustrate are sent to the chosen provider, which processes them under its own policy.', 'Explanations, stories, vocabulary mosaic images and images generated in the default style of gallery books are shared with the community. Notes and images in your own style are not.'] },
+        { h: 'AI, payments and emails', p: ['Texts you ask to explain, pages to illustrate and transcripts of your voice conversations are sent to OpenAI (our AI processor). We do not store your voice audio; we keep conversation transcripts, which you can delete.', 'Payment data stays with Zouti, our payment partner; we only keep status, amount and dates. Profile analysis uses your vocabulary, practice and conversation mistakes. Transactional emails are sent via Resend.', 'Explanations, stories, vocabulary mosaic images and images generated in the default style of gallery books are shared with the community. Notes and images in your own style are not.'] },
         { h: 'What is public', p: ['Your profile is private by default. If you make it public, others see only what you choose to show.'] },
         { h: 'Voice and microphone', p: ['Reading voices and speech recognition run on your device. Speech-practice audio is not sent to the server.'] },
         { h: 'Your rights', p: ['You can confirm processing, access, correct, export, anonymize or delete your data and withdraw consent at any time in Settings or via the contact below.'] },
@@ -88,8 +95,11 @@ const DOCS: Record<LegalDoc, { pt: { title: string; intro: string; blocks: Block
       title: 'Perguntas frequentes',
       intro: 'Respostas rápidas sobre como o Bookmoo funciona.',
       blocks: [
-        { id: 'pagar', h: 'Preciso pagar para usar?', p: ['A leitura, as vozes, o vocabulário e a prática são gratuitos. Recursos de IA (explicações, histórias e imagens) usam a sua própria chave da OpenAI ou do Gemini, cobrada pelo provedor.'] },
-        { id: 'chave-ia', h: 'Como conecto minha chave de IA?', p: ['Em Configurações → Conexões de IA. A chave fica cifrada no servidor e só é usada para os seus pedidos.'] },
+        { id: 'pagar', h: 'Preciso pagar para usar?', p: ['Não. No plano Grátis você lê com áudio, salva vocabulário, pratica, ganha 1 livro da galeria de presente e créditos de IA para experimentar. Nos planos Essencial, Plus e Pro você libera a biblioteca inteira, importa EPUB/PDF e ganha mais créditos, conversas por voz e o tutor.'] },
+        { id: 'creditos', h: 'O que são créditos de IA?', p: ['É o saldo mensal para gerar coisas novas com IA: página ilustrada = 10 créditos; explicação, história ou imagem do mosaico = 1. O que a comunidade já gerou é grátis. Os créditos renovam a cada período e não acumulam. O saldo fica sempre visível na barra lateral.'] },
+        { id: 'presente', h: 'Como funciona o livro-presente?', p: ['No Grátis você escolhe 1 livro da galeria e ele é seu para sempre. Pode trocar uma única vez nos primeiros 7 dias. Os outros livros aparecem com o selo Premium: dá para ver e ler a amostra.'] },
+        { id: 'cancelar', h: 'Como cancelo ou troco de plano?', p: ['Em Minha assinatura. O cancelamento vale no fim do período pago. Upgrade vale na hora, com novo ciclo no mesmo dia e o que sobrou do plano atual vira créditos bônus. Até 7 dias da primeira compra você pode pedir reembolso integral.'] },
+        { id: 'conversar', h: 'Como funcionam as conversas por voz?', p: ['Em Conversar você escolhe uma Cena (aeroporto, cafeteria, entrevista…) e fala com o personagem. No fim recebe nota de 0 a 100 e correções. No Plus e no Pro há o tutor de leitura, a conversa livre e as cenas que você cria. Cada plano tem minutos de conversa por mês.'] },
         { id: 'status', h: 'O que são Aprendi, Revisar e Importante?', p: ['É como a palavra está para você. Revisar coloca a palavra na sua revisão; Aprendi tira da revisão e soma pontos; Importante destaca a palavra na lista para você voltar nela primeiro.'] },
         { id: 'explicacao', h: 'O que vem na explicação de uma palavra?', p: ['Um clique em Explicar com IA traz o significado, uma dica de uso, exemplos nas formas afirmativa, negativa e pergunta e uma pequena história usando a palavra.'] },
         { id: 'traducao', h: 'Por que só às vezes aparece o olho de tradução?', p: ['Tudo vem em inglês para você pensar no idioma. No nível A1 aparece o olho: ele troca o significado, a dica e a história para o português. Ao subir de nível, o olho some para incentivar a leitura direta.'] },
@@ -107,8 +117,9 @@ const DOCS: Record<LegalDoc, { pt: { title: string; intro: string; blocks: Block
       title: 'Frequently asked questions',
       intro: 'Quick answers about how Bookmoo works.',
       blocks: [
-        { id: 'pagar', h: 'Is it free?', p: ['Reading, voices, vocabulary and practice are free. AI features use your own OpenAI or Gemini key, billed by the provider.'] },
-        { id: 'chave-ia', h: 'How do I connect my AI key?', p: ['In Settings → AI connections. The key is encrypted on the server and used only for your requests.'] },
+        { id: 'pagar', h: 'Is it free?', p: ['Yes. The Free plan includes audio reading, vocabulary, practice, 1 gift book and AI credits to try. Paid plans unlock the whole library, EPUB/PDF import, more credits, voice conversations and the tutor.'] },
+        { id: 'creditos', h: 'What are AI credits?', p: ['Your monthly balance to generate new things with AI: illustrated page = 10 credits; explanation, story or mosaic image = 1. Community content is free. Credits renew each period and do not roll over.'] },
+        { id: 'cancelar', h: 'How do I cancel or change plans?', p: ['In My subscription. Cancellation applies at the end of the paid period. Upgrades apply immediately. Full refund within 7 days of your first purchase.'] },
         { id: 'status', h: 'What do Learned, Review and Important mean?', p: ['How the word is for you. Review adds it to your review; Learned removes it and earns points; Important highlights it so you come back to it first.'] },
         { id: 'explicacao', h: 'What comes in a word explanation?', p: ['Explain with AI brings the meaning, a usage tip, affirmative, negative and question examples and a short story using the word.'] },
         { id: 'traducao', h: 'Why does the translation eye only appear sometimes?', p: ['Everything comes in English so you think in the language. At level A1 an eye switches the meaning, tip and story to your language; it goes away as you level up.'] },
@@ -125,24 +136,65 @@ const DOCS: Record<LegalDoc, { pt: { title: string; intro: string; blocks: Block
   },
 }
 
+/** Só caminhos do próprio app ("/algo"), nunca "//outro-site" ou URLs completas. */
+function internalPath(value: string | null): string | null {
+  return value && value.startsWith('/') && !value.startsWith('//') ? value : null
+}
+
+/** Página de outro site que trouxe a pessoa até aqui (ex.: a landing), se houver. */
+function externalReferrer(): string | null {
+  try {
+    if (!document.referrer) return null
+    const ref = new URL(document.referrer)
+    return ref.origin !== window.location.origin && /^https?:$/.test(ref.protocol) ? ref.href : null
+  } catch { return null }
+}
+
 export function LegalPage({ doc }: { doc: LegalDoc }) {
   const pt = useLanguage().locale === 'pt-BR'
   const navigate = useNavigate()
+  const { session } = useAuth()
   const d = DOCS[doc][pt ? 'pt' : 'en']
-  const hash = useLocation().hash.slice(1)
+  const location = useLocation()
+  const hash = location.hash.slice(1)
   useEffect(() => { if (hash) document.getElementById(hash)?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }, [hash])
   const links: [LegalDoc, string][] = [['terms', pt ? 'Termos' : 'Terms'], ['privacy', pt ? 'Privacidade' : 'Privacy'], ['faq', 'FAQ']]
+
+  // Destino fixo em vez de "voltar no histórico": o histórico falha em nova aba e ao alternar entre Termos/Privacidade/FAQ.
+  const params = new URLSearchParams(location.search)
+  const back = internalPath(params.get('back')) ?? internalPath((location.state as { from?: string } | null)?.from ?? null)
+  const site = back ? null : externalReferrer()
+  const openedInNewTab = params.get('tab') === '1'
+  const carry = (() => {
+    const keep = new URLSearchParams()
+    if (back) keep.set('back', back)
+    if (openedInNewTab) keep.set('tab', '1')
+    const q = keep.toString()
+    return q ? `?${q}` : ''
+  })()
+  const goBack = () => {
+    if (site) { window.location.href = site; return }
+    const dest = back ?? (session ? '/' : '/login')
+    // Aberta em nova aba a partir do cadastro: fechar a aba devolve a pessoa ao formulário preenchido.
+    if (openedInNewTab && window.history.length <= 1) {
+      window.close()
+      window.setTimeout(() => navigate(dest, { replace: true }), 150)
+      return
+    }
+    navigate(dest, { replace: true })
+  }
+  const backLabel = site ? (pt ? 'Voltar ao site' : 'Back to site') : (pt ? 'Voltar' : 'Back')
   return (
     <div className="min-h-dvh px-5 py-10" style={{ backgroundColor: 'var(--theme-bg)', color: 'var(--theme-text)' }}>
       <div className="mx-auto max-w-2xl">
         <div className="flex items-center justify-between gap-3 mb-10">
-          <button type="button" onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/'))}
+          <button type="button" onClick={goBack}
             className="inline-flex items-center gap-1.5 h-8 px-2 -ml-2 rounded-md text-[13.5px] hover:bg-[var(--ui-hover)]" style={{ color: 'var(--theme-text-secondary)' }}>
-            <ArrowLeft className="w-4 h-4" />{pt ? 'Voltar' : 'Back'}
+            <ArrowLeft className="w-4 h-4" />{backLabel}
           </button>
           <nav className="flex gap-1">
             {links.map(([id, label]) => (
-              <Link key={id} to={`/${id}`} className="h-8 px-2.5 inline-flex items-center rounded-md text-[13px]"
+              <Link key={id} to={`/${id}${carry}`} replace state={location.state} className="h-8 px-2.5 inline-flex items-center rounded-md text-[13px]"
                 style={{ backgroundColor: id === doc ? 'var(--theme-nav-active)' : undefined, color: id === doc ? 'var(--theme-text)' : 'var(--theme-text-secondary)' }}>{label}</Link>
             ))}
           </nav>

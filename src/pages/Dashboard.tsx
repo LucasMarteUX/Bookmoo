@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import { Plus, BookOpen, Clock, BookMarked, Trash2, Pencil, ImagePlus, BookUp, FileText, Library, AudioLines, Flame, Star, ArrowRight, Search } from 'lucide-react'
 import { useUiStore } from '@/store/useUiStore'
 import { useXpStore, xpSummary } from '@/store/useXpStore'
+import { useEntitlements } from '@/store/useEntitlements'
+import { openPaywall } from '@/components/billing/Paywall'
+import { PlanBanner } from '@/components/billing/PlanBanner'
 import { useBookStore } from '@/store/useBookStore'
 import { useStudyStore } from '@/store/useStudyStore'
 import { useVocabularyStore } from '@/store/useVocabularyStore'
@@ -102,11 +105,18 @@ export function Dashboard() {
       pages,
       author: newAuthor.trim() || undefined
     })
+    const source = importedEpub ? (epubStatus.kind === 'PDF' ? 'pdf' as const : 'epub' as const) : 'text' as const
+    useBookStore.getState().updateBook(newBook.id, { source })
     try {
-      if (hasSupabase && supabase && userId) await upsertBook(supabase, userId, newBook)
-    } catch {
+      if (hasSupabase && supabase && userId) await upsertBook(supabase, userId, { ...newBook, source })
+    } catch (err) {
       deleteBook(newBook.id)
       setCurrentBook(previousBookId)
+      if (/plan_required/.test(String((err as { message?: string })?.message ?? ''))) {
+        setIsAddModalOpen(false)
+        openPaywall('import')
+        return
+      }
       setBookError(locale === 'pt-BR' ? 'Não foi possível salvar o livro. Tente novamente.' : 'Could not save the book. Try again.')
       return
     } finally {
@@ -170,6 +180,12 @@ export function Dashboard() {
       setImportNotes([])
       setEpubStatus({ busy: false, kind, msg: (err as Error).message || (pt ? `Não foi possível ler este ${kind}.` : `Could not read this ${kind}.`) })
     }
+  }
+  // Importar EPUB/PDF é dos planos pagos: no Grátis abre o convite (o banco também bloqueia).
+  const ent = useEntitlements(st => st.data)
+  const pickImport = (kind: 'EPUB' | 'PDF') => {
+    if (ent && !ent.is_admin && ent.limits.imports === 0) { openPaywall('import'); return }
+    ;(kind === 'EPUB' ? epubInputRef : pdfInputRef).current?.click()
   }
   const handleEpubChange = (e: React.ChangeEvent<HTMLInputElement>) => { const file = e.target.files?.[0]; e.target.value = ''; void runImport(file, 'EPUB') }
   const handlePdfChange = (e: React.ChangeEvent<HTMLInputElement>) => { const file = e.target.files?.[0]; e.target.value = ''; void runImport(file, 'PDF') }
@@ -340,11 +356,11 @@ export function Dashboard() {
           <input ref={epubInputRef} type="file" accept=".epub,application/epub+zip" className="hidden" onChange={handleEpubChange} />
           <input ref={pdfInputRef} type="file" accept=".pdf,application/pdf" className="hidden" onChange={handlePdfChange} />
           {/* No celular só o "Adicionar livro": a janela já tem as opções de EPUB e PDF. */}
-          <Button variant="outline" className="hidden sm:inline-flex" onClick={() => epubInputRef.current?.click()} disabled={epubStatus.busy}>
+          <Button variant="outline" className="hidden sm:inline-flex" onClick={() => pickImport('EPUB')} disabled={epubStatus.busy}>
             <BookUp className="w-4 h-4" />
             {epubStatus.busy && epubStatus.kind === 'EPUB' ? (pt ? 'Lendo EPUB…' : 'Reading EPUB…') : (pt ? 'Importar EPUB' : 'Import EPUB')}
           </Button>
-          <Button variant="outline" className="hidden sm:inline-flex" onClick={() => pdfInputRef.current?.click()} disabled={epubStatus.busy}>
+          <Button variant="outline" className="hidden sm:inline-flex" onClick={() => pickImport('PDF')} disabled={epubStatus.busy}>
             <FileText className="w-4 h-4" />
             {epubStatus.busy && epubStatus.kind === 'PDF' ? (pt ? 'Lendo PDF…' : 'Reading PDF…') : (pt ? 'Importar PDF' : 'Import PDF')}
           </Button>
@@ -354,6 +370,7 @@ export function Dashboard() {
           </Button>
         </div>
       </header>
+      <PlanBanner pt={pt} />
 
       {books.length === 0 && <GalleryBanner />}
 
@@ -525,12 +542,12 @@ export function Dashboard() {
           <div data-vaul-no-drag className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-5 py-4 sm:px-6">
             <div className="grid gap-2 sm:grid-cols-2">
               {([['EPUB', BookUp, pt ? 'Livro digital com capítulos, capa e dados' : 'Digital book with chapters, cover and details', epubInputRef], ['PDF', FileText, pt ? 'PDF com texto selecionável, até 20 MB (sem IA)' : 'Text-based PDFs up to 20 MB (no AI)', pdfInputRef]] as const).map(([kind, Icon, hint, ref]) => (
-                <button key={kind} type="button" disabled={epubStatus.busy} onClick={() => ref.current?.click()}
+                <button key={kind} type="button" disabled={epubStatus.busy} onClick={() => { if (ref) pickImport(kind) }}
                   className="flex items-center gap-3 rounded-2xl border p-3.5 text-left transition-colors hover:bg-[var(--ui-hover)] disabled:opacity-60"
                   style={{ borderColor: 'var(--theme-border)' }}>
                   <span className="grid size-10 shrink-0 place-items-center rounded-xl" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}><Icon className="w-5 h-5" /></span>
                   <span className="min-w-0">
-                    <span className="block text-[14px] font-semibold">{epubStatus.busy && epubStatus.kind === kind ? (pt ? `Lendo ${kind}…` : `Reading ${kind}…`) : (pt ? `Importar ${kind}` : `Import ${kind}`)}</span>
+                    <span className="block text-[14px] font-semibold">{epubStatus.busy && epubStatus.kind === kind ? (pt ? `Lendo ${kind}…` : `Reading ${kind}…`) : (pt ? `Importar ${kind}` : `Import ${kind}`)}{ent && !ent.is_admin && ent.limits.imports === 0 ? ' 👑' : ''}</span>
                     <span className="block text-[12px] leading-snug" style={{ color: 'var(--theme-text-secondary)' }}>{hint}</span>
                   </span>
                 </button>
@@ -614,7 +631,7 @@ export function Dashboard() {
               <span style={{ color: 'var(--theme-text-secondary)' }}>
                 {pt ? 'Declaro que este conteúdo é de minha autoria, está em domínio público ou tenho autorização de quem detém os direitos para usá-lo. Sei que EPUBs e PDFs protegidos por direitos autorais são proibidos, que o livro fica só na minha biblioteca (não é compartilhado) e que respondo por esta declaração. '
                   : 'I declare this content is my own work, in the public domain, or that I have permission from the rightsholder to use it. I understand copyrighted EPUBs and PDFs are forbidden, that the book stays in my library only (not shared) and that I am responsible for this declaration. '}
-                <a href="/terms#livros" target="_blank" rel="noreferrer" className="font-medium underline underline-offset-2" style={{ color: 'var(--theme-text)' }} onClick={e => e.stopPropagation()}>{pt ? 'Ver os Termos' : 'See the Terms'}</a>
+                <a href="/terms?back=/&tab=1#livros" target="_blank" rel="noreferrer" className="font-medium underline underline-offset-2" style={{ color: 'var(--theme-text)' }} onClick={e => e.stopPropagation()}>{pt ? 'Ver os Termos' : 'See the Terms'}</a>
               </span>
             </label>
           </div>

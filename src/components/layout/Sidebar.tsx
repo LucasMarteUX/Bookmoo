@@ -18,6 +18,11 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { VoiceSelect } from './VoiceSelect'
 import { useAuth } from '@/contexts/AuthContext'
 import { useUnreadNotifications } from '@/components/community/NotificationBell'
+import { Avatar } from '@/components/ui/avatar'
+import { useMyAvatar } from '@/hooks/useMyAvatar'
+import { UsageMeters } from '@/components/billing/UsageMeters'
+import { MessagesSquare, Brain, Crown } from 'lucide-react'
+import { useEntitlements } from '@/store/useEntitlements'
 
 interface SidebarProps {
   isMobileDrawer?: boolean
@@ -39,6 +44,7 @@ export function Sidebar({ isMobileDrawer, onClose }: SidebarProps) {
   const { user, signOut, isAdmin } = useAuth()
   const { sidebarCollapsed, toggleSidebar, setCommandOpen } = useUiStore()
   const unread = useUnreadNotifications()
+  const ent = useEntitlements(s => s.data)
   const books = useBookStore(s => s.books)
   const vocab = useVocabularyStore(s => s.vocabularies)
   const events = useXpStore(s => s.events)
@@ -52,10 +58,15 @@ export function Sidebar({ isMobileDrawer, onClose }: SidebarProps) {
     { items: [{ to: '/', icon: House, label: pt ? 'Início' : 'Home' }] },
     { title: pt ? 'Aprender' : 'Learn', items: [{ to: '/vocabulary', icon: BookMarked, label: t('vocabulary'), badge: reviewCount || undefined }] },
     { title: pt ? 'Praticar' : 'Practice', items: [
+      { to: '/conversar', icon: MessagesSquare, label: pt ? 'Conversar' : 'Conversation' },
       { to: '/practice/speak', icon: AudioLines, label: pt ? 'Falar' : 'Speak' },
       { to: '/practice/write', icon: PenLine, label: pt ? 'Ditado' : 'Dictation' },
     ] },
-    { title: pt ? 'Progresso' : 'Progress', items: [{ to: '/stats', icon: ChartNoAxesColumn, label: t('stats') }] },
+    { title: pt ? 'Progresso' : 'Progress', items: [
+      { to: '/stats', icon: ChartNoAxesColumn, label: t('stats') },
+      { to: '/raio-x', icon: Brain, label: pt ? 'Raio-X' : 'Insights' },
+      { to: '/assinatura', icon: Crown, label: ent?.plan && ent.plan !== 'free' ? (pt ? `Plano ${ent.plan_name}` : `${ent.plan_name} plan`) : (pt ? 'Planos' : 'Plans') },
+    ] },
     { title: pt ? 'Juntos' : 'Together', items: [
       { to: '/gallery', icon: Library, label: pt ? 'Galeria' : 'Gallery' },
       { to: '/collections', icon: Layers, label: pt ? 'Coleções' : 'Collections' },
@@ -72,7 +83,10 @@ export function Sidebar({ isMobileDrawer, onClose }: SidebarProps) {
   const locales: { id: Locale; label: string }[] = [{ id: 'en', label: 'English' }, { id: 'pt-BR', label: 'Português' }]
   const isActive = (to: string) => to === '/' ? location.pathname === '/' : location.pathname.startsWith(to)
   const go = () => onClose?.()
-  const initial = (user?.email ?? 'B').charAt(0).toUpperCase()
+  const avatarUrl = useMyAvatar()
+  const displayName = (user?.user_metadata?.full_name as string | undefined) || user?.email || 'Bookmoo'
+  const me = (size: number) => <Avatar src={avatarUrl} name={displayName} size={size} />
+
   const fmt = new Intl.NumberFormat(pt ? 'pt-BR' : 'en-US')
   const segmented = (on: boolean) => ({
     backgroundColor: on ? 'var(--theme-card-bg)' : 'transparent',
@@ -85,7 +99,7 @@ export function Sidebar({ isMobileDrawer, onClose }: SidebarProps) {
       <PopoverTrigger asChild>{trigger}</PopoverTrigger>
       <PopoverContent side={isMobileDrawer ? 'top' : 'right'} align="end" sideOffset={10} className="w-72 p-1.5 z-[65]">
         <div className="flex items-center gap-2.5 px-2 py-2">
-          <span className="grid place-items-center w-8 h-8 rounded-full text-sm font-semibold" style={{ backgroundColor: 'var(--theme-bg-secondary)', color: 'var(--theme-text)' }}>{initial}</span>
+          {me(32)}
           <div className="min-w-0">
             <p className="text-[13px] font-medium truncate">{user?.email ?? 'Bookmoo'}</p>
             <p className="text-[12px]" style={{ color: 'var(--theme-text-secondary)' }}>
@@ -154,8 +168,7 @@ export function Sidebar({ isMobileDrawer, onClose }: SidebarProps) {
             <PanelLeftOpen className="w-[18px] h-[18px]" />
           </button>
           {userMenu(
-            <button type="button" className="w-9 h-9 rounded-full grid place-items-center text-sm font-semibold" aria-label={pt ? 'Conta e preferências' : 'Account and preferences'}
-              style={{ backgroundColor: 'var(--theme-bg-secondary)', color: 'var(--theme-text)' }}>{initial}</button>,
+            <button type="button" className="w-9 h-9 rounded-full grid place-items-center" aria-label={pt ? 'Conta e preferências' : 'Account and preferences'}>{me(36)}</button>,
           )}
         </div>
       </aside>
@@ -235,6 +248,7 @@ export function Sidebar({ isMobileDrawer, onClose }: SidebarProps) {
       </div>
 
       <div className={isMobileDrawer ? 'flex flex-col gap-2' : 'px-2 pb-2 pt-2 flex flex-col gap-1.5 border-t'} style={{ borderColor: 'var(--theme-border)' }}>
+        <UsageMeters compact />
         <StudyTimer />
         <Link to="/stats" onClick={go} className="flex items-center gap-3 h-8 px-2 rounded-md text-[12.5px] tabular-nums hover:bg-[var(--ui-hover)]"
           style={{ color: 'var(--theme-nav-text-muted)' }} title={pt ? 'Sequência e pontos' : 'Streak and points'}>
@@ -250,7 +264,7 @@ export function Sidebar({ isMobileDrawer, onClose }: SidebarProps) {
         {userMenu(
           <button type="button" className="w-full flex items-center gap-2.5 h-10 px-2 rounded-md text-left transition-colors hover:bg-[var(--ui-hover)]"
             aria-label={pt ? 'Conta e preferências' : 'Account and preferences'}>
-            <span className="grid place-items-center w-7 h-7 rounded-full text-[13px] font-semibold shrink-0" style={{ backgroundColor: 'var(--theme-bg-secondary)', color: 'var(--theme-text)' }}>{initial}</span>
+            {me(28)}
             <span className="flex-1 min-w-0">
               <span className="block text-[13px] font-medium truncate" style={{ color: 'var(--theme-nav-text)' }}>{user?.email?.split('@')[0] ?? 'Bookmoo'}</span>
               <span className="block text-[11.5px] truncate" style={{ color: 'var(--theme-nav-text-muted)' }}>{pt ? 'Aparência, idioma e voz' : 'Appearance, language, voice'}</span>

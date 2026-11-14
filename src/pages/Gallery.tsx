@@ -19,6 +19,9 @@ import { parseEpub } from '@/lib/epub'
 import { countWords } from '@/lib/utils'
 import { upsertBook } from '@/lib/supabaseSync'
 import { supabase } from '@/lib/supabase'
+import { Crown, Gift } from 'lucide-react'
+import { useEntitlements } from '@/store/useEntitlements'
+import { openPaywall } from '@/components/billing/Paywall'
 import {
   addCatalogBook, addFeedback, bookCategories, deleteCatalogBook, BOOK_CATEGORIES, categoryName, getCatalogBook, listFeedback, listVersions, rateVersion, saveBookLink, updateCatalogMeta,
   type BookCategory, type BookFeedback, type CatalogBook, type CatalogVersion,
@@ -50,6 +53,10 @@ function GalleryBook({ id }: { id: string }) {
   const [chosenStyle, setChosenStyle] = useState<string | null>(null)
   const [styleOpen, setStyleOpen] = useState(false)
   const bank = useStyleBank(pt)
+  const ent = useEntitlements(s => s.data)
+  const reloadEnt = useEntitlements(s => s.load)
+  const giftMode = new URLSearchParams(useLocation().search).get('presente') === '1'
+  const [giftAsk, setGiftAsk] = useState(false)
 
   const reload = () => {
     void getCatalogBook(id).then(setBook)
@@ -76,14 +83,38 @@ function GalleryBook({ id }: { id: string }) {
   const defaultStyle = defaultStyleId && defaultStyleId !== LEGACY_STYLE ? bank?.find(item => item.id === defaultStyleId) : undefined
   const defaultOption = styleOptions.find(option => option.styleId === defaultStyleId)
 
-  const pull = async () => {
-    if (!book || !user) return
+  // Livro travado: no Grátis sem presente escolhido, oferece o presente; senão, o convite de assinatura.
+  const canGift = !!ent && ent.plan === 'free' && !ent.gift
+  const unlock = () => { if (canGift) setGiftAsk(true); else openPaywall('book') }
+
+  const redeemGift = async () => {
+    if (!supabase || !book) return
     setBusy(true)
-    const created = addBook(book.title, book.pages.join('\n\n'), {
-      author: book.author, description: book.description, languageCode: book.languageCode, coverData: book.coverData, pages: book.pages, cefrLevel: book.level,
+    const { error } = await supabase.rpc('redeem_gift', { p_catalog: id })
+    if (error) {
+      setBusy(false)
+      setGiftAsk(false)
+      toast(pt ? 'Não foi possível escolher este livro' : 'Could not choose this book', {
+        tone: 'error', detail: /age_restricted/.test(error.message) ? (pt ? 'Este livro não é indicado para a sua idade.' : 'This book is not suitable for your age.') : /gift_already_used/.test(error.message) ? (pt ? 'Você já usou o seu livro-presente.' : 'You already used your gift book.') : undefined,
+      })
+      return
+    }
+    await reloadEnt()
+    const full = await getCatalogBook(id)
+    setGiftAsk(false)
+    if (full && !full.locked) { setBook(full); await pull(full) } else setBusy(false)
+    toast(pt ? 'Presente escolhido! 🎁 O livro é seu.' : 'Gift chosen! 🎁 The book is yours.')
+  }
+
+  const pull = async (source: CatalogBook | null | undefined = book) => {
+    if (!source || !user) return
+    if (source.locked) { unlock(); return }
+    setBusy(true)
+    const created = addBook(source.title, source.pages.join('\n\n'), {
+      author: source.author, description: source.description, languageCode: source.languageCode, coverData: source.coverData, pages: source.pages, cefrLevel: source.level,
     })
     // Sem escolha, o estilo sai do tipo do livro na primeira geração.
-    useBookStore.getState().updateBook(created.id, { catalogId: id, imageMode: 'shared', ...(chosenStyle ? { comicStyleDoc: { styleId: chosenStyle } } : {}) })
+    useBookStore.getState().updateBook(created.id, { catalogId: id, imageMode: 'shared', source: 'catalog', ...(chosenStyle ? { comicStyleDoc: { styleId: chosenStyle } } : {}) })
     if (hasSupabase && supabase && session?.user) {
       await upsertBook(supabase, session.user.id, useBookStore.getState().books.find(item => item.id === created.id)!).catch(() => {})
       await saveBookLink({ bookId: created.id, catalogId: id, imageMode: 'shared', styleId: chosenStyle ?? undefined }, user.id)
@@ -109,7 +140,7 @@ function GalleryBook({ id }: { id: string }) {
   if (!book) return <p className="max-w-3xl mx-auto text-sm" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? 'Este livro não está na galeria.' : 'This book is not in the gallery.'}</p>
 
   const band = CEFR.find(item => item.id === book.level)
-  const words = countWords(book.pages.join(' '))
+  const words = book.locked ? 0 : countWords(book.pages.join(' '))
   const excerpt = book.pages.find(page => page.trim().length > 80)?.trim().slice(0, 520)
   const lang = book.languageCode === 'en' ? (pt ? 'Inglês' : 'English') : book.languageCode.toUpperCase()
   const saveMeta = async () => {
@@ -144,7 +175,7 @@ function GalleryBook({ id }: { id: string }) {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <Link to={gallerySearch ? `/gallery?${gallerySearch}` : '/gallery'} className="text-[13px]" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? '← Galeria' : '← Gallery'}</Link>
+      <Link to={gallerySearch ? `/gallery?${gallerySearch}` : giftMode ? '/gallery?presente=1' : '/gallery'} className="text-[13px]" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? '← Galeria' : '← Gallery'}</Link>
       <div className="mt-5 flex flex-col sm:flex-row gap-6 sm:gap-8">
         <BookCover title={book.title} coverData={book.coverData} className="w-44 sm:w-56 shrink-0 rounded-md" />
         <div className="min-w-0 flex-1">
@@ -164,11 +195,23 @@ function GalleryBook({ id }: { id: string }) {
             )}
           </div>
           <dl className="mt-5 grid grid-cols-3 gap-2 max-w-md">
-            <Fact label={pt ? 'Páginas' : 'Pages'} value={book.pages.length ? String(book.pages.length) : '–'} />
+            <Fact label={pt ? 'Páginas' : 'Pages'} value={(book.pageCount ?? book.pages.length) ? String(book.pageCount ?? book.pages.length) : '–'} />
             <Fact label={pt ? 'Palavras' : 'Words'} value={words ? words.toLocaleString(pt ? 'pt-BR' : 'en-US') : '–'} />
             <Fact label={pt ? 'Idioma' : 'Language'} value={lang} />
           </dl>
-          {owned ? (
+          {book.locked && (
+            <p className="mt-5 inline-flex items-center gap-1.5 h-7 px-3 rounded-full text-[12.5px] font-semibold" style={{ backgroundColor: 'color-mix(in srgb, var(--theme-accent) 16%, transparent)', color: 'var(--theme-accent)' }}>
+              <Crown className="w-3.5 h-3.5" />Premium
+            </p>
+          )}
+          {owned && book.locked ? (
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              <button type="button" onClick={unlock} className="h-11 px-5 rounded-xl text-[14.5px] font-medium" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
+                {pt ? 'Assinar para continuar lendo' : 'Subscribe to keep reading'}
+              </button>
+              <span className="text-[13px]" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? 'Seu progresso está guardado.' : 'Your progress is saved.'}</span>
+            </div>
+          ) : owned ? (
             <div className="mt-6 flex flex-wrap items-center gap-3">
               <button type="button" onClick={() => { setCurrentBook(owned.id); navigate(`/book/${owned.id}`) }}
                 className="h-11 px-5 rounded-xl text-[14.5px] font-medium"
@@ -180,14 +223,34 @@ function GalleryBook({ id }: { id: string }) {
               </span>
             </div>
           ) : (
-            <button type="button" disabled={busy} onClick={pull}
-              className="mt-6 h-11 px-5 rounded-xl text-[14.5px] font-medium disabled:opacity-60"
-              style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
-              {pt ? 'Levar para a minha estante' : 'Add to my shelf'}
-            </button>
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              <button type="button" disabled={busy} onClick={() => pull()}
+                className="h-11 px-5 rounded-xl text-[14.5px] font-medium disabled:opacity-60 inline-flex items-center gap-2"
+                style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
+                {book.locked && canGift ? <><Gift className="w-4 h-4" />{pt ? 'Escolher como meu presente' : 'Choose as my gift'}</>
+                  : book.locked ? <><Crown className="w-4 h-4" />{pt ? 'Liberar com a assinatura' : 'Unlock with a subscription'}</>
+                  : (pt ? 'Levar para a minha estante' : 'Add to my shelf')}
+              </button>
+              {book.locked && canGift && (
+                <button type="button" onClick={() => openPaywall('book')} className="h-11 px-4 rounded-xl text-[14px]" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? 'Ou libere todos os livros' : 'Or unlock all books'}</button>
+              )}
+            </div>
           )}
         </div>
       </div>
+
+      <Dialog open={giftAsk} onOpenChange={setGiftAsk}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{pt ? 'Este será o seu livro-presente 🎁' : 'This will be your gift book 🎁'}</DialogTitle>
+            <DialogDescription>{pt ? `“${book.title}” fica na sua estante para sempre, mesmo no plano Grátis. Você pode trocar uma única vez nos próximos 7 dias.` : `“${book.title}” stays on your shelf forever, even on Free. You can swap it once in the next 7 days.`}</DialogDescription>
+          </DialogHeader>
+          <div className="mt-2 flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
+            <button type="button" onClick={() => setGiftAsk(false)} className="h-11 px-4 rounded-xl text-[14px] border" style={{ borderColor: 'var(--theme-border)' }}>{pt ? 'Escolher outro' : 'Pick another'}</button>
+            <button type="button" disabled={busy} onClick={redeemGift} className="h-11 px-5 rounded-xl text-[14.5px] font-semibold disabled:opacity-60" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>{pt ? 'Sim, é este!' : 'Yes, this one!'}</button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={styleOpen} onOpenChange={setStyleOpen}>
         <DialogContent className="sm:max-w-md">
@@ -221,7 +284,7 @@ function GalleryBook({ id }: { id: string }) {
 
       {excerpt && (
         <section className="mt-8 max-w-2xl">
-          <h2 className="text-[15px] font-semibold">{pt ? 'Começo do livro' : 'Opening lines'}</h2>
+          <h2 className="text-[15px] font-semibold">{book.locked ? (pt ? 'Amostra grátis' : 'Free sample') : (pt ? 'Começo do livro' : 'Opening lines')}</h2>
           <p className="mt-2 text-[15px] leading-relaxed" style={{ color: 'var(--theme-text-secondary)' }}>{excerpt}{excerpt.length >= 520 ? '…' : ''}</p>
         </section>
       )}

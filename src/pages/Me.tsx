@@ -16,6 +16,9 @@ import { VoiceSelect } from '@/components/layout/VoiceSelect'
 import { StudyTimer } from '@/components/timer/StudyTimer'
 import { isStandalone } from '@/components/mobile/routes'
 import { openInstallPrompt } from '@/components/mobile/InstallPrompt'
+import { Avatar } from '@/components/ui/avatar'
+import { useMyAvatar } from '@/hooks/useMyAvatar'
+import { UsageMeters } from '@/components/billing/UsageMeters'
 
 function Section({ label, children }: { label?: string; children: ReactNode }) {
   return (
@@ -46,6 +49,7 @@ function Row({ to, onClick, icon: Icon, tint, label, detail, destructive }: {
 
 /** Aba "Você": conta, progresso, aparência e tudo que não cabe nas 5 abas. Lista agrupada como os Ajustes do iOS. */
 export function MePage() {
+  const myAvatar = useMyAvatar()
   const { user, isAdmin, signOut } = useAuth()
   const { locale, setLocale } = useLanguage()
   const pt = locale === 'pt-BR'
@@ -68,10 +72,7 @@ export function MePage() {
   return (
     <div className="max-w-xl mx-auto space-y-7">
       <header className="flex items-center gap-4 pt-1">
-        <span className="grid place-items-center w-16 h-16 rounded-full text-2xl font-semibold font-display shrink-0"
-          style={{ backgroundColor: 'var(--pastel-lavender-bg)', color: 'var(--pastel-lavender-fg)' }} aria-hidden>
-          {name.charAt(0).toUpperCase()}
-        </span>
+        <Avatar src={myAvatar} name={name} size={64} />
         <div className="min-w-0">
           <h1 className="font-display text-[28px] md:text-[34px] leading-[1.05] truncate" style={{ color: 'var(--theme-text)' }}>{name}</h1>
           <p className="text-[15px] mt-1" style={{ color: 'var(--theme-text-secondary)' }}>
@@ -79,6 +80,14 @@ export function MePage() {
           </p>
         </div>
       </header>
+      <section className="rounded-2xl border p-4" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-card-bg)' }}>
+        <UsageMeters />
+        <div className="mt-3 grid grid-cols-3 gap-2 text-[13px]">
+          <Link to="/assinatura" className="h-10 rounded-xl grid place-items-center border" style={{ borderColor: 'var(--theme-border)' }}>{pt ? 'Assinatura' : 'Subscription'}</Link>
+          <Link to="/conversar" className="h-10 rounded-xl grid place-items-center border" style={{ borderColor: 'var(--theme-border)' }}>{pt ? 'Conversar' : 'Talk'}</Link>
+          <Link to="/raio-x" className="h-10 rounded-xl grid place-items-center border" style={{ borderColor: 'var(--theme-border)' }}>{pt ? 'Raio-X' : 'Report'}</Link>
+        </div>
+      </section>
 
       <div className="grid grid-cols-3 gap-2" role="list" aria-label={pt ? 'Resumo' : 'Summary'}>
         {[

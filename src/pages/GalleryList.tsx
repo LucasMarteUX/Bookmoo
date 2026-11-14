@@ -1,6 +1,7 @@
 // Galeria: destaque editorial, prateleiras por tema e todos os livros com filtros na URL.
 import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useSearchParams } from 'react-router-dom'
+import { canOpenCatalog, useEntitlements } from '@/store/useEntitlements'
 import { SlidersHorizontal } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { ArrowRight, BookOpen, ChevronLeft, ChevronRight, Image as ImageIcon, Search, Sparkles, Star, X } from 'lucide-react'
@@ -89,6 +90,8 @@ function useGalleryFilters() {
 }
 
 export function GalleryList() {
+  const ent = useEntitlements(s => s.data)
+  const giftMode = new URLSearchParams(useLocation().search).get('presente') === '1'
   const { locale } = useLanguage()
   const pt = locale === 'pt-BR'
   const [books, setBooks] = useState<CatalogBook[] | null>(null)
@@ -212,7 +215,7 @@ export function GalleryList() {
   )
 
   const card = (book: CatalogBook, className?: string) => (
-    <BookCard key={book.id} to={`/gallery/${book.id}`} title={book.title} subtitle={book.author || categoryName(book.category, pt)} coverData={thumbs[book.id]} coverPending={!thumbs[book.id]} ageMin={book.ageMin} ageInfo={book.ageInfo} level={book.level} pt={pt}
+    <BookCard key={book.id} to={`/gallery/${book.id}${giftMode ? '?presente=1' : ''}`} premium={!canOpenCatalog(ent, book.id)} title={book.title} subtitle={book.author || categoryName(book.category, pt)} coverData={thumbs[book.id]} coverPending={!thumbs[book.id]} ageMin={book.ageMin} ageInfo={book.ageInfo} level={book.level} pt={pt}
       linkState={{ gallerySearch: search }} readers={readers(book)} faces={social[book.id]?.faces} rating={social[book.id]?.rating} ratings={social[book.id]?.ratings} illustrated={social[book.id]?.illustrated} className={className} />
   )
 
@@ -222,7 +225,7 @@ export function GalleryList() {
         <div>
           <h1 className="font-display text-[30px] md:text-[44px] leading-[1.02]">{pt ? 'Galeria' : 'Gallery'}</h1>
           <p className="mt-1 text-[14px] md:text-[14.5px]" style={muted}>
-            {pt ? 'Livros gratuitos, escolhidos pelo nível, para ler e estudar no Bookmoo.' : 'Free books, picked by level, to read and study on Bookmoo.'}
+            {pt ? 'Clássicos escolhidos pelo nível, para ler e estudar no Bookmoo.' : 'Classics picked by level, to read and study on Bookmoo.'}
           </p>
         </div>
         <label className="relative w-full sm:w-72">
@@ -237,6 +240,15 @@ export function GalleryList() {
         </label>
       </header>
 
+      {giftMode && ent && !ent.gift && (
+        <div className="rounded-2xl p-4 sm:p-5 flex items-center gap-4" style={{ background: 'linear-gradient(120deg, color-mix(in srgb, var(--theme-accent) 20%, transparent), transparent)', border: '1px solid var(--theme-border)' }}>
+          <span className="text-[34px]" aria-hidden>🎁</span>
+          <div className="min-w-0">
+            <p className="text-[16px] font-semibold">{pt ? 'Escolha seu livro-presente' : 'Choose your gift book'}</p>
+            <p className="text-[13.5px]" style={muted}>{pt ? 'Abra qualquer livro e toque em “Escolher como meu presente”. Ele fica com você para sempre.' : 'Open any book and tap “Choose as my gift”. It is yours forever.'}</p>
+          </div>
+        </div>
+      )}
       {books === null && !error && <HeroSkeleton />}
       {!filtered && featured && <Featured book={{ ...featured, coverData: thumbs[featured.id] }} social={social} pt={pt} />}
       {categories.length > 0 && (

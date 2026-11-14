@@ -51,7 +51,8 @@ export function bookFromRow(row: any): Book {
     comicLayouts: Object.keys(comicLayouts).length ? comicLayouts : undefined,
     pinnedVocabIds: Array.isArray(row.pinned_vocab_ids) ? row.pinned_vocab_ids : undefined,
     languageCode: row.language_code ?? undefined,
-    coverData: row.cover_data ?? undefined
+    coverData: row.cover_data ?? undefined,
+    source: row.source ?? undefined,
   }
 }
 
@@ -84,7 +85,8 @@ export function bookToRow(book: Book, userId: string) {
     comic_layouts: book.comicLayouts ?? {},
     pinned_vocab_ids: book.pinnedVocabIds ?? [],
     language_code: book.languageCode ?? 'en',
-    cover_data: book.coverData ?? null
+    cover_data: book.coverData ?? null,
+    ...(book.source ? { source: book.source } : {}),
   }
 }
 

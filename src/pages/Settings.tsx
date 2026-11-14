@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Camera, Coffee, KeyRound, Lock, Moon, Palette, Sparkles, Sun, User, Volume2 } from 'lucide-react'
 import { VoiceSettings } from '@/components/settings/VoiceSettings'
-import { AiConnections } from '@/components/settings/AiConnections'
+import { PlanCreditsCard } from '@/components/billing/PlanCreditsCard'
 import { ProfileSection } from '@/components/settings/ProfileSection'
 import { restartTour } from '@/components/onboarding/GuidedTour'
 import { BirthDateField } from '@/components/settings/BirthDate'
@@ -94,7 +94,7 @@ export function Settings() {
     { id: 'profile', label: pt ? 'Perfil' : 'Profile', icon: User },
     { id: 'account', label: t('account'), icon: User },
     { id: 'security', label: pt ? 'Segurança' : 'Security', icon: Lock },
-    { id: 'ai', label: pt ? 'Conexões de IA' : 'AI connections', icon: Sparkles },
+    { id: 'ai', label: pt ? 'Plano e créditos' : 'Plan and credits', icon: Sparkles },
     { id: 'voices', label: pt ? 'Vozes' : 'Voices', icon: Volume2 },
   ]
   const themes: { id: Theme; label: string; icon: typeof Sun }[] = [
@@ -249,7 +249,7 @@ export function Settings() {
                 </Row>
               </Section>
 
-              <div id="ai" className="scroll-mt-8"><AiConnections /></div>
+              <div id="ai" className="scroll-mt-8"><PlanCreditsCard pt={pt} /></div>
               <div id="voices" className="scroll-mt-8"><VoiceSettings /></div>
             </>
           )}

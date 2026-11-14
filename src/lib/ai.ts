@@ -1,12 +1,15 @@
 // Cliente das funções de IA. Nenhuma chave existe no navegador: cada chamada vai para uma
-// Edge Function do Supabase, que usa a chave que o próprio usuário conectou em Configurações.
+// Edge Function do Supabase, que usa a chave da plataforma e desconta os créditos do plano.
+// Erros de plano (sem créditos, recurso pago, teto do mês) abrem o convite de assinatura.
 import type { ComicStyleDoc, ComicCharacter } from "@/store/useBookStore"
 import { getShared, putShared, sharedKey } from './sharedContent'
 import type { ComicInspection, EditorialLayout, GenerationRecord, Rect, StoryContext, VisualBeat } from '../../supabase/functions/_shared/comicEditorial'
 import { supabase } from "@/lib/supabase"
+import { paywallForError } from "@/components/billing/Paywall"
+import { refreshEntitlements } from "@/store/useEntitlements"
 
 export const API_KEY_REQUIRED_MESSAGE =
-  "Conecte sua chave de IA (OpenAI ou Gemini) em Configurações para usar esta função."
+  "A IA está temporariamente indisponível. Tente de novo em instantes."
 
 /** Erro de IA com código estável (ex.: 'no_api_key', 'invalid_key', 'quota'). */
 export class AiRequestError extends Error {
@@ -21,12 +24,16 @@ export function isNoApiKeyError(e: unknown) {
 export function aiErrorMessage(e: unknown): string {
   const code = e instanceof AiRequestError ? e.code : ""
   if (code === "no_api_key") return API_KEY_REQUIRED_MESSAGE
-  if (code === "invalid_key") return "Sua chave de IA foi recusada pelo provedor. Atualize-a em Configurações."
-  if (code === "quota") return "Sua conta no provedor de IA está sem créditos ou atingiu o limite. Verifique o painel do provedor."
+  if (code === "no_credits") return "Seus créditos de IA deste mês acabaram."
+  if (code === "cap_reached") return "Você chegou ao limite deste recurso no mês."
+  if (code === "plan_required") return "Este recurso faz parte dos planos pagos."
+  if (code === "no_minutes") return "Seus minutos de conversa deste mês acabaram."
+  if (code === "ai_paused") return "A IA está em pausa por alguns instantes. Tente de novo mais tarde."
+  if (code === "invalid_key" || code === "quota") return "A IA está temporariamente indisponível. Tente de novo em instantes."
   if (code === "blocked") return "O provedor de IA recusou este conteúdo."
-  if (code === "comic_panel_key") return "Conecte sua chave OpenAI para regenerar um quadro individual."
+  if (code === "comic_panel_key") return "A edição de quadros está temporariamente indisponível."
   if (code === "book_not_found") return "O livro precisa estar sincronizado com sua conta para gerar quadrinhos."
-  if (code === "comic_reference_key") return "Conecte sua chave OpenAI para gerar quadrinhos com referências visuais."
+  if (code === "comic_reference_key") return "A geração com referências visuais está temporariamente indisponível."
   if (code === "comic_reference_failed") return "Uma referência visual está inacessível. Verifique os arquivos nas configurações do livro."
   if (code === "comic_engine_outdated") return "O motor novo de quadrinhos ainda não está ativo no servidor. A geração foi interrompida antes de criar outra imagem no estilo antigo."
   if (code === "comic_bible_invalid") return "Não foi possível concluir a direção de arte. Confira a descrição do livro e tente novamente."
@@ -51,8 +58,11 @@ async function invoke<T>(fn: string, body: Record<string, unknown>): Promise<T> 
       if (j?.error) code = j.error
       if (j?.detail) detail = j.detail
     }
+    paywallForError(code, detail)
+    refreshEntitlements()
     throw new AiRequestError(code, detail)
   }
+  refreshEntitlements()
   return data as T
 }
 
