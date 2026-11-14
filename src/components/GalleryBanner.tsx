@@ -25,15 +25,19 @@ export function GalleryBanner() {
 
   useEffect(() => {
     if (art !== false || !supabase) return
-    // Mistura de categorias adultas (uma capa de cada), sem infantil, para o banner não ficar com cara de livro de criança.
-    supabase.from('catalog_books').select('cover_thumb, category, age_min').not('cover_thumb', 'is', null).neq('category', 'children').limit(120)
+    // Mistura de categorias: 5 adultas (uma de cada) e 2 infantis, intercaladas.
+    supabase.from('catalog_books').select('cover_thumb, category, age_min').not('cover_thumb', 'is', null).limit(200)
       .then(({ data }) => {
-        const seen = new Set<string>(); const out: string[] = []
-        for (const r of (data ?? []) as { cover_thumb: string; category: string; age_min: number | null }[]) {
+        const rows = (data ?? []) as { cover_thumb: string; category: string; age_min: number | null }[]
+        const seen = new Set<string>(); const adult: string[] = []; const kids: string[] = []
+        for (const r of rows) {
+          if (r.category === 'children') { if (kids.length < 2) kids.push(r.cover_thumb); continue }
           if ((r.age_min ?? 12) < 12 || seen.has(r.category)) continue
-          seen.add(r.category); out.push(r.cover_thumb)
+          seen.add(r.category); adult.push(r.cover_thumb)
         }
-        setCovers(out.slice(0, 5))
+        const a5 = adult.slice(0, 5); const mixed: string[] = []
+        a5.forEach((c, i) => { mixed.push(c); if (i === 1 && kids[0]) mixed.push(kids[0]); if (i === 3 && kids[1]) mixed.push(kids[1]) })
+        setCovers(mixed)
       })
   }, [art])
 
@@ -61,7 +65,7 @@ export function GalleryBanner() {
             <Button className="mt-4">{cta}<ArrowRight className="w-4 h-4" /></Button>
           </div>
           <div className="hidden sm:flex -space-x-5">
-            {covers.slice(0, 5).map((c, i) => <img key={i} src={c} alt="" className="book-cover w-[68px] md:w-[88px] aspect-[2/3] rounded-md object-cover" style={{ transform: `rotate(${(i - 2) * 3}deg)` }} />)}
+            {covers.map((c, i) => <img key={i} src={c} alt="" className="book-cover w-[60px] md:w-[76px] aspect-[2/3] rounded-md object-cover" style={{ transform: `rotate(${(i - 2) * 3}deg)` }} />)}
           </div>
         </div>
       )}
