@@ -547,7 +547,7 @@ export function Dashboard() {
                   style={{ borderColor: 'var(--theme-border)' }}>
                   <span className="grid size-10 shrink-0 place-items-center rounded-xl" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}><Icon className="w-5 h-5" /></span>
                   <span className="min-w-0">
-                    <span className="block text-[14px] font-semibold">{epubStatus.busy && epubStatus.kind === kind ? (pt ? `Lendo ${kind}…` : `Reading ${kind}…`) : (pt ? `Importar ${kind}` : `Import ${kind}`)}{ent && !ent.is_admin && ent.limits.imports === 0 ? ' 👑' : ''}</span>
+                    <span className="block text-[14px] font-semibold">{epubStatus.busy && epubStatus.kind === kind ? (pt ? `Lendo ${kind}…` : `Reading ${kind}…`) : (pt ? `Importar ${kind}` : `Import ${kind}`)}{ent && !ent.is_admin && ent.limits.imports === 0 ? ' · Premium' : ''}</span>
                     <span className="block text-[12px] leading-snug" style={{ color: 'var(--theme-text-secondary)' }}>{hint}</span>
                   </span>
                 </button>

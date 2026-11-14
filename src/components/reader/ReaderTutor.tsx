@@ -2,7 +2,7 @@
 // (história até onde a pessoa leu, palavras da página, personagens). Plus e Pro; nos outros planos, convite.
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { Captions, CaptionsOff, Lock, Minus, Rabbit, Turtle, EyeOff, BookmarkPlus } from 'lucide-react'
+import { AudioLines, Captions, CaptionsOff, Lock, Minus, Rabbit, Turtle, EyeOff, BookmarkPlus } from 'lucide-react'
 import type { Book } from '@/store/useBookStore'
 import { useLanguage } from '@/store/useLanguage'
 import { useEntitlements } from '@/store/useEntitlements'
@@ -11,6 +11,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
 import { upsertVocabulary } from '@/lib/supabaseSync'
 import { useVoiceConversation } from '@/hooks/useVoiceConversation'
+import { useStudyLevel } from '@/hooks/useStudyLevel'
 import { conversation } from '@/lib/billingApi'
 import { openPaywall } from '@/components/billing/Paywall'
 import { toast } from '@/components/ui/toast'
@@ -30,6 +31,7 @@ export function setTutorHidden(hidden: boolean) {
 export function ReaderTutor({ book }: { book: Book }) {
   const pt = useLanguage().locale === 'pt-BR'
   const ent = useEntitlements(s => s.data)
+  const level = useStudyLevel()
   const { user } = useAuth()
   const [hidden, setHidden] = useState(isTutorHidden)
   const [open, setOpen] = useState(false)
@@ -39,7 +41,7 @@ export function ReaderTutor({ book }: { book: Book }) {
   const [paused, setPaused] = useState(false)
   const session = useRef<string | null>(null)
   const allowed = !!ent && (ent.is_admin || ent.limits.tutor)
-  const minutesLeft = ent ? Math.floor(ent.seconds.available / 60) : 0
+  const creditsLeft = ent ? ent.credits.available : 0
 
   useEffect(() => {
     const sync = () => setHidden(isTutorHidden())
@@ -50,12 +52,13 @@ export function ReaderTutor({ book }: { book: Book }) {
 
   const voice = useVoiceConversation({
     continuous: true,
-    rate: slow ? 0.8 : 1,
+    rate: slow ? 0.8 : 0.95,
+    bargeIn: true,
     fillers: ['Hmm, let me look at the page…', 'Ooh, good one…', 'Well…', 'Let me think…'],
     onIdle: () => setPaused(true),
     onTurn: async (text, filler) => {
-      if (!session.current) session.current = (await conversation.start({ kind: 'reader', bookId: book.id })).sessionId
-      const r = await conversation.turn({ sessionId: session.current, text, filler, page: book.currentPage })
+      if (!session.current) session.current = (await conversation.start({ kind: 'reader', bookId: book.id, level: level.id })).sessionId
+      const r = await conversation.turn({ sessionId: session.current, text, filler, page: book.currentPage, level: level.id })
       return { reply: r.reply, extra: { highlight: r.highlight, offerSave: r.offerSave } }
     },
     onExtra: extra => { if (extra.highlight && extra.offerSave) setHighlight(String(extra.highlight)) },
@@ -103,7 +106,7 @@ export function ReaderTutor({ book }: { book: Book }) {
             <div className="flex items-center justify-between px-4 pt-3">
               <div>
                 <p className="text-[14px] font-semibold">Bea · {pt ? 'tutora de leitura' : 'reading tutor'}</p>
-                <p className="text-[11.5px] tabular-nums" style={{ color: minutesLeft < 5 ? '#dc2626' : 'var(--theme-text-secondary)' }}>{minutesLeft} min {pt ? 'restantes' : 'left'}</p>
+                <p className="text-[11.5px]" style={{ color: !ent?.is_admin && creditsLeft < 5 ? '#dc2626' : 'var(--theme-text-secondary)' }}>{pt ? '1 crédito por minuto de conversa' : '1 credit per conversation minute'}</p>
               </div>
               <div className="flex items-center gap-0.5">
                 <IconBtn label={captions ? (pt ? 'Esconder legendas' : 'Hide captions') : (pt ? 'Mostrar legendas' : 'Show captions')} onClick={() => setCaptions(c => !c)}>{captions ? <Captions className="w-4 h-4" /> : <CaptionsOff className="w-4 h-4" />}</IconBtn>
@@ -153,7 +156,7 @@ export function ReaderTutor({ book }: { book: Book }) {
           animate={{ rotate: 360 }} transition={{ duration: running ? 3 : 12, repeat: Infinity, ease: 'linear' }} />
         <motion.span className="absolute inset-[3px] rounded-full grid place-items-center text-[22px]" style={{ backgroundColor: 'var(--theme-card-bg)' }}
           animate={running ? { scale: 1 + voice.level * 0.08 } : { scale: [1, 1.04, 1] }} transition={running ? { type: 'spring', stiffness: 300, damping: 15 } : { duration: 4, repeat: Infinity }}>
-          🎙️
+          <AudioLines className="w-5 h-5" strokeWidth={1.8} />
         </motion.span>
         {!allowed && <span className="absolute right-0.5 bottom-0.5 w-5 h-5 rounded-full grid place-items-center" style={{ backgroundColor: '#111', color: '#FCD34D' }}><Lock className="w-3 h-3" /></span>}
       </motion.button>

@@ -14,7 +14,7 @@ import { VoiceCastDialog } from '@/components/book/VoiceCastDialog'
 import { remapComics } from '@/lib/comicPersistence'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { BookOpen, Users, CheckCircle2, FilePen, Keyboard, Headphones, Mic, Palette, PenLine, Rows3, XCircle, Settings2, ChevronDown } from 'lucide-react'
+import { BookOpen, Lock, Users, CheckCircle2, FilePen, Keyboard, Headphones, Mic, Palette, PenLine, Rows3, XCircle, Settings2, ChevronDown } from 'lucide-react'
 import { MenuItem, ToolButton, ToolGroup } from '@/components/ui/toolbar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { StylePickerDialog, useApplyBookStyle, useStyleBank } from '@/components/book/StylePicker'
@@ -89,7 +89,7 @@ export function BookPage() {
   if (!canOpenCatalog(ent, book.catalogId)) {
     return (
       <div className="max-w-md mx-auto text-center py-16 px-4">
-        <div className="text-[48px]" aria-hidden>📚</div>
+        <Lock className="w-9 h-9 mx-auto" strokeWidth={1.6} style={{ color: 'var(--theme-text-secondary)' }} aria-hidden />
         <h1 className="mt-4 font-display text-[28px] leading-tight">{pt ? `“${book.title}” é Premium` : `“${book.title}” is Premium`}</h1>
         <p className="mt-3 text-[15px]" style={{ color: 'var(--theme-text-secondary)' }}>
           {pt ? `Seu progresso (página ${book.currentPage + 1}), notas e vocabulário estão guardados. Assine para continuar de onde parou.` : `Your progress (page ${book.currentPage + 1}), notes and vocabulary are saved. Subscribe to continue where you left off.`}

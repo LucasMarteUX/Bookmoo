@@ -112,7 +112,7 @@ export function PlansPage() {
                 <p className="mt-4 text-[32px] font-semibold tabular-nums leading-none">
                   {plan.priceCents ? formatBRL(plan.priceCents) : 'R$ 0'}<span className="text-[13px] font-normal" style={{ color: 'var(--theme-text-secondary)' }}>/{pt ? 'mês' : 'mo'}</span>
                 </p>
-                <p className="mt-2 text-[12.5px]" style={{ color: 'var(--theme-text-secondary)' }}>{plan.credits} {pt ? 'créditos de IA' : 'AI credits'} · {plan.minutes} min {pt ? 'de conversa' : 'of conversation'}</p>
+                <p className="mt-2 text-[12.5px]" style={{ color: 'var(--theme-text-secondary)' }}>{plan.credits.toLocaleString(pt ? 'pt-BR' : 'en-US')} {pt ? 'créditos de IA por mês' : 'AI credits a month'}</p>
                 <ul className="mt-4 space-y-2 flex-1">
                   {plan.benefits.map(b => (
                     <li key={b.pt} className="flex gap-2 text-[13.5px] leading-snug"><Check className="w-4 h-4 shrink-0 mt-0.5" style={{ color: 'var(--theme-accent)' }} />{pt ? b.pt : b.en}</li>
@@ -130,7 +130,7 @@ export function PlansPage() {
                     current === 'free' ? (
                       <motion.button whileTap={{ scale: 0.97 }} type="button" onClick={startFree} disabled={busy !== null}
                         className="h-12 w-full rounded-2xl text-[15px] font-semibold border disabled:opacity-60" style={{ borderColor: 'var(--theme-border)' }}>
-                        {busy === 'free' ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : (pt ? 'Começar grátis 🎁' : 'Start free 🎁')}
+                        {busy === 'free' ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : (pt ? 'Começar grátis' : 'Start free')}
                       </motion.button>
                     ) : null
                   ) : lower ? (
@@ -149,7 +149,7 @@ export function PlansPage() {
         </div>
 
         <section className="mt-12 grid gap-4 sm:grid-cols-3 text-[13.5px] leading-relaxed" style={{ color: 'var(--theme-text-secondary)' }}>
-          <p><b style={{ color: 'var(--theme-text)' }}>{pt ? 'Créditos de IA' : 'AI credits'}</b><br />{pt ? 'Página ilustrada = 10 créditos; explicação, história ou imagem do mosaico = 1. O que a comunidade já gerou é grátis. Os créditos renovam todo mês e não acumulam.' : 'Illustrated page = 10 credits; explanation, story or mosaic image = 1. What the community already generated is free. Credits renew monthly and do not roll over.'}</p>
+          <p><b style={{ color: 'var(--theme-text)' }}>{pt ? 'Créditos de IA' : 'AI credits'}</b><br />{pt ? 'Um saldo só para tudo: página ilustrada = 10, conversa por voz = 1 por minuto, explicação ou imagem do mosaico = 1. O que a comunidade já gerou é grátis. Renovam todo mês e não acumulam.' : 'One balance for everything: illustrated page = 10, voice conversation = 1 per minute, explanation or mosaic image = 1. Community content is free. Renews monthly, no rollover.'}</p>
           <p><b style={{ color: 'var(--theme-text)' }}>{pt ? 'Cancele quando quiser' : 'Cancel anytime'}</b><br />{pt ? 'Você mantém o plano até o fim do período pago. Arrependeu-se? Reembolso integral em até 7 dias da primeira compra.' : 'You keep your plan until the end of the paid period. Full refund within 7 days of your first purchase.'}</p>
           <p><b style={{ color: 'var(--theme-text)' }}>{pt ? 'Upgrade a qualquer momento' : 'Upgrade anytime'}</b><br />{pt ? 'No upgrade o novo ciclo começa no dia, e o que sobrou do plano atual vira créditos bônus.' : 'When you upgrade the new cycle starts that day, and what is left of your current plan becomes bonus credits.'}</p>
         </section>

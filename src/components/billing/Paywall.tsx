@@ -3,7 +3,7 @@
 import { create } from 'zustand'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
-import { Check, Sparkles } from 'lucide-react'
+import { AudioLines, BookOpen, BookText, Brain, Check, Crown, Image as ImageIcon, Images, MessageCircle, MessagesSquare, Mic, Palette, PenLine, Sparkles, Upload, type LucideIcon } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useLanguage } from '@/store/useLanguage'
 import { useEntitlements } from '@/store/useEntitlements'
@@ -27,7 +27,7 @@ export function openPaywall(trigger: PaywallTrigger = 'generic') {
 export function paywallForError(code: string | undefined, detail?: string): boolean {
   if (!code) return false
   if (code === 'no_credits') { openPaywall('credits'); return true }
-  if (code === 'no_minutes') { openPaywall('minutes'); return true }
+  if (code === 'no_minutes') { openPaywall('credits'); return true }
   if (code === 'cap_reached') { openPaywall(/mosaic/.test(detail ?? '') ? 'mosaic_cap' : /stor/.test(detail ?? '') ? 'stories' : 'pages_cap'); return true }
   if (code === 'plan_required') {
     const d = detail ?? ''
@@ -40,21 +40,21 @@ export function paywallForError(code: string | undefined, detail?: string): bool
   return false
 }
 
-const COPY: Record<PaywallTrigger, { emoji: string; pt: [string, string]; en: [string, string] }> = {
-  book: { emoji: '📚', pt: ['Este livro está esperando por você', 'Assine e leia toda a galeria: clássicos ilustrados, com áudio e vocabulário.'], en: ['This book is waiting for you', 'Subscribe and read the whole gallery: illustrated classics with audio and vocabulary.'] },
-  import: { emoji: '📥', pt: ['Traga seus próprios livros', 'Importe EPUB e PDF e estude com tudo o que o app oferece.'], en: ['Bring your own books', 'Import EPUB and PDF and study them with every feature.'] },
-  credits: { emoji: '✨', pt: ['Sua imaginação não precisa esperar', 'Seus créditos de IA deste mês acabaram. Ganhe mais créditos e continue ilustrando.'], en: ["Your imagination shouldn't wait", 'Your AI credits for this month are used up. Get more and keep illustrating.'] },
-  minutes: { emoji: '🗣️', pt: ['Continue conversando', 'Seus minutos de conversa deste mês acabaram. Mais minutos, mais fluência.'], en: ['Keep talking', 'Your conversation minutes for this month are used up.'] },
-  style: { emoji: '🎨', pt: ['Ilustre do seu jeito', 'Crie seu próprio estilo, edite quadros e redesenhe páginas.'], en: ['Illustrate your way', 'Create your own style, edit panels and redraw pages.'] },
-  tutor: { emoji: '🎙️', pt: ['Converse com seu tutor enquanto lê', 'Pergunte sobre a história, as palavras e os personagens, por voz, sem sair da página.'], en: ['Talk to your tutor while you read', 'Ask about the story, words and characters by voice, without leaving the page.'] },
-  scenes: { emoji: '🎭', pt: ['Pratique em situações reais', 'Aeroporto, cafeteria, entrevista de emprego… converse por voz e receba nota e correções.'], en: ['Practise real situations', 'Airport, café, job interview… talk by voice and get a score and corrections.'] },
-  scenes_create: { emoji: '🎭', pt: ['Crie suas próprias Cenas', 'Invente o lugar, o personagem e o objetivo. A IA vira esse personagem para você treinar.'], en: ['Create your own Scenes', 'Invent the place, the character and the goal. The AI plays it for you.'] },
-  free_talk: { emoji: '💬', pt: ['Um tutor que conhece você', 'Converse livremente com um tutor que puxa exatamente as suas dificuldades.'], en: ['A tutor who knows you', 'Talk freely with a tutor who works on your weak spots.'] },
-  insights: { emoji: '🧠', pt: ['Descubra o que travar seu inglês', 'Um raio-X semanal com suas 3 maiores dificuldades e como vencê-las.'], en: ['Find what holds you back', 'A weekly report on your 3 biggest difficulties and how to beat them.'] },
-  stories: { emoji: '📖', pt: ['Histórias feitas para você', 'Histórias curtas com as palavras e a gramática que você mais erra.'], en: ['Stories made for you', 'Short stories with the words and grammar you miss most.'] },
-  pages_cap: { emoji: '🖼️', pt: ['Gostou das ilustrações?', 'Você usou as 3 páginas ilustradas do mês. Nos planos pagos você ilustra muito mais.'], en: ['Enjoying the illustrations?', "You've used this month's 3 illustrated pages. Paid plans illustrate much more."] },
-  mosaic_cap: { emoji: '🖼️', pt: ['Mais imagens para lembrar', 'Você usou os mosaicos do mês. Assine e gere quantos precisar.'], en: ['More images to remember', "You've used this month's mosaics. Subscribe to make more."] },
-  generic: { emoji: '🚀', pt: ['Libere tudo', 'Biblioteca completa, mais IA, conversas por voz e um tutor que conhece você.'], en: ['Unlock everything', 'Full library, more AI, voice conversations and a tutor who knows you.'] },
+const COPY: Record<PaywallTrigger, { icon: LucideIcon; pt: [string, string]; en: [string, string] }> = {
+  book: { icon: BookOpen, pt: ['Este livro está esperando por você', 'Assine e leia toda a galeria: clássicos ilustrados, com áudio e vocabulário.'], en: ['This book is waiting for you', 'Subscribe and read the whole gallery: illustrated classics with audio and vocabulary.'] },
+  import: { icon: Upload, pt: ['Traga seus próprios livros', 'Importe EPUB e PDF e estude com tudo o que o app oferece.'], en: ['Bring your own books', 'Import EPUB and PDF and study them with every feature.'] },
+  credits: { icon: Sparkles, pt: ['Sua imaginação não precisa esperar', 'Seus créditos de IA deste mês acabaram. Ganhe mais créditos e continue ilustrando.'], en: ["Your imagination shouldn't wait", 'Your AI credits for this month are used up. Get more and keep illustrating.'] },
+  minutes: { icon: AudioLines, pt: ['Continue conversando', 'Seus créditos de IA deste mês acabaram. Mais créditos, mais conversa e mais fluência.'], en: ['Keep talking', 'Your AI credits for this month are used up.'] },
+  style: { icon: Palette, pt: ['Ilustre do seu jeito', 'Crie seu próprio estilo, edite quadros e redesenhe páginas.'], en: ['Illustrate your way', 'Create your own style, edit panels and redraw pages.'] },
+  tutor: { icon: Mic, pt: ['Converse com seu tutor enquanto lê', 'Pergunte sobre a história, as palavras e os personagens, por voz, sem sair da página.'], en: ['Talk to your tutor while you read', 'Ask about the story, words and characters by voice, without leaving the page.'] },
+  scenes: { icon: MessagesSquare, pt: ['Pratique em situações reais', 'Aeroporto, cafeteria, entrevista de emprego… converse por voz e receba nota e correções.'], en: ['Practise real situations', 'Airport, café, job interview… talk by voice and get a score and corrections.'] },
+  scenes_create: { icon: PenLine, pt: ['Crie suas próprias Cenas', 'Invente o lugar, o personagem e o objetivo. A IA vira esse personagem para você treinar.'], en: ['Create your own Scenes', 'Invent the place, the character and the goal. The AI plays it for you.'] },
+  free_talk: { icon: MessageCircle, pt: ['Um tutor que conhece você', 'Converse livremente com um tutor que puxa exatamente as suas dificuldades.'], en: ['A tutor who knows you', 'Talk freely with a tutor who works on your weak spots.'] },
+  insights: { icon: Brain, pt: ['Descubra o que travar seu inglês', 'Um raio-X semanal com suas 3 maiores dificuldades e como vencê-las.'], en: ['Find what holds you back', 'A weekly report on your 3 biggest difficulties and how to beat them.'] },
+  stories: { icon: BookText, pt: ['Histórias feitas para você', 'Histórias curtas com as palavras e a gramática que você mais erra.'], en: ['Stories made for you', 'Short stories with the words and grammar you miss most.'] },
+  pages_cap: { icon: ImageIcon, pt: ['Gostou das ilustrações?', 'Você usou as 3 páginas ilustradas do mês. Nos planos pagos você ilustra muito mais.'], en: ['Enjoying the illustrations?', "You've used this month's 3 illustrated pages. Paid plans illustrate much more."] },
+  mosaic_cap: { icon: Images, pt: ['Mais imagens para lembrar', 'Você usou os mosaicos do mês. Assine e gere quantos precisar.'], en: ['More images to remember', "You've used this month's mosaics. Subscribe to make more."] },
+  generic: { icon: Crown, pt: ['Libere tudo', 'Biblioteca completa, mais IA, conversas por voz e um tutor que conhece você.'], en: ['Unlock everything', 'Full library, more AI, voice conversations and a tutor who knows you.'] },
 }
 
 const PREFERRED: Partial<Record<PaywallTrigger, PlanId>> = {
@@ -84,8 +84,8 @@ export function PaywallHost() {
         <div className="relative px-6 pt-8 pb-6 text-center overflow-hidden"
           style={{ background: 'radial-gradient(120% 90% at 50% 0%, color-mix(in srgb, var(--theme-accent) 22%, transparent), transparent 70%)' }}>
           <motion.div initial={{ scale: 0.6, opacity: 0, rotate: -8 }} animate={{ scale: 1, opacity: 1, rotate: 0 }} transition={{ type: 'spring', stiffness: 260, damping: 16 }}
-            className="mx-auto w-16 h-16 rounded-2xl grid place-items-center text-[34px] shadow-lg" style={{ backgroundColor: 'var(--theme-card-bg)' }}>
-            {copy.emoji}
+            className="mx-auto w-14 h-14 rounded-2xl grid place-items-center shadow-lg" style={{ backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-accent)' }}>
+            <copy.icon className="w-6 h-6" strokeWidth={1.8} />
           </motion.div>
           <DialogHeader className="mt-4">
             <DialogTitle className="font-display text-[28px] leading-tight text-center">{(pt ? copy.pt : copy.en)[0]}</DialogTitle>
@@ -113,7 +113,7 @@ export function PaywallHost() {
                       {best && <span className="absolute -top-2.5 left-4 px-2 h-5 rounded-full text-[11px] font-semibold inline-flex items-center gap-1" style={{ backgroundColor: 'var(--theme-accent)', color: '#fff' }}><Sparkles className="w-3 h-3" />{pt ? 'Mais escolhido' : 'Most popular'}</span>}
                       <span className="text-[15px] font-semibold">{plan.name}</span>
                       <span className="text-[22px] font-semibold tabular-nums">{formatBRL(plan.priceCents)}<span className="text-[12.5px] font-normal" style={{ color: 'var(--theme-text-secondary)' }}>/{pt ? 'mês' : 'mo'}</span></span>
-                      <span className="text-[12.5px]" style={{ color: 'var(--theme-text-secondary)' }}>{plan.credits} {pt ? 'créditos' : 'credits'} · {plan.minutes} min</span>
+                      <span className="text-[12.5px]" style={{ color: 'var(--theme-text-secondary)' }}>{plan.credits.toLocaleString(pt ? 'pt-BR' : 'en-US')} {pt ? 'créditos de IA por mês' : 'AI credits a month'}</span>
                       <ul className="mt-1 space-y-1">
                         {plan.benefits.slice(plan.id === 'essencial' ? 0 : 1, plan.id === 'essencial' ? 4 : 4).map(b => (
                           <li key={b.pt} className="flex gap-1.5 text-[12.5px] leading-snug"><Check className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: 'var(--theme-accent)' }} />{pt ? b.pt : b.en}</li>

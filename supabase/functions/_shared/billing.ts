@@ -176,21 +176,24 @@ export async function logCacheHit(userId: string, op: string, plan?: string) {
 }
 
 // ---------------------------------------------------------------------------
-// Minutos de conversa
+// Conversa por voz: 1 crédito por minuto (mesmo saldo das imagens e textos)
 // ---------------------------------------------------------------------------
-export async function reserveSeconds(userId: string, seconds: number, op: string, ref: string, key?: string): Promise<string> {
+export const creditsForSeconds = (seconds: number) => Math.max(0, Math.ceil(seconds / 60))
+
+export async function reserveConversation(userId: string, credits: number, op: string, ref: string, key?: string): Promise<string> {
   const { data, error } = await adminClient().rpc('credits_reserve', {
-    p_user: userId, p_unit: 'seconds', p_amount: seconds, p_operation: op, p_ref: ref, p_key: key ?? null, p_cap_field: null, p_cap: null,
+    p_user: userId, p_unit: 'credits', p_amount: credits, p_operation: op, p_ref: ref, p_key: key ?? null, p_cap_field: null, p_cap: null,
   })
   if (error) throw reserveError(error.message)
   return data as string
 }
 
-export async function commitSeconds(reservation: string, actual: number) {
-  await adminClient().rpc('credits_commit', { p_reservation: reservation, p_actual: Math.max(0, Math.round(actual)) })
+/** Confirma `credits` (≤ reservado); a sobra volta para o saldo. */
+export async function commitCredits(reservation: string, credits: number) {
+  await adminClient().rpc('credits_commit', { p_reservation: reservation, p_actual: Math.max(0, Math.round(credits)) })
 }
 
-export async function releaseSeconds(reservation: string) {
+export async function releaseReservation(reservation: string) {
   await adminClient().rpc('credits_release', { p_reservation: reservation })
 }
 

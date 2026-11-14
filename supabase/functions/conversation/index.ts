@@ -4,14 +4,14 @@
 // (tempo de fala estimado pelo texto, que o servidor vê — não dá para burlar pelo aparelho).
 import { adminClient, corsHeaders, getUser, json, log } from '../_shared/tts.ts'
 import { AiError, llmChat, llmJson, parseJson, pickProvider } from '../_shared/ai.ts'
-import { commitSeconds, entitlements, measured, metered, releaseSeconds, requireFeature, reserveSeconds, type Entitlements } from '../_shared/billing.ts'
+import { commitCredits, creditsForSeconds, entitlements, measured, metered, releaseReservation, requireFeature, reserveConversation, type Entitlements } from '../_shared/billing.ts'
 import { DEMO_SCENE_KEY, findScene, type Scene } from '../_shared/scenes.ts'
 
 type Body = {
   action?: string; kind?: 'scene' | 'tutor' | 'reader'; sceneKey?: string; sceneId?: string; minutes?: number
   sessionId?: string; text?: string; confidence?: number; filler?: string; bookId?: string; page?: number
   mode?: 'hint' | 'translate'; metrics?: { wpm?: number; avgResponseMs?: number; unclear?: number }
-  setting?: string; personaName?: string; personaRole?: string; personaTraits?: string; goal?: string; level?: string; title?: string
+  setting?: string; level?: string; personaName?: string; personaRole?: string; personaTraits?: string; goal?: string; level?: string; title?: string
 }
 
 const LEVEL_GUIDE: Record<string, string> = {
@@ -32,6 +32,14 @@ const ageOf = (birth: string | null) => {
   let a = n.getUTCFullYear() - b.getUTCFullYear()
   if (n.getUTCMonth() < b.getUTCMonth() || (n.getUTCMonth() === b.getUTCMonth() && n.getUTCDate() < b.getUTCDate())) a--
   return a
+}
+
+const ORDER = ['A1', 'A2', 'B1', 'B2', 'C1']
+/** O personagem fala no nível da pessoa (mais simples para iniciantes); acima da faixa da cena, usa o teto dela. */
+function sceneLevel(scene: Scene, official?: string) {
+  const hi = ORDER.indexOf(scene.level[1])
+  const me = ORDER.indexOf(String(official ?? ''))
+  return me < 0 ? scene.level[0] : ORDER[Math.min(hi, me)]
 }
 
 class ConvError extends Error { constructor(public code: string, public status = 400) { super(code) } }
@@ -96,13 +104,14 @@ Current page: ${page}
 Return JSON only: {"reply": "...", "highlight": "an exact word or short phrase from the current page to highlight, or null", "offer_save": true|false}`
 }
 
-async function learnerProfile(db: ReturnType<typeof adminClient>, userId: string) {
+async function learnerProfile(db: ReturnType<typeof adminClient>, userId: string, official?: string) {
   const [{ data: vocab }, { data: errs }, { data: prof }] = await Promise.all([
     db.from('vocabulary').select('text, status').eq('user_id', userId).eq('status', 'review').order('created_at', { ascending: false }).limit(12),
     db.from('learner_errors').select('kind, example, correction').eq('user_id', userId).order('created_at', { ascending: false }).limit(8),
     db.from('profiles').select('english_level, placement_level, goal').eq('user_id', userId).maybeSingle(),
   ])
-  const level = String(prof?.placement_level || prof?.english_level || 'B1').toUpperCase().slice(0, 2)
+  // Nível oficial do app (palavras + pontos), enviado pelo aparelho; o do perfil é só reserva.
+  const level = String(official || prof?.placement_level || prof?.english_level || 'A1').toUpperCase().slice(0, 2)
   const parts = [
     vocab?.length ? `words they are reviewing: ${vocab.map((v) => v.text).join(', ')}` : '',
     errs?.length ? `recent mistakes: ${errs.map((e) => `${e.kind} ("${e.example}" → "${e.correction}")`).join('; ')}` : '',
@@ -122,7 +131,7 @@ async function handle(userId: string, b: Body) {
       if (kind === 'tutor') requireFeature(ent, ent.limits.free_talk, 'free_talk')
       if (kind === 'reader') requireFeature(ent, ent.limits.tutor, 'tutor')
       if (kind !== 'scene') {
-        if (ent.seconds_available < 5 && !ent.is_admin) throw new AiError('no_minutes', 402, 'no_minutes')
+        if (ent.credits_available < 1 && !ent.is_admin) throw new AiError('no_credits', 402, 'no_credits')
         let title = 'Tutor'
         if (kind === 'reader') {
           const { data: book } = await db.from('books').select('id, title').eq('id', String(b.bookId ?? '')).eq('user_id', userId).maybeSingle()
@@ -131,7 +140,7 @@ async function handle(userId: string, b: Body) {
         }
         const { data: s, error } = await db.from('conversation_sessions').insert({ user_id: userId, kind, book_id: kind === 'reader' ? b.bookId : null, title }).select('id').single()
         if (error) throw new ConvError('session_failed', 500)
-        return { sessionId: s.id, secondsAvailable: ent.seconds_available }
+        return { sessionId: s.id, creditsAvailable: ent.credits_available }
       }
       const scene = await loadScene(db, userId, ent, b)
       const max = ent.is_admin ? 10 : ent.limits.max_scene_minutes
@@ -139,17 +148,17 @@ async function handle(userId: string, b: Body) {
       // Encerra sessão de cena esquecida aberta (devolve minutos).
       const { data: stale } = await db.from('conversation_sessions').select('id, reservation_id').eq('user_id', userId).eq('kind', 'scene').eq('status', 'active')
       for (const s of stale ?? []) {
-        if (s.reservation_id) await releaseSeconds(s.reservation_id)
+        if (s.reservation_id) await releaseReservation(s.reservation_id)
         await db.from('conversation_sessions').update({ status: 'ended', ended_at: new Date().toISOString() }).eq('id', s.id)
       }
       const { data: s, error } = await db.from('conversation_sessions').insert({
         user_id: userId, kind: 'scene', scene_key: scene.key, title: scene.title.pt, planned_seconds: minutes * 60,
-        context: { twist: scene.twists[Math.floor(Math.random() * scene.twists.length)] ?? '', level: scene.level[0], sceneId: scene.id ?? null },
+        context: { twist: scene.twists[Math.floor(Math.random() * scene.twists.length)] ?? '', level: sceneLevel(scene, b.level), sceneId: scene.id ?? null },
       }).select('id').single()
       if (error) throw new ConvError('session_failed', 500)
       let reservation: string
       try {
-        reservation = await reserveSeconds(userId, minutes * 60, 'scene', s.id, `scene:${s.id}`)
+        reservation = await reserveConversation(userId, minutes, 'scene', s.id, `scene:${s.id}`) // 1 crédito por minuto
       } catch (e) {
         await db.from('conversation_sessions').delete().eq('id', s.id)
         throw e
@@ -179,7 +188,7 @@ async function handle(userId: string, b: Body) {
           : findScene(String(session.scene_key))!
         system = scenePrompt(scene, String(session.context?.level ?? 'B1'), ageOf(ent.birth_date), String(session.context?.twist ?? ''), elapsed / session.planned_seconds, session.planned_seconds - elapsed, filler)
       } else if (session.kind === 'tutor') {
-        const prof = await learnerProfile(db, userId)
+        const prof = await learnerProfile(db, userId, b.level)
         system = tutorPrompt(prof.level, prof.text, filler)
       } else {
         const { data: book } = await db.from('books').select('title, author, description, pages').eq('id', session.book_id).eq('user_id', userId).maybeSingle()
@@ -189,16 +198,20 @@ async function handle(userId: string, b: Body) {
         const pageText = (i: number) => clean(typeof pages[i] === 'string' ? pages[i] : (pages[i] as { text?: string })?.text ?? '', 4000)
         // Só o que já foi lido: as páginas anteriores entram resumidas (cortadas), a atual inteira.
         const earlier = Array.from({ length: Math.min(at, 6) }, (_, k) => at - 6 + k).filter((i) => i >= 0).map((i) => pageText(i).slice(0, 700)).join(' … ')
-        const prof = await learnerProfile(db, userId)
+        const prof = await learnerProfile(db, userId, b.level)
         system = readerPrompt(prof.level, book, earlier, pageText(at), filler)
       }
 
-      // Tutores: cobra o tempo de fala estimado deste turno antes de responder (reserva) e acerta depois.
+      // Tutores: 1 crédito por minuto de fala (do aluno + da IA), cobrado a cada minuto completado.
       let reservation: string | null = null
+      let due = 0
+      const usedBefore = Number(session.used_seconds ?? 0)
+      const chargedBefore = Number(session.charged_credits ?? 0)
       if (session.kind !== 'scene' && !ent.is_admin) {
-        if (ent.seconds_available <= 0) throw new AiError('no_minutes', 402, 'no_minutes')
-        const estimate = Math.min(120, Math.max(5, Math.ceil((words(text) + 60) / SPEECH_WPS)))
-        reservation = await reserveSeconds(userId, Math.max(1, Math.min(estimate, ent.seconds_available)), session.kind, session.id)
+        if (ent.credits_available <= 0) throw new AiError('no_credits', 402, 'no_credits')
+        const estimate = Math.max(5, Math.ceil((words(text) + 60) / SPEECH_WPS))
+        due = creditsForSeconds(usedBefore + estimate) - chargedBefore
+        if (due > 0) reservation = await reserveConversation(userId, due, session.kind, session.id)
       }
       let reply = ''
       let extra: Record<string, unknown> = {}
@@ -211,10 +224,17 @@ async function handle(userId: string, b: Body) {
         reply = clean(parsed.reply, 500) || "Sorry, could you say that again?"
         extra = { goalsMet: Array.isArray(parsed.goals_met) ? parsed.goals_met.filter(Number.isInteger) : [], wrapUp: !!parsed.wrap_up, highlight: parsed.highlight ? clean(parsed.highlight, 60) : null, offerSave: !!parsed.offer_save }
       } catch (e) {
-        if (reservation) await releaseSeconds(reservation)
+        if (reservation) await releaseReservation(reservation)
         throw e
       }
-      if (reservation) await commitSeconds(reservation, Math.max(5, Math.ceil((words(text) + words(reply) + (filler ? words(filler) : 0)) / SPEECH_WPS)))
+      const spoken = Math.max(5, Math.ceil((words(text) + words(reply) + (filler ? words(filler) : 0)) / SPEECH_WPS))
+      let charged = chargedBefore
+      if (reservation) {
+        const owed = Math.max(0, Math.min(due, creditsForSeconds(usedBefore + spoken) - chargedBefore))
+        await commitCredits(reservation, owed)
+        charged += owed
+      }
+      if (session.kind !== 'scene') await db.from('conversation_sessions').update({ used_seconds: usedBefore + spoken, charged_credits: charged }).eq('id', session.id)
       await db.from('conversation_turns').insert([
         { session_id: session.id, role: 'user', text, stt_confidence: typeof b.confidence === 'number' ? b.confidence : null },
         { session_id: session.id, role: 'ai', text: filler ? `${filler} ${reply}` : reply },
@@ -252,7 +272,7 @@ Return JSON {"suggestions": [{"en": "...", "pt": "..."}]}`,
       if (session.status === 'active') {
         const elapsed = Math.round((now.getTime() - new Date(session.started_at).getTime()) / 1000)
         const used = session.kind === 'scene' ? Math.min(session.planned_seconds, Math.max(0, elapsed)) : 0
-        if (session.reservation_id) await commitSeconds(session.reservation_id, used)
+        if (session.reservation_id) await commitCredits(session.reservation_id, creditsForSeconds(used))
         await db.from('conversation_sessions').update({ status: 'ended', ended_at: now.toISOString(), used_seconds: used }).eq('id', session.id)
       }
       if (session.kind !== 'scene') return { ok: true }

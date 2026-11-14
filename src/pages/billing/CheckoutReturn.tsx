@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
-import { Loader2 } from 'lucide-react'
+import { Check, Clock, Loader2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useLanguage } from '@/store/useLanguage'
 import { useEntitlements } from '@/store/useEntitlements'
@@ -49,10 +49,10 @@ export function CheckoutReturn() {
         )}
         {state === 'paid' && (
           <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 220, damping: 18 }}>
-            <div className="mx-auto w-20 h-20 rounded-3xl grid place-items-center text-[44px] shadow-xl" style={{ backgroundColor: 'var(--theme-card-bg)' }}>🎉</div>
+            <div className="mx-auto w-16 h-16 rounded-2xl grid place-items-center shadow-xl" style={{ backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-accent)' }}><Check className="w-8 h-8" strokeWidth={2} /></div>
             <h1 className="mt-6 font-display text-[32px] leading-tight">{pt ? `Bem-vindo(a) ao ${p.name}!` : `Welcome to ${p.name}!`}</h1>
             <p className="mt-3 text-[15.5px]" style={{ color: 'var(--theme-text-secondary)' }}>
-              {pt ? `A biblioteca inteira é sua e você tem ${p.credits + bonus} créditos de IA e ${p.minutes} minutos de conversa este mês.` : `The whole library is yours, with ${p.credits + bonus} AI credits and ${p.minutes} conversation minutes this month.`}
+              {pt ? `A biblioteca inteira é sua e você tem ${p.credits + bonus} créditos de IA este mês para imagens, explicações e conversas.` : `The whole library is yours, with ${p.credits + bonus} AI credits this month for images, explanations and conversations.`}
             </p>
             <motion.button whileTap={{ scale: 0.96 }} type="button" onClick={() => navigate('/gallery', { replace: true })}
               className="mt-8 h-12 w-full rounded-2xl text-[15.5px] font-semibold" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
@@ -62,7 +62,7 @@ export function CheckoutReturn() {
         )}
         {(state === 'pending' || state === 'none') && (
           <>
-            <div className="text-[44px]">⏳</div>
+            <Clock className="w-10 h-10 mx-auto" strokeWidth={1.6} style={{ color: 'var(--theme-text-secondary)' }} />
             <h1 className="mt-4 font-display text-[28px]">{state === 'none' ? (pt ? 'Nenhum pagamento em andamento' : 'No payment in progress') : (pt ? 'Pagamento em processamento' : 'Payment processing')}</h1>
             <p className="mt-2 text-[15px]" style={{ color: 'var(--theme-text-secondary)' }}>
               {state === 'none' ? (pt ? 'Se você acabou de pagar, aguarde um instante e confira em Minha assinatura.' : 'If you just paid, wait a moment and check My subscription.')

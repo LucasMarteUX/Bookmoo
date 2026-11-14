@@ -64,9 +64,9 @@ export type Feedback = {
 }
 
 export const conversation = {
-  start: (body: { kind: 'scene' | 'tutor' | 'reader'; sceneKey?: string; sceneId?: string; minutes?: number; bookId?: string }) =>
+  start: (body: { kind: 'scene' | 'tutor' | 'reader'; sceneKey?: string; sceneId?: string; minutes?: number; bookId?: string; level?: string }) =>
     callFn<{ sessionId: string; plannedSeconds?: number; opening?: string; secondsAvailable?: number; scene?: { persona: { name: string; emoji: string; gender: 'female' | 'male'; pace: string }; goals: string[]; usefulPhrases: string[]; fillers: string[]; ambient?: string } }>('conversation', { action: 'start', ...body }).finally(refreshEntitlements),
-  turn: (body: { sessionId: string; text: string; confidence?: number; filler?: string | null; page?: number }) =>
+  turn: (body: { sessionId: string; text: string; confidence?: number; filler?: string | null; page?: number; level?: string }) =>
     callFn<{ reply: string; goalsMet?: number[]; wrapUp?: boolean; highlight?: string | null; offerSave?: boolean; remaining?: number | null }>('conversation', { action: 'turn', ...body }),
   assist: (sessionId: string, mode: 'hint' | 'translate') =>
     callFn<{ suggestions?: { en: string; pt: string }[]; translation?: string }>('conversation', { action: 'assist', sessionId, mode }),
@@ -79,9 +79,12 @@ export const conversation = {
 // ---------------------------------------------------------------------------
 // Raio-X e Histórias de reforço
 // ---------------------------------------------------------------------------
+export type SkillKey = 'speaking' | 'conversation' | 'vocabulary' | 'dictation' | 'consistency'
 export type Insight = {
   id: string; created_at: string
+  summary?: { level?: string; skills?: { scores: Record<SkillKey, number | null>; overall: number | null; metrics: Record<string, number | null>; window_days: number } }
   report: {
+    progress?: string; study_plan?: string[]
     headline?: string; strengths?: string[]; difficulties?: { title: string; evidence: string; tip: string }[]
     focus_words?: string[]; grammar_focus?: string; recommendation?: { scene?: string; practice?: string }; level_estimate?: string
   }
@@ -92,6 +95,6 @@ export type ReinforcementStory = {
 }
 
 export const coach = {
-  insights: () => callFn<{ insight: Insight; next_at: string }>('coach', { action: 'insights' }),
-  story: (words?: string[], focus?: string) => callFn<{ story: ReinforcementStory }>('coach', { action: 'story', words, focus }).finally(refreshEntitlements),
+  insights: (level: string) => callFn<{ insight: Insight; next_at: string; reused?: boolean }>('coach', { action: 'insights', level }),
+  story: (level: string, words?: string[], focus?: string) => callFn<{ story: ReinforcementStory }>('coach', { action: 'story', level, words, focus }).finally(refreshEntitlements),
 }

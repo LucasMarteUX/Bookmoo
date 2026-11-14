@@ -108,7 +108,7 @@ export function AdminFinance() {
                 </div>
               ))}
             </div>
-            <p className="mt-1 text-[12px]" style={{ color: 'var(--theme-text-secondary)' }}>🟩 receita · 🟧 custo de IA</p>
+            <p className="mt-1 text-[12px]" style={{ color: 'var(--theme-text-secondary)' }}>Verde: receita · Laranja: custo de IA</p>
           </section>
 
           <section className="grid gap-6 lg:grid-cols-2">
@@ -118,7 +118,7 @@ export function AdminFinance() {
               rows={data.by_plan.map(p => [p.plan, p.users, brl(Number(p.cost_usd) * view.fx), brl(Number(p.cost_usd) * view.fx / Math.max(1, p.users))])} />
             <Table title="Top 20 usuários por custo" head={['E-mail', 'Plano', 'Chamadas', 'Custo']}
               rows={data.top_users.map(u => [u.email, u.plan, u.calls, brl(Number(u.cost_usd) * view.fx)])} />
-            <Table title={`Pagamentos recentes${data.payment_errors ? ` · ⚠️ ${data.payment_errors} eventos com erro` : ''}`} head={['E-mail', 'Tipo', 'Status', 'Valor']}
+            <Table title={`Pagamentos recentes${data.payment_errors ? ` · ${data.payment_errors} eventos com erro` : ''}`} head={['E-mail', 'Tipo', 'Status', 'Valor']}
               rows={data.recent_payments.map(p => [p.email, p.kind, p.status, formatBRL(p.amount_cents)])} />
           </section>
 

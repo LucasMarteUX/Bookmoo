@@ -2,7 +2,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import { canOpenCatalog, useEntitlements } from '@/store/useEntitlements'
-import { SlidersHorizontal } from 'lucide-react'
+import { Gift, SlidersHorizontal } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { ArrowRight, BookOpen, ChevronLeft, ChevronRight, Image as ImageIcon, Search, Sparkles, Star, X } from 'lucide-react'
 import { BookCard, BookCover } from '@/components/book/BookCard'
@@ -242,7 +242,7 @@ export function GalleryList() {
 
       {giftMode && ent && !ent.gift && (
         <div className="rounded-2xl p-4 sm:p-5 flex items-center gap-4" style={{ background: 'linear-gradient(120deg, color-mix(in srgb, var(--theme-accent) 20%, transparent), transparent)', border: '1px solid var(--theme-border)' }}>
-          <span className="text-[34px]" aria-hidden>🎁</span>
+          <span className="w-11 h-11 rounded-xl grid place-items-center shrink-0" style={{ backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-accent)' }} aria-hidden><Gift className="w-5 h-5" strokeWidth={1.8} /></span>
           <div className="min-w-0">
             <p className="text-[16px] font-semibold">{pt ? 'Escolha seu livro-presente' : 'Choose your gift book'}</p>
             <p className="text-[13.5px]" style={muted}>{pt ? 'Abra qualquer livro e toque em “Escolher como meu presente”. Ele fica com você para sempre.' : 'Open any book and tap “Choose as my gift”. It is yours forever.'}</p>

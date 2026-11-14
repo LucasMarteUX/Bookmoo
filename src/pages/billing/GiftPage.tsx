@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
-import { Gift } from 'lucide-react'
+import { BookOpen, Gift } from 'lucide-react'
 import { useLanguage } from '@/store/useLanguage'
 import { useEntitlements } from '@/store/useEntitlements'
 import { Confetti } from '@/components/billing/Confetti'
@@ -45,7 +45,7 @@ export function GiftPage() {
                 initial={{ rotateY: 180, y: 60, opacity: 0 }} animate={{ rotateY: 0, y: 0, opacity: 1 }}
                 transition={{ type: 'spring', stiffness: 120, damping: 14 }}>
                 <span className="text-[13px] uppercase tracking-[0.2em] opacity-70">{pt ? 'Cartão-presente' : 'Gift card'}</span>
-                <span className="mt-3 text-[52px]">📖</span>
+                <BookOpen className="mt-4 w-12 h-12" strokeWidth={1.4} />
                 <span className="mt-2 font-display text-[26px] leading-tight">{pt ? '1 livro à sua escolha' : '1 book of your choice'}</span>
                 <span className="mt-2 text-[13.5px] opacity-80">{pt ? 'da nossa galeria, seu para sempre' : 'from our gallery, yours forever'}</span>
               </motion.div>
@@ -55,7 +55,7 @@ export function GiftPage() {
         <AnimatePresence>
           {stage === 'card' && (
             <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="mt-8">
-              <h1 className="font-display text-[30px] leading-tight">{pt ? 'Você ganhou um presente! 🎁' : 'You got a gift! 🎁'}</h1>
+              <h1 className="font-display text-[30px] leading-tight">{pt ? 'Você ganhou um presente' : 'You got a gift'}</h1>
               <p className="mt-2 text-[15px]" style={{ color: 'var(--theme-text-secondary)' }}>
                 {pt ? 'Escolha qualquer livro da galeria para levar para a sua estante. Os outros ficam com o selo Premium: dá para ver, e quando quiser você libera todos.' : 'Pick any gallery book for your shelf. The others carry a Premium badge: you can browse them and unlock all whenever you like.'}
               </p>

@@ -103,7 +103,7 @@ function GalleryBook({ id }: { id: string }) {
     const full = await getCatalogBook(id)
     setGiftAsk(false)
     if (full && !full.locked) { setBook(full); await pull(full) } else setBusy(false)
-    toast(pt ? 'Presente escolhido! 🎁 O livro é seu.' : 'Gift chosen! 🎁 The book is yours.')
+    toast(pt ? 'Presente escolhido. O livro é seu.' : 'Gift chosen. The book is yours.')
   }
 
   const pull = async (source: CatalogBook | null | undefined = book) => {
@@ -242,7 +242,7 @@ function GalleryBook({ id }: { id: string }) {
       <Dialog open={giftAsk} onOpenChange={setGiftAsk}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{pt ? 'Este será o seu livro-presente 🎁' : 'This will be your gift book 🎁'}</DialogTitle>
+            <DialogTitle>{pt ? 'Este será o seu livro-presente' : 'This will be your gift book'}</DialogTitle>
             <DialogDescription>{pt ? `“${book.title}” fica na sua estante para sempre, mesmo no plano Grátis. Você pode trocar uma única vez nos próximos 7 dias.` : `“${book.title}” stays on your shelf forever, even on Free. You can swap it once in the next 7 days.`}</DialogDescription>
           </DialogHeader>
           <div className="mt-2 flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">

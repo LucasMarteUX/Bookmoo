@@ -13,7 +13,6 @@ import { useXpStore, xpSummary } from '@/store/useXpStore'
 import { studyLevel } from '@/lib/cefr'
 import { useTranslations } from '@/lib/i18n'
 import { readingProgress } from '@/lib/utils'
-import { StudyTimer } from '@/components/timer/StudyTimer'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { VoiceSelect } from './VoiceSelect'
 import { useAuth } from '@/contexts/AuthContext'
@@ -249,7 +248,6 @@ export function Sidebar({ isMobileDrawer, onClose }: SidebarProps) {
 
       <div className={isMobileDrawer ? 'flex flex-col gap-2' : 'px-2 pb-2 pt-2 flex flex-col gap-1.5 border-t'} style={{ borderColor: 'var(--theme-border)' }}>
         <UsageMeters compact />
-        <StudyTimer />
         <Link to="/stats" onClick={go} className="flex items-center gap-3 h-8 px-2 rounded-md text-[12.5px] tabular-nums hover:bg-[var(--ui-hover)]"
           style={{ color: 'var(--theme-nav-text-muted)' }} title={pt ? 'Sequência e pontos' : 'Streak and points'}>
           <span className="inline-flex items-center gap-1" style={{ color: studiedToday ? 'var(--pastel-amber-fg)' : undefined }}>
