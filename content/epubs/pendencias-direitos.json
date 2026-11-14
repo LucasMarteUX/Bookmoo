@@ -1,0 +1,101 @@
+[
+  {
+    "ordem": 117,
+    "titulo": "Anne of Windy Poplars",
+    "autor": "L. M. Montgomery",
+    "publicacao": "1936",
+    "direitos_brasil": "Montgomery morreu em 1942: domínio público no Brasil desde 2013 e no Canadá.",
+    "direitos_eua": "Ainda protegido nos EUA (publicado em 1936; domínio público lá só em 2032).",
+    "fontes": "Project Gutenberg (EUA) não hospeda. Fontes a verificar para o Canadá: Faded Page / Project Gutenberg Canada.",
+    "status": "RIGHTS_REVIEW_REQUIRED",
+    "observacao": "Datas e situação dos EUA são estimativas (regra dos 95 anos); confirmar antes de publicar."
+  },
+  {
+    "ordem": 119,
+    "titulo": "Anne of Ingleside",
+    "autor": "L. M. Montgomery",
+    "publicacao": "1939",
+    "direitos_brasil": "Domínio público no Brasil (autora morreu em 1942) e no Canadá.",
+    "direitos_eua": "Ainda protegido nos EUA (1939; domínio público lá em 2035).",
+    "fontes": "Mesma situação: só fontes canadenses a verificar.",
+    "status": "RIGHTS_REVIEW_REQUIRED",
+    "observacao": "Datas e situação dos EUA são estimativas (regra dos 95 anos); confirmar antes de publicar."
+  },
+  {
+    "ordem": 128,
+    "titulo": "Swords of Mars",
+    "autor": "Edgar Rice Burroughs",
+    "publicacao": "1936 (seriado 1934-35)",
+    "direitos_brasil": "Burroughs morreu em 1950: domínio público no Brasil desde 2021.",
+    "direitos_eua": "Protegido nos EUA (domínio público lá em 2032).",
+    "fontes": "Standard Ebooks ainda não produziu (lista Wanted). Fontes a verificar: Faded Page (Canadá), Project Gutenberg Australia.",
+    "status": "RIGHTS_REVIEW_REQUIRED",
+    "observacao": "Datas e situação dos EUA são estimativas (regra dos 95 anos); confirmar antes de publicar."
+  },
+  {
+    "ordem": 129,
+    "titulo": "Synthetic Men of Mars",
+    "autor": "Edgar Rice Burroughs",
+    "publicacao": "1940 (seriado 1939)",
+    "direitos_brasil": "Domínio público no Brasil.",
+    "direitos_eua": "Protegido nos EUA (2036).",
+    "fontes": "Idem.",
+    "status": "RIGHTS_REVIEW_REQUIRED",
+    "observacao": "Datas e situação dos EUA são estimativas (regra dos 95 anos); confirmar antes de publicar."
+  },
+  {
+    "ordem": 130,
+    "titulo": "Llana of Gathol",
+    "autor": "Edgar Rice Burroughs",
+    "publicacao": "1948 (contos de 1941-1943)",
+    "direitos_brasil": "Domínio público no Brasil. Ilustrações originais de John Coleman Burroughs (morreu em 1979) NÃO estão livres; só o texto.",
+    "direitos_eua": "Protegido nos EUA (2044).",
+    "fontes": "Idem; usar só o texto, sem as ilustrações.",
+    "status": "RIGHTS_REVIEW_REQUIRED",
+    "observacao": "Datas e situação dos EUA são estimativas (regra dos 95 anos); confirmar antes de publicar."
+  },
+  {
+    "ordem": 131,
+    "titulo": "John Carter of Mars",
+    "autor": "Edgar Rice Burroughs e John Coleman Burroughs",
+    "publicacao": "1964 (reúne contos de 1941 e 1943)",
+    "direitos_brasil": "O volume inclui \"John Carter and the Giant of Mars\", escrito por John Coleman Burroughs (morreu em 1979): ainda protegido no Brasil até 2050. Só \"Skeleton Men of Jupiter\" é de Edgar Rice Burroughs.",
+    "direitos_eua": "Protegido nos EUA.",
+    "fontes": "NÃO PUBLICAR este volume. Possível alternativa a avaliar: publicar só a novela de ERB, se uma fonte legítima separar o texto.",
+    "status": "RIGHTS_REVIEW_REQUIRED",
+    "observacao": "Datas e situação dos EUA são estimativas (regra dos 95 anos); confirmar antes de publicar."
+  },
+  {
+    "ordem": 136,
+    "titulo": "Back to the Stone Age",
+    "autor": "Edgar Rice Burroughs",
+    "publicacao": "1937",
+    "direitos_brasil": "Domínio público no Brasil.",
+    "direitos_eua": "Protegido nos EUA (2033).",
+    "fontes": "Fontes a verificar: Faded Page, Project Gutenberg Australia.",
+    "status": "RIGHTS_REVIEW_REQUIRED",
+    "observacao": "Datas e situação dos EUA são estimativas (regra dos 95 anos); confirmar antes de publicar."
+  },
+  {
+    "ordem": 137,
+    "titulo": "Land of Terror",
+    "autor": "Edgar Rice Burroughs",
+    "publicacao": "1944",
+    "direitos_brasil": "Domínio público no Brasil.",
+    "direitos_eua": "Protegido nos EUA (2040).",
+    "fontes": "Idem.",
+    "status": "RIGHTS_REVIEW_REQUIRED",
+    "observacao": "Datas e situação dos EUA são estimativas (regra dos 95 anos); confirmar antes de publicar."
+  },
+  {
+    "ordem": 138,
+    "titulo": "Savage Pellucidar",
+    "autor": "Edgar Rice Burroughs",
+    "publicacao": "1963 (histórias de 1942-1944)",
+    "direitos_brasil": "Texto de Burroughs: domínio público no Brasil. A edição de 1963 pode conter material editorial e ilustrações de terceiros.",
+    "direitos_eua": "Protegido nos EUA.",
+    "fontes": "Idem; verificar a edição antes.",
+    "status": "RIGHTS_REVIEW_REQUIRED",
+    "observacao": "Datas e situação dos EUA são estimativas (regra dos 95 anos); confirmar antes de publicar."
+  }
+]

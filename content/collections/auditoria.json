@@ -1,0 +1,1242 @@
+{
+  "at": "2026-11-13T23:13:54.498Z",
+  "banco": 74,
+  "colecoes": {
+    "sherlock-holmes": {
+      "nome": "The Complete Sherlock Holmes Collection",
+      "fonte": "https://standardebooks.org/collections/sherlock-holmes",
+      "httpStatus": 200,
+      "total": 9,
+      "existentes": 9,
+      "livros": [
+        {
+          "title": "A Study in Scarlet",
+          "href": "/ebooks/arthur-conan-doyle/a-study-in-scarlet",
+          "noBanco": {
+            "id": "73a950e4-7eb5-4f02-85dc-0fe8aa1411e9",
+            "title": "A Study in Scarlet",
+            "level": "B2"
+          }
+        },
+        {
+          "title": "The Sign of the Four",
+          "href": "/ebooks/arthur-conan-doyle/the-sign-of-the-four",
+          "noBanco": {
+            "id": "7ea42f1f-7d3b-4258-a01c-be25bd1f7b59",
+            "title": "The Sign of the Four",
+            "level": "B2"
+          }
+        },
+        {
+          "title": "The Adventures of Sherlock Holmes",
+          "href": "/ebooks/arthur-conan-doyle/the-adventures-of-sherlock-holmes",
+          "noBanco": {
+            "id": "ce9c6a7f-6dfc-401d-98c3-e8e9c959e96f",
+            "title": "The Adventures of Sherlock Holmes",
+            "level": "B2"
+          }
+        },
+        {
+          "title": "The Memoirs of Sherlock Holmes",
+          "href": "/ebooks/arthur-conan-doyle/the-memoirs-of-sherlock-holmes",
+          "noBanco": {
+            "id": "f80fe486-2113-4e1c-a0e8-d6e921da3ddd",
+            "title": "The Memoirs of Sherlock Holmes",
+            "level": "B2"
+          }
+        },
+        {
+          "title": "The Hound of the Baskervilles",
+          "href": "/ebooks/arthur-conan-doyle/the-hound-of-the-baskervilles",
+          "noBanco": {
+            "id": "252f1104-7d53-446b-8b29-f8505eeecd80",
+            "title": "The Hound of the Baskervilles",
+            "level": "B2"
+          }
+        },
+        {
+          "title": "The Return of Sherlock Holmes",
+          "href": "/ebooks/arthur-conan-doyle/the-return-of-sherlock-holmes",
+          "noBanco": {
+            "id": "0a756806-0560-4893-bb68-cfce484021ad",
+            "title": "The Return of Sherlock Holmes",
+            "level": "B2"
+          }
+        },
+        {
+          "title": "The Valley of Fear",
+          "href": "/ebooks/arthur-conan-doyle/the-valley-of-fear",
+          "noBanco": {
+            "id": "ef561dc1-9ae7-4463-959e-e7af5fce5646",
+            "title": "The Valley of Fear",
+            "level": "B2"
+          }
+        },
+        {
+          "title": "His Last Bow",
+          "href": "/ebooks/arthur-conan-doyle/his-last-bow",
+          "noBanco": {
+            "id": "f0906421-4df7-483c-b2e5-6e2c56520548",
+            "title": "His Last Bow",
+            "level": "B2"
+          }
+        },
+        {
+          "title": "The Casebook of Sherlock Holmes",
+          "href": "/ebooks/arthur-conan-doyle/the-casebook-of-sherlock-holmes",
+          "noBanco": {
+            "id": "1497532b-efa2-49de-b9ae-5fc3240e5331",
+            "title": "The Casebook of Sherlock Holmes",
+            "level": "B2"
+          }
+        }
+      ]
+    },
+    "oz": {
+      "nome": "The Wonderful World of Oz",
+      "fonte": "https://standardebooks.org/collections/oz",
+      "httpStatus": 200,
+      "total": 43,
+      "existentes": 3,
+      "livros": [
+        {
+          "title": "The Wonderful Wizard of Oz",
+          "href": "/ebooks/l-frank-baum/the-wonderful-wizard-of-oz",
+          "noBanco": {
+            "id": "b1c70c58-6512-4d49-a55b-03de6d224af1",
+            "title": "The Wonderful Wizard of Oz",
+            "level": "A2"
+          }
+        },
+        {
+          "title": "The Marvelous Land of Oz",
+          "href": "/ebooks/l-frank-baum/the-marvelous-land-of-oz",
+          "noBanco": {
+            "id": "3620910f-3503-46ef-8f6d-7bb80efd2bf0",
+            "title": "The Marvelous Land of Oz",
+            "level": "A2"
+          }
+        },
+        {
+          "title": "Ozma of Oz",
+          "href": "/ebooks/l-frank-baum/ozma-of-oz",
+          "noBanco": {
+            "id": "bcea5363-8459-4b2d-b0bf-f56547d4a8ae",
+            "title": "Ozma of Oz",
+            "level": "B1"
+          }
+        },
+        {
+          "title": "Dorothy and the Wizard in Oz",
+          "href": "/ebooks/l-frank-baum/dorothy-and-the-wizard-in-oz",
+          "noBanco": null
+        },
+        {
+          "title": "The Road to Oz",
+          "href": "/ebooks/l-frank-baum/the-road-to-oz",
+          "noBanco": null
+        },
+        {
+          "title": "The Emerald City of Oz",
+          "href": "/ebooks/l-frank-baum/the-emerald-city-of-oz",
+          "noBanco": null
+        },
+        {
+          "title": "The Patchwork Girl of Oz",
+          "href": "/ebooks/l-frank-baum/the-patchwork-girl-of-oz",
+          "noBanco": null
+        },
+        {
+          "title": "Tik-Tok of Oz",
+          "href": "/ebooks/l-frank-baum/tik-tok-of-oz",
+          "noBanco": null
+        },
+        {
+          "title": "The Scarecrow of Oz",
+          "href": "/ebooks/l-frank-baum/the-scarecrow-of-oz",
+          "noBanco": null
+        },
+        {
+          "title": "Rinkitink in Oz",
+          "href": "/ebooks/l-frank-baum/rinkitink-in-oz",
+          "noBanco": null
+        },
+        {
+          "title": "The Lost Princess of Oz",
+          "href": "/ebooks/l-frank-baum/the-lost-princess-of-oz",
+          "noBanco": null
+        },
+        {
+          "title": "The Tin Woodman of Oz",
+          "href": "/ebooks/l-frank-baum/the-tin-woodman-of-oz",
+          "noBanco": null
+        },
+        {
+          "title": "The Magic of Oz",
+          "href": "/ebooks/l-frank-baum/the-magic-of-oz",
+          "noBanco": null
+        },
+        {
+          "title": "Glinda of Oz",
+          "href": "/ebooks/l-frank-baum/glinda-of-oz",
+          "noBanco": null
+        },
+        {
+          "title": "The Royal Book of Oz",
+          "href": "/ebooks/ruth-plumly-thompson/the-royal-book-of-oz",
+          "noBanco": null
+        },
+        {
+          "title": "Kabumpo in Oz",
+          "href": "/ebooks/ruth-plumly-thompson/kabumpo-in-oz",
+          "noBanco": null
+        },
+        {
+          "title": "The Cowardly Lion of Oz",
+          "href": "/ebooks/ruth-plumly-thompson/the-cowardly-lion-of-oz",
+          "noBanco": null
+        },
+        {
+          "title": "Grampa in Oz",
+          "href": "/ebooks/ruth-plumly-thompson/grampa-in-oz",
+          "noBanco": null
+        },
+        {
+          "title": "The Lost King of Oz",
+          "href": "/ebooks/ruth-plumly-thompson/the-lost-king-of-oz",
+          "noBanco": null
+        },
+        {
+          "title": "The Hungry Tiger of Oz",
+          "href": "/ebooks/ruth-plumly-thompson/the-hungry-tiger-of-oz",
+          "noBanco": null
+        },
+        {
+          "title": "The Gnome King of Oz",
+          "href": "/ebooks/ruth-plumly-thompson/the-gnome-king-of-oz",
+          "noBanco": null
+        },
+        {
+          "title": "The Giant Horse of Oz",
+          "href": "/ebooks/ruth-plumly-thompson/the-giant-horse-of-oz",
+          "noBanco": null
+        },
+        {
+          "title": "Jack Pumpkinhead of Oz",
+          "href": "/ebooks/ruth-plumly-thompson/jack-pumpkinhead-of-oz",
+          "noBanco": null
+        },
+        {
+          "title": "The Yellow Knight of Oz",
+          "href": "/ebooks/ruth-plumly-thompson/the-yellow-knight-of-oz",
+          "noBanco": null
+        },
+        {
+          "title": "Pirates in Oz",
+          "href": "/ebooks/ruth-plumly-thompson/pirates-in-oz",
+          "noBanco": null
+        },
+        {
+          "title": "The Purple Prince of Oz",
+          "href": "/ebooks/ruth-plumly-thompson/the-purple-prince-of-oz",
+          "noBanco": null
+        },
+        {
+          "title": "Ojo in Oz",
+          "href": "/ebooks/ruth-plumly-thompson/ojo-in-oz",
+          "noBanco": null
+        },
+        {
+          "title": "Speedy in Oz",
+          "href": "/ebooks/ruth-plumly-thompson/speedy-in-oz",
+          "noBanco": null
+        },
+        {
+          "title": "The Wishing Horse of Oz",
+          "href": "/ebooks/ruth-plumly-thompson/the-wishing-horse-of-oz",
+          "noBanco": null
+        },
+        {
+          "title": "Captain Salt in Oz",
+          "href": "/ebooks/ruth-plumly-thompson/captain-salt-in-oz",
+          "noBanco": null
+        },
+        {
+          "title": "Handy Mandy in Oz",
+          "href": "/ebooks/ruth-plumly-thompson/handy-mandy-in-oz",
+          "noBanco": null
+        },
+        {
+          "title": "The Silver Princess in Oz",
+          "href": "/ebooks/ruth-plumly-thompson/the-silver-princess-in-oz",
+          "noBanco": null
+        },
+        {
+          "title": "Ozoplaning with the Wizard of Oz",
+          "href": "/ebooks/ruth-plumly-thompson/ozoplaning-with-the-wizard-of-oz",
+          "noBanco": null
+        },
+        {
+          "title": "The Wonder City of Oz",
+          "href": "/ebooks/john-r-neill/the-wonder-city-of-oz",
+          "noBanco": null
+        },
+        {
+          "title": "The Scalawagons of Oz",
+          "href": "/ebooks/john-r-neill/the-scalawagons-of-oz",
+          "noBanco": null
+        },
+        {
+          "title": "Lucky Bucky in Oz",
+          "href": "/ebooks/john-r-neill/lucky-bucky-in-oz",
+          "noBanco": null
+        },
+        {
+          "title": "The Magical Mimics in Oz",
+          "href": "/ebooks/jack-snow/the-magical-mimics-in-oz",
+          "noBanco": null
+        },
+        {
+          "title": "The Shaggy Man of Oz",
+          "href": "/ebooks/jack-snow/the-shaggy-man-of-oz",
+          "noBanco": null
+        },
+        {
+          "title": "The Hidden Valley of Oz",
+          "href": "/ebooks/rachel-r-c-payes/the-hidden-valley-of-oz",
+          "noBanco": null
+        },
+        {
+          "title": "Merry Go Round in Oz",
+          "href": "/ebooks/eloise-jarvis-mcgraw_lauren-lynn-mcgraw/merry-go-round-in-oz",
+          "noBanco": null
+        },
+        {
+          "title": "Oz Stories",
+          "href": "/ebooks/l-frank-baum/oz-stories",
+          "noBanco": null
+        },
+        {
+          "title": "Yankee in Oz",
+          "href": "/ebooks/ruth-plumly-thompson/yankee-in-oz",
+          "noBanco": null
+        },
+        {
+          "title": "The Enchanted Island of Oz",
+          "href": "/ebooks/ruth-plumly-thompson/the-enchanted-island-of-oz",
+          "noBanco": null
+        }
+      ]
+    },
+    "barsoom": {
+      "nome": "Barsoom — The Martian Collection",
+      "fonte": "https://standardebooks.org/collections/martian",
+      "httpStatus": 200,
+      "total": 11,
+      "existentes": 1,
+      "livros": [
+        {
+          "title": "A Princess of Mars",
+          "href": "/ebooks/edgar-rice-burroughs/a-princess-of-mars",
+          "noBanco": {
+            "id": "8d35f3c5-f906-4bde-9c66-2c94f74520fa",
+            "title": "A Princess of Mars",
+            "level": "B2"
+          }
+        },
+        {
+          "title": "The Gods of Mars",
+          "href": "/ebooks/edgar-rice-burroughs/the-gods-of-mars",
+          "noBanco": null
+        },
+        {
+          "title": "The Warlord of Mars",
+          "href": "/ebooks/edgar-rice-burroughs/the-warlord-of-mars",
+          "noBanco": null
+        },
+        {
+          "title": "Thuvia, Maid of Mars",
+          "href": "/ebooks/edgar-rice-burroughs/thuvia-maid-of-mars",
+          "noBanco": null
+        },
+        {
+          "title": "The Chessmen of Mars",
+          "href": "/ebooks/edgar-rice-burroughs/the-chessmen-of-mars",
+          "noBanco": null
+        },
+        {
+          "title": "The Master Mind of Mars",
+          "href": "/ebooks/edgar-rice-burroughs/the-master-mind-of-mars",
+          "noBanco": null
+        },
+        {
+          "title": "A Fighting Man of Mars",
+          "href": "/ebooks/edgar-rice-burroughs/a-fighting-man-of-mars",
+          "noBanco": null
+        },
+        {
+          "title": "Swords of Mars",
+          "href": "/ebooks/edgar-rice-burroughs/swords-of-mars",
+          "noBanco": null
+        },
+        {
+          "title": "Synthetic Men of Mars",
+          "href": "/ebooks/edgar-rice-burroughs/synthetic-men-of-mars",
+          "noBanco": null
+        },
+        {
+          "title": "Llana of Gathol",
+          "href": "/ebooks/edgar-rice-burroughs/llana-of-gathol",
+          "noBanco": null
+        },
+        {
+          "title": "John Carter of Mars",
+          "href": "/ebooks/edgar-rice-burroughs/john-carter-of-mars",
+          "noBanco": null
+        }
+      ]
+    },
+    "anne-of-green-gables": {
+      "nome": "Anne of Green Gables Collection",
+      "fonte": "https://standardebooks.org/collections/anne-of-green-gables",
+      "httpStatus": 200,
+      "total": 10,
+      "existentes": 3,
+      "livros": [
+        {
+          "title": "Anne of Green Gables",
+          "href": "/ebooks/l-m-montgomery/anne-of-green-gables",
+          "noBanco": {
+            "id": "d425f745-29bd-4c57-b5e7-9d5c6806bd08",
+            "title": "Anne of Green Gables",
+            "level": "B1"
+          }
+        },
+        {
+          "title": "Anne of Avonlea",
+          "href": "/ebooks/l-m-montgomery/anne-of-avonlea",
+          "noBanco": {
+            "id": "4d0e8221-26f7-4c2e-8a18-71caafd9c323",
+            "title": "Anne of Avonlea",
+            "level": "B2"
+          }
+        },
+        {
+          "title": "Anne of the Island",
+          "href": "/ebooks/l-m-montgomery/anne-of-the-island",
+          "noBanco": null
+        },
+        {
+          "title": "Anne of Windy Poplars",
+          "href": "/ebooks/l-m-montgomery/anne-of-windy-poplars",
+          "noBanco": null
+        },
+        {
+          "title": "Anne’s House of Dreams",
+          "href": "/ebooks/l-m-montgomery/annes-house-of-dreams",
+          "noBanco": null
+        },
+        {
+          "title": "Anne of Ingleside",
+          "href": "/ebooks/l-m-montgomery/anne-of-ingleside",
+          "noBanco": null
+        },
+        {
+          "title": "Rainbow Valley",
+          "href": "/ebooks/l-m-montgomery/rainbow-valley",
+          "noBanco": null
+        },
+        {
+          "title": "Rilla of Ingleside",
+          "href": "/ebooks/l-m-montgomery/rilla-of-ingleside",
+          "noBanco": null
+        },
+        {
+          "title": "The Blythes Are Quoted",
+          "href": "/ebooks/l-m-montgomery/the-blythes-are-quoted",
+          "noBanco": null
+        },
+        {
+          "title": "Short Fiction",
+          "href": "/ebooks/l-m-montgomery/short-fiction",
+          "noBanco": {
+            "id": "dbdece45-7586-49c0-af26-72b59a2f9fd7",
+            "title": "Short Fiction",
+            "level": "A1"
+          }
+        }
+      ]
+    },
+    "tarzan": {
+      "nome": "Tarzan — The Jungle Adventures",
+      "fonte": "https://standardebooks.org/collections/tarzan",
+      "httpStatus": 200,
+      "total": 24,
+      "existentes": 0,
+      "livros": [
+        {
+          "title": "Tarzan of the Apes",
+          "href": "/ebooks/edgar-rice-burroughs/tarzan-of-the-apes",
+          "noBanco": null
+        },
+        {
+          "title": "The Return of Tarzan",
+          "href": "/ebooks/edgar-rice-burroughs/the-return-of-tarzan",
+          "noBanco": null
+        },
+        {
+          "title": "The Beasts of Tarzan",
+          "href": "/ebooks/edgar-rice-burroughs/the-beasts-of-tarzan",
+          "noBanco": null
+        },
+        {
+          "title": "The Son of Tarzan",
+          "href": "/ebooks/edgar-rice-burroughs/the-son-of-tarzan",
+          "noBanco": null
+        },
+        {
+          "title": "Tarzan and the Jewels of Opar",
+          "href": "/ebooks/edgar-rice-burroughs/tarzan-and-the-jewels-of-opar",
+          "noBanco": null
+        },
+        {
+          "title": "Jungle Tales of Tarzan",
+          "href": "/ebooks/edgar-rice-burroughs/jungle-tales-of-tarzan",
+          "noBanco": null
+        },
+        {
+          "title": "Tarzan the Untamed",
+          "href": "/ebooks/edgar-rice-burroughs/tarzan-the-untamed",
+          "noBanco": null
+        },
+        {
+          "title": "Tarzan the Terrible",
+          "href": "/ebooks/edgar-rice-burroughs/tarzan-the-terrible",
+          "noBanco": null
+        },
+        {
+          "title": "Tarzan and the Golden Lion",
+          "href": "/ebooks/edgar-rice-burroughs/tarzan-and-the-golden-lion",
+          "noBanco": null
+        },
+        {
+          "title": "Tarzan and the Ant Men",
+          "href": "/ebooks/edgar-rice-burroughs/tarzan-and-the-ant-men",
+          "noBanco": null
+        },
+        {
+          "title": "Tarzan, Lord of the Jungle",
+          "href": "/ebooks/edgar-rice-burroughs/tarzan-lord-of-the-jungle",
+          "noBanco": null
+        },
+        {
+          "title": "Tarzan and the Lost Empire",
+          "href": "/ebooks/edgar-rice-burroughs/tarzan-and-the-lost-empire",
+          "noBanco": null
+        },
+        {
+          "title": "Tarzan at the Earth’s Core",
+          "href": "/ebooks/edgar-rice-burroughs/tarzan-at-the-earths-core",
+          "noBanco": null
+        },
+        {
+          "title": "Tarzan the Invincible",
+          "href": "/ebooks/edgar-rice-burroughs/tarzan-the-invincible",
+          "noBanco": null
+        },
+        {
+          "title": "Tarzan the Triumphant",
+          "href": "/ebooks/edgar-rice-burroughs/tarzan-the-triumphant",
+          "noBanco": null
+        },
+        {
+          "title": "Tarzan and the City of Gold",
+          "href": "/ebooks/edgar-rice-burroughs/tarzan-and-the-city-of-gold",
+          "noBanco": null
+        },
+        {
+          "title": "Tarzan and the Lion Man",
+          "href": "/ebooks/edgar-rice-burroughs/tarzan-and-the-lion-man",
+          "noBanco": null
+        },
+        {
+          "title": "Tarzan and the Leopard Man",
+          "href": "/ebooks/edgar-rice-burroughs/tarzan-and-the-leopard-man",
+          "noBanco": null
+        },
+        {
+          "title": "Tarzan’s Quest",
+          "href": "/ebooks/edgar-rice-burroughs/tarzans-quest",
+          "noBanco": null
+        },
+        {
+          "title": "Tarzan and the Forbidden City",
+          "href": "/ebooks/edgar-rice-burroughs/tarzan-and-the-forbidden-city",
+          "noBanco": null
+        },
+        {
+          "title": "Tarzan the Magnificent",
+          "href": "/ebooks/edgar-rice-burroughs/tarzan-the-magnificent",
+          "noBanco": null
+        },
+        {
+          "title": "Tarzan and the Foreign Legion",
+          "href": "/ebooks/edgar-rice-burroughs/tarzan-and-the-foreign-legion",
+          "noBanco": null
+        },
+        {
+          "title": "Tarzan and the Madman",
+          "href": "/ebooks/edgar-rice-burroughs/tarzan-and-the-madman",
+          "noBanco": null
+        },
+        {
+          "title": "Tarzan and the Castaways",
+          "href": "/ebooks/edgar-rice-burroughs/tarzan-and-the-castaways",
+          "noBanco": null
+        }
+      ]
+    },
+    "pellucidar": {
+      "nome": "Pellucidar — The Lost World Collection",
+      "fonte": "https://standardebooks.org/collections/pellucidar",
+      "httpStatus": 200,
+      "total": 7,
+      "existentes": 0,
+      "livros": [
+        {
+          "title": "At the Earth’s Core",
+          "href": "/ebooks/edgar-rice-burroughs/at-the-earths-core",
+          "noBanco": null
+        },
+        {
+          "title": "Pellucidar",
+          "href": "/ebooks/edgar-rice-burroughs/pellucidar",
+          "noBanco": null
+        },
+        {
+          "title": "Tanar of Pellucidar",
+          "href": "/ebooks/edgar-rice-burroughs/tanar-of-pellucidar",
+          "noBanco": null
+        },
+        {
+          "title": "Tarzan at the Earth’s Core",
+          "href": "/ebooks/edgar-rice-burroughs/tarzan-at-the-earths-core",
+          "noBanco": null
+        },
+        {
+          "title": "Back to the Stone Age",
+          "href": "/ebooks/edgar-rice-burroughs/back-to-the-stone-age",
+          "noBanco": null
+        },
+        {
+          "title": "Land of Terror",
+          "href": "/ebooks/edgar-rice-burroughs/land-of-terror",
+          "noBanco": null
+        },
+        {
+          "title": "Savage Pellucidar",
+          "href": "/ebooks/edgar-rice-burroughs/savage-pellucidar",
+          "noBanco": null
+        }
+      ]
+    },
+    "arsene-lupin": {
+      "nome": "Arsène Lupin — Gentleman Thief",
+      "fonte": "https://standardebooks.org/collections/arsene-lupin",
+      "httpStatus": 200,
+      "total": 23,
+      "existentes": 0,
+      "livros": [
+        {
+          "title": "The Extraordinary Adventures of Arsène Lupin, Gentleman-Burglar",
+          "href": "/ebooks/maurice-leblanc/the-extraordinary-adventures-of-arsene-lupin-gentleman-burglar/george-morehead",
+          "noBanco": null
+        },
+        {
+          "title": "Arsène Lupin Versus Herlock Sholmes",
+          "href": "/ebooks/maurice-leblanc/arsene-lupin-versus-herlock-sholmes/george-morehead",
+          "noBanco": null
+        },
+        {
+          "title": "The Hollow Needle",
+          "href": "/ebooks/maurice-leblanc/the-hollow-needle/alexander-teixeira-de-mattos",
+          "noBanco": null
+        },
+        {
+          "title": "813",
+          "href": "/ebooks/maurice-leblanc/813/alexander-teixeira-de-mattos",
+          "noBanco": null
+        },
+        {
+          "title": "The Crystal Stopper",
+          "href": "/ebooks/maurice-leblanc/the-crystal-stopper/alexander-teixeira-de-mattos",
+          "noBanco": null
+        },
+        {
+          "title": "The Confessions of Arsène Lupin",
+          "href": "/ebooks/maurice-leblanc/the-confessions-of-arsene-lupin/alexander-teixeira-de-mattos",
+          "noBanco": null
+        },
+        {
+          "title": "The Teeth of the Tiger",
+          "href": "/ebooks/maurice-leblanc/the-teeth-of-the-tiger/alexander-teixeira-de-mattos",
+          "noBanco": null
+        },
+        {
+          "title": "The Shell Shard",
+          "href": "/ebooks/maurice-leblanc/the-shell-shard/george-harry",
+          "noBanco": null
+        },
+        {
+          "title": "The Golden Triangle",
+          "href": "/ebooks/maurice-leblanc/the-golden-triangle/alexander-teixeira-de-mattos",
+          "noBanco": null
+        },
+        {
+          "title": "The Secret of Sarek",
+          "href": "/ebooks/maurice-leblanc/the-secret-of-sarek/alexander-teixeira-de-mattos",
+          "noBanco": null
+        },
+        {
+          "title": "The Eight Strokes of the Clock",
+          "href": "/ebooks/maurice-leblanc/the-eight-strokes-of-the-clock/alexander-teixeira-de-mattos",
+          "noBanco": null
+        },
+        {
+          "title": "Memoirs of Arsène Lupin",
+          "href": "/ebooks/maurice-leblanc/memoirs-of-arsene-lupin/alexander-teixeira-de-mattos",
+          "noBanco": null
+        },
+        {
+          "title": "The Overcoat of Arsène Lupin",
+          "href": "/ebooks/maurice-leblanc/the-overcoat-of-arsene-lupin",
+          "noBanco": null
+        },
+        {
+          "title": "The Damsel with Green Eyes",
+          "href": "/ebooks/maurice-leblanc/the-damsel-with-green-eyes/the-macaulay-company",
+          "noBanco": null
+        },
+        {
+          "title": "A Tragedy In The Forest Of Morgues",
+          "href": "/ebooks/maurice-leblanc/a-tragedy-in-the-forest-of-morgues",
+          "noBanco": null
+        },
+        {
+          "title": "The Barnett & Co. Agency",
+          "href": "/ebooks/maurice-leblanc/the-barnett-co-agency",
+          "noBanco": null
+        },
+        {
+          "title": "The Mysterious Mansion",
+          "href": "/ebooks/maurice-leblanc/the-mysterious-mansion",
+          "noBanco": null
+        },
+        {
+          "title": "The Emerald Cabochon",
+          "href": "/ebooks/maurice-leblanc/the-emerald-cabochon",
+          "noBanco": null
+        },
+        {
+          "title": "The Barre-y-va Mystery",
+          "href": "/ebooks/maurice-leblanc/the-barre-y-va-mystery",
+          "noBanco": null
+        },
+        {
+          "title": "The Woman With Two Smiles",
+          "href": "/ebooks/maurice-leblanc/the-woman-with-two-smiles",
+          "noBanco": null
+        },
+        {
+          "title": "Victor of the Vice Squad",
+          "href": "/ebooks/maurice-leblanc/victor-of-the-vice-squad",
+          "noBanco": null
+        },
+        {
+          "title": "The Revenge of The Countess of Cagliostro",
+          "href": "/ebooks/maurice-leblanc/the-revenge-of-the-countess-of-cagliostro",
+          "noBanco": null
+        },
+        {
+          "title": "The Billions of Arsène Lupin",
+          "href": "/ebooks/maurice-leblanc/the-billions-of-arsene-lupin",
+          "noBanco": null
+        }
+      ]
+    },
+    "jules-verne": {
+      "nome": "Jules Verne — Extraordinary Voyages",
+      "fonte": "https://standardebooks.org/collections/voyages-extraordinaires",
+      "httpStatus": 200,
+      "total": 61,
+      "existentes": 0,
+      "livros": [
+        {
+          "title": "Five Weeks in a Balloon",
+          "href": "/ebooks/jules-verne/five-weeks-in-a-balloon/william-lackland",
+          "noBanco": null
+        },
+        {
+          "title": "The Adventures of Captain Hatteras",
+          "href": "/ebooks/jules-verne/the-adventures-of-captain-hatteras/james-r-osgood-and-company",
+          "noBanco": null
+        },
+        {
+          "title": "Journey to the Center of the Earth",
+          "href": "/ebooks/jules-verne/journey-to-the-center-of-the-earth/f-a-malleson",
+          "noBanco": null
+        },
+        {
+          "title": "From the Earth to the Moon",
+          "href": "/ebooks/jules-verne/from-the-earth-to-the-moon/ward-lock-co",
+          "noBanco": null
+        },
+        {
+          "title": "In Search of the Castaways",
+          "href": "/ebooks/jules-verne/in-search-of-the-castaways/j-b-lippincott-co",
+          "noBanco": null
+        },
+        {
+          "title": "Twenty Thousand Leagues under the Seas",
+          "href": "/ebooks/jules-verne/twenty-thousand-leagues-under-the-seas/walter-james-miller",
+          "noBanco": null
+        },
+        {
+          "title": "Round the Moon",
+          "href": "/ebooks/jules-verne/round-the-moon/ward-lock-co",
+          "noBanco": null
+        },
+        {
+          "title": "A Floating City",
+          "href": "/ebooks/jules-verne/a-floating-city/henry-frith",
+          "noBanco": null
+        },
+        {
+          "title": "The Adventures of Three Englishmen and Three Russians in South Africa",
+          "href": "/ebooks/jules-verne/the-adventures-of-three-englishmen-and-three-russians-in-south-africa/henry-frith",
+          "noBanco": null
+        },
+        {
+          "title": "The Fur Country",
+          "href": "/ebooks/jules-verne/the-fur-country/n-danvers",
+          "noBanco": null
+        },
+        {
+          "title": "Around the World in Eighty Days",
+          "href": "/ebooks/jules-verne/around-the-world-in-eighty-days/george-makepeace-towle",
+          "noBanco": null
+        },
+        {
+          "title": "The Mysterious Island",
+          "href": "/ebooks/jules-verne/the-mysterious-island/stephen-w-white",
+          "noBanco": null
+        },
+        {
+          "title": "The Survivors of the Chancellor",
+          "href": "/ebooks/jules-verne/the-survivors-of-the-chancellor/ellen-frewer",
+          "noBanco": null
+        },
+        {
+          "title": "Michael Strogoff",
+          "href": "/ebooks/jules-verne/michael-strogoff/w-h-g-kingston",
+          "noBanco": null
+        },
+        {
+          "title": "Off on a Comet",
+          "href": "/ebooks/jules-verne/off-on-a-comet/edward-roth",
+          "noBanco": null
+        },
+        {
+          "title": "The Child of the Cavern",
+          "href": "/ebooks/jules-verne/the-child-of-the-cavern/vincent-parke-and-company",
+          "noBanco": null
+        },
+        {
+          "title": "Dick Sands, the Boy Captain",
+          "href": "/ebooks/jules-verne/dick-sands-the-boy-captain/ellen-e-frewer",
+          "noBanco": null
+        },
+        {
+          "title": "The Begum’s Millions",
+          "href": "/ebooks/jules-verne/the-begums-millions/w-h-g-kingston",
+          "noBanco": null
+        },
+        {
+          "title": "The Tribulations of a Chinaman in China",
+          "href": "/ebooks/jules-verne/the-tribulations-of-a-chinaman-in-china/virginia-champlin",
+          "noBanco": null
+        },
+        {
+          "title": "The Steam House",
+          "href": "/ebooks/jules-verne/the-steam-house/agnes-d-kingston",
+          "noBanco": null
+        },
+        {
+          "title": "The Giant Raft",
+          "href": "/ebooks/jules-verne/the-giant-raft/w-j-gordon",
+          "noBanco": null
+        },
+        {
+          "title": "Godfrey Morgan",
+          "href": "/ebooks/jules-verne/godfrey-morgan/w-j-gordon",
+          "noBanco": null
+        },
+        {
+          "title": "The Green Ray",
+          "href": "/ebooks/jules-verne/the-green-ray/mary-de-hauteville",
+          "noBanco": null
+        },
+        {
+          "title": "Kéraban the Inflexible",
+          "href": "/ebooks/jules-verne/keraban-the-inflexible/j-c-curtin",
+          "noBanco": null
+        },
+        {
+          "title": "The Vanished Diamond",
+          "href": "/ebooks/jules-verne/the-vanished-diamond/munro",
+          "noBanco": null
+        },
+        {
+          "title": "The Archipelago on Fire",
+          "href": "/ebooks/jules-verne/the-archipelago-on-fire/munro",
+          "noBanco": null
+        },
+        {
+          "title": "Mathias Sandorf",
+          "href": "/ebooks/jules-verne/mathias-sandorf/g-w-hanna",
+          "noBanco": null
+        },
+        {
+          "title": "The Wreck of the Cynthia",
+          "href": "/ebooks/jules-verne/the-wreck-of-the-cynthia/munro",
+          "noBanco": null
+        },
+        {
+          "title": "Ticket No. 9672",
+          "href": "/ebooks/jules-verne/ticket-no-9672/laura-e-kendall",
+          "noBanco": null
+        },
+        {
+          "title": "Robur the Conqueror",
+          "href": "/ebooks/jules-verne/robur-the-conqueror/sampson-low-marston-searle-rivington",
+          "noBanco": null
+        },
+        {
+          "title": "North Against South",
+          "href": "/ebooks/jules-verne/north-against-south/sampson-low",
+          "noBanco": null
+        },
+        {
+          "title": "The Flight to France",
+          "href": "/ebooks/jules-verne/the-flight-to-france/sampson-low",
+          "noBanco": null
+        },
+        {
+          "title": "Two Years’ Vacation",
+          "href": "/ebooks/jules-verne/two-years-vacation/munro",
+          "noBanco": null
+        },
+        {
+          "title": "Family Without a Name",
+          "href": "/ebooks/jules-verne/family-without-a-name/edward-baxter",
+          "noBanco": null
+        },
+        {
+          "title": "Topsy-Turvy",
+          "href": "/ebooks/jules-verne/topsy-turvy/j-g-ogilvie",
+          "noBanco": null
+        },
+        {
+          "title": "César Cascabel",
+          "href": "/ebooks/jules-verne/cesar-cascabel/a-estoclet",
+          "noBanco": null
+        },
+        {
+          "title": "Mistress Branican",
+          "href": "/ebooks/jules-verne/mistress-branican/a-estoclet",
+          "noBanco": null
+        },
+        {
+          "title": "The Carpathian Castle",
+          "href": "/ebooks/jules-verne/the-carpathian-castle/sampson-low",
+          "noBanco": null
+        },
+        {
+          "title": "The Special Correspondent",
+          "href": "/ebooks/jules-verne/the-special-correspondent/the-boys-own-paper",
+          "noBanco": null
+        },
+        {
+          "title": "Foundling Mick",
+          "href": "/ebooks/jules-verne/foundling-mick/sampson-low",
+          "noBanco": null
+        },
+        {
+          "title": "Captain Antifer",
+          "href": "/ebooks/jules-verne/captain-antifer/sampson-low",
+          "noBanco": null
+        },
+        {
+          "title": "The Floating Island",
+          "href": "/ebooks/jules-verne/the-floating-island/w-j-gordon",
+          "noBanco": null
+        },
+        {
+          "title": "Facing the Flag",
+          "href": "/ebooks/jules-verne/facing-the-flag/f-tennyson-neely",
+          "noBanco": null
+        },
+        {
+          "title": "Clovis Dardentor",
+          "href": "/ebooks/jules-verne/clovis-dardentor/sampson-low",
+          "noBanco": null
+        },
+        {
+          "title": "An Antarctic Mystery",
+          "href": "/ebooks/jules-verne/an-antarctic-mystery/frances-cashel-hoey",
+          "noBanco": null
+        },
+        {
+          "title": "The Mighty Orinoco",
+          "href": "/ebooks/jules-verne/the-mighty-orinoco/stanford-l-luce",
+          "noBanco": null
+        },
+        {
+          "title": "The Will of an Eccentric",
+          "href": "/ebooks/jules-verne/the-will-of-an-eccentric/sampson-low",
+          "noBanco": null
+        },
+        {
+          "title": "The Castaways of the Flag",
+          "href": "/ebooks/jules-verne/the-castaways-of-the-flag/cranstoun-metcalfe",
+          "noBanco": null
+        },
+        {
+          "title": "The Village in the Treetops",
+          "href": "/ebooks/jules-verne/the-village-in-the-treetops/i-o-evans",
+          "noBanco": null
+        },
+        {
+          "title": "The Sea Serpent",
+          "href": "/ebooks/jules-verne/the-sea-serpent/i-o-evans",
+          "noBanco": null
+        },
+        {
+          "title": "The Kip Brothers",
+          "href": "/ebooks/jules-verne/the-kip-brothers/stanford-l-luce",
+          "noBanco": null
+        },
+        {
+          "title": "Travel Scholarships",
+          "href": "/ebooks/jules-verne/travel-scholarships/teri-j-hernandez",
+          "noBanco": null
+        },
+        {
+          "title": "A Drama in Livonia",
+          "href": "/ebooks/jules-verne/a-drama-in-livonia/i-o-evans",
+          "noBanco": null
+        },
+        {
+          "title": "Master of the World",
+          "href": "/ebooks/jules-verne/master-of-the-world/cranstoun-metcalfe",
+          "noBanco": null
+        },
+        {
+          "title": "The Lighthouse at the End of the World",
+          "href": "/ebooks/jules-verne/the-lighthouse-at-the-end-of-the-world/cranstoun-metcalfe",
+          "noBanco": null
+        },
+        {
+          "title": "Invasion of the Sea",
+          "href": "/ebooks/jules-verne/invasion-of-the-sea/edward-baxter",
+          "noBanco": null
+        },
+        {
+          "title": "The Golden Volcano",
+          "href": "/ebooks/jules-verne/the-golden-volcano/i-o-evans",
+          "noBanco": null
+        },
+        {
+          "title": "The Chase of the Golden Meteor",
+          "href": "/ebooks/jules-verne/the-chase-of-the-golden-meteor/frederik-lawton",
+          "noBanco": null
+        },
+        {
+          "title": "The Danube Pilot",
+          "href": "/ebooks/jules-verne/the-danube-pilot/i-o-evans",
+          "noBanco": null
+        },
+        {
+          "title": "Magellania",
+          "href": "/ebooks/jules-verne/magellania/benjamin-fry",
+          "noBanco": null
+        },
+        {
+          "title": "The Secret of Wilhelm Storitz",
+          "href": "/ebooks/jules-verne/the-secret-of-wilhelm-storitz/i-o-evans",
+          "noBanco": null
+        }
+      ]
+    },
+    "poe": {
+      "nome": "Edgar Allan Poe",
+      "fonte": "https://standardebooks.org/ebooks/edgar-allan-poe",
+      "httpStatus": 200,
+      "total": 3,
+      "existentes": 1,
+      "livros": [
+        {
+          "title": "Poetry",
+          "href": "/ebooks/edgar-allan-poe/poetry",
+          "noBanco": null
+        },
+        {
+          "title": "Short Fiction",
+          "href": "/ebooks/edgar-allan-poe/short-fiction",
+          "noBanco": {
+            "id": "dbdece45-7586-49c0-af26-72b59a2f9fd7",
+            "title": "Short Fiction",
+            "level": "A1"
+          }
+        },
+        {
+          "title": "The Narrative of Arthur Gordon Pym of Nantucket",
+          "href": "/ebooks/edgar-allan-poe/the-narrative-of-arthur-gordon-pym-of-nantucket",
+          "noBanco": null
+        }
+      ]
+    },
+    "lovecraft": {
+      "nome": "H. P. Lovecraft",
+      "fonte": "https://standardebooks.org/ebooks/h-p-lovecraft",
+      "httpStatus": 200,
+      "total": 3,
+      "existentes": 1,
+      "livros": [
+        {
+          "title": "The Case of Charles Dexter Ward",
+          "href": "/ebooks/h-p-lovecraft/the-case-of-charles-dexter-ward",
+          "noBanco": null
+        },
+        {
+          "title": "At the Mountains of Madness",
+          "href": "/ebooks/h-p-lovecraft/at-the-mountains-of-madness",
+          "noBanco": null
+        },
+        {
+          "title": "Short Fiction",
+          "href": "/ebooks/h-p-lovecraft/short-fiction",
+          "noBanco": {
+            "id": "dbdece45-7586-49c0-af26-72b59a2f9fd7",
+            "title": "Short Fiction",
+            "level": "A1"
+          }
+        }
+      ]
+    },
+    "hg-wells": {
+      "nome": "H. G. Wells",
+      "fonte": "https://standardebooks.org/ebooks/h-g-wells",
+      "httpStatus": 200,
+      "total": 15,
+      "existentes": 5,
+      "livros": [
+        {
+          "title": "The Wheels of Chance",
+          "href": "/ebooks/h-g-wells/the-wheels-of-chance",
+          "noBanco": null
+        },
+        {
+          "title": "In the Days of the Comet",
+          "href": "/ebooks/h-g-wells/in-the-days-of-the-comet",
+          "noBanco": null
+        },
+        {
+          "title": "Mr. Britling Sees It Through",
+          "href": "/ebooks/h-g-wells/mr-britling-sees-it-through",
+          "noBanco": null
+        },
+        {
+          "title": "The First Men in the Moon",
+          "href": "/ebooks/h-g-wells/the-first-men-in-the-moon",
+          "noBanco": {
+            "id": "89becdc4-4dd4-4e84-9eb0-8bf4db5db6cd",
+            "title": "The First Men in the Moon",
+            "level": "B2"
+          }
+        },
+        {
+          "title": "The Food of the Gods",
+          "href": "/ebooks/h-g-wells/the-food-of-the-gods",
+          "noBanco": null
+        },
+        {
+          "title": "The World Set Free",
+          "href": "/ebooks/h-g-wells/the-world-set-free",
+          "noBanco": null
+        },
+        {
+          "title": "Tono-Bungay",
+          "href": "/ebooks/h-g-wells/tono-bungay",
+          "noBanco": null
+        },
+        {
+          "title": "Short Fiction",
+          "href": "/ebooks/h-g-wells/short-fiction",
+          "noBanco": {
+            "id": "dbdece45-7586-49c0-af26-72b59a2f9fd7",
+            "title": "Short Fiction",
+            "level": "A1"
+          }
+        },
+        {
+          "title": "Kipps",
+          "href": "/ebooks/h-g-wells/kipps",
+          "noBanco": null
+        },
+        {
+          "title": "The Wonderful Visit",
+          "href": "/ebooks/h-g-wells/the-wonderful-visit",
+          "noBanco": null
+        },
+        {
+          "title": "The History of Mr. Polly",
+          "href": "/ebooks/h-g-wells/the-history-of-mr-polly",
+          "noBanco": null
+        },
+        {
+          "title": "The Island of Doctor Moreau",
+          "href": "/ebooks/h-g-wells/the-island-of-doctor-moreau",
+          "noBanco": null
+        },
+        {
+          "title": "The Invisible Man",
+          "href": "/ebooks/h-g-wells/the-invisible-man",
+          "noBanco": {
+            "id": "cb00add5-d444-4af1-865e-30cf0b1fc11a",
+            "title": "The Invisible Man",
+            "level": "B2"
+          }
+        },
+        {
+          "title": "The War of the Worlds",
+          "href": "/ebooks/h-g-wells/the-war-of-the-worlds",
+          "noBanco": {
+            "id": "45138fa5-6905-49df-bbc5-eb7d24b18009",
+            "title": "The War of the Worlds",
+            "level": "B2"
+          }
+        },
+        {
+          "title": "The Time Machine",
+          "href": "/ebooks/h-g-wells/the-time-machine",
+          "noBanco": {
+            "id": "ed96256a-60b2-4638-8c57-374e1fc1f492",
+            "title": "The Time Machine",
+            "level": "B2"
+          }
+        }
+      ]
+    }
+  }
+}

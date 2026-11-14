@@ -1,0 +1,222 @@
+[
+ {
+  "ordem": 4,
+  "titulo": "Ozma of Oz",
+  "estilo": "infantil-guache"
+ },
+ {
+  "ordem": 8,
+  "titulo": "Anne of Green Gables",
+  "estilo": "aquarela-nanquim"
+ },
+ {
+  "ordem": 9,
+  "titulo": "Anne of Avonlea",
+  "estilo": "aquarela-nanquim"
+ },
+ {
+  "ordem": 10,
+  "titulo": "The Wind in the Willows",
+  "estilo": "aquarela-nanquim"
+ },
+ {
+  "ordem": 11,
+  "titulo": "Alice’s Adventures in Wonderland",
+  "estilo": "realismo-magico"
+ },
+ {
+  "ordem": 12,
+  "titulo": "Through the Looking-Glass",
+  "estilo": "realismo-magico"
+ },
+ {
+  "ordem": 13,
+  "titulo": "Just So Stories",
+  "estilo": "infantil-guache"
+ },
+ {
+  "ordem": 14,
+  "titulo": "The Jungle Book",
+  "estilo": "hq-europeia"
+ },
+ {
+  "ordem": 15,
+  "titulo": "The Adventures of Tom Sawyer",
+  "estilo": "hq-europeia"
+ },
+ {
+  "ordem": 16,
+  "titulo": "The Prince and the Pauper",
+  "estilo": "pintura-historica"
+ },
+ {
+  "ordem": 17,
+  "titulo": "The Call of the Wild",
+  "estilo": "hq-americana"
+ },
+ {
+  "ordem": 18,
+  "titulo": "White Fang",
+  "estilo": "hq-americana"
+ },
+ {
+  "ordem": 19,
+  "titulo": "Treasure Island",
+  "estilo": "pintura-historica"
+ },
+ {
+  "ordem": 20,
+  "titulo": "Kidnapped",
+  "estilo": "pintura-historica"
+ },
+ {
+  "ordem": 21,
+  "titulo": "The Lost World",
+  "estilo": "fantasia-epica"
+ },
+ {
+  "ordem": 22,
+  "titulo": "A Princess of Mars",
+  "estilo": "ficcao-cientifica"
+ },
+ {
+  "ordem": 23,
+  "titulo": "A Study in Scarlet",
+  "estilo": "noir-misterio"
+ },
+ {
+  "ordem": 24,
+  "titulo": "The Sign of the Four",
+  "estilo": "noir-misterio"
+ },
+ {
+  "ordem": 25,
+  "titulo": "The Adventures of Sherlock Holmes",
+  "estilo": "noir-misterio"
+ },
+ {
+  "ordem": 26,
+  "titulo": "The Hound of the Baskervilles",
+  "estilo": "terror-gotico"
+ },
+ {
+  "ordem": 27,
+  "titulo": "The Memoirs of Sherlock Holmes",
+  "estilo": "noir-misterio"
+ },
+ {
+  "ordem": 28,
+  "titulo": "The Moonstone",
+  "estilo": "noir-misterio"
+ },
+ {
+  "ordem": 29,
+  "titulo": "The Woman in White",
+  "estilo": "terror-gotico"
+ },
+ {
+  "ordem": 30,
+  "titulo": "The Time Machine",
+  "estilo": "ficcao-cientifica"
+ },
+ {
+  "ordem": 31,
+  "titulo": "The Invisible Man",
+  "estilo": "ficcao-cientifica"
+ },
+ {
+  "ordem": 32,
+  "titulo": "The War of the Worlds",
+  "estilo": "ficcao-cientifica"
+ },
+ {
+  "ordem": 33,
+  "titulo": "The First Men in the Moon",
+  "estilo": "ficcao-cientifica"
+ },
+ {
+  "ordem": 34,
+  "titulo": "Flatland",
+  "estilo": "ficcao-cientifica"
+ },
+ {
+  "ordem": 35,
+  "titulo": "Frankenstein",
+  "estilo": "terror-gotico"
+ },
+ {
+  "ordem": 36,
+  "titulo": "Dracula",
+  "estilo": "terror-gotico"
+ },
+ {
+  "ordem": 37,
+  "titulo": "The Strange Case of Dr. Jekyll and Mr. Hyde",
+  "estilo": "terror-gotico"
+ },
+ {
+  "ordem": 38,
+  "titulo": "The Picture of Dorian Gray",
+  "estilo": "terror-gotico"
+ },
+ {
+  "ordem": 39,
+  "titulo": "Pride and Prejudice",
+  "estilo": "romance-aquarela"
+ },
+ {
+  "ordem": 40,
+  "titulo": "Sense and Sensibility",
+  "estilo": "romance-aquarela"
+ },
+ {
+  "ordem": 41,
+  "titulo": "Jane Eyre",
+  "estilo": "pintura-historica"
+ },
+ {
+  "ordem": 42,
+  "titulo": "Wuthering Heights",
+  "estilo": "pintura-historica"
+ },
+ {
+  "ordem": 43,
+  "titulo": "Little Women",
+  "estilo": "romance-aquarela"
+ },
+ {
+  "ordem": 44,
+  "titulo": "A Christmas Carol",
+  "estilo": "pintura-historica"
+ },
+ {
+  "ordem": 45,
+  "titulo": "Great Expectations",
+  "estilo": "pintura-historica"
+ },
+ {
+  "ordem": 46,
+  "titulo": "The Great Gatsby",
+  "estilo": "romance-aquarela"
+ },
+ {
+  "ordem": 47,
+  "titulo": "The Importance of Being Earnest",
+  "estilo": "romance-aquarela"
+ },
+ {
+  "ordem": 48,
+  "titulo": "Moby-Dick",
+  "estilo": "pintura-historica"
+ },
+ {
+  "ordem": 49,
+  "titulo": "Heart of Darkness",
+  "estilo": "noir-misterio"
+ },
+ {
+  "ordem": 50,
+  "titulo": "Ulysses",
+  "estilo": "realismo-magico"
+ }
+]

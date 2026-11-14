@@ -1,0 +1,483 @@
+{
+  "at": "2026-11-13T23:20:37.994Z",
+  "banco": 74,
+  "itens": [
+    {
+      "n": 101,
+      "title": "The Turn of the Screw",
+      "author": "Henry James",
+      "level": "C1",
+      "category": "mystery",
+      "decision": "TO_IMPORT",
+      "match": null
+    },
+    {
+      "n": 102,
+      "title": "The King in Yellow",
+      "author": "Robert W. Chambers",
+      "level": "C1",
+      "category": "mystery",
+      "decision": "TO_IMPORT",
+      "match": null
+    },
+    {
+      "n": 103,
+      "title": "The Island of Doctor Moreau",
+      "author": "H. G. Wells",
+      "level": "B2",
+      "category": "fantasy",
+      "decision": "TO_IMPORT",
+      "match": null
+    },
+    {
+      "n": 104,
+      "title": "The Food of the Gods",
+      "author": "H. G. Wells",
+      "level": "B2",
+      "category": "fantasy",
+      "decision": "TO_IMPORT",
+      "match": null
+    },
+    {
+      "n": 105,
+      "title": "Dorothy and the Wizard in Oz",
+      "author": "L. Frank Baum",
+      "level": "B1",
+      "category": "fantasy",
+      "decision": "TO_IMPORT",
+      "match": null
+    },
+    {
+      "n": 106,
+      "title": "The Road to Oz",
+      "author": "L. Frank Baum",
+      "level": "B1",
+      "category": "fantasy",
+      "decision": "TO_IMPORT",
+      "match": null
+    },
+    {
+      "n": 107,
+      "title": "The Emerald City of Oz",
+      "author": "L. Frank Baum",
+      "level": "B1",
+      "category": "fantasy",
+      "decision": "TO_IMPORT",
+      "match": null
+    },
+    {
+      "n": 108,
+      "title": "The Patchwork Girl of Oz",
+      "author": "L. Frank Baum",
+      "level": "B1",
+      "category": "fantasy",
+      "decision": "TO_IMPORT",
+      "match": null
+    },
+    {
+      "n": 109,
+      "title": "Tik-Tok of Oz",
+      "author": "L. Frank Baum",
+      "level": "B1",
+      "category": "fantasy",
+      "decision": "TO_IMPORT",
+      "match": null
+    },
+    {
+      "n": 110,
+      "title": "The Scarecrow of Oz",
+      "author": "L. Frank Baum",
+      "level": "B1",
+      "category": "fantasy",
+      "decision": "TO_IMPORT",
+      "match": null
+    },
+    {
+      "n": 111,
+      "title": "Rinkitink in Oz",
+      "author": "L. Frank Baum",
+      "level": "B1",
+      "category": "fantasy",
+      "decision": "TO_IMPORT",
+      "match": null
+    },
+    {
+      "n": 112,
+      "title": "The Lost Princess of Oz",
+      "author": "L. Frank Baum",
+      "level": "B1",
+      "category": "fantasy",
+      "decision": "TO_IMPORT",
+      "match": null
+    },
+    {
+      "n": 113,
+      "title": "The Tin Woodman of Oz",
+      "author": "L. Frank Baum",
+      "level": "B1",
+      "category": "fantasy",
+      "decision": "TO_IMPORT",
+      "match": null
+    },
+    {
+      "n": 114,
+      "title": "The Magic of Oz",
+      "author": "L. Frank Baum",
+      "level": "B1",
+      "category": "fantasy",
+      "decision": "TO_IMPORT",
+      "match": null
+    },
+    {
+      "n": 115,
+      "title": "Glinda of Oz",
+      "author": "L. Frank Baum",
+      "level": "B1",
+      "category": "fantasy",
+      "decision": "TO_IMPORT",
+      "match": null
+    },
+    {
+      "n": 116,
+      "title": "Anne of the Island",
+      "author": "L. M. Montgomery",
+      "level": "B2",
+      "category": "",
+      "decision": "TO_IMPORT",
+      "match": null
+    },
+    {
+      "n": 117,
+      "title": "Anne of Windy Poplars",
+      "author": "L. M. Montgomery",
+      "level": "B2",
+      "category": "",
+      "decision": "TO_IMPORT",
+      "match": null
+    },
+    {
+      "n": 118,
+      "title": "Anne’s House of Dreams",
+      "author": "L. M. Montgomery",
+      "level": "B2",
+      "category": "",
+      "decision": "TO_IMPORT",
+      "match": null
+    },
+    {
+      "n": 119,
+      "title": "Anne of Ingleside",
+      "author": "L. M. Montgomery",
+      "level": "B2",
+      "category": "",
+      "decision": "TO_IMPORT",
+      "match": null
+    },
+    {
+      "n": 120,
+      "title": "Rainbow Valley",
+      "author": "L. M. Montgomery",
+      "level": "B2",
+      "category": "",
+      "decision": "TO_IMPORT",
+      "match": null
+    },
+    {
+      "n": 121,
+      "title": "Rilla of Ingleside",
+      "author": "L. M. Montgomery",
+      "level": "B2",
+      "category": "",
+      "decision": "TO_IMPORT",
+      "match": null
+    },
+    {
+      "n": 122,
+      "title": "The Gods of Mars",
+      "author": "Edgar Rice Burroughs",
+      "level": "B2",
+      "category": "fantasy",
+      "decision": "TO_IMPORT",
+      "match": null
+    },
+    {
+      "n": 123,
+      "title": "The Warlord of Mars",
+      "author": "Edgar Rice Burroughs",
+      "level": "B2",
+      "category": "fantasy",
+      "decision": "TO_IMPORT",
+      "match": null
+    },
+    {
+      "n": 124,
+      "title": "Thuvia, Maid of Mars",
+      "author": "Edgar Rice Burroughs",
+      "level": "B2",
+      "category": "fantasy",
+      "decision": "TO_IMPORT",
+      "match": null
+    },
+    {
+      "n": 125,
+      "title": "The Chessmen of Mars",
+      "author": "Edgar Rice Burroughs",
+      "level": "B2",
+      "category": "fantasy",
+      "decision": "TO_IMPORT",
+      "match": null
+    },
+    {
+      "n": 126,
+      "title": "The Master Mind of Mars",
+      "author": "Edgar Rice Burroughs",
+      "level": "B2",
+      "category": "fantasy",
+      "decision": "TO_IMPORT",
+      "match": null
+    },
+    {
+      "n": 127,
+      "title": "A Fighting Man of Mars",
+      "author": "Edgar Rice Burroughs",
+      "level": "B2",
+      "category": "fantasy",
+      "decision": "TO_IMPORT",
+      "match": null
+    },
+    {
+      "n": 128,
+      "title": "Swords of Mars",
+      "author": "Edgar Rice Burroughs",
+      "level": "B2",
+      "category": "fantasy",
+      "decision": "TO_IMPORT",
+      "match": null
+    },
+    {
+      "n": 129,
+      "title": "Synthetic Men of Mars",
+      "author": "Edgar Rice Burroughs",
+      "level": "B2",
+      "category": "fantasy",
+      "decision": "TO_IMPORT",
+      "match": null
+    },
+    {
+      "n": 130,
+      "title": "Llana of Gathol",
+      "author": "Edgar Rice Burroughs",
+      "level": "B2",
+      "category": "fantasy",
+      "decision": "TO_IMPORT",
+      "match": null
+    },
+    {
+      "n": 131,
+      "title": "John Carter of Mars",
+      "author": "Edgar Rice Burroughs",
+      "level": "B2",
+      "category": "fantasy",
+      "decision": "TO_IMPORT",
+      "match": null
+    },
+    {
+      "n": 132,
+      "title": "At the Earth’s Core",
+      "author": "Edgar Rice Burroughs",
+      "level": "B2",
+      "category": "fantasy",
+      "decision": "TO_IMPORT",
+      "match": null
+    },
+    {
+      "n": 133,
+      "title": "Pellucidar",
+      "author": "Edgar Rice Burroughs",
+      "level": "B2",
+      "category": "fantasy",
+      "decision": "TO_IMPORT",
+      "match": null
+    },
+    {
+      "n": 134,
+      "title": "Tanar of Pellucidar",
+      "author": "Edgar Rice Burroughs",
+      "level": "B2",
+      "category": "fantasy",
+      "decision": "TO_IMPORT",
+      "match": null
+    },
+    {
+      "n": 135,
+      "title": "Tarzan at the Earth’s Core",
+      "author": "Edgar Rice Burroughs",
+      "level": "B2",
+      "category": "fantasy",
+      "decision": "TO_IMPORT",
+      "match": null
+    },
+    {
+      "n": 136,
+      "title": "Back to the Stone Age",
+      "author": "Edgar Rice Burroughs",
+      "level": "B2",
+      "category": "fantasy",
+      "decision": "TO_IMPORT",
+      "match": null
+    },
+    {
+      "n": 137,
+      "title": "Land of Terror",
+      "author": "Edgar Rice Burroughs",
+      "level": "B2",
+      "category": "fantasy",
+      "decision": "TO_IMPORT",
+      "match": null
+    },
+    {
+      "n": 138,
+      "title": "Savage Pellucidar",
+      "author": "Edgar Rice Burroughs",
+      "level": "B2",
+      "category": "fantasy",
+      "decision": "TO_IMPORT",
+      "match": null
+    },
+    {
+      "n": 139,
+      "title": "Short Fiction",
+      "author": "Edgar Allan Poe",
+      "level": "C1",
+      "category": "mystery",
+      "decision": "TO_IMPORT",
+      "match": null
+    },
+    {
+      "n": 140,
+      "title": "The Narrative of Arthur Gordon Pym of Nantucket",
+      "author": "Edgar Allan Poe",
+      "level": "C1",
+      "category": "mystery",
+      "decision": "TO_IMPORT",
+      "match": null
+    },
+    {
+      "n": 141,
+      "title": "Poetry",
+      "author": "Edgar Allan Poe",
+      "level": "C1",
+      "category": "mystery",
+      "decision": "TO_IMPORT",
+      "match": null
+    },
+    {
+      "n": 142,
+      "title": "Short Fiction",
+      "author": "H. P. Lovecraft",
+      "level": "C1",
+      "category": "mystery",
+      "decision": "TO_IMPORT",
+      "match": null
+    },
+    {
+      "n": 143,
+      "title": "At the Mountains of Madness",
+      "author": "H. P. Lovecraft",
+      "level": "C1",
+      "category": "mystery",
+      "decision": "TO_IMPORT",
+      "match": null
+    },
+    {
+      "n": 144,
+      "title": "The Case of Charles Dexter Ward",
+      "author": "H. P. Lovecraft",
+      "level": "C1",
+      "category": "mystery",
+      "decision": "TO_IMPORT",
+      "match": null
+    },
+    {
+      "n": 145,
+      "title": "The Extraordinary Adventures of Arsène Lupin, Gentleman-Burglar",
+      "author": "Maurice Leblanc",
+      "level": "B2",
+      "category": "mystery",
+      "decision": "TO_IMPORT",
+      "match": null
+    },
+    {
+      "n": 146,
+      "title": "Arsène Lupin Versus Herlock Sholmes",
+      "author": "Maurice Leblanc",
+      "level": "B2",
+      "category": "mystery",
+      "decision": "TO_IMPORT",
+      "match": null
+    },
+    {
+      "n": 147,
+      "title": "The Hollow Needle",
+      "author": "Maurice Leblanc",
+      "level": "B2",
+      "category": "mystery",
+      "decision": "TO_IMPORT",
+      "match": null
+    },
+    {
+      "n": 148,
+      "title": "Journey to the Center of the Earth",
+      "author": "Jules Verne",
+      "level": "B2",
+      "category": "adventure",
+      "decision": "TO_IMPORT",
+      "match": null
+    },
+    {
+      "n": 149,
+      "title": "Twenty Thousand Leagues under the Seas",
+      "author": "Jules Verne",
+      "level": "B2",
+      "category": "adventure",
+      "decision": "TO_IMPORT",
+      "match": null
+    },
+    {
+      "n": 150,
+      "title": "Around the World in Eighty Days",
+      "author": "Jules Verne",
+      "level": "B2",
+      "category": "adventure",
+      "decision": "TO_IMPORT",
+      "match": null
+    },
+    {
+      "n": 151,
+      "title": "The Mysterious Island",
+      "author": "Jules Verne",
+      "level": "B2",
+      "category": "adventure",
+      "decision": "TO_IMPORT",
+      "match": null
+    },
+    {
+      "n": 152,
+      "title": "From the Earth to the Moon",
+      "author": "Jules Verne",
+      "level": "B2",
+      "category": "adventure",
+      "decision": "TO_IMPORT",
+      "match": null
+    },
+    {
+      "n": 153,
+      "title": "In Search of the Castaways",
+      "author": "Jules Verne",
+      "level": "B2",
+      "category": "adventure",
+      "decision": "TO_IMPORT",
+      "match": null
+    }
+  ]
+}
