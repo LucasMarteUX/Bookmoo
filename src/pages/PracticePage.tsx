@@ -6,7 +6,7 @@ import { useLanguage } from '@/store/useLanguage'
 import { useBookStore } from '@/store/useBookStore'
 import { Button } from '@/components/ui/button'
 import { PracticeStats } from '@/components/stats/PracticeStats'
-import { ToolButton, ToolGroup } from '@/components/ui/toolbar'
+import { SegmentedTabs } from '@/components/ui/filter-controls'
 
 export function PracticePage() {
   const { kind } = useParams<{ kind: string }>()
@@ -18,17 +18,18 @@ export function PracticePage() {
   const books = useBookStore.getState().books
   const lastBook = [...books].sort((a, b) => +new Date(b.lastRead) - +new Date(a.lastRead))[0]
   return (
-    <div className="max-w-6xl mx-auto space-y-8">
-      <ToolGroup label={pt ? 'Prática' : 'Practice'} className="w-fit">
-        <ToolButton icon={<AudioLines className="w-4 h-4" />} label={pt ? 'Falar' : 'Speak'} active={speak} onClick={() => navigate('/practice/speak')} />
-        <ToolButton icon={<PenLine className="w-4 h-4" />} label={pt ? 'Ditado' : 'Dictation'} active={!speak} onClick={() => navigate('/practice/write')} />
-      </ToolGroup>
-      <section className="practice-card relative overflow-hidden rounded-2xl p-6 md:p-8 min-h-[190px]" style={{ ['--card-bg' as string]: speak ? 'var(--pastel-blue-bg)' : 'var(--pastel-lavender-bg)' }}>
+    <div className="max-w-6xl mx-auto space-y-6 md:space-y-8">
+      <header className="space-y-3">
+        <h1 className="font-display text-[30px] md:text-[40px] leading-[1.05]" style={{ color: 'var(--theme-text)' }}>{pt ? 'Praticar' : 'Practice'}</h1>
+        <SegmentedTabs className="sm:w-80" stretch label={pt ? 'Prática' : 'Practice'} value={speak ? 'speak' : 'write'} onChange={v => navigate(`/practice/${v}`)}
+          options={[{ id: 'speak', label: pt ? 'Falar' : 'Speak', icon: <AudioLines className="w-3.5 h-3.5" /> }, { id: 'write', label: pt ? 'Ditado' : 'Dictation', icon: <PenLine className="w-3.5 h-3.5" /> }]} />
+      </header>
+      <section className="practice-card relative overflow-hidden rounded-2xl p-5 md:p-8 min-h-[170px] md:min-h-[190px]" style={{ ['--card-bg' as string]: speak ? 'var(--pastel-blue-bg)' : 'var(--pastel-lavender-bg)' }}>
         <div className="relative z-10 max-w-[60%]">
-          <h1 className="font-display text-[34px] md:text-[42px] leading-[1.05]" style={{ color: 'var(--theme-text)' }}>
+          <h2 className="font-display text-[24px] md:text-[34px] leading-[1.05]" style={{ color: 'var(--theme-text)' }}>
             {speak ? (pt ? 'Falar' : 'Speak') : (pt ? 'Ditado' : 'Dictation')}
-          </h1>
-          <p className="mt-2 text-[14.5px] leading-relaxed" style={{ color: 'var(--theme-text-secondary)' }}>
+          </h2>
+          <p className="mt-2 text-[13.5px] md:text-[14.5px] leading-relaxed" style={{ color: 'var(--theme-text-secondary)' }}>
             {speak
               ? (pt ? 'Leia em voz alta e veja, palavra por palavra, o que você falou certo, quase, errado ou pulou.' : 'Read aloud and see, word by word, what you said right, close, wrong or skipped.')
               : (pt ? 'Ouça cada palavra e digite. Acompanhe suas notas por página e as palavras que mais escapam.' : 'Listen to each word and type it. Track your scores per page and the words that slip away.')}

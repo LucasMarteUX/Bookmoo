@@ -330,23 +330,24 @@ export function Dashboard() {
     <div className="max-w-6xl mx-auto space-y-10">
       <header className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
-          <p className="text-[13px] capitalize" style={{ color: 'var(--theme-text-secondary)' }}>
+          <p className="text-[12.5px] sm:text-[13px] capitalize" style={{ color: 'var(--theme-text-secondary)' }}>
             {new Date().toLocaleDateString(pt ? 'pt-BR' : 'en-US', { weekday: 'long', day: 'numeric', month: 'long' })}
           </p>
-          <h1 className="font-display mt-1 text-[32px] md:text-[40px] leading-[1.05]" style={{ color: 'var(--theme-text)' }}>{t(greetingKey)}{firstName ? `, ${firstName}` : ''}</h1>
+          <h1 className="font-display mt-0.5 text-[30px] md:text-[40px] leading-[1.05]" style={{ color: 'var(--theme-text)' }}>{t(greetingKey)}{firstName ? `, ${firstName}` : ''}</h1>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex w-full sm:w-auto flex-wrap items-center gap-2">
           <input ref={epubInputRef} type="file" accept=".epub,application/epub+zip" className="hidden" onChange={handleEpubChange} />
           <input ref={pdfInputRef} type="file" accept=".pdf,application/pdf" className="hidden" onChange={handlePdfChange} />
-          <Button variant="outline" onClick={() => epubInputRef.current?.click()} disabled={epubStatus.busy}>
+          {/* No celular só o "Adicionar livro": a janela já tem as opções de EPUB e PDF. */}
+          <Button variant="outline" className="hidden sm:inline-flex" onClick={() => epubInputRef.current?.click()} disabled={epubStatus.busy}>
             <BookUp className="w-4 h-4" />
             {epubStatus.busy && epubStatus.kind === 'EPUB' ? (pt ? 'Lendo EPUB…' : 'Reading EPUB…') : (pt ? 'Importar EPUB' : 'Import EPUB')}
           </Button>
-          <Button variant="outline" onClick={() => pdfInputRef.current?.click()} disabled={epubStatus.busy}>
+          <Button variant="outline" className="hidden sm:inline-flex" onClick={() => pdfInputRef.current?.click()} disabled={epubStatus.busy}>
             <FileText className="w-4 h-4" />
             {epubStatus.busy && epubStatus.kind === 'PDF' ? (pt ? 'Lendo PDF…' : 'Reading PDF…') : (pt ? 'Importar PDF' : 'Import PDF')}
           </Button>
-          <Button data-tour="add-book" onClick={() => setIsAddModalOpen(true)}>
+          <Button data-tour="add-book" className="w-full sm:w-auto" onClick={() => setIsAddModalOpen(true)}>
             <Plus className="w-4 h-4" />
             {t('addBook')}
           </Button>
@@ -356,24 +357,24 @@ export function Dashboard() {
       {/* Continuar lendo + hoje */}
       <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
         {hero ? (
-          <div className="rounded-2xl border p-5 md:p-6 flex gap-5 md:gap-7 items-center" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-card-bg)' }}>
+          <div className="rounded-2xl border p-4 md:p-6 flex gap-4 md:gap-7 items-start sm:items-center" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-card-bg)' }}>
             <button type="button" onClick={() => handleOpenBook(hero.id)} aria-label={pt ? `Abrir ${hero.title}` : `Open ${hero.title}`}
-              className="book-cover shrink-0 w-[96px] md:w-[124px] aspect-[2/3] rounded-md overflow-hidden transition-transform hover:-translate-y-1" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
+              className="book-cover shrink-0 w-[84px] md:w-[124px] aspect-[2/3] rounded-md overflow-hidden transition-transform hover:-translate-y-1" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
               {hero.coverData ? <img src={hero.coverData} alt="" className="w-full h-full object-cover" /> : <BookOpen className="w-8 h-8 m-auto opacity-40" />}
             </button>
             <div className="min-w-0 flex-1">
               <p className="text-[12.5px] font-medium" style={{ color: 'var(--theme-text-secondary)' }}>{progressOf(hero) > 0 ? (pt ? 'Continuar lendo' : 'Continue reading') : (pt ? 'Comece a ler' : 'Start reading')}</p>
-              <h2 className="font-display mt-1 text-[24px] md:text-[30px] leading-[1.1] line-clamp-2" style={{ color: 'var(--theme-text)' }}>{hero.title}</h2>
+              <h2 className="font-display mt-0.5 text-[22px] md:text-[30px] leading-[1.1] line-clamp-2" style={{ color: 'var(--theme-text)' }}>{hero.title}</h2>
               {hero.author && <p className="mt-1 text-[14px]" style={{ color: 'var(--theme-text-secondary)' }}>{hero.author}</p>}
-              <div className="mt-4 flex items-center gap-3 max-w-md">
+              <div className="mt-3 md:mt-4 flex items-center gap-3 max-w-md">
                 <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
                   <div className="h-full rounded-full transition-all" style={{ width: `${Math.max(2, progressOf(hero))}%`, backgroundColor: 'var(--theme-text)' }} />
                 </div>
                 <span className="text-[12.5px] tabular-nums" style={{ color: 'var(--theme-text-secondary)' }}>{progressOf(hero)}%</span>
               </div>
-              <div className="mt-5 flex flex-wrap gap-2">
-                <Button onClick={() => handleOpenBook(hero.id)}><BookOpen className="w-4 h-4" />{progressOf(hero) > 0 ? (pt ? 'Continuar' : 'Continue') : (pt ? 'Começar' : 'Start')}</Button>
-                <Button variant="outline" onClick={() => navigate('/practice/speak')}><AudioLines className="w-4 h-4" />{pt ? 'Praticar fala' : 'Practice speaking'}</Button>
+              <div className="mt-4 md:mt-5 flex flex-wrap gap-2">
+                <Button className="h-10" onClick={() => handleOpenBook(hero.id)}><BookOpen className="w-4 h-4" />{progressOf(hero) > 0 ? (pt ? 'Continuar' : 'Continue') : (pt ? 'Começar' : 'Start')}</Button>
+                <Button variant="outline" className="h-10" onClick={() => navigate('/practice/speak')} aria-label={pt ? 'Praticar fala' : 'Practice speaking'}><AudioLines className="w-4 h-4" /><span className="hidden sm:inline">{pt ? 'Praticar fala' : 'Practice speaking'}</span></Button>
               </div>
             </div>
           </div>

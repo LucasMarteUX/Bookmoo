@@ -35,6 +35,7 @@ import { ToolButton, ToolDivider, ToolGroup } from '@/components/ui/toolbar'
 import { needsVoiceInstall } from './VoiceRequiredDialog'
 import { askVoiceOnce } from '@/lib/voiceGate'
 import { XP, useXpStore } from '@/store/useXpStore'
+import { AmbientSoundButton, stopAmbience } from '@/components/reader/AmbientSound'
 import { motion, useReducedMotion } from 'motion/react'
 import { ComicPageView, type ComicStage } from './ComicPageView'
 import { saveComicPage } from '@/lib/comicPersistence'
@@ -254,6 +255,8 @@ export function Reader({ book, autoPlay = false, headerSlot }: ReaderProps) {
   const updateVocabulary = useVocabularyStore(state => state.updateVocabulary)
   const [wordTip, setWordTip] = useState<WordTooltipState | null>(null)
   const [toolbarSlot, setToolbarSlot] = useState<HTMLDivElement | null>(null)
+  // Ao sair do leitor, o som ambiente para.
+  useEffect(() => () => stopAmbience(), [])
   const [nudgeHidden, setNudgeHidden] = useState(() => { try { return sessionStorage.getItem(`illustrate-nudge:${book.id}`) === '1' } catch { return false } })
   const pendingPlaybackRef = useRef<{ startWord?: number; rate?: number } | null>(null)
   useEffect(() => subscribeKokoro(() => {
@@ -1305,12 +1308,13 @@ export function Reader({ book, autoPlay = false, headerSlot }: ReaderProps) {
               <ToolButton icon={<ImageIcon className="w-4 h-4" />} label={t('comic')} compact active={viewMode === 'comic'}
                 hint={locale === 'pt-BR' ? 'Ler com as ilustrações da página' : 'Read with the page illustrations'} onClick={openComicMode} />
               <ToolDivider />
+              <AmbientSoundButton pt={locale === 'pt-BR'} />
               <Popover>
                 <PopoverTrigger asChild>
                   <ToolButton icon={hiddenMarks.length >= 3 ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />} active={hiddenMarks.length > 0}
                     hint={locale === 'pt-BR' ? 'Esconder marcações das palavras' : 'Hide word marks'} aria-label={locale === 'pt-BR' ? 'Esconder marcações' : 'Hide marks'} />
                 </PopoverTrigger>
-                <PopoverContent className="w-60 p-3" align="start" sideOffset={8}>
+                <PopoverContent className="w-60 p-3" align="end" side="bottom" sideOffset={8} collisionPadding={12}>
                   <p className="text-[12.5px] font-medium">{locale === 'pt-BR' ? 'Esconder marcações' : 'Hide marks'}</p>
                   <div className="mt-2 space-y-1">
                     {([['learned', locale === 'pt-BR' ? 'Aprendidas' : 'Learned'], ['review', locale === 'pt-BR' ? 'Em revisão' : 'Review'], ['important', locale === 'pt-BR' ? 'Importantes' : 'Important']] as const).map(([id, label]) => (

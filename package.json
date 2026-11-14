@@ -12,7 +12,10 @@
     "seed:user": "node scripts/seed-user.mjs",
     "confirm:user": "node scripts/confirm-user-email.mjs",
     "clean": "rm -rf dist",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "copy-ort": "node scripts/copy-ort.mjs",
+    "predev": "node scripts/copy-ort.mjs",
+    "prebuild": "node scripts/copy-ort.mjs"
   },
   "dependencies": {
     "@capacitor/app": "^8.1.2",

@@ -73,7 +73,7 @@ export function MePage() {
           {name.charAt(0).toUpperCase()}
         </span>
         <div className="min-w-0">
-          <h1 className="font-display text-[34px] leading-[1.05] truncate" style={{ color: 'var(--theme-text)' }}>{name}</h1>
+          <h1 className="font-display text-[28px] md:text-[34px] leading-[1.05] truncate" style={{ color: 'var(--theme-text)' }}>{name}</h1>
           <p className="text-[15px] mt-1" style={{ color: 'var(--theme-text-secondary)' }}>
             {pt ? `Nível ${level.id} · ${level.pt}` : `Level ${level.id} · ${level.en}`}
           </p>

@@ -5,7 +5,11 @@
 //
 // Variante "_timestamped": mesmo whisper-base.en, exportado com as atenções cruzadas que o
 // transformers.js usa para calcular o instante de cada palavra (return_timestamps: 'word').
-import { pipeline, type AutomaticSpeechRecognitionPipeline } from '@huggingface/transformers'
+import { pipeline, env, type AutomaticSpeechRecognitionPipeline } from '@huggingface/transformers'
+import { configureModelEnv, redirectHuggingFaceFetch } from '../modelHost'
+
+configureModelEnv(env as never)
+redirectHuggingFaceFetch()
 
 const MODEL_ID = 'onnx-community/whisper-base.en_timestamped'
 

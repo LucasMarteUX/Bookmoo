@@ -53,7 +53,7 @@ export function FilterSelect({ value, onChange, options, label, active, classNam
 }) {
   return (
     <select value={value} onChange={e => onChange(e.target.value)} aria-label={label}
-      className={cn('h-8 max-w-[11rem] rounded-lg border px-2 text-[13px] outline-none cursor-pointer shrink-0', className)}
+      className={cn('h-8 min-w-0 flex-1 basis-[7.5rem] sm:flex-none sm:basis-auto max-w-full sm:max-w-[11rem] rounded-lg border px-2 text-[13px] outline-none cursor-pointer', className)}
       style={{ ...field, borderColor: active ? 'var(--theme-text)' : 'var(--theme-border)', color: active === false ? 'var(--theme-text-secondary)' : 'var(--theme-text)' }}>
       {options.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}
     </select>

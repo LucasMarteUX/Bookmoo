@@ -19,3 +19,5 @@ content/epubs/*/
 content/collections/*/*.sql
 content/collections/*/banner-art.jpg
 content/collections/*/banner-preview.jpg
+content/models-backup/
+public/ort/

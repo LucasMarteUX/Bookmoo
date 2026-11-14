@@ -94,7 +94,8 @@ export async function generateExplanation(
     if (result?.definition) void putShared("explain", key, result)
     return result
   } catch (e) {
-    return { definition: aiErrorMessage(e), ipa: "", examples: [], grammarExamples: [], usageNote: "" }
+    // Erro não vira "significado": quem chama mostra a mensagem e nada é salvo no vocabulário.
+    throw e instanceof Error ? e : new Error(aiErrorMessage(e))
   }
 }
 

@@ -96,64 +96,66 @@
     --theme-tts-hand: #55534E;
   }
 
+  /* Dia: claro, limpo e neutro-frio, como papel branco sob luz do dia. */
   .theme-light {
-    --theme-bg: #F6F3EE;
-    --theme-bg-secondary: #EFEBE4;
-    --theme-text: #191919;
-    --theme-text-secondary: #73726E;
-    --theme-nav-bg: #FBFBFA;
-    --theme-nav-text: #37352F;
-    --theme-nav-text-muted: #91918E;
-    --theme-nav-hover: #EEEAE3;
-    --theme-nav-active: #E7E2D9;
-    --theme-border: #E6E1D8;
-    --theme-border-subtle: #EEEAE2;
-    --theme-primary: #191919;
+    --theme-bg: #FFFFFF;
+    --theme-bg-secondary: #F3F4F6;
+    --theme-text: #15171C;
+    --theme-text-secondary: #636874;
+    --theme-nav-bg: #F8F9FB;
+    --theme-nav-text: #1F232B;
+    --theme-nav-text-muted: #8A909C;
+    --theme-nav-hover: #EEF0F4;
+    --theme-nav-active: #E6E9EF;
+    --theme-border: #E3E6EB;
+    --theme-border-subtle: #EEF0F3;
+    --theme-primary: #15171C;
     --theme-primary-text: #FFFFFF;
-    --theme-primary-hover: #2F2F2F;
-    --theme-card-bg: #FFFCF8;
-    --theme-pastel-1: #F4F0F7;
-    --theme-pastel-2: #EEF3ED;
-    --theme-pastel-3: #FBF3DB;
-    --theme-pastel-4: #E9F3F7;
-    --theme-pastel-text: #1a1a1a;
-    --theme-postit-bg: #FBFBFA;
-    --theme-postit-border: #E9E9E7;
-    --theme-postit-text: #73726E;
-    --theme-postit-title: #191919;
-    --theme-accent: #55534E;
-    --theme-tts-ring: #55534E;
-    --theme-tts-hand: #55534E;
+    --theme-primary-hover: #2B2F38;
+    --theme-card-bg: #FFFFFF;
+    --theme-pastel-1: #F1EEFB;
+    --theme-pastel-2: #E8F5EE;
+    --theme-pastel-3: #FFF4D6;
+    --theme-pastel-4: #E6F2FB;
+    --theme-pastel-text: #15171C;
+    --theme-postit-bg: #F8F9FB;
+    --theme-postit-border: #E3E6EB;
+    --theme-postit-text: #636874;
+    --theme-postit-title: #15171C;
+    --theme-accent: #3B5B8C;
+    --theme-tts-ring: #3B5B8C;
+    --theme-tts-hand: #3B5B8C;
   }
 
+  /* Tarde: papel creme e tons de âmbar, como a luz dourada do fim da tarde. */
   .theme-sepia {
-    --theme-bg: #F8F6F1;
-    --theme-bg-secondary: #F1EEE7;
-    --theme-text: #2B2722;
-    --theme-text-secondary: #77706A;
-    --theme-nav-bg: #F4F1EA;
-    --theme-nav-text: #3A342D;
-    --theme-nav-text-muted: #958D83;
-    --theme-nav-hover: #ECE8DF;
-    --theme-nav-active: #E5E0D5;
-    --theme-border: #E6E1D6;
-    --theme-border-subtle: #ECE7DD;
-    --theme-primary: #2B2722;
-    --theme-primary-text: #FFFFFF;
-    --theme-primary-hover: #3D3731;
-    --theme-card-bg: #FCFBF8;
-    --theme-pastel-1: #F4F0F7;
-    --theme-pastel-2: #EEF3ED;
-    --theme-pastel-3: #FBF3DB;
-    --theme-pastel-4: #E9F3F7;
-    --theme-pastel-text: #1a1a1a;
-    --theme-postit-bg: #F4F1EA;
-    --theme-postit-border: #E6E1D6;
-    --theme-postit-text: #73726E;
-    --theme-postit-title: #2B2722;
-    --theme-accent: #55534E;
-    --theme-tts-ring: #55534E;
-    --theme-tts-hand: #55534E;
+    --theme-bg: #F4EAD8;
+    --theme-bg-secondary: #EBDDC4;
+    --theme-text: #3A2D21;
+    --theme-text-secondary: #7C6650;
+    --theme-nav-bg: #EFE2CA;
+    --theme-nav-text: #3A2D21;
+    --theme-nav-text-muted: #9A8468;
+    --theme-nav-hover: #E7D6B9;
+    --theme-nav-active: #E1CCA9;
+    --theme-border: #E0CDAE;
+    --theme-border-subtle: #E8D9BF;
+    --theme-primary: #5A3A1F;
+    --theme-primary-text: #FBF4E7;
+    --theme-primary-hover: #6E4826;
+    --theme-card-bg: #FAF2E4;
+    --theme-pastel-1: #EFE3EE;
+    --theme-pastel-2: #E5EBD6;
+    --theme-pastel-3: #F6E3BC;
+    --theme-pastel-4: #E2E6DF;
+    --theme-pastel-text: #3A2D21;
+    --theme-postit-bg: #EFE2CA;
+    --theme-postit-border: #E0CDAE;
+    --theme-postit-text: #7C6650;
+    --theme-postit-title: #3A2D21;
+    --theme-accent: #9A6531;
+    --theme-tts-ring: #9A6531;
+    --theme-tts-hand: #9A6531;
   }
 
   .theme-dark {
@@ -326,12 +328,12 @@
     font-family: var(--font-serif);
   }
 
-  .theme-light.bg-tone-dark { --theme-bg: #EAEAEA; --theme-bg-secondary: #E0E0E0; }
-  .theme-light.bg-tone-medium { --theme-bg: #FFFFFF; --theme-bg-secondary: #F5F5F5; }
-  .theme-light.bg-tone-light { --theme-bg: #FAFAFA; --theme-bg-secondary: #F5F5F5; }
-  .theme-sepia.bg-tone-dark { --theme-bg: #F0EDE8; --theme-bg-secondary: #E5E2DD; }
-  .theme-sepia.bg-tone-medium { --theme-bg: #F8F6F2; --theme-bg-secondary: #F0EDE8; }
-  .theme-sepia.bg-tone-light { --theme-bg: #FFFDF9; --theme-bg-secondary: #F8F6F2; }
+  .theme-light.bg-tone-dark { --theme-bg: #EEF0F3; --theme-bg-secondary: #E4E7EC; }
+  .theme-light.bg-tone-medium { --theme-bg: #FFFFFF; --theme-bg-secondary: #F3F4F6; }
+  .theme-light.bg-tone-light { --theme-bg: #FAFBFC; --theme-bg-secondary: #F3F4F6; }
+  .theme-sepia.bg-tone-dark { --theme-bg: #EBDDC4; --theme-bg-secondary: #E1CFB0; }
+  .theme-sepia.bg-tone-medium { --theme-bg: #F4EAD8; --theme-bg-secondary: #EBDDC4; }
+  .theme-sepia.bg-tone-light { --theme-bg: #F8F1E3; --theme-bg-secondary: #EFE4CF; }
   .theme-dark.bg-tone-dark { --theme-bg: #0A0A0A; --theme-bg-secondary: #111111; }
   .theme-dark.bg-tone-medium { --theme-bg: #111111; --theme-bg-secondary: #1E1E1E; }
   .theme-dark.bg-tone-light { --theme-bg: #1E1E1E; --theme-bg-secondary: #2A2A2A; }
@@ -815,3 +817,20 @@ html.comic-immersive .sheet-content{z-index:111}
   .info-hint { width: 20px; height: 20px; display: inline-grid; place-items: center; border-radius: 999px; vertical-align: middle; color: var(--theme-text-secondary); }
   .info-hint:hover { color: var(--theme-text); }
 }
+
+/* Rolagem horizontal sem barra (as setas do ScrollRail indicam que há mais). */
+.no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* Setas dos <select>: seta própria com respiro à direita (a nativa fica colada na borda). */
+select:not([multiple]):not([size]) {
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238a8a8a' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.85rem center;
+  background-size: 0.75rem;
+  padding-right: 2.25rem !important;
+  text-overflow: ellipsis;
+}
+select:not([multiple]):not([size]):disabled { opacity: 0.6; }

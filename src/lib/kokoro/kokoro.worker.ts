@@ -3,6 +3,10 @@
 // O modelo é baixado uma vez do Hugging Face e fica no Cache Storage do navegador.
 import { KokoroTTS } from 'kokoro-js'
 import { env } from '@huggingface/transformers'
+import { configureModelEnv, redirectHuggingFaceFetch } from '../modelHost'
+
+configureModelEnv(env as never)
+redirectHuggingFaceFetch()
 
 // Variante "timestamped": mesmo Kokoro v1.0 (Apache-2.0), mas também devolve a duração de cada
 // fonema gerado. Com isso sabemos o instante real em que cada palavra começa no áudio.

@@ -1,6 +1,8 @@
 // Galeria: destaque editorial, prateleiras por tema e todos os livros com filtros na URL.
 import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { SlidersHorizontal } from 'lucide-react'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { ArrowRight, BookOpen, ChevronLeft, ChevronRight, Image as ImageIcon, Search, Sparkles, Star, X } from 'lucide-react'
 import { BookCard, BookCover } from '@/components/book/BookCard'
 import { BookCardSkeleton } from '@/components/BookCardSkeleton'
@@ -12,7 +14,6 @@ import { CEFR, type CefrId } from '@/lib/cefr'
 import { BOOK_CATEGORIES, bookCategories, cachedThumbs, categoryName, listCatalogLite, loadCoverThumbs, type BookCategory, type CatalogBook } from '@/lib/catalog'
 import { CollectionCard, CollectionCardSkeleton } from '@/components/book/CollectionCard'
 import { FilterChip, FilterClear, FilterSelect, SegmentedTabs } from '@/components/ui/filter-controls'
-import { BirthDateField, useBirthDate } from '@/components/settings/BirthDate'
 import { CategoryTile } from '@/components/book/CategoryTiles'
 import { COLLECTION_RAIL_ITEM, useFeaturedCollections } from '@/components/book/FeaturedCollections'
 import { loadCatalogSocial, type CatalogSocial } from '@/lib/social'
@@ -95,8 +96,7 @@ export function GalleryList() {
   const [error, setError] = useState('')
   // Capas por dobra: só pede as miniaturas do que está perto da tela, em lotes que se juntam num único pedido.
   const [socialReady, setSocialReady] = useState(false)
-  const birthDate = useBirthDate()
-  const [birthHidden, setBirthHidden] = useState(() => { try { return localStorage.getItem('bookmoo.birth-prompt') === '1' } catch { return false } })
+  const [filtersOpen, setFiltersOpen] = useState(false)
   const [thumbs, setThumbs] = useState<Record<string, string>>(() => cachedThumbs())
   const queue = useRef(new Set<string>())
   const timer = useRef<number>(0)
@@ -123,6 +123,7 @@ export function GalleryList() {
   }, [books])
   // Link antigo pode citar um autor que saiu da galeria.
   const author = books && !authors.includes(urlAuthor) ? 'all' : urlAuthor
+  const activeFilters = [level !== 'all', category !== 'all', author !== 'all', sort !== 'featured', minStars > 0, withArt].filter(Boolean).length
   const filtered = level !== 'all' || category !== 'all' || author !== 'all' || !!query.trim() || sort !== 'featured' || minStars > 0 || withArt
 
   const shown = useMemo(() => {
@@ -195,14 +196,14 @@ export function GalleryList() {
   const collections = useFeaturedCollections(books !== null)
   const collectionsRail = collections && collections.length === 0 ? null : (
     <section key="collections" aria-label={pt ? 'Coleções' : 'Collections'}>
-      <div className="mb-3 flex items-end justify-between gap-3">
+      <div className="mb-2 md:mb-3 flex items-end justify-between gap-3">
         <div>
           <h2 className="font-display text-[24px] leading-tight">{pt ? 'Coleções' : 'Collections'}</h2>
           <p className="text-[13px]" style={muted}>{pt ? 'Histórias completas, personagens lendários e aventuras inesquecíveis.' : 'Explore complete stories, legendary characters, and unforgettable adventures.'}</p>
         </div>
         <Link to="/collections" className="shrink-0 inline-flex items-center gap-1 text-[13px] font-medium">{pt ? 'Ver todas' : 'See all'}<ArrowRight className="w-3.5 h-3.5" /></Link>
       </div>
-      <ScrollRail className="gap-5 pt-1 pb-6 snap-x" label={pt ? 'Coleções' : 'Collections'} arrowsTop="40%" top>
+      <ScrollRail className="gap-4 md:gap-5 pt-1 pb-2 md:pb-6 snap-x" label={pt ? 'Coleções' : 'Collections'} arrowsTop="40%" top>
         {collections === null
           ? <CollectionCardSkeleton className={COLLECTION_RAIL_ITEM} />
           : collections.map(c => <CollectionCard key={c.id} collection={c} pt={pt} className={COLLECTION_RAIL_ITEM} />)}
@@ -216,11 +217,11 @@ export function GalleryList() {
   )
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8">
+    <div className="max-w-6xl mx-auto space-y-5 md:space-y-8">
       <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-[34px] md:text-[44px] leading-[1.02]">{pt ? 'Galeria' : 'Gallery'}</h1>
-          <p className="mt-1.5 text-[14.5px]" style={muted}>
+          <h1 className="font-display text-[30px] md:text-[44px] leading-[1.02]">{pt ? 'Galeria' : 'Gallery'}</h1>
+          <p className="mt-1 text-[14px] md:text-[14.5px]" style={muted}>
             {pt ? 'Livros gratuitos, escolhidos pelo nível, para ler e estudar no Bookmoo.' : 'Free books, picked by level, to read and study on Bookmoo.'}
           </p>
         </div>
@@ -238,18 +239,9 @@ export function GalleryList() {
 
       {books === null && !error && <HeroSkeleton />}
       {!filtered && featured && <Featured book={{ ...featured, coverData: thumbs[featured.id] }} social={social} pt={pt} />}
-      {!birthDate && !birthHidden && (
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl border px-4 py-3" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg-secondary)' }}>
-          <p className="min-w-0 flex-1 basis-64 text-[13px] leading-snug" style={muted}>
-            {pt ? 'Informe sua data de nascimento para ver quais livros estão acima da sua idade. Ela fica privada e não aparece no perfil.' : 'Add your date of birth to see which books are above your age. It stays private and never appears on your profile.'}
-          </p>
-          <BirthDateField pt={pt} compact />
-          <button type="button" onClick={() => { try { localStorage.setItem('bookmoo.birth-prompt', '1') } catch { /* sem armazenamento */ } setBirthHidden(true) }} className="h-9 px-3 rounded-full text-[13px]" style={muted}>{pt ? 'Agora não' : 'Not now'}</button>
-        </div>
-      )}
       {categories.length > 0 && (
         <section aria-label={pt ? 'Categorias' : 'Categories'}>
-          <ScrollRail className="gap-3 pt-1 pb-3 snap-x" label={pt ? 'Categorias' : 'Categories'} arrowsTop="45%" top>
+          <ScrollRail className="gap-3 pt-1 pb-1 md:pb-3 snap-x" label={pt ? 'Categorias' : 'Categories'} arrowsTop="45%" top>
             {categories.map(item => (
               <CategoryTile key={item.id} id={item.id} label={pt ? item.pt : item.en} count={item.count} active={category === item.id}
                 onClick={() => setFilter('cat', category === item.id ? 'all' : item.id)} className="w-[7.25rem] sm:w-36 shrink-0 snap-start" />
@@ -258,10 +250,27 @@ export function GalleryList() {
         </section>
       )}
 
-      <ScrollRail className="gap-2" label={pt ? 'Filtros' : 'Filters'}>
-        <SegmentedTabs className="shrink-0" label={pt ? 'Nível' : 'Level'} value={level} onChange={v => setFilter('level', v)}
+      {/* Celular: um botão abre o menu de filtros. Telas maiores: filtros na própria linha. */}
+      <div className="sm:hidden">
+        <button type="button" onClick={() => setFiltersOpen(true)} className="h-10 w-full inline-flex items-center justify-between gap-2 rounded-xl border px-3.5 text-[14px] font-medium" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-card-bg)' }}>
+          <span className="inline-flex items-center gap-2"><SlidersHorizontal className="w-4 h-4" />{pt ? 'Filtros' : 'Filters'}</span>
+          <span className="inline-flex items-center gap-2 text-[12.5px]" style={muted}>
+            {activeFilters > 0 ? `${activeFilters} ${pt ? (activeFilters === 1 ? 'ativo' : 'ativos') : 'active'}` : (pt ? 'Nenhum' : 'None')}
+            <ChevronRight className="w-4 h-4" />
+          </span>
+        </button>
+      </div>
+      <Dialog open={filtersOpen} onOpenChange={setFiltersOpen}>
+        <DialogContent className="sm:hidden">
+          <DialogHeader>
+            <DialogTitle>{pt ? 'Filtros' : 'Filters'}</DialogTitle>
+            <DialogDescription>{pt ? 'Escolha o nível, a categoria e a ordem.' : 'Choose level, category and sort order.'}</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3 [&_select]:h-11 [&_select]:max-w-none [&_select]:w-full [&_select]:flex-none [&_select]:text-[14px] [&_button]:h-11">
+            
+        <SegmentedTabs className="w-full sm:w-fit" stretch label={pt ? 'Nível' : 'Level'} value={level} onChange={v => setFilter('level', v)}
           options={(['all', ...CEFR.map(band => band.id)] as (CefrId | 'all')[]).map(id => ({ id, label: id === 'all' ? (pt ? 'Todos' : 'All') : id }))} />
-        <span className="mx-1.5 h-4 w-px shrink-0" style={{ backgroundColor: 'var(--theme-border)' }} aria-hidden />
+        <span className="mx-1.5 h-4 w-px shrink-0 hidden sm:block" style={{ backgroundColor: 'var(--theme-border)' }} aria-hidden />
         {categories.length > 0 && (
           <FilterSelect value={category} onChange={v => setFilter('cat', v)} label={pt ? 'Categoria' : 'Category'}
             active={category !== 'all'}
@@ -284,7 +293,40 @@ export function GalleryList() {
         {filtered && (
           <FilterClear onClick={clear}>{pt ? 'Limpar' : 'Clear'}</FilterClear>
         )}
-      </ScrollRail>
+          </div>
+          <button type="button" onClick={() => setFiltersOpen(false)} className="h-11 rounded-full text-[14px] font-medium" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
+            {pt ? `Ver ${shown.length} livros` : `Show ${shown.length} books`}
+          </button>
+        </DialogContent>
+      </Dialog>
+      <div role="group" aria-label={pt ? 'Filtros' : 'Filters'} className="hidden sm:flex flex-wrap items-center gap-2">
+
+        <SegmentedTabs className="w-full sm:w-fit" stretch label={pt ? 'Nível' : 'Level'} value={level} onChange={v => setFilter('level', v)}
+          options={(['all', ...CEFR.map(band => band.id)] as (CefrId | 'all')[]).map(id => ({ id, label: id === 'all' ? (pt ? 'Todos' : 'All') : id }))} />
+        <span className="mx-1.5 h-4 w-px shrink-0 hidden sm:block" style={{ backgroundColor: 'var(--theme-border)' }} aria-hidden />
+        {categories.length > 0 && (
+          <FilterSelect value={category} onChange={v => setFilter('cat', v)} label={pt ? 'Categoria' : 'Category'}
+            active={category !== 'all'}
+            options={[{ value: 'all', label: pt ? 'Categoria' : 'Category' }, ...categories.map(item => ({ value: item.id, label: `${pt ? item.pt : item.en} (${item.count})` }))]} />
+        )}
+        <FilterSelect value={sort} onChange={v => setFilter('sort', v === 'featured' ? 'all' : v)} label={pt ? 'Ordenar por' : 'Sort by'}
+          active={sort !== 'featured'}
+          options={SORTS.map(item => ({ value: item.id, label: pt ? item.pt : item.en }))} />
+        {authors.length > 1 && (
+          <FilterSelect value={author} onChange={v => setFilter('author', v)} label={pt ? 'Autor' : 'Author'}
+            active={author !== 'all'}
+            options={[{ value: 'all', label: pt ? 'Autor' : 'Author' }, ...authors.map(name => ({ value: name, label: name }))]} />
+        )}
+        <FilterChip on={minStars === 4} onClick={() => setFilter('stars', minStars === 4 ? 'all' : '4')}>
+          <Star className="w-3.5 h-3.5" style={{ color: minStars === 4 ? undefined : '#E8A93B', fill: minStars === 4 ? 'currentColor' : '#E8A93B' }} />4+
+        </FilterChip>
+        <FilterChip on={withArt} onClick={() => setFilter('art', withArt ? 'all' : '1')}>
+          <ImageIcon className="w-3.5 h-3.5" />{pt ? 'Ilustrados' : 'Illustrated'}
+        </FilterChip>
+        {filtered && (
+          <FilterClear onClick={clear}>{pt ? 'Limpar' : 'Clear'}</FilterClear>
+        )}
+      </div>
 
       {error && <p className="text-sm">{error}</p>}
 
@@ -294,7 +336,7 @@ export function GalleryList() {
       {!filtered && shelves.map((shelf, shelfIndex) => (
         <Fragment key={shelf.id}>
         <Seen as="section" onSeen={() => want(shelf.books.map(b => b.id))}>
-          <div className="mb-3 flex items-end justify-between gap-3">
+          <div className="mb-2 md:mb-3 flex items-end justify-between gap-3">
             <div>
               <h2 className="font-display text-[24px] leading-tight">{shelf.title}</h2>
               <p className="text-[13px]" style={muted}>{shelf.hint}</p>
@@ -305,7 +347,7 @@ export function GalleryList() {
               </button>
             )}
           </div>
-          <ScrollRail className="gap-5 pt-1 pb-6 snap-x" label={shelf.title} arrowsTop="38%" top>
+          <ScrollRail className="gap-4 md:gap-5 pt-1 pb-2 md:pb-6 snap-x" label={shelf.title} arrowsTop="38%" top>
             {shelf.books.map(book => card(book, 'w-36 sm:w-40 shrink-0 snap-start'))}
           </ScrollRail>
         </Seen>
@@ -369,12 +411,12 @@ function Featured({ book, social, pt }: { book: CatalogBook; social: CatalogSoci
   const data = social[book.id]
   return (
     <section className="relative overflow-hidden rounded-[28px] border" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-card-bg)' }}>
-      <div className="relative grid md:grid-cols-[minmax(0,1fr)_auto] gap-8 md:gap-12 items-center p-6 sm:p-10">
-        <div className="min-w-0 order-2 md:order-1">
+      <div className="relative grid grid-cols-[minmax(0,1fr)_auto] gap-4 md:gap-12 items-center p-4 sm:p-10">
+        <div className="min-w-0">
           <p className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold uppercase tracking-[0.12em]" style={muted}>
             <Sparkles className="w-3.5 h-3.5" />{pt ? 'Destaque da galeria' : 'Gallery pick'}
           </p>
-          <h2 className="mt-3 font-display text-[36px] sm:text-[52px] leading-[0.98] break-words">{book.title}</h2>
+          <h2 className="mt-2 sm:mt-3 font-display text-[24px] sm:text-[52px] leading-[1] break-words">{book.title}</h2>
           {book.author && <p className="mt-2 text-[16px]" style={muted}>{book.author}</p>}
           <div className="mt-4 flex flex-wrap items-center gap-2">
             {book.level && <LevelBadge id={book.level} pt={pt} />}
@@ -386,12 +428,12 @@ function Featured({ book, social, pt }: { book: CatalogBook; social: CatalogSoci
               </span>
             )}
           </div>
-          {book.description && <p className="mt-5 max-w-xl text-[15px] leading-relaxed line-clamp-3">{book.description}</p>}
-          <Link to={`/gallery/${book.id}`} className="mt-6 h-11 px-5 inline-flex items-center gap-2 rounded-full text-[14px] font-medium" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
+          {book.description && <p className="mt-5 max-w-xl text-[15px] leading-relaxed line-clamp-3 hidden sm:block">{book.description}</p>}
+          <Link to={`/gallery/${book.id}`} className="mt-4 sm:mt-6 h-10 sm:h-11 px-4 sm:px-5 inline-flex items-center gap-2 rounded-full text-[13.5px] sm:text-[14px] font-medium" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
             <BookOpen className="w-4 h-4" />{pt ? 'Conhecer o livro' : 'See the book'}
           </Link>
         </div>
-        <Link to={`/gallery/${book.id}`} className="group order-1 md:order-2 justify-self-center md:justify-self-end md:mr-10 lg:mr-20 w-40 sm:w-52 md:w-56 transition-transform duration-500 hover:-translate-y-1">
+        <Link to={`/gallery/${book.id}`} className="group justify-self-end md:mr-10 lg:mr-20 w-[88px] sm:w-52 md:w-56 transition-transform duration-500 hover:-translate-y-1">
           <BookCover title={book.title} coverData={book.coverData} className="rounded-xl" />
         </Link>
       </div>

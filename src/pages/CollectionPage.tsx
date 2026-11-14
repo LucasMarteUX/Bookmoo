@@ -51,16 +51,16 @@ function CollectionDetail({ slug }: { slug: string }) {
     <div className="max-w-6xl mx-auto space-y-8">
       <div>
         <Link to="/gallery" className="text-[13px]" style={muted}>{pt ? '← Galeria' : '← Gallery'}</Link>
-        <header className="mt-3 grid gap-5 md:grid-cols-5 md:items-center">
-          <div className="md:col-span-3 aspect-[12/5] overflow-hidden rounded-xl" style={{ background: collectionFallback(slug) }}>
-            {loaded?.bannerData && <img src={loaded.bannerData} alt="" className="h-full w-full object-cover object-right" />}
-          </div>
-          <div className="md:col-span-2">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={muted}>{pt ? 'Coleção' : 'Collection'}</p>
-            <h1 className="mt-1 font-display text-[30px] md:text-[38px] leading-[1.04] [text-wrap:balance]">{loaded?.title ?? '…'}</h1>
-            {loaded?.authorName && <p className="mt-2 text-[15px]" style={muted}>{loaded.authorName}</p>}
+        {/* Banner com o texto por cima: ocupa a largura toda, sem sobrar espaço vazio ao lado. */}
+        <header className="relative mt-3 overflow-hidden rounded-2xl isolate aspect-[4/3] sm:aspect-[16/7] lg:aspect-[12/5]" style={{ background: collectionFallback(slug) }}>
+          {loaded?.bannerData && <img src={loaded.bannerData} alt="" className="absolute inset-0 -z-10 h-full w-full object-cover object-right" />}
+          <div className="absolute inset-0 -z-10 bg-gradient-to-r from-black/75 via-black/40 to-transparent sm:via-black/25" aria-hidden />
+          <div className="flex h-full max-w-[min(36rem,92%)] flex-col justify-end sm:justify-center gap-2 p-5 sm:p-8 lg:p-10 text-white">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: '#d9b86c' }}>{pt ? 'Coleção' : 'Collection'}</p>
+            <h1 className="font-display text-[28px] sm:text-[38px] lg:text-[46px] leading-[1.02] [text-wrap:balance]">{loaded?.title ?? '…'}</h1>
+            {loaded?.authorName && <p className="text-[14px] sm:text-[15px] opacity-90">{loaded.authorName}</p>}
             {loaded && (
-              <p className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-[13px]" style={muted}>
+              <p className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[12.5px] sm:text-[13px] opacity-85">
                 <span>{loaded.bookCount} {pt ? 'livros' : 'books'}</span>
                 {loaded.category && <span>· {categoryName(loaded.category, pt)}</span>}
                 <span>· {loaded.languageCode === 'en' ? (pt ? 'Inglês' : 'English') : loaded.languageCode}</span>

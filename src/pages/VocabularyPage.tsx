@@ -86,7 +86,7 @@ export function VocabularyPage() {
     <div className="max-w-5xl mx-auto space-y-8">
       <header className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
-          <h1 className="font-display text-[34px] md:text-[40px] leading-[1.05] inline-flex items-center gap-2" style={{ color: 'var(--theme-text)' }}>{t('vocabularyPageTitle')}
+          <h1 className="font-display text-[30px] md:text-[40px] leading-[1.05] inline-flex items-center gap-2" style={{ color: 'var(--theme-text)' }}>{t('vocabularyPageTitle')}
             <InfoHint title={pt ? 'Seu vocabulário' : 'Your vocabulary'} faq="nivel">
               {pt ? 'Todas as palavras que você salvou lendo. Use os status para organizar a revisão; quanto mais palavras e pontos, mais o seu nível sobe.' : 'Every word you saved while reading. Use statuses to organize review; more words and points raise your level.'}
             </InfoHint></h1>

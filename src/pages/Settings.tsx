@@ -126,7 +126,7 @@ export function Settings() {
 
         <div className="space-y-10 min-w-0">
           <Section id="age" icon={<User className="w-4 h-4" />} title={pt ? 'Idade' : 'Age'}>
-            <Row label={pt ? 'Data de nascimento' : 'Date of birth'} hint={pt ? 'Privada. Serve só para indicar livros acima da sua idade.' : 'Private. Used only to flag books above your age.'}>
+            <Row label={pt ? 'Data de nascimento' : 'Date of birth'} hint={pt ? 'Privada. Não aparece no seu perfil.' : 'Private. It never appears on your profile.'}>
               <BirthDateField pt={pt} />
             </Row>
           </Section>

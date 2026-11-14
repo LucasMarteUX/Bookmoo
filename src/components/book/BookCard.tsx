@@ -6,7 +6,6 @@ import { AvatarStack } from '@/components/community/AvatarStack'
 import type { CefrId } from '@/lib/cefr'
 import type { Author } from '@/lib/communityProfile'
 import { cn } from '@/lib/utils'
-import { AgeBadge } from '@/components/book/AgeBadge'
 import type { AgeInfo } from '@/lib/catalog'
 
 /** Capa 2:3. A versão desfocada preenche as sobras de capas com outra proporção. */
@@ -52,7 +51,6 @@ export function BookCard({ to, title, subtitle, coverData, coverPending, ageMin,
     <Link to={to} state={linkState} className={cn('group block', className)}>
       <BookCover title={title} coverData={coverData} pending={coverPending} className="transition-transform duration-300 group-hover:-translate-y-1">
         {level && <LevelBadge id={level} pt={pt} variant="compact" className="absolute left-1.5 top-1.5" />}
-        <AgeBadge compact ageMin={ageMin} info={ageInfo} pt={pt} className="absolute left-1.5 bottom-1.5" />
         {illustrated > 0 && (
           <span className="absolute right-1.5 top-1.5 h-5 px-1.5 rounded-full inline-flex items-center gap-1 text-[10.5px] font-semibold backdrop-blur-md"
             style={{ backgroundColor: 'color-mix(in srgb, var(--theme-card-bg) 85%, transparent)', color: 'var(--theme-text)' }}
