@@ -52,6 +52,8 @@ export function Login({ mode = 'login' }: { mode?: Mode }) {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
+  const [sentTo, setSentTo] = useState<string | null>(null)
+  const [resent, setResent] = useState(false)
   const [loading, setLoading] = useState<'email' | 'google' | null>(null)
   const [slide, setSlide] = useState(0)
   const signup = mode === 'signup'
@@ -93,10 +95,13 @@ export function Login({ mode = 'login' }: { mode?: Mode }) {
     if (signup) rememberTermsAccepted()
     setLoading('email')
     const normalized = email.trim().toLowerCase()
-    const { error } = signup ? await signUp(normalized, password, { full_name: name.trim(), birth_date: birthDate, ...(signupAge !== null && signupAge < 12 ? { guardian_consent_at: new Date().toISOString() } : {}) }) : await signIn(normalized, password)
+    const result: { error: Error | null; needsConfirmation?: boolean } = signup ? await signUp(normalized, password, { full_name: name.trim(), birth_date: birthDate, ...(signupAge !== null && signupAge < 12 ? { guardian_consent_at: new Date().toISOString() } : {}) }) : await signIn(normalized, password)
     setLoading(null)
+    const { error, needsConfirmation } = result
     if (error) { setError(errorMessage(error)); return }
-    if (signup) setMessage(pt ? 'Conta criada! Se pedirmos, confirme pelo link que enviamos ao seu e-mail.' : 'Account created! If asked, confirm with the link we sent to your email.')
+    // Cadastro: o aviso aparece aqui, na hora, e não só na tela de login.
+    if (signup && needsConfirmation) setSentTo(normalized)
+    else if (signup) setMessage(pt ? 'Conta criada! Entrando…' : 'Account created! Signing you in…')
   }
 
   const google = async () => {
@@ -183,6 +188,21 @@ export function Login({ mode = 'login' }: { mode?: Mode }) {
               <span className="h-px flex-1" style={{ backgroundColor: 'var(--theme-border)' }} />
             </div>
 
+            {sentTo ? (
+              <div role="status" className="rounded-2xl border p-6 text-center space-y-3" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-card-bg)' }}>
+                <span className="mx-auto grid size-12 place-items-center rounded-full text-[22px]" style={{ backgroundColor: 'var(--pastel-green-bg)', color: 'var(--pastel-green-fg)' }}>✉</span>
+                <h2 className="font-display text-[26px] leading-tight">{pt ? 'Confirme seu e-mail' : 'Confirm your email'}</h2>
+                <p className="text-[14px] leading-relaxed" style={{ color: 'var(--theme-text-secondary)' }}>
+                  {pt ? <>Conta criada! Enviamos um link de confirmação para <strong style={{ color: 'var(--theme-text)' }}>{sentTo}</strong>. Abra o e-mail, toque em confirmar e volte para entrar.</> : <>Account created! We sent a confirmation link to <strong style={{ color: 'var(--theme-text)' }}>{sentTo}</strong>. Open the email, tap confirm, then come back to sign in.</>}
+                </p>
+                <p className="text-[12.5px]" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? 'Não achou? Veja a caixa de spam.' : 'Can’t find it? Check your spam folder.'}</p>
+                <div className="flex flex-col gap-2 pt-2">
+                  <Link to="/login" className="h-11 grid place-items-center rounded-lg text-[15px] font-medium" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>{pt ? 'Ir para o login' : 'Go to sign in'}</Link>
+                  <button type="button" disabled={resent} onClick={async () => { const { supabase } = await import('@/lib/supabase'); await supabase?.auth.resend({ type: 'signup', email: sentTo, options: { emailRedirectTo: window.location.origin } }); setResent(true) }}
+                    className="h-10 rounded-lg border text-[13.5px] disabled:opacity-60" style={{ borderColor: 'var(--theme-border)' }}>{resent ? (pt ? 'E-mail reenviado' : 'Email sent again') : (pt ? 'Reenviar e-mail' : 'Resend email')}</button>
+                </div>
+              </div>
+            ) : (
             <form onSubmit={submit} className="space-y-3">
               <label className="block">
                 <span className="block text-[13px] font-medium mb-1.5" style={{ color: 'var(--theme-text)' }}>E-mail</span>
@@ -243,8 +263,8 @@ export function Login({ mode = 'login' }: { mode?: Mode }) {
                   </span>
                 </label>
               )}
-              {error && <p role="alert" className="text-sm text-[var(--pastel-rose-fg)]">{error}</p>}
-              {message && <p role="status" className="text-sm" style={{ color: 'var(--theme-text-secondary)' }}>{message}</p>}
+              {error && <p role="alert" className="rounded-lg border px-3 py-2.5 text-[13.5px] font-medium" style={{ backgroundColor: 'var(--pastel-rose-bg)', borderColor: 'var(--pastel-rose-bd)', color: 'var(--pastel-rose-fg)' }}>{error}</p>}
+              {message && <p role="status" className="rounded-lg border px-3 py-2.5 text-[13.5px]" style={{ backgroundColor: 'var(--pastel-green-bg)', borderColor: 'var(--pastel-green-bd)', color: 'var(--pastel-green-fg)' }}>{message}</p>}
 
               <button type="submit" disabled={loading !== null}
                 className="!mt-5 w-full h-11 rounded-lg text-[15px] font-medium transition-opacity hover:opacity-90 disabled:opacity-60"
@@ -254,6 +274,7 @@ export function Login({ mode = 'login' }: { mode?: Mode }) {
                   : (signup ? (pt ? 'Criar conta' : 'Create account') : (pt ? 'Entrar' : 'Sign in'))}
               </button>
             </form>
+            )}
 
             <p className="mt-6 text-center text-sm" style={{ color: 'var(--theme-text-secondary)' }}>
               {signup ? (pt ? 'Já tem conta?' : 'Already have an account?') : (pt ? 'Ainda não tem conta?' : 'No account yet?')}{' '}

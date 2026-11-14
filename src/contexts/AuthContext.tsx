@@ -13,7 +13,7 @@ interface AuthContextValue {
   /** True when Supabase env is configured; when true, login is required. */
   hasSupabase: boolean
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>
-  signUp: (email: string, password: string, meta?: Record<string, string>) => Promise<{ error: Error | null }>
+  signUp: (email: string, password: string, meta?: Record<string, string>) => Promise<{ error: Error | null; needsConfirmation?: boolean }>
   signInWithGoogle: () => Promise<{ error: Error | null }>
   signOut: () => Promise<void>
 }
@@ -56,13 +56,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signUp = async (email: string, password: string, meta?: Record<string, string>) => {
     if (!supabase) return { error: new Error('Supabase não configurado') }
-    const { data, error } = await supabase.auth.signUp({ email, password, options: meta ? { data: meta } : undefined })
+    const { data, error } = await supabase.auth.signUp({ email, password, options: { ...(meta ? { data: meta } : {}), emailRedirectTo: window.location.origin } })
     if (!error && data?.session) {
       setSession(data.session)
       setUser(data.session.user)
       setLoading(false)
     }
-    return { error: error ? new Error(error.message) : null }
+    return { error: error ? new Error(error.message) : null, needsConfirmation: !error && !data?.session }
   }
 
   // Google: o Supabase redireciona para o Google e volta para o app já com a sessão.

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, BookOpen, Clock, BookMarked, Trash2, Pencil, ImagePlus, BookUp, FileText, AudioLines, Flame, Star, ArrowRight, Search } from 'lucide-react'
+import { Plus, BookOpen, Clock, BookMarked, Trash2, Pencil, ImagePlus, BookUp, FileText, Library, AudioLines, Flame, Star, ArrowRight, Search } from 'lucide-react'
 import { useUiStore } from '@/store/useUiStore'
 import { useXpStore, xpSummary } from '@/store/useXpStore'
 import { useBookStore } from '@/store/useBookStore'
@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { FilterSearch, FilterSelect, SegmentedTabs } from '@/components/ui/filter-controls'
 import { BookCardSkeleton } from '@/components/BookCardSkeleton'
+import { GalleryBanner } from '@/components/GalleryBanner'
 import { XpBadge } from '@/components/stats/XpBadge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -354,6 +355,8 @@ export function Dashboard() {
         </div>
       </header>
 
+      <GalleryBanner />
+
       {/* Continuar lendo + hoje */}
       <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
         {hero ? (
@@ -382,9 +385,12 @@ export function Dashboard() {
           <div className="rounded-2xl border p-6 flex items-center gap-6" style={{ borderColor: 'var(--theme-border)' }}>
             <img src="/illustrations/reading.svg" alt="" className="illo w-32 hidden sm:block" />
             <div>
-              <h2 className="font-display text-[26px] leading-tight">{t('noBooksYet')}</h2>
-              <p className="mt-1 text-[14px]" style={{ color: 'var(--theme-text-secondary)' }}>{t('addFirstBookPrompt')}</p>
-              <Button className="mt-4" onClick={() => setIsAddModalOpen(true)}><Plus className="w-4 h-4" />{t('addFirstBook')}</Button>
+              <h2 className="font-display text-[26px] leading-tight">{pt ? 'Sua estante está esperando' : 'Your shelf is waiting'}</h2>
+              <p className="mt-1 text-[14px]" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? 'Escolha um clássico na galeria e comece a ler em inglês, no seu nível, do A1 ao C2.' : 'Pick a classic from the gallery and start reading in English, at your level, from A1 to C2.'}</p>
+              <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+                <Button onClick={() => navigate('/gallery')}><Library className="w-4 h-4" />{pt ? 'Escolher um livro na galeria' : 'Pick a book from the gallery'}</Button>
+                <button type="button" onClick={() => setIsAddModalOpen(true)} className="text-[13.5px] underline underline-offset-2" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? 'ou adicione o seu próprio livro' : 'or add your own book'}</button>
+              </div>
             </div>
           </div>
         )}
@@ -474,7 +480,7 @@ export function Dashboard() {
           </div>
         ) : shelf.length === 0 ? (
           <p className="py-10 text-center text-[14px]" style={{ color: 'var(--theme-text-secondary)' }}>
-            {books.length === 0 ? t('addFirstBookPrompt') : (pt ? 'Nenhum livro aqui.' : 'No books here.')}
+            {books.length === 0 ? (pt ? 'Sua estante está vazia. Escolha um livro na galeria para começar.' : 'Your shelf is empty. Pick a book from the gallery to start.') : (pt ? 'Nenhum livro aqui.' : 'No books here.')}
           </p>
         ) : (
           <div className="grid gap-x-5 gap-y-8 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">

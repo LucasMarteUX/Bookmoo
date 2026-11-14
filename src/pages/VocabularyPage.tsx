@@ -1,6 +1,6 @@
 import { FilterClear, FilterSearch, FilterSelect } from '@/components/ui/filter-controls'
-import { useState, useMemo } from 'react'
-import { Check, Pencil, RotateCcw, Search, Star, Trash2, Volume2, Layers, X } from 'lucide-react'
+import { useEffect, useState, useMemo } from 'react'
+import { Check, Pencil, RotateCcw, Search, Sparkles, SkipForward, Star, Trash2, Volume2, Layers, X } from 'lucide-react'
 import { useVocabularyStore, type Vocabulary, type VocabStatus } from '@/store/useVocabularyStore'
 import { useBookStore } from '@/store/useBookStore'
 import { useLanguage } from '@/store/useLanguage'
@@ -14,6 +14,7 @@ import { InfoHint } from '@/components/ui/info-hint'
 import { VocabularyModal } from '@/components/vocabulary/VocabularyModal'
 import { Button } from '@/components/ui/button'
 import { speak, stopSpeaking } from '@/lib/tts'
+import { generateExplanation, aiErrorMessage } from '@/lib/ai'
 
 const STATUS_STYLE: Record<VocabStatus, { bg: string; fg: string; icon: typeof Check }> = {
   learned: { bg: 'var(--color-vocab-learned-bg)', fg: 'var(--color-vocab-learned-text)', icon: Check },
@@ -173,32 +174,69 @@ export function VocabularyPage() {
   )
 }
 
-/** Revisão rápida com cartões: vê a palavra, tenta lembrar, revela o significado e marca. */
+/** Revisão rápida com cartões: vê a palavra, tenta lembrar, revela o significado e marca. Dá para passar e pedir ajuda à IA. */
 function ReviewSession({ ids, pt, onClose, onStatus }: { ids: string[]; pt: boolean; onClose: () => void; onStatus: (id: string, s: VocabStatus) => void }) {
   const vocabularies = useVocabularyStore(s => s.vocabularies)
-  const [index, setIndex] = useState(0)
+  const updateVocabulary = useVocabularyStore(s => s.updateVocabulary)
+  const { user } = useAuth()
+  const [queue, setQueue] = useState(ids)
+  const [answered, setAnswered] = useState(0)
   const [revealed, setRevealed] = useState(false)
   const [learnedCount, setLearnedCount] = useState(0)
-  const current = vocabularies.find(v => v.id === ids[index])
-  const done = index >= ids.length || !current
+  const [aiBusy, setAiBusy] = useState(false)
+  const [aiError, setAiError] = useState('')
+  const total = ids.length
+  const current = vocabularies.find(v => v.id === queue[0])
+  const done = !current
   const next = (learned: boolean) => {
     if (current && learned) { onStatus(current.id, 'learned'); setLearnedCount(c => c + 1) }
-    setRevealed(false)
-    setIndex(i => i + 1)
+    setRevealed(false); setAiError('')
+    setAnswered(a => a + 1)
+    setQueue(q => q.slice(1))
+  }
+  // Passar: a palavra vai para o fim da fila, sem marcar nada.
+  const skip = () => { setRevealed(false); setAiError(''); setQueue(q => (q.length > 1 ? [...q.slice(1), q[0]] : q)) }
+  // Ajuda da IA: explica a palavra (reaproveita explicações já geradas por outras pessoas) e guarda no vocabulário.
+  const help = async () => {
+    if (!current || aiBusy) return
+    setAiBusy(true); setAiError('')
+    try {
+      const r = await generateExplanation(current.text, 'B1', 'en', pt ? 'pt' : undefined)
+      const patch: Partial<Vocabulary> = {
+        explanation: [r.definition, pt && r.definitionTranslation ? r.definitionTranslation : ''].filter(Boolean).join('\n'),
+        examples: r.examples, usageNote: r.usageNote || current.usageNote,
+      }
+      updateVocabulary(current.id, patch)
+      if (supabase && user?.id) void upsertVocabulary(supabase, user.id, { ...current, ...patch }).catch(() => {})
+      setRevealed(true)
+    } catch (e) { setAiError(aiErrorMessage(e)) }
+    finally { setAiBusy(false) }
   }
 
+  useEffect(() => {
+    const key = (e: KeyboardEvent) => {
+      if (done) return
+      if (e.key === 'Escape') onClose()
+      else if (e.key === ' ' && !revealed) { e.preventDefault(); setRevealed(true) }
+      else if (e.key === 'ArrowRight' && revealed) next(true)
+      else if (e.key === 'ArrowLeft' && revealed) next(false)
+    }
+    window.addEventListener('keydown', key)
+    return () => window.removeEventListener('keydown', key)
+  })
+
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center sm:p-4">
       <div className="fixed inset-0 bg-black/40 backdrop-blur-[2px] dialog-fade" onClick={onClose} />
-      <div className="elevated dialog-pop relative w-full max-w-lg rounded-2xl p-6 sm:p-8" role="dialog" aria-modal="true" aria-label={pt ? 'Revisão' : 'Review'}>
-        <button type="button" onClick={onClose} aria-label={pt ? 'Fechar' : 'Close'} className="absolute right-3 top-3 w-8 h-8 grid place-items-center rounded-md hover:bg-[var(--ui-hover)]" style={{ color: 'var(--theme-text-secondary)' }}>
+      <div className="elevated dialog-pop relative w-full max-w-lg max-h-[92dvh] overflow-y-auto rounded-t-3xl sm:rounded-2xl p-5 sm:p-8" role="dialog" aria-modal="true" aria-label={pt ? 'Revisão' : 'Review'}>
+        <button type="button" onClick={onClose} aria-label={pt ? 'Fechar' : 'Close'} className="absolute right-3 top-3 w-9 h-9 grid place-items-center rounded-md hover:bg-[var(--ui-hover)]" style={{ color: 'var(--theme-text-secondary)' }}>
           <X className="w-4 h-4" />
         </button>
-        <div className="flex items-center gap-3 pr-8">
-          <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
-            <div className="h-full rounded-full transition-all" style={{ width: `${(Math.min(index, ids.length) / ids.length) * 100}%`, backgroundColor: 'var(--theme-text)' }} />
+        <div className="flex items-center gap-3 pr-9">
+          <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
+            <div className="h-full rounded-full transition-all" style={{ width: `${(Math.min(answered, total) / total) * 100}%`, backgroundColor: 'var(--theme-text)' }} />
           </div>
-          <span className="text-[12.5px] tabular-nums" style={{ color: 'var(--theme-text-secondary)' }}>{Math.min(index + 1, ids.length)}/{ids.length}</span>
+          <span className="text-[12.5px] tabular-nums" style={{ color: 'var(--theme-text-secondary)' }}>{Math.min(answered + 1, total)}/{total}</span>
         </div>
 
         {done ? (
@@ -206,25 +244,29 @@ function ReviewSession({ ids, pt, onClose, onStatus }: { ids: string[]; pt: bool
             <img src="/illustrations/high-five.svg" alt="" className="illo w-36 mx-auto mb-4" />
             <p className="font-display text-[28px]">{pt ? 'Revisão concluída' : 'Review complete'}</p>
             <p className="mt-1 text-[14px]" style={{ color: 'var(--theme-text-secondary)' }}>
-              {pt ? `${learnedCount} de ${ids.length} marcadas como aprendidas.` : `${learnedCount} of ${ids.length} marked as learned.`}
+              {pt ? `${learnedCount} de ${total} marcadas como aprendidas.` : `${learnedCount} of ${total} marked as learned.`}
             </p>
             <Button className="mt-6" onClick={onClose}>{pt ? 'Concluir' : 'Done'}</Button>
           </div>
         ) : (
           <>
-            <div className="py-10 text-center">
-              <p className="font-display text-[44px] leading-tight">{current.text}</p>
+            <div className="pt-8 pb-5 text-center">
+              <p className="font-display text-[38px] sm:text-[44px] leading-tight break-words">{current.text}</p>
               {ipaOf(current.explanation) && <p className="mt-1 text-[14px] font-mono" style={{ color: 'var(--theme-text-secondary)' }}>{ipaOf(current.explanation)}</p>}
-              <button type="button" onClick={() => say(current.text)} className="mt-3 h-8 px-3 inline-flex items-center gap-1.5 rounded-lg border text-[13px] hover:bg-[var(--ui-hover)]" style={{ borderColor: 'var(--theme-border)' }}>
+              <button type="button" onClick={() => say(current.text)} className="mt-3 h-9 px-3 inline-flex items-center gap-1.5 rounded-lg border text-[13px] hover:bg-[var(--ui-hover)]" style={{ borderColor: 'var(--theme-border)' }}>
                 <Volume2 className="w-3.5 h-3.5" />{pt ? 'Ouvir' : 'Listen'}
               </button>
               {revealed ? (
-                <p className="mt-6 font-serif text-[16px] leading-relaxed text-left whitespace-pre-wrap" style={{ color: 'var(--theme-text)' }}>
-                  {summary(current.explanation) || (pt ? 'Sem explicação salva ainda.' : 'No explanation saved yet.')}
-                </p>
+                <div className="mt-6 space-y-3 text-left">
+                  <p className="font-serif text-[16px] leading-relaxed whitespace-pre-wrap" style={{ color: 'var(--theme-text)' }}>
+                    {summary(current.explanation) || (pt ? 'Sem explicação salva ainda. Peça ajuda à IA.' : 'No explanation saved yet. Ask the AI for help.')}
+                  </p>
+                  {current.examples?.slice(0, 2).map((ex, i) => <p key={i} className="text-[13.5px] italic leading-snug" style={{ color: 'var(--theme-text-secondary)' }}>“{ex}”</p>)}
+                </div>
               ) : (
                 <p className="mt-6 text-[13.5px]" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? 'Lembra o que significa?' : 'Do you remember what it means?'}</p>
               )}
+              {aiError && <p role="alert" className="mt-3 text-[13px]" style={{ color: 'var(--color-destructive)' }}>{aiError}</p>}
             </div>
             {revealed ? (
               <div className="grid grid-cols-2 gap-2">
@@ -234,6 +276,14 @@ function ReviewSession({ ids, pt, onClose, onStatus }: { ids: string[]; pt: bool
             ) : (
               <Button size="lg" className="w-full" onClick={() => setRevealed(true)}>{pt ? 'Mostrar significado' : 'Show meaning'}</Button>
             )}
+            <div className="mt-3 flex items-center justify-between gap-2">
+              <button type="button" onClick={() => { void help() }} disabled={aiBusy} className="h-10 px-3 inline-flex items-center gap-1.5 rounded-lg text-[13px] hover:bg-[var(--ui-hover)] disabled:opacity-60" style={{ color: 'var(--theme-text-secondary)' }}>
+                <Sparkles className="w-4 h-4" />{aiBusy ? (pt ? 'Pensando…' : 'Thinking…') : (pt ? 'Pedir ajuda à IA' : 'Ask AI for help')}
+              </button>
+              <button type="button" onClick={skip} disabled={queue.length < 2} className="h-10 px-3 inline-flex items-center gap-1.5 rounded-lg text-[13px] hover:bg-[var(--ui-hover)] disabled:opacity-40" style={{ color: 'var(--theme-text-secondary)' }}>
+                <SkipForward className="w-4 h-4" />{pt ? 'Passar' : 'Skip'}
+              </button>
+            </div>
           </>
         )}
       </div>
