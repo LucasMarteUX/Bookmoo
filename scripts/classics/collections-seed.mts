@@ -65,11 +65,19 @@ where ${bookId(t, last)} is not null on conflict (collection_id, book_id) do not
   run(sql); console.log('Coleções criadas/atualizadas e livros existentes vinculados.')
 }
 if (mode === 'publish') {
-  for (const d of DEFS) {
+  const replace = process.argv.includes('--replace-banner')
+  for (const d of [...DEFS, ...(replace ? [{ slug: 'sherlock-holmes' } as Def] : [])]) {
     const banner = join(ROOT, 'content', 'collections', d.slug, 'banner.webp')
-    if (!existsSync(banner)) { console.log(`· ${d.slug}: sem banner ainda`); continue }
+    if (!existsSync(banner)) {
+      if (process.argv.includes('--sem-banner')) {
+        const rows = run(`update public.collections c set is_published = true, is_featured = true where c.slug = ${q(d.slug)} and (select count(*) from public.collection_books where collection_id = c.id) >= 2;
+select slug, is_published, (select count(*) from public.collection_books where collection_id = c.id) n from public.collections c where slug = ${q(d.slug)};`)
+        console.log(`✓ ${d.slug}: ${rows[0]?.n} livros, publicada=${rows[0]?.is_published} (sem banner; usa o fundo da paleta)`)
+      } else console.log(`· ${d.slug}: sem banner ainda`)
+      continue
+    }
     const data = 'data:image/webp;base64,' + readFileSync(banner).toString('base64')
-    const rows = run(`update public.collections set banner_data = coalesce(banner_data, ${q(data)}) where slug = ${q(d.slug)};
+    const rows = run(`update public.collections set banner_data = ${replace ? q(data) : `coalesce(banner_data, ${q(data)})`} where slug = ${q(d.slug)};
 update public.collections c set is_published = true, is_featured = true where c.slug = ${q(d.slug)} and (select count(*) from public.collection_books where collection_id = c.id) >= 2 and c.banner_data is not null;
 select slug, is_published, (select count(*) from public.collection_books where collection_id = c.id) n from public.collections c where slug = ${q(d.slug)};`)
     console.log(`✓ ${d.slug}: ${rows[0]?.n} livros, publicada=${rows[0]?.is_published}`)

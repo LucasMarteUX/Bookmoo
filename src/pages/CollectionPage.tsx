@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { BookCard } from '@/components/book/BookCard'
 import { BookCardSkeleton } from '@/components/BookCardSkeleton'
-import { CollectionCard, CollectionCardSkeleton } from '@/components/book/CollectionCard'
+import { CollectionCard, CollectionCardSkeleton, collectionFallback } from '@/components/book/CollectionCard'
 import { EmptyState } from '@/components/ui/empty-state'
 import { useLanguage } from '@/store/useLanguage'
 import { categoryName } from '@/lib/catalog'
@@ -52,7 +52,7 @@ function CollectionDetail({ slug }: { slug: string }) {
       <div>
         <Link to="/gallery" className="text-[13px]" style={muted}>{pt ? '← Galeria' : '← Gallery'}</Link>
         <header className="mt-3 grid gap-5 md:grid-cols-5 md:items-center">
-          <div className="md:col-span-3 aspect-[12/5] overflow-hidden rounded-xl" style={{ backgroundColor: '#0d1018' }}>
+          <div className="md:col-span-3 aspect-[12/5] overflow-hidden rounded-xl" style={{ background: collectionFallback(slug) }}>
             {loaded?.bannerData && <img src={loaded.bannerData} alt="" className="h-full w-full object-cover object-right" />}
           </div>
           <div className="md:col-span-2">

@@ -2,6 +2,15 @@ import { Link } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import type { Collection } from '@/lib/collections'
 
+/** Fundo de cada coleção enquanto ela não tem arte própria (paleta de cada identidade visual). */
+const FALLBACK: Record<string, [string, string]> = {
+  'sherlock-holmes': ['#0b1020', '#3a3358'], 'classics': ['#2a1410', '#6b3b24'], 'gothic-horror-classics': ['#120608', '#4a1018'],
+  'h-g-wells-science-fiction': ['#0e1f2e', '#8a4b22'], 'wonderful-world-of-oz': ['#0b3b2a', '#c9a227'], 'edgar-allan-poe': ['#0a0a0c', '#4a1424'],
+  'barsoom': ['#4a1608', '#d9772b'], 'anne-of-green-gables': ['#254a2a', '#a9c98a'], 'pellucidar': ['#0e2a1b', '#b97a1e'],
+  'arsene-lupin': ['#0a1330', '#9b7a2b'], 'jules-verne': ['#0b1c33', '#8a5a2b'], 'lovecraft': ['#05120f', '#1f5a4a'],
+}
+export const collectionFallback = (slug: string) => { const [a, b] = FALLBACK[slug] ?? ['#0d1018', '#2a3040']; return `linear-gradient(135deg, ${a}, ${b})` }
+
 /**
  * Banner horizontal (2,4:1) de uma coleção. Dentro do grid da galeria ocupa três colunas de capas
  * (col-span-3), duas no celular; fora do grid, use `className` para a largura.
@@ -11,7 +20,7 @@ export function CollectionCard({ collection, pt, className }: { collection: Coll
   return (
     <Link to={`/collections/${collection.slug}`} aria-label={`${collection.title} — ${count} ${pt ? 'livros' : 'books'}`}
       className={cn('group relative block aspect-[12/5] overflow-hidden rounded-xl isolate outline-none transition-[transform,box-shadow] duration-300 hover:-translate-y-0.5 hover:shadow-lg focus-visible:ring-2 focus-visible:ring-offset-2 cursor-pointer', className)}
-      style={{ backgroundColor: '#0d1018', boxShadow: '0 1px 2px rgba(0,0,0,.18)', containerType: 'inline-size' }}>
+      style={{ background: collectionFallback(collection.slug), boxShadow: '0 1px 2px rgba(0,0,0,.18)', containerType: 'inline-size' }}>
       {collection.bannerData && (
         <img src={collection.bannerData} alt="" decoding="async" className="absolute inset-0 -z-10 h-full w-full object-cover object-right transition-transform duration-500 group-hover:scale-[1.03]" />
       )}

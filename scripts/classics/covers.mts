@@ -134,7 +134,7 @@ L(49, 'stark narrow serif lettering in pale bone-white with a thin smoky edge on
 L(50, 'inventive stream-of-consciousness Irish-modernist lettering in emerald green and cream with a playful oversized initial, clean')
 const letterOf =(n: number) => LETTER[n] ?? 'hand-drawn title lettering with strong personality that matches the story, genre and era'
 
-const dirs = readdirSync(OUT).filter(d => /^\d\d-/.test(d))
+const dirs = readdirSync(OUT).filter(d => /^\d{2,3}-/.test(d))
 const dirOf = (n: number) => { const d = dirs.find(x => x.startsWith(String(n).padStart(2, '0') + '-')); if (!d) throw new Error('pasta ausente: ' + n); return join(OUT, d) }
 const statusOf = (n: number) => JSON.parse(readFileSync(join(dirOf(n), 'status.json'), 'utf8'))
 const saveStatus = (n: number, patch: Record<string, unknown>) => writeFileSync(join(dirOf(n), 'status.json'), JSON.stringify({ ...statusOf(n), ...patch, updatedAt: new Date().toISOString() }, null, 2) + '\n')
