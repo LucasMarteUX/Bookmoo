@@ -8,7 +8,7 @@ import type { Author } from '@/lib/communityProfile'
 import { cn } from '@/lib/utils'
 
 /** Capa 2:3. A versão desfocada preenche as sobras de capas com outra proporção. */
-export function BookCover({ title, coverData, className, children }: { title: string; coverData?: string; className?: string; children?: ReactNode }) {
+export function BookCover({ title, coverData, pending, className, children }: { title: string; coverData?: string; /** Capa ainda baixando: bloco neutro em vez do título escrito. */ pending?: boolean; className?: string; children?: ReactNode }) {
   return (
     <div className={cn('book-cover relative w-full aspect-[2/3] rounded-lg overflow-hidden grid place-items-center', className)} style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
       {coverData
@@ -16,17 +16,19 @@ export function BookCover({ title, coverData, className, children }: { title: st
             <img src={coverData} alt="" aria-hidden loading="lazy" decoding="async" className="absolute inset-0 w-full h-full object-cover scale-110 blur-xl opacity-70" />
             <img src={coverData} alt="" loading="lazy" decoding="async" className="relative w-full h-full object-contain" />
           </>
+        : pending ? <span aria-hidden className="absolute inset-0 animate-pulse" style={{ backgroundColor: 'var(--theme-bg-secondary)' }} />
         : <span className="px-3 text-center font-display text-[15px] leading-snug line-clamp-4">{title}</span>}
       {children}
     </div>
   )
 }
 
-export function BookCard({ to, title, subtitle, coverData, level, pt, linkState, className, readers = 0, faces = [], rating, ratings = 0, illustrated = 0 }: {
+export function BookCard({ to, title, subtitle, coverData, coverPending, level, pt, linkState, className, readers = 0, faces = [], rating, ratings = 0, illustrated = 0 }: {
   to: string
   title: string
   subtitle?: string
   coverData?: string
+  coverPending?: boolean
   level?: CefrId
   pt: boolean
   /** Enviado ao destino, para ele saber voltar aos filtros de origem. */
@@ -43,7 +45,7 @@ export function BookCard({ to, title, subtitle, coverData, level, pt, linkState,
 }) {
   return (
     <Link to={to} state={linkState} className={cn('group block', className)}>
-      <BookCover title={title} coverData={coverData} className="transition-transform duration-300 group-hover:-translate-y-1">
+      <BookCover title={title} coverData={coverData} pending={coverPending} className="transition-transform duration-300 group-hover:-translate-y-1">
         {level && <LevelBadge id={level} pt={pt} variant="compact" className="absolute left-1.5 top-1.5" />}
         {illustrated > 0 && (
           <span className="absolute right-1.5 top-1.5 h-5 px-1.5 rounded-full inline-flex items-center gap-1 text-[10.5px] font-semibold backdrop-blur-md"

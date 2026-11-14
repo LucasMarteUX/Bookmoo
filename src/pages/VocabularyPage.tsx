@@ -1,3 +1,4 @@
+import { FilterClear, FilterSearch, FilterSelect } from '@/components/ui/filter-controls'
 import { useState, useMemo } from 'react'
 import { Check, Pencil, RotateCcw, Search, Star, Trash2, Volume2, Layers, X } from 'lucide-react'
 import { useVocabularyStore, type Vocabulary, type VocabStatus } from '@/store/useVocabularyStore'
@@ -112,23 +113,11 @@ export function VocabularyPage() {
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <label className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--theme-text-secondary)' }} />
-          <input value={query} onChange={e => setQuery(e.target.value)} placeholder={pt ? 'Buscar palavra ou significado' : 'Search word or meaning'}
-            className="w-full h-9 rounded-lg border pl-9 pr-3 text-[14px] outline-none transition-colors focus:border-[var(--theme-text-secondary)]"
-            style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg)', color: 'var(--theme-text)' }} />
-        </label>
-        <select value={filterBookId} onChange={e => setFilterBookId(e.target.value)} aria-label={t('book')}
-          className="h-9 max-w-[220px] rounded-lg border px-2.5 text-[13.5px] outline-none cursor-pointer"
-          style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg)', color: 'var(--theme-text)' }}>
-          <option value="">{pt ? 'Todos os livros' : 'All books'}</option>
-          {books.map(b => <option key={b.id} value={b.id}>{b.title}</option>)}
-        </select>
+        <FilterSearch grow value={query} onChange={setQuery} placeholder={pt ? 'Buscar palavra ou significado' : 'Search word or meaning'} />
+        <FilterSelect value={filterBookId} onChange={setFilterBookId} label={t('book')}
+          options={[{ value: '', label: pt ? 'Todos os livros' : 'All books' }, ...books.map(b => ({ value: b.id, label: b.title }))]} />
         {(filterStatus || filterBookId || query) && (
-          <button type="button" onClick={() => { setFilterStatus(''); setFilterBookId(''); setQuery('') }}
-            className="h-9 px-2.5 inline-flex items-center gap-1 rounded-lg text-[13px] hover:bg-[var(--ui-hover)]" style={{ color: 'var(--theme-text-secondary)' }}>
-            <X className="w-3.5 h-3.5" />{pt ? 'Limpar' : 'Clear'}
-          </button>
+          <FilterClear onClick={() => { setFilterStatus(''); setFilterBookId(''); setQuery('') }}>{pt ? 'Limpar' : 'Clear'}</FilterClear>
         )}
       </div>
 

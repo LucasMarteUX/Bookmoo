@@ -1,3 +1,4 @@
+import { FilterClear, FilterSearch, FilterSelect } from '@/components/ui/filter-controls'
 import { useEffect, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { Pencil, Trash2 } from 'lucide-react'
@@ -90,26 +91,13 @@ function PublishedBooks({ pt, books, onChange }: { pt: boolean; books: CatalogBo
       </p>
       {books.length > 0 && (
         <div className="mt-4 flex flex-wrap items-center gap-2">
-          <input type="search" className={`${field} flex-1 min-w-[180px]`} style={style} value={query}
-            placeholder={pt ? 'Pesquisar por título ou autor' : 'Search by title or author'}
-            aria-label={pt ? 'Pesquisar livros' : 'Search books'}
-            onChange={e => { setQuery(e.target.value); setPage(1) }} />
-          <select aria-label={pt ? 'Filtrar por categoria' : 'Filter by category'} className={`${field} cursor-pointer`} style={style} value={category}
-            onChange={e => { setCategory(e.target.value as BookCategory | 'none' | ''); setPage(1) }}>
-            <option value="">{pt ? 'Todas as categorias' : 'All categories'}</option>
-            {BOOK_CATEGORIES.map(item => <option key={item.id} value={item.id}>{pt ? item.pt : item.en}</option>)}
-            <option value="none">{pt ? 'Sem categoria' : 'No category'}</option>
-          </select>
-          <select aria-label={pt ? 'Filtrar por nível' : 'Filter by level'} className={`${field} cursor-pointer`} style={style} value={level}
-            onChange={e => { setLevel(e.target.value as CefrId | 'none' | ''); setPage(1) }}>
-            <option value="">{pt ? 'Todos os níveis' : 'All levels'}</option>
-            {CEFR.map(band => <option key={band.id} value={band.id}>{band.id}</option>)}
-            <option value="none">{pt ? 'Sem nível' : 'No level'}</option>
-          </select>
+          <FilterSearch grow value={query} onChange={v => { setQuery(v); setPage(1) }} placeholder={pt ? 'Pesquisar por título ou autor' : 'Search by title or author'} label={pt ? 'Pesquisar livros' : 'Search books'} />
+          <FilterSelect value={category} onChange={v => { setCategory(v as BookCategory | 'none' | ''); setPage(1) }} label={pt ? 'Filtrar por categoria' : 'Filter by category'}
+            options={[{ value: '', label: pt ? 'Todas as categorias' : 'All categories' }, ...BOOK_CATEGORIES.map(item => ({ value: item.id, label: pt ? item.pt : item.en })), { value: 'none', label: pt ? 'Sem categoria' : 'No category' }]} />
+          <FilterSelect value={level} onChange={v => { setLevel(v as CefrId | 'none' | ''); setPage(1) }} label={pt ? 'Filtrar por nível' : 'Filter by level'}
+            options={[{ value: '', label: pt ? 'Todos os níveis' : 'All levels' }, ...CEFR.map(band => ({ value: band.id, label: band.id })), { value: 'none', label: pt ? 'Sem nível' : 'No level' }]} />
           {filtering && (
-            <button type="button" className={pageBtn} style={style} onClick={() => { setQuery(''); setCategory(''); setLevel(''); setPage(1) }}>
-              {pt ? 'Limpar' : 'Clear'}
-            </button>
+            <FilterClear onClick={() => { setQuery(''); setCategory(''); setLevel(''); setPage(1) }}>{pt ? 'Limpar' : 'Clear'}</FilterClear>
           )}
         </div>
       )}

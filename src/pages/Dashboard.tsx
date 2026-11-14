@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, BookOpen, Clock, BookMarked, Trash2, Pencil, ImagePlus, BookUp, AudioLines, Flame, Star, ArrowRight, Search } from 'lucide-react'
+import { Plus, BookOpen, Clock, BookMarked, Trash2, Pencil, ImagePlus, BookUp, FileText, AudioLines, Flame, Star, ArrowRight, Search } from 'lucide-react'
 import { useUiStore } from '@/store/useUiStore'
 import { useXpStore, xpSummary } from '@/store/useXpStore'
 import { useBookStore } from '@/store/useBookStore'
@@ -14,6 +14,7 @@ import { supabase } from '@/lib/supabase'
 import { upsertBook, updateBookFields, deleteBookRemote, fetchBooks } from '@/lib/supabaseSync'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { FilterSearch, FilterSelect, SegmentedTabs } from '@/components/ui/filter-controls'
 import { BookCardSkeleton } from '@/components/BookCardSkeleton'
 import { XpBadge } from '@/components/stats/XpBadge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
@@ -110,6 +111,8 @@ export function Dashboard() {
       setSavingBook(false)
     }
     setImportedEpub(null)
+    clearConverted()
+    setImportNotes([])
     setIsAddModalOpen(false)
     setNewTitle('')
     setNewContent('')
@@ -122,15 +125,29 @@ export function Dashboard() {
 
   // Importar EPUB: extrai título, autor, idioma, capa e o texto do livro inteiro (no navegador).
   const epubInputRef = useRef<HTMLInputElement>(null)
-  const [epubStatus, setEpubStatus] = useState<{ busy: boolean; msg: string | null }>({ busy: false, msg: null })
-  const handleEpubChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    e.target.value = ''
+  const pdfInputRef = useRef<HTMLInputElement>(null)
+  const [epubStatus, setEpubStatus] = useState<{ busy: boolean; msg: string | null; kind?: 'EPUB' | 'PDF' }>({ busy: false, msg: null })
+  const [importProgress, setImportProgress] = useState(0)
+  const [importStep, setImportStep] = useState('')
+  const [importNotes, setImportNotes] = useState<string[]>([])
+  const [convertedEpub, setConvertedEpub] = useState<{ url: string; name: string } | null>(null)
+  const clearConverted = () => setConvertedEpub(prev => { if (prev) URL.revokeObjectURL(prev.url); return null })
+  const runImport = async (file: File | undefined, kind: 'EPUB' | 'PDF') => {
     if (!file) return
-    setEpubStatus({ busy: true, msg: null })
+    setEpubStatus({ busy: true, msg: null, kind })
+    setImportProgress(0)
+    setImportStep(kind === 'PDF' ? (pt ? 'Abrindo o PDF…' : 'Opening the PDF…') : (pt ? 'Lendo o EPUB…' : 'Reading the EPUB…'))
+    setImportNotes([])
+    clearConverted()
     try {
-      const { parseEpub } = await import('@/lib/epub')
-      const book = await parseEpub(file)
+      const pdfStatus = (message: string, ratio: number) => { setImportStep(message); setImportProgress(ratio) }
+      const imported = kind === 'EPUB' ? await (await import('@/lib/epub')).parseEpub(file, setImportProgress) : await (await import('@/lib/pdf')).parsePdf(file, pdfStatus)
+      const book: EpubBook = imported
+      if ('epub' in imported) {
+        const pdf = imported as import('@/lib/pdf').PdfImport
+        setConvertedEpub({ url: URL.createObjectURL(pdf.epub), name: pdf.epubName })
+        setImportNotes(pdf.notes)
+      }
       setNewTitle(book.title)
       setNewAuthor(book.author ?? '')
       setNewDescription(book.description ?? '')
@@ -140,16 +157,18 @@ export function Dashboard() {
       setImportedEpub(book)
       setNewTotalPages(String(book.pages.length))
       const words = countWords(book.text)
-      const pagination = book.pagination === 'embedded'
-        ? (locale === 'pt-BR' ? 'páginas marcadas no EPUB' : 'pages marked in the EPUB')
-        : (locale === 'pt-BR' ? 'páginas de leitura' : 'reading pages')
+      const pagination = kind === 'PDF' ? (pt ? 'páginas de leitura' : 'reading pages')
+        : book.pagination === 'embedded' ? (pt ? 'páginas marcadas no EPUB' : 'pages marked in the EPUB') : (pt ? 'páginas de leitura' : 'reading pages')
       setIsAddModalOpen(true)
-      setEpubStatus({ busy: false, msg: locale === 'pt-BR' ? `EPUB importado: ${book.pages.length} ${pagination}, ${words.toLocaleString()} palavras.` : `EPUB imported: ${book.pages.length} ${pagination}, ${words.toLocaleString()} words.` })
+      setEpubStatus({ busy: false, kind, msg: pt ? `${kind} importado: ${book.pages.length} ${pagination}, ${words.toLocaleString()} palavras. Revise o texto abaixo antes de salvar.` : `${kind} imported: ${book.pages.length} ${pagination}, ${words.toLocaleString()} words. Review the text below before saving.` })
     } catch (err) {
       setIsAddModalOpen(true)
-      setEpubStatus({ busy: false, msg: (err as Error).message || (locale === 'pt-BR' ? 'Não foi possível ler este EPUB.' : 'Could not read this EPUB.') })
+      setImportNotes([])
+      setEpubStatus({ busy: false, kind, msg: (err as Error).message || (pt ? `Não foi possível ler este ${kind}.` : `Could not read this ${kind}.`) })
     }
   }
+  const handleEpubChange = (e: React.ChangeEvent<HTMLInputElement>) => { const file = e.target.files?.[0]; e.target.value = ''; void runImport(file, 'EPUB') }
+  const handlePdfChange = (e: React.ChangeEvent<HTMLInputElement>) => { const file = e.target.files?.[0]; e.target.value = ''; void runImport(file, 'PDF') }
 
   const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -312,9 +331,14 @@ export function Dashboard() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <input ref={epubInputRef} type="file" accept=".epub,application/epub+zip" className="hidden" onChange={handleEpubChange} />
+          <input ref={pdfInputRef} type="file" accept=".pdf,application/pdf" className="hidden" onChange={handlePdfChange} />
           <Button variant="outline" onClick={() => epubInputRef.current?.click()} disabled={epubStatus.busy}>
             <BookUp className="w-4 h-4" />
-            {epubStatus.busy ? (pt ? 'Lendo EPUB…' : 'Reading EPUB…') : (pt ? 'Importar EPUB' : 'Import EPUB')}
+            {epubStatus.busy && epubStatus.kind === 'EPUB' ? (pt ? 'Lendo EPUB…' : 'Reading EPUB…') : (pt ? 'Importar EPUB' : 'Import EPUB')}
+          </Button>
+          <Button variant="outline" onClick={() => pdfInputRef.current?.click()} disabled={epubStatus.busy}>
+            <FileText className="w-4 h-4" />
+            {epubStatus.busy && epubStatus.kind === 'PDF' ? (pt ? 'Lendo PDF…' : 'Reading PDF…') : (pt ? 'Importar PDF' : 'Import PDF')}
           </Button>
           <Button onClick={() => setIsAddModalOpen(true)}>
             <Plus className="w-4 h-4" />
@@ -430,28 +454,10 @@ export function Dashboard() {
             <span className="text-[13px] tabular-nums" style={{ color: 'var(--theme-text-secondary)' }}>{books.length}</span>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <div className="flex p-0.5 rounded-lg" style={{ backgroundColor: 'var(--theme-bg-secondary)' }} role="tablist">
-              {filters.map(f => (
-                <button key={f.id} type="button" role="tab" aria-selected={libraryFilter === f.id} onClick={() => setLibraryFilter(f.id)}
-                  className="h-7 px-2.5 rounded-md text-[12.5px] font-medium transition-colors"
-                  style={{ backgroundColor: libraryFilter === f.id ? 'var(--theme-card-bg)' : 'transparent', color: libraryFilter === f.id ? 'var(--theme-text)' : 'var(--theme-text-secondary)', boxShadow: libraryFilter === f.id ? '0 1px 2px rgba(0,0,0,0.08)' : undefined }}>
-                  {f.label}
-                </button>
-              ))}
-            </div>
-            <label className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: 'var(--theme-text-secondary)' }} />
-              <input value={libraryQuery} onChange={e => setLibraryQuery(e.target.value)} placeholder={pt ? 'Filtrar' : 'Filter'}
-                className="h-8 w-36 rounded-lg border pl-8 pr-2 text-[13px] outline-none transition-colors focus:border-[var(--theme-text-secondary)]"
-                style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg)', color: 'var(--theme-text)' }} />
-            </label>
-            <select value={librarySort} onChange={e => setLibrarySort(e.target.value as LibrarySort)} aria-label={pt ? 'Ordenar' : 'Sort'}
-              className="h-8 rounded-lg border px-2 text-[13px] outline-none cursor-pointer"
-              style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg)', color: 'var(--theme-text)' }}>
-              <option value="recent">{pt ? 'Recentes' : 'Recent'}</option>
-              <option value="title">{pt ? 'Título' : 'Title'}</option>
-              <option value="progress">{pt ? 'Progresso' : 'Progress'}</option>
-            </select>
+            <SegmentedTabs<LibraryFilter> value={libraryFilter} onChange={setLibraryFilter} options={filters.map(f => ({ id: f.id as LibraryFilter, label: f.label }))} />
+            <FilterSearch value={libraryQuery} onChange={setLibraryQuery} placeholder={pt ? 'Filtrar' : 'Filter'} />
+            <FilterSelect value={librarySort} onChange={v => setLibrarySort(v as LibrarySort)} label={pt ? 'Ordenar' : 'Sort'}
+              options={[{ value: 'recent', label: pt ? 'Recentes' : 'Recent' }, { value: 'title', label: pt ? 'Título' : 'Title' }, { value: 'progress', label: pt ? 'Progresso' : 'Progress' }]} />
           </div>
         </div>
 
@@ -498,35 +504,79 @@ export function Dashboard() {
         </DialogContent>
       </Dialog>
       <Dialog open={isAddModalOpen} onOpenChange={open => { if (!savingBook) setIsAddModalOpen(open) }}>
-        <DialogContent className="relative sm:max-w-lg rounded-[2rem] border pt-8" style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-border)' }}>
-          <DialogHeader>
+        <DialogContent className="relative sm:max-w-2xl rounded-[2rem] border !flex !flex-col !gap-0 !p-0 !overflow-hidden" style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-border)' }}>
+          <DialogHeader className="shrink-0 px-5 pt-7 pb-3 sm:px-6 sm:pt-8">
             <DialogTitle style={{ color: 'var(--theme-text)' }}>{t('addNewBook')}</DialogTitle>
-            <DialogDescription style={{ color: 'var(--theme-text-secondary)' }}>{t('addNewBookDescription')}</DialogDescription>
+            <DialogDescription style={{ color: 'var(--theme-text-secondary)' }}>{pt ? 'Importe um arquivo ou cole o texto que você quer ler e estudar.' : 'Import a file or paste the text you want to read and study.'}</DialogDescription>
           </DialogHeader>
-          
-          <div className="space-y-5 pt-4">
-            <div className="space-y-2">
-              <Label htmlFor="title" style={{ color: 'var(--theme-text)' }}>{t('title')}</Label>
-              <Input id="title" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder={t('titlePlaceholder')} className="rounded-2xl h-12 px-4" style={{ borderColor: 'var(--theme-border)' }} />
+
+          <div data-vaul-no-drag className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-5 py-4 sm:px-6">
+            <div className="grid gap-2 sm:grid-cols-2">
+              {([['EPUB', BookUp, pt ? 'Livro digital com capítulos, capa e dados' : 'Digital book with chapters, cover and details', epubInputRef], ['PDF', FileText, pt ? 'PDF com texto selecionável, até 20 MB (sem IA)' : 'Text-based PDFs up to 20 MB (no AI)', pdfInputRef]] as const).map(([kind, Icon, hint, ref]) => (
+                <button key={kind} type="button" disabled={epubStatus.busy} onClick={() => ref.current?.click()}
+                  className="flex items-center gap-3 rounded-2xl border p-3.5 text-left transition-colors hover:bg-[var(--ui-hover)] disabled:opacity-60"
+                  style={{ borderColor: 'var(--theme-border)' }}>
+                  <span className="grid size-10 shrink-0 place-items-center rounded-xl" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}><Icon className="w-5 h-5" /></span>
+                  <span className="min-w-0">
+                    <span className="block text-[14px] font-semibold">{epubStatus.busy && epubStatus.kind === kind ? (pt ? `Lendo ${kind}…` : `Reading ${kind}…`) : (pt ? `Importar ${kind}` : `Import ${kind}`)}</span>
+                    <span className="block text-[12px] leading-snug" style={{ color: 'var(--theme-text-secondary)' }}>{hint}</span>
+                  </span>
+                </button>
+              ))}
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="author" style={{ color: 'var(--theme-text)' }}>{t('author')}</Label>
-              <Input id="author" value={newAuthor} onChange={(e) => setNewAuthor(e.target.value)} placeholder={t('authorPlaceholder')} className="rounded-2xl h-12 px-4" style={{ borderColor: 'var(--theme-border)' }} />
-            </div>
-            <div className="space-y-2">
-              <Label style={{ color: 'var(--theme-text)' }}>{t('bookDescription')}</Label>
-              <Input id="new-desc" value={newDescription} onChange={(e) => setNewDescription(e.target.value)} placeholder={t('bookDescriptionPlaceholder')} className="rounded-xl" style={{ borderColor: 'var(--theme-border)' }} />
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between gap-2 flex-wrap">
-                <Label htmlFor="content" style={{ color: 'var(--theme-text)' }}>{t('content')}</Label>
-                <Button type="button" variant="outline" size="sm" className="rounded-xl gap-2" style={{ borderColor: 'var(--theme-border)' }} disabled={epubStatus.busy} onClick={() => epubInputRef.current?.click()}>
-                  <BookUp className="w-4 h-4" />
-                  {epubStatus.busy ? (locale === 'pt-BR' ? 'Lendo EPUB…' : 'Reading EPUB…') : (locale === 'pt-BR' ? 'Importar EPUB' : 'Import EPUB')}
-                </Button>
+            {epubStatus.busy && (
+              <div className="space-y-1.5" role="status" aria-live="polite">
+                <div className="flex items-center justify-between text-[12.5px]" style={{ color: 'var(--theme-text-secondary)' }}>
+                  <span>{importStep}</span><span className="tabular-nums">{Math.round(importProgress * 100)}%</span>
+                </div>
+                <div role="progressbar" aria-valuenow={Math.round(importProgress * 100)} aria-valuemin={0} aria-valuemax={100} className="h-1.5 overflow-hidden rounded-full" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
+                  <div className="h-full rounded-full transition-[width] duration-300" style={{ width: `${Math.max(4, importProgress * 100)}%`, backgroundColor: 'var(--theme-primary)' }} />
+                </div>
               </div>
-              {bookError && <p role="alert" className="text-sm">{bookError}</p>}
-              {epubStatus.msg && <p className="text-xs" style={{ color: 'var(--theme-text-secondary)' }}>{epubStatus.msg}</p>}
+            )}
+            {(epubStatus.msg || bookError) && (
+              <div role={bookError ? 'alert' : 'status'} className="space-y-1 rounded-xl px-3 py-2.5 text-[13px]" style={{ backgroundColor: 'var(--theme-bg-secondary)', color: 'var(--theme-text-secondary)' }}>
+                <p>{bookError || epubStatus.msg}</p>
+                {importNotes.length > 0 && <ul className="list-disc space-y-0.5 pl-4 text-[12.5px]">{importNotes.map(note => <li key={note}>{note}</li>)}</ul>}
+                {convertedEpub && <a href={convertedEpub.url} download={convertedEpub.name} className="inline-block text-[12.5px] font-medium underline underline-offset-2" style={{ color: 'var(--theme-text)' }}>{pt ? 'Baixar o EPUB convertido' : 'Download the converted EPUB'}</a>}
+              </div>
+            )}
+            <p className="text-[12px]" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? 'Livros importados (EPUB ou PDF) ficam só na sua biblioteca; não vão para a galeria nem para outras pessoas.' : 'Imported books (EPUB or PDF) stay in your library only; they are not shared with the gallery or anyone else.'}</p>
+
+            <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_9.5rem]">
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="title" style={{ color: 'var(--theme-text)' }}>{t('title')}</Label>
+                  <Input id="title" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder={t('titlePlaceholder')} className="rounded-xl h-11 px-3.5" style={{ borderColor: 'var(--theme-border)' }} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="author" style={{ color: 'var(--theme-text)' }}>{t('author')}</Label>
+                  <Input id="author" value={newAuthor} onChange={(e) => setNewAuthor(e.target.value)} placeholder={t('authorPlaceholder')} className="rounded-xl h-11 px-3.5" style={{ borderColor: 'var(--theme-border)' }} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="new-desc" style={{ color: 'var(--theme-text)' }}>{t('bookDescription')}</Label>
+                  <Input id="new-desc" value={newDescription} onChange={(e) => setNewDescription(e.target.value)} placeholder={t('bookDescriptionPlaceholder')} className="rounded-xl h-11 px-3.5" style={{ borderColor: 'var(--theme-border)' }} />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label style={{ color: 'var(--theme-text)' }}>{t('coverImage')}</Label>
+                <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={handleCoverChange} />
+                <button type="button" onClick={() => coverInputRef.current?.click()} aria-label={t('uploadCover')}
+                  className="group relative grid aspect-[2/3] w-full max-w-[9.5rem] place-items-center overflow-hidden rounded-xl border border-dashed transition-colors hover:bg-[var(--ui-hover)]"
+                  style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg-secondary)' }}>
+                  {newCoverData
+                    ? <img src={newCoverData} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                    : <span className="flex flex-col items-center gap-1.5 px-2 text-center text-[12px]" style={{ color: 'var(--theme-text-secondary)' }}><ImagePlus className="w-5 h-5" />{t('uploadCover')}</span>}
+                </button>
+                {newCoverData && <button type="button" onClick={() => setNewCoverData(null)} className="text-[12px] underline-offset-2 hover:underline" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? 'Remover capa' : 'Remove cover'}</button>}
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <div className="flex items-baseline justify-between gap-2">
+                <Label htmlFor="content" style={{ color: 'var(--theme-text)' }}>{t('content')}</Label>
+                {newContent.trim() && <span className="text-[12px] tabular-nums" style={{ color: 'var(--theme-text-secondary)' }}>{countWords(newContent).toLocaleString()} {pt ? 'palavras' : 'words'}</span>}
+              </div>
               <Textarea
                 id="content"
                 value={newContent}
@@ -539,31 +589,21 @@ export function Dashboard() {
                   }
                 }}
                 placeholder={t('contentPlaceholder')}
-                className="min-h-[200px] rounded-2xl p-4 resize-none"
+                className="min-h-[180px] max-h-[40dvh] rounded-xl p-3.5 resize-y"
                 style={{ borderColor: 'var(--theme-border)' }}
               />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5 sm:max-w-[12rem]">
               <Label style={{ color: 'var(--theme-text)' }}>{t('totalPages')}</Label>
-              <Input type="number" min={1} value={newTotalPages} onChange={(e) => setNewTotalPages(e.target.value)} placeholder={t('totalPagesPlaceholder')} className="rounded-xl" style={{ borderColor: 'var(--theme-border)' }} />
-            </div>
-            <div className="space-y-2">
-              <Label style={{ color: 'var(--theme-text)' }}>{t('coverImage')}</Label>
-              <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={handleCoverChange} />
-              <div className="flex items-center gap-3">
-                <Button type="button" variant="outline" className="rounded-xl gap-2" style={{ borderColor: 'var(--theme-border)' }} onClick={() => coverInputRef.current?.click()}>
-                  <ImagePlus className="w-4 h-4" />
-                  {t('uploadCover')}
-                </Button>
-                {newCoverData && <img src={newCoverData} alt="" className="w-16 h-16 rounded-lg object-cover border" style={{ borderColor: 'var(--theme-border)' }} />}
-              </div>
+              <Input type="number" min={1} value={newTotalPages} onChange={(e) => setNewTotalPages(e.target.value)} placeholder={t('totalPagesPlaceholder')} className="rounded-xl h-11" style={{ borderColor: 'var(--theme-border)' }} />
             </div>
           </div>
-          
-          <div className="flex gap-3 pt-6">
-            <Button variant="outline" className="flex-1 rounded-full h-12 font-semibold" style={{ borderColor: 'var(--theme-border)' }} onClick={() => setIsAddModalOpen(false)}>{t('cancel')}</Button>
-            <Button className="flex-2 rounded-full h-12 px-8 font-semibold" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }} onClick={handleAddBook} disabled={!newTitle.trim() || savingBook || epubStatus.busy}>
-              {t('saveBook')}
+
+          {/* Cabeçalho e rodapé fixos; só o formulário rola. */}
+          <div className="shrink-0 flex gap-3 border-t px-5 py-4 sm:px-6" style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-border)' }}>
+            <Button variant="outline" className="flex-1 rounded-full h-11 font-semibold" style={{ borderColor: 'var(--theme-border)' }} onClick={() => setIsAddModalOpen(false)}>{t('cancel')}</Button>
+            <Button className="flex-[2] rounded-full h-11 px-8 font-semibold" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }} onClick={handleAddBook} disabled={!newTitle.trim() || savingBook || epubStatus.busy}>
+              {savingBook ? (pt ? 'Salvando…' : 'Saving…') : t('saveBook')}
             </Button>
           </div>
         </DialogContent>

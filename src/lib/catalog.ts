@@ -131,8 +131,50 @@ export async function listCatalog(limit?: number): Promise<CatalogBook[]> {
   return run
 }
 
+/**
+ * Lista sem as miniaturas (leve): a galeria monta a tela com isto e busca as capas por dobra
+ * (loadCoverThumbs), em vez de baixar as 70+ capas antes de mostrar qualquer coisa.
+ */
+let liteCache: { at: number; data: CatalogBook[] } | null = null
+let liteInflight: Promise<CatalogBook[]> | null = null
+export async function listCatalogLite(): Promise<CatalogBook[]> {
+  if (!supabase) return []
+  if (liteCache && Date.now() - liteCache.at < LIST_TTL) return liteCache.data
+  if (liteInflight) return liteInflight
+  liteInflight = (async () => {
+    const { data, error } = await supabase!.from('catalog_books').select('id, title, author, description, language_code, cefr_level, category, created_at').order('created_at', { ascending: false })
+    if (error) throw error
+    const rows: CatalogBook[] = (data ?? []).map(row => ({
+      id: row.id, title: row.title ?? '', author: row.author ?? undefined, description: row.description ?? undefined, languageCode: row.language_code ?? 'en',
+      level: levelOf(row.cefr_level), category: categoryOf(row.category), pages: [], createdAt: row.created_at,
+    }))
+    liteCache = { at: Date.now(), data: rows }
+    return rows
+  })().finally(() => { liteInflight = null })
+  return liteInflight
+}
+
+const thumbCache = new Map<string, string>()
+const thumbInflight = new Map<string, Promise<void>>()
+export const cachedThumbs = () => Object.fromEntries(thumbCache)
+/** Miniaturas dos livros pedidos, em lotes pequenos. Já baixadas não são buscadas de novo. */
+export async function loadCoverThumbs(ids: string[]): Promise<Record<string, string>> {
+  if (!supabase) return {}
+  const missing = ids.filter(id => !thumbCache.has(id) && !thumbInflight.has(id))
+  for (let i = 0; i < missing.length; i += 12) {
+    const batch = missing.slice(i, i + 12)
+    const job = (async () => {
+      const { data } = await supabase!.from('catalog_books').select('id, cover_thumb').in('id', batch)
+      for (const row of data ?? []) if (row.cover_thumb) thumbCache.set(row.id, row.cover_thumb)
+    })().finally(() => batch.forEach(id => thumbInflight.delete(id)))
+    batch.forEach(id => thumbInflight.set(id, job))
+  }
+  await Promise.all(ids.map(id => thumbInflight.get(id)))
+  return Object.fromEntries(ids.filter(id => thumbCache.has(id)).map(id => [id, thumbCache.get(id)!]))
+}
+
 /** Esquece a lista guardada (depois de adicionar, editar ou remover um livro). */
-export function invalidateCatalogList() { listCache = null }
+export function invalidateCatalogList() { listCache = null; liteCache = null }
 
 export async function getCatalogBook(id: string): Promise<CatalogBook | null> {
   if (!supabase) return null

@@ -1,3 +1,4 @@
+import { SegmentedTabs } from '@/components/ui/filter-controls'
 import { askConfirm } from '@/components/ui/confirm'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
@@ -41,19 +42,12 @@ function useMe() {
   return me
 }
 
-/** Abas em pílula, presas no topo da coluna. Rolagem horizontal no celular, sem cortar. */
+/** Abas da comunidade: mesmo visual das abas segmentadas dos filtros, presas no topo da coluna. */
 function PillTabs<T extends string>({ value, onChange, items, sticky = false, hideOn }: { value: T; onChange: (value: T) => void; items: [T, string, typeof Compass][]; sticky?: boolean; hideOn?: Partial<Record<T, string>> }) {
   return (
     <div className={sticky ? 'sticky top-0 z-10 -mx-1 px-1 py-2' : ''} style={sticky ? { backgroundColor: 'var(--theme-bg)' } : undefined}>
-      <div className="flex p-1 rounded-full overflow-x-auto" style={{ backgroundColor: 'var(--theme-bg-secondary)' }} role="tablist">
-        {items.map(([id, label, Icon]) => (
-          <button key={id} type="button" role="tab" aria-selected={value === id} onClick={() => onChange(id)}
-            className={`flex-1 min-w-fit h-9 px-3 inline-flex items-center justify-center gap-1.5 rounded-full text-[13.5px] font-medium whitespace-nowrap transition-colors duration-200 ${hideOn?.[id] ?? ''}`}
-            style={{ backgroundColor: value === id ? 'var(--theme-card-bg)' : 'transparent', color: value === id ? 'var(--theme-text)' : 'var(--theme-text-secondary)', boxShadow: value === id ? '0 1px 3px rgba(0,0,0,0.08)' : undefined }}>
-            <Icon className="w-4 h-4" />{label}
-          </button>
-        ))}
-      </div>
+      <SegmentedTabs stretch value={value} onChange={onChange}
+        options={items.map(([id, label, Icon]) => ({ id, label, icon: <Icon className="w-3.5 h-3.5" />, className: `min-w-fit ${hideOn?.[id] ?? ''}` }))} />
     </div>
   )
 }

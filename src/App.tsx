@@ -16,6 +16,7 @@ import { Login } from '@/pages/Login'
 import { SignUp } from '@/pages/SignUp'
 import { LegalPage } from '@/pages/legal/LegalPage'
 import { Gallery } from '@/pages/Gallery'
+import { CollectionsPage } from '@/pages/CollectionPage'
 import { AdminPage } from '@/pages/Admin'
 import { AdminBookEdit } from '@/pages/AdminBookEdit'
 import { MePage } from '@/pages/Me'
@@ -70,6 +71,8 @@ export default function App() {
             <Route path="settings" element={<Settings />} />
             <Route path="gallery" element={<Gallery />} />
             <Route path="gallery/:id" element={<Gallery />} />
+            <Route path="collections" element={<CollectionsPage />} />
+            <Route path="collections/:slug" element={<CollectionsPage />} />
             <Route path="community" element={<Community />} />
             <Route path="profile/:userId" element={<PublicProfile />} />
             <Route path="u/:handle" element={<PublicProfile />} />

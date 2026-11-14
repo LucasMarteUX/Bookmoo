@@ -1,7 +1,7 @@
 // Galeria: destaque editorial, prateleiras por tema e todos os livros com filtros na URL.
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { ArrowRight, ArrowUpDown, BookOpen, Image as ImageIcon, Search, Sparkles, Star, X } from 'lucide-react'
+import { ArrowRight, BookOpen, ChevronLeft, ChevronRight, Image as ImageIcon, Search, Sparkles, Star, X } from 'lucide-react'
 import { BookCard, BookCover } from '@/components/book/BookCard'
 import { BookCardSkeleton } from '@/components/BookCardSkeleton'
 import { AvatarStack } from '@/components/community/AvatarStack'
@@ -9,7 +9,11 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { LevelBadge } from '@/components/ui/level-badge'
 import { useLanguage } from '@/store/useLanguage'
 import { CEFR, type CefrId } from '@/lib/cefr'
-import { BOOK_CATEGORIES, categoryName, listCatalog, type BookCategory, type CatalogBook } from '@/lib/catalog'
+import { BOOK_CATEGORIES, cachedThumbs, categoryName, listCatalogLite, loadCoverThumbs, type BookCategory, type CatalogBook } from '@/lib/catalog'
+import { CollectionCard, CollectionCardSkeleton } from '@/components/book/CollectionCard'
+import { FilterChip, FilterClear, FilterSelect, SegmentedTabs } from '@/components/ui/filter-controls'
+import { CategoryTile } from '@/components/book/CategoryTiles'
+import { COLLECTION_RAIL_ITEM, useFeaturedCollections } from '@/components/book/FeaturedCollections'
 import { loadCatalogSocial, type CatalogSocial } from '@/lib/social'
 
 const muted = { color: 'var(--theme-text-secondary)' }
@@ -88,10 +92,26 @@ export function GalleryList() {
   const [books, setBooks] = useState<CatalogBook[] | null>(null)
   const [social, setSocial] = useState<CatalogSocial>({})
   const [error, setError] = useState('')
+  // Capas por dobra: só pede as miniaturas do que está perto da tela, em lotes que se juntam num único pedido.
+  const [socialReady, setSocialReady] = useState(false)
+  const [thumbs, setThumbs] = useState<Record<string, string>>(() => cachedThumbs())
+  const queue = useRef(new Set<string>())
+  const timer = useRef<number>(0)
+  const want = (ids: string[]) => {
+    ids.forEach(id => { if (!thumbs[id]) queue.current.add(id) })
+    if (!queue.current.size || timer.current) return
+    timer.current = window.setTimeout(() => {
+      timer.current = 0
+      const batch = [...queue.current]; queue.current.clear()
+      void loadCoverThumbs(batch).then(found => setThumbs(prev => ({ ...prev, ...found })))
+    }, 40)
+  }
   const { level, category, author: urlAuthor, sort, minStars, withArt, query, search, setQuery, setFilter, clear } = useGalleryFilters()
   useEffect(() => {
-    listCatalog().then(setBooks).catch(() => setError(pt ? 'A galeria ainda não está disponível.' : 'The gallery is not available yet.'))
-    void loadCatalogSocial().then(setSocial)
+    // Lista e avaliações vão na frente; coleções e capas só depois, sem disputar a conexão.
+    void loadCatalogSocial().then(v => { setSocial(v); setSocialReady(true) }) // pequeno; vai junto com a lista porque define o destaque
+    listCatalogLite().then(setBooks)
+      .catch(() => setError(pt ? 'A galeria ainda não está disponível.' : 'The gallery is not available yet.'))
   }, [pt])
 
   const authors = useMemo(() => {
@@ -129,8 +149,7 @@ export function GalleryList() {
 
   const readers = (book: CatalogBook) => social[book.id]?.readers ?? 0
   const featured = useMemo(() => {
-    const withCover = (books ?? []).filter(book => book.coverData)
-    return [...withCover].sort((a, b) => readers(b) - readers(a) || (b.createdAt ?? '').localeCompare(a.createdAt ?? ''))[0]
+    return [...(books ?? [])].sort((a, b) => readers(b) - readers(a) || (b.createdAt ?? '').localeCompare(a.createdAt ?? ''))[0]
   }, [books, social])
   const categories = useMemo(() => BOOK_CATEGORIES
     .map(item => ({ ...item, count: (books ?? []).filter(book => book.category === item.id).length }))
@@ -157,8 +176,39 @@ export function GalleryList() {
     return rows
   }, [books, social, categories, pt])
 
+  // Capas em sequência, sem depender do scroll: destaque, depois cada prateleira na ordem da tela, depois o resto.
+  const prefetching = useRef(false)
+  useEffect(() => {
+    if (!books || !socialReady || prefetching.current) return
+    prefetching.current = true
+    const order = [...new Set([...(featured ? [featured.id] : []), ...shelves.flatMap(shelf => shelf.books.map(b => b.id)), ...books.map(b => b.id)])]
+    void (async () => {
+      for (let i = 0; i < order.length; i += 12) {
+        const found = await loadCoverThumbs(order.slice(i, i + 12)).catch(() => ({}))
+        setThumbs(prev => ({ ...prev, ...found }))
+      }
+    })()
+  }, [books, socialReady, featured?.id, shelves])
+  const collections = useFeaturedCollections(books !== null)
+  const collectionsRail = collections && collections.length === 0 ? null : (
+    <section key="collections" aria-label={pt ? 'Coleções' : 'Collections'}>
+      <div className="mb-3 flex items-end justify-between gap-3">
+        <div>
+          <h2 className="font-display text-[24px] leading-tight">{pt ? 'Coleções' : 'Collections'}</h2>
+          <p className="text-[13px]" style={muted}>{pt ? 'Histórias completas, personagens lendários e aventuras inesquecíveis.' : 'Explore complete stories, legendary characters, and unforgettable adventures.'}</p>
+        </div>
+        <Link to="/collections" className="shrink-0 inline-flex items-center gap-1 text-[13px] font-medium">{pt ? 'Ver todas' : 'See all'}<ArrowRight className="w-3.5 h-3.5" /></Link>
+      </div>
+      <ScrollRail className="gap-5 pt-1 pb-6 snap-x" label={pt ? 'Coleções' : 'Collections'} arrowsTop="40%" top>
+        {collections === null
+          ? <CollectionCardSkeleton className={COLLECTION_RAIL_ITEM} />
+          : collections.map(c => <CollectionCard key={c.id} collection={c} pt={pt} className={COLLECTION_RAIL_ITEM} />)}
+      </ScrollRail>
+    </section>
+  )
+
   const card = (book: CatalogBook, className?: string) => (
-    <BookCard key={book.id} to={`/gallery/${book.id}`} title={book.title} subtitle={book.author || categoryName(book.category, pt)} coverData={book.coverData} level={book.level} pt={pt}
+    <BookCard key={book.id} to={`/gallery/${book.id}`} title={book.title} subtitle={book.author || categoryName(book.category, pt)} coverData={thumbs[book.id]} coverPending={!thumbs[book.id]} level={book.level} pt={pt}
       linkState={{ gallerySearch: search }} readers={readers(book)} faces={social[book.id]?.faces} rating={social[book.id]?.rating} ratings={social[book.id]?.ratings} illustrated={social[book.id]?.illustrated} className={className} />
   )
 
@@ -183,70 +233,55 @@ export function GalleryList() {
         </label>
       </header>
 
-      {!filtered && featured && <Featured book={featured} social={social} pt={pt} />}
-
-      <div className="space-y-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex p-1 rounded-full overflow-x-auto" style={{ backgroundColor: 'var(--theme-bg-secondary)' }} role="tablist" aria-label={pt ? 'Nível' : 'Level'}>
-            {(['all', ...CEFR.map(band => band.id)] as (CefrId | 'all')[]).map(id => {
-              const on = level === id
-              return (
-                <button key={id} type="button" role="tab" aria-selected={on} onClick={() => setFilter('level', id)}
-                  className="h-8 px-3 rounded-full text-[12.5px] font-medium whitespace-nowrap"
-                  style={{ backgroundColor: on ? 'var(--theme-card-bg)' : 'transparent', color: on ? 'var(--theme-text)' : 'var(--theme-text-secondary)', boxShadow: on ? '0 1px 3px rgba(0,0,0,0.08)' : undefined }}>
-                  {id === 'all' ? (pt ? 'Todos os níveis' : 'All levels') : id}
-                </button>
-              )
-            })}
-          </div>
-          <label className="relative inline-flex items-center">
-            <ArrowUpDown className="absolute left-3 w-3.5 h-3.5 pointer-events-none" style={muted} />
-            <select value={sort} onChange={e => setFilter('sort', e.target.value === 'featured' ? 'all' : e.target.value)} aria-label={pt ? 'Ordenar por' : 'Sort by'}
-              className="ui-hover h-10 rounded-full border pl-8 pr-3.5 text-[13px] outline-none" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-text)' }}>
-              {SORTS.map(item => <option key={item.id} value={item.id}>{pt ? item.pt : item.en}</option>)}
-            </select>
-          </label>
-          <Chip on={minStars === 4} onClick={() => setFilter('stars', minStars === 4 ? 'all' : '4')}>
-            <Star className="w-3.5 h-3.5" style={{ color: minStars === 4 ? undefined : '#E8A93B', fill: minStars === 4 ? 'currentColor' : '#E8A93B' }} />{pt ? '4 ou mais' : '4 and up'}
-          </Chip>
-          <Chip on={withArt} onClick={() => setFilter('art', withArt ? 'all' : '1')}>
-            <ImageIcon className="w-3.5 h-3.5" />{pt ? 'Com ilustrações' : 'Illustrated'}
-          </Chip>
-          {authors.length > 1 && (
-            <select value={author} onChange={e => setFilter('author', e.target.value)} aria-label={pt ? 'Autor' : 'Author'}
-              className="h-10 rounded-full border px-3.5 text-[13px] outline-none cursor-pointer" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-text)' }}>
-              <option value="all">{pt ? 'Todos os autores' : 'All authors'}</option>
-              {authors.map(name => <option key={name} value={name}>{name}</option>)}
-            </select>
-          )}
-          {filtered && (
-            <button type="button" onClick={clear} className="h-10 px-3.5 inline-flex items-center gap-1 rounded-full text-[13px]" style={muted}>
-              <X className="w-3.5 h-3.5" />{pt ? 'Limpar filtros' : 'Clear filters'}
-            </button>
-          )}
-        </div>
-        {categories.length > 0 && (
-          <div className="-mx-1 px-1 flex gap-2 overflow-x-auto pb-1">
-            <Chip on={category === 'all'} onClick={() => setFilter('cat', 'all')}>{pt ? 'Tudo' : 'Everything'}</Chip>
+      {books === null && !error && <HeroSkeleton />}
+      {!filtered && featured && <Featured book={{ ...featured, coverData: thumbs[featured.id] }} social={social} pt={pt} />}
+      {categories.length > 0 && (
+        <section aria-label={pt ? 'Categorias' : 'Categories'}>
+          <ScrollRail className="gap-3 pt-1 pb-3 snap-x" label={pt ? 'Categorias' : 'Categories'} arrowsTop="45%" top>
             {categories.map(item => (
-              <Chip key={item.id} on={category === item.id} onClick={() => setFilter('cat', category === item.id ? 'all' : item.id)}>
-                {pt ? item.pt : item.en} <span className="tabular-nums" style={{ opacity: 0.55 }}>{item.count}</span>
-              </Chip>
+              <CategoryTile key={item.id} id={item.id} label={pt ? item.pt : item.en} count={item.count} active={category === item.id}
+                onClick={() => setFilter('cat', category === item.id ? 'all' : item.id)} className="w-[7.25rem] sm:w-36 shrink-0 snap-start" />
             ))}
-          </div>
+          </ScrollRail>
+        </section>
+      )}
+
+      <ScrollRail className="gap-2" label={pt ? 'Filtros' : 'Filters'}>
+        <SegmentedTabs className="shrink-0" label={pt ? 'Nível' : 'Level'} value={level} onChange={v => setFilter('level', v)}
+          options={(['all', ...CEFR.map(band => band.id)] as (CefrId | 'all')[]).map(id => ({ id, label: id === 'all' ? (pt ? 'Todos' : 'All') : id }))} />
+        <span className="mx-1.5 h-4 w-px shrink-0" style={{ backgroundColor: 'var(--theme-border)' }} aria-hidden />
+        {categories.length > 0 && (
+          <FilterSelect value={category} onChange={v => setFilter('cat', v)} label={pt ? 'Categoria' : 'Category'}
+            active={category !== 'all'}
+            options={[{ value: 'all', label: pt ? 'Categoria' : 'Category' }, ...categories.map(item => ({ value: item.id, label: `${pt ? item.pt : item.en} (${item.count})` }))]} />
         )}
-      </div>
+        <FilterSelect value={sort} onChange={v => setFilter('sort', v === 'featured' ? 'all' : v)} label={pt ? 'Ordenar por' : 'Sort by'}
+          active={sort !== 'featured'}
+          options={SORTS.map(item => ({ value: item.id, label: pt ? item.pt : item.en }))} />
+        {authors.length > 1 && (
+          <FilterSelect value={author} onChange={v => setFilter('author', v)} label={pt ? 'Autor' : 'Author'}
+            active={author !== 'all'}
+            options={[{ value: 'all', label: pt ? 'Autor' : 'Author' }, ...authors.map(name => ({ value: name, label: name }))]} />
+        )}
+        <FilterChip on={minStars === 4} onClick={() => setFilter('stars', minStars === 4 ? 'all' : '4')}>
+          <Star className="w-3.5 h-3.5" style={{ color: minStars === 4 ? undefined : '#E8A93B', fill: minStars === 4 ? 'currentColor' : '#E8A93B' }} />4+
+        </FilterChip>
+        <FilterChip on={withArt} onClick={() => setFilter('art', withArt ? 'all' : '1')}>
+          <ImageIcon className="w-3.5 h-3.5" />{pt ? 'Ilustrados' : 'Illustrated'}
+        </FilterChip>
+        {filtered && (
+          <FilterClear onClick={clear}>{pt ? 'Limpar' : 'Clear'}</FilterClear>
+        )}
+      </ScrollRail>
 
       {error && <p className="text-sm">{error}</p>}
 
-      {books === null && !error && (
-        <div className="grid gap-x-5 gap-y-8 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-          {Array.from({ length: 10 }).map((_, i) => <BookCardSkeleton key={i} />)}
-        </div>
-      )}
+      {books === null && !error && <ShelvesSkeleton />}
 
-      {!filtered && shelves.map(shelf => (
-        <section key={shelf.id}>
+      {!filtered && shelves.length === 0 && collectionsRail}
+      {!filtered && shelves.map((shelf, shelfIndex) => (
+        <Fragment key={shelf.id}>
+        <Seen as="section" onSeen={() => want(shelf.books.map(b => b.id))}>
           <div className="mb-3 flex items-end justify-between gap-3">
             <div>
               <h2 className="font-display text-[24px] leading-tight">{shelf.title}</h2>
@@ -258,10 +293,12 @@ export function GalleryList() {
               </button>
             )}
           </div>
-          <div className="-mx-1 px-1 pt-1 pb-6 flex gap-5 overflow-x-auto snap-x">
+          <ScrollRail className="gap-5 pt-1 pb-6 snap-x" label={shelf.title} arrowsTop="38%" top>
             {shelf.books.map(book => card(book, 'w-36 sm:w-40 shrink-0 snap-start'))}
-          </div>
-        </section>
+          </ScrollRail>
+        </Seen>
+        {shelfIndex === Math.max(0, shelves.findIndex(x => x.id === 'popular')) && collectionsRail}
+        </Fragment>
       ))}
 
       {books && books.length === 0 && (
@@ -281,7 +318,7 @@ export function GalleryList() {
             <span className="text-[13px] tabular-nums" style={muted}>{shown.length} {pt ? (shown.length === 1 ? 'livro' : 'livros') : (shown.length === 1 ? 'book' : 'books')}</span>
           </div>
           <div className="grid gap-x-5 gap-y-9 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-            {shown.map(book => card(book))}
+            {shown.map(book => <Seen key={book.id} onSeen={() => want([book.id])}>{card(book)}</Seen>)}
           </div>
         </section>
       )}
@@ -289,17 +326,29 @@ export function GalleryList() {
   )
 }
 
-function Chip({ on, onClick, children }: { on: boolean; onClick: () => void; children: ReactNode }) {
+/** Faixa de rolagem horizontal sem barra: setas discretas nas pontas aparecem só quando há mais para ver. */
+function ScrollRail({ children, className = '', label, arrowsTop = '50%', top = false }: { children: ReactNode; className?: string; label: string; arrowsTop?: string; top?: boolean }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [edge, setEdge] = useState({ left: false, right: false })
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const update = () => setEdge({ left: el.scrollLeft > 4, right: el.scrollLeft + el.clientWidth < el.scrollWidth - 4 })
+    update()
+    el.addEventListener('scroll', update, { passive: true })
+    const observer = new ResizeObserver(update)
+    observer.observe(el)
+    return () => { el.removeEventListener('scroll', update); observer.disconnect() }
+  }, [children])
+  const go = (dir: 1 | -1) => ref.current?.scrollBy({ left: dir * Math.max(240, (ref.current?.clientWidth ?? 600) * 0.7), behavior: 'smooth' })
+  const arrow = 'absolute z-10 hidden md:flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border shadow-sm transition-opacity'
+  const style = { top: arrowsTop, borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-text)' }
   return (
-    <button type="button" onClick={onClick} aria-pressed={on}
-      className="h-9 px-4 shrink-0 inline-flex items-center gap-1.5 rounded-full border text-[13px] whitespace-nowrap transition-[background-color,color,border-color,transform] duration-150 active:scale-[0.96]"
-      style={{
-        borderColor: on ? 'var(--theme-text)' : 'var(--theme-border)',
-        backgroundColor: on ? 'var(--theme-text)' : 'var(--theme-card-bg)',
-        color: on ? 'var(--theme-bg)' : 'var(--theme-text)',
-      }}>
-      {children}
-    </button>
+    <div className="relative" role="group" aria-label={label}>
+      <div ref={ref} className={`flex ${top ? 'items-start' : 'items-center'} overflow-x-auto no-scrollbar ${className}`}>{children}</div>
+      {edge.left && <button type="button" aria-label="←" onClick={() => go(-1)} className={`${arrow} left-0`} style={style}><ChevronLeft className="w-4 h-4" /></button>}
+      {edge.right && <button type="button" aria-label="→" onClick={() => go(1)} className={`${arrow} right-0`} style={style}><ChevronRight className="w-4 h-4" /></button>}
+    </div>
   )
 }
 
@@ -332,10 +381,62 @@ function Featured({ book, social, pt }: { book: CatalogBook; social: CatalogSoci
             <BookOpen className="w-4 h-4" />{pt ? 'Conhecer o livro' : 'See the book'}
           </Link>
         </div>
-        <Link to={`/gallery/${book.id}`} className="group order-1 md:order-2 justify-self-center w-40 sm:w-52 md:w-60 rotate-[2.5deg] hover:rotate-0 transition-transform duration-500">
+        <Link to={`/gallery/${book.id}`} className="group order-1 md:order-2 justify-self-center md:justify-self-end md:mr-10 lg:mr-20 w-40 sm:w-52 md:w-56 transition-transform duration-500 hover:-translate-y-1">
           <BookCover title={book.title} coverData={book.coverData} className="rounded-xl" />
         </Link>
       </div>
     </section>
   )
+}
+
+const skeletonBlock = { backgroundColor: 'var(--theme-bg-secondary)' }
+
+/** Esqueleto do destaque e dos tiles de categoria: mesma ordem e proporções da galeria carregada. */
+function HeroSkeleton() {
+  return (
+    <div aria-hidden className="space-y-8">
+      <div className="h-[34rem] md:h-[23rem] rounded-[28px] animate-pulse" style={skeletonBlock} />
+      <div className="flex gap-3 overflow-hidden">
+        {Array.from({ length: 7 }).map((_, i) => <div key={i} className="aspect-square w-[7.25rem] sm:w-36 shrink-0 rounded-2xl animate-pulse" style={skeletonBlock} />)}
+      </div>
+    </div>
+  )
+}
+
+/** Esqueleto das prateleiras: título, linha de capas, banner de coleção e outra linha. */
+function ShelvesSkeleton() {
+  const row = (n: number) => (
+    <div className="flex gap-5 overflow-hidden pt-1 pb-6">
+      {Array.from({ length: n }).map((_, i) => <div key={i} className="w-36 sm:w-40 shrink-0"><BookCardSkeleton /></div>)}
+    </div>
+  )
+  const title = (
+    <div className="mb-3 space-y-2"><div className="h-6 w-40 rounded animate-pulse" style={skeletonBlock} /><div className="h-3 w-56 rounded animate-pulse" style={skeletonBlock} /></div>
+  )
+  return (
+    <div aria-hidden className="space-y-8">
+      <section>{title}{row(7)}</section>
+      <section>{title}
+        <div className="flex gap-5 overflow-hidden pt-1 pb-6">
+          {[0, 1].map(i => <div key={i} className="aspect-[12/5] w-[min(82vw,29.5rem)] sm:w-[32.5rem] shrink-0 rounded-xl animate-pulse" style={skeletonBlock} />)}
+        </div>
+      </section>
+      <section>{title}{row(7)}</section>
+    </div>
+  )
+}
+
+/** Avisa uma vez quando o bloco chega perto da área visível (400 px antes), para carregar o que ele precisa. */
+function Seen({ onSeen, children, as: Tag = 'div' }: { onSeen: () => void; children: ReactNode; as?: 'div' | 'section' }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const cb = useRef(onSeen); cb.current = onSeen
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    if (typeof IntersectionObserver === 'undefined') { cb.current(); return }
+    const io = new IntersectionObserver(entries => { if (entries.some(e => e.isIntersecting)) { cb.current(); io.disconnect() } }, { rootMargin: '400px 0px' })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [])
+  return <Tag ref={ref as never}>{children}</Tag>
 }

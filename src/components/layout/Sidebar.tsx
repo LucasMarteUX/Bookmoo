@@ -1,7 +1,7 @@
 import { useMemo, type ComponentType, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
-  AudioLines, BookMarked, ChartNoAxesColumn, ChevronsUpDown, Coffee, Flame, House, Library, LogOut, Moon,
+  AudioLines, BookMarked, ChartNoAxesColumn, ChevronsUpDown, Coffee, Flame, House, Layers, Library, LogOut, Moon,
   Bell, PanelLeftClose, PanelLeftOpen, PenLine, Plus, Search, Settings2, Shield, Star, Sun, Users,
 } from 'lucide-react'
 import { useUiStore } from '@/store/useUiStore'
@@ -58,6 +58,7 @@ export function Sidebar({ isMobileDrawer, onClose }: SidebarProps) {
     { title: pt ? 'Progresso' : 'Progress', items: [{ to: '/stats', icon: ChartNoAxesColumn, label: t('stats') }] },
     { title: pt ? 'Juntos' : 'Together', items: [
       { to: '/gallery', icon: Library, label: pt ? 'Galeria' : 'Gallery' },
+      { to: '/collections', icon: Layers, label: pt ? 'Coleções' : 'Collections' },
       { to: '/community', icon: Users, label: pt ? 'Comunidade' : 'Community' },
       { to: '/notifications', icon: Bell, label: pt ? 'Notificações' : 'Notifications', badge: unread || undefined },
       ...(isAdmin ? [{ to: '/admin', icon: Shield, label: pt ? 'Área admin' : 'Admin' }] : []),

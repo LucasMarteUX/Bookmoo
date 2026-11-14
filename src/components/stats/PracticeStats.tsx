@@ -1,5 +1,6 @@
 // Estatísticas das práticas (Falar e Escrever/ditado): filtros por atividade e livro, notas por
 // página, evolução e as palavras que o aluno mais erra (com envio para a revisão do vocabulário).
+import { FilterSelect } from '@/components/ui/filter-controls'
 import { useEffect, useMemo, useState } from 'react'
 import { Check, Keyboard, Mic, Plus, Star, Volume2 } from 'lucide-react'
 import { usePracticeStore, type PracticeKind } from '@/store/usePracticeStore'
@@ -105,11 +106,8 @@ export function PracticeStats({ pt, fixedKind }: { pt: boolean; fixedKind?: Prac
             <ToolButton icon={<Mic className="w-4 h-4" />} label={label('speak')} active={kind === 'speak'} onClick={() => setKind('speak')} />
             <ToolButton icon={<Keyboard className="w-4 h-4" />} label={label('write')} active={kind === 'write'} onClick={() => setKind('write')} />
           </ToolGroup>}
-          <select value={bookId} onChange={e => setBookId(e.target.value)} aria-label={pt ? 'Livro' : 'Book'}
-            className="h-11 rounded-full border px-4 text-sm max-w-[220px]" style={{ backgroundColor: 'var(--theme-bg-secondary)', borderColor: 'var(--theme-border-subtle)', color: 'var(--theme-text)' }}>
-            <option value="all">{pt ? 'Todos os livros' : 'All books'}</option>
-            {books.map(([id, title]) => <option key={id} value={id}>{title}</option>)}
-          </select>
+          <FilterSelect value={bookId} onChange={setBookId} label={pt ? 'Livro' : 'Book'}
+            options={[{ value: 'all', label: pt ? 'Todos os livros' : 'All books' }, ...books.map(([id, title]) => ({ value: id, label: title }))]} />
         </div>
       </div>
 

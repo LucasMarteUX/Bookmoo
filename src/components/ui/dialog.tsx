@@ -92,7 +92,7 @@ export function DialogContent({ className, children, style, ...props }: React.HT
       <div className="fixed inset-0 z-[61] flex items-start justify-center overflow-y-auto py-6 sm:py-[8vh] px-4 sm:px-0 pointer-events-none">
         <RDialog.Content
           aria-describedby={undefined}
-          className={cn('elevated dialog-pop pointer-events-auto relative grid w-full max-w-lg gap-4 p-6 sm:max-w-md outline-none', className)}
+          className={cn('elevated dialog-pop pointer-events-auto relative grid w-full max-w-lg gap-4 p-6 sm:max-w-md outline-none max-h-[calc(100dvh-3rem)] sm:max-h-[84dvh] overflow-y-auto overscroll-contain', className)}
           style={{ color: 'var(--theme-text)', borderRadius: '16px', ...style }}
           {...props}
         >

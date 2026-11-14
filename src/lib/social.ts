@@ -385,13 +385,22 @@ export async function loadNotifications(before?: string): Promise<AppNotificatio
   })
 }
 
-export async function unreadNotifications(userId: string): Promise<number> {
+let unreadInflight: { userId: string; at: number; promise: Promise<number> } | null = null
+/** Vários componentes pedem a contagem ao mesmo tempo: uma consulta só por poucos segundos. */
+export function unreadNotifications(userId: string): Promise<number> {
+  if (unreadInflight && unreadInflight.userId === userId && Date.now() - unreadInflight.at < 4000) return unreadInflight.promise
+  const promise = fetchUnreadNotifications(userId)
+  unreadInflight = { userId, at: Date.now(), promise }
+  return promise
+}
+async function fetchUnreadNotifications(userId: string): Promise<number> {
   if (!supabase) return 0
   const { count, error } = await supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('recipient_id', userId).is('read_at', null)
   return error ? 0 : count ?? 0
 }
 
 export async function markNotificationsRead(userId: string, id?: string): Promise<void> {
+  unreadInflight = null
   if (!supabase) return
   let request = supabase.from('notifications').update({ read_at: new Date().toISOString() }).eq('recipient_id', userId).is('read_at', null)
   if (id) request = request.eq('id', id)
@@ -444,7 +453,15 @@ export type GoalHistory = ReadingGoal[]
 
 // ─── Galeria ───
 
-export async function loadCatalogSocial(): Promise<CatalogSocial> {
+let socialCache: { at: number; promise: Promise<CatalogSocial> } | null = null
+/** Uma consulta por 30 s (o React em dev monta duas vezes). */
+export function loadCatalogSocial(): Promise<CatalogSocial> {
+  if (socialCache && Date.now() - socialCache.at < 30_000) return socialCache.promise
+  const promise = fetchCatalogSocial()
+  socialCache = { at: Date.now(), promise }
+  return promise
+}
+async function fetchCatalogSocial(): Promise<CatalogSocial> {
   if (!supabase) return {}
   const { data, error } = await supabase.rpc('catalog_social')
   if (error || !data || typeof data !== 'object') return {}
