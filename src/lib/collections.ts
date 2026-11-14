@@ -58,14 +58,14 @@ export async function getCollection(slug: string): Promise<CollectionWithBooks |
   if (error) throw error
   if (!data) return null
   const { data: links, error: linkError } = await supabase.from('collection_books')
-    .select('sort_order, book:catalog_books(id, title, author, description, language_code, cover_thumb, cefr_level, category, created_at)')
+    .select('sort_order, book:catalog_books(id, title, author, description, language_code, cover_thumb, cefr_level, category, categories, age_min, age_info, created_at)')
     .eq('collection_id', data.id).order('sort_order', { ascending: true })
   if (linkError) throw linkError
   const books: CatalogBook[] = (links ?? []).flatMap((link: any) => link.book ? [{
     id: link.book.id, title: link.book.title ?? '', author: link.book.author ?? undefined, description: link.book.description ?? undefined,
     languageCode: link.book.language_code ?? 'en', coverData: link.book.cover_thumb ?? undefined,
     level: LEVELS.includes(link.book.cefr_level) ? link.book.cefr_level as CefrId : undefined,
-    category: CATEGORY_IDS.includes(link.book.category) ? link.book.category as BookCategory : undefined, pages: [], createdAt: link.book.created_at,
+    category: CATEGORY_IDS.includes(link.book.category) ? link.book.category as BookCategory : undefined, ageMin: link.book.age_min ?? undefined, ageInfo: link.book.age_info ?? undefined, pages: [], createdAt: link.book.created_at,
   }] : [])
   return { ...mapCollection(data), books }
 }

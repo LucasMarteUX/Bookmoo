@@ -77,7 +77,7 @@ function CollectionDetail({ slug }: { slug: string }) {
         {loaded?.books.map((book, i) => (
           <div key={book.id}>
             <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] tabular-nums" style={muted}>{pt ? 'Livro' : 'Book'} {String(i + 1).padStart(2, '0')}</p>
-            <BookCard to={`/gallery/${book.id}`} title={book.title} subtitle={book.author || categoryName(book.category, pt)} coverData={book.coverData} level={book.level} pt={pt} />
+            <BookCard to={`/gallery/${book.id}`} title={book.title} subtitle={book.author || categoryName(book.category, pt)} coverData={book.coverData} ageMin={book.ageMin} ageInfo={book.ageInfo} level={book.level} pt={pt} />
           </div>
         ))}
       </div>

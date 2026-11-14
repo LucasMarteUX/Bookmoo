@@ -12,8 +12,30 @@ export type CatalogBook = {
   /** Dificuldade do texto, escolhida na área admin. */
   level?: CefrId
   category?: BookCategory
+  /** Todas as categorias do livro (a primeira é a principal). */
+  categories?: BookCategory[]
+  /** Idade mínima indicada (orientação editorial do Bookmoo). */
+  ageMin?: number
+  ageInfo?: AgeInfo
   pages: string[]
   createdAt?: string
+}
+
+export type AgeInfo = { bookmoo?: number; escala_br?: string; temas?: string[]; nivel?: string; fonte?: string }
+const categoriesOf = (value: unknown, main?: BookCategory): BookCategory[] | undefined => {
+  const list = Array.isArray(value) ? value.map(categoryOf).filter((c): c is BookCategory => !!c) : []
+  return list.length ? list : main ? [main] : undefined
+}
+/** Categorias do livro (sempre ao menos a principal). */
+export const bookCategories = (book: Pick<CatalogBook, 'category' | 'categories'>): BookCategory[] => book.categories?.length ? book.categories : book.category ? [book.category] : []
+/** Idade da pessoa a partir da data de nascimento (AAAA-MM-DD). */
+export function ageFrom(birthDate?: string | null): number | null {
+  if (!birthDate || !/^\d{4}-\d{2}-\d{2}$/.test(birthDate)) return null
+  const [y, m, d] = birthDate.split('-').map(Number)
+  const now = new Date()
+  let age = now.getFullYear() - y
+  if (now.getMonth() + 1 < m || (now.getMonth() + 1 === m && now.getDate() < d)) age--
+  return age >= 0 && age < 130 ? age : null
 }
 
 export type CatalogVersion = {
@@ -109,7 +131,7 @@ export async function listCatalog(limit?: number): Promise<CatalogBook[]> {
   if (listCache && listCache.limit === limit && Date.now() - listCache.at < LIST_TTL) return listCache.data
   if (listInflight && !limit) return listInflight
   const run = (async () => {
-    const request = supabase!.from('catalog_books').select('id, title, author, description, language_code, cover_thumb, cefr_level, category, created_at').order('created_at', { ascending: false })
+    const request = supabase!.from('catalog_books').select('id, title, author, description, language_code, cover_thumb, cefr_level, category, categories, age_min, age_info, created_at').order('created_at', { ascending: false })
     const { data, error } = await (limit ? request.limit(limit) : request)
     if (error) throw error
     const rows: CatalogBook[] = (data ?? []).map(row => ({
@@ -121,6 +143,9 @@ export async function listCatalog(limit?: number): Promise<CatalogBook[]> {
       coverData: row.cover_thumb ?? undefined,
       level: levelOf(row.cefr_level),
       category: categoryOf(row.category),
+      categories: categoriesOf(row.categories, categoryOf(row.category)),
+      ageMin: row.age_min ?? undefined,
+      ageInfo: row.age_info ?? undefined,
       pages: [],
       createdAt: row.created_at,
     }))
@@ -142,11 +167,11 @@ export async function listCatalogLite(): Promise<CatalogBook[]> {
   if (liteCache && Date.now() - liteCache.at < LIST_TTL) return liteCache.data
   if (liteInflight) return liteInflight
   liteInflight = (async () => {
-    const { data, error } = await supabase!.from('catalog_books').select('id, title, author, description, language_code, cefr_level, category, created_at').order('created_at', { ascending: false })
+    const { data, error } = await supabase!.from('catalog_books').select('id, title, author, description, language_code, cefr_level, category, categories, age_min, age_info, created_at').order('created_at', { ascending: false })
     if (error) throw error
     const rows: CatalogBook[] = (data ?? []).map(row => ({
       id: row.id, title: row.title ?? '', author: row.author ?? undefined, description: row.description ?? undefined, languageCode: row.language_code ?? 'en',
-      level: levelOf(row.cefr_level), category: categoryOf(row.category), pages: [], createdAt: row.created_at,
+      level: levelOf(row.cefr_level), category: categoryOf(row.category), categories: categoriesOf(row.categories, categoryOf(row.category)), ageMin: row.age_min ?? undefined, ageInfo: row.age_info ?? undefined, pages: [], createdAt: row.created_at,
     }))
     liteCache = { at: Date.now(), data: rows }
     return rows
@@ -190,6 +215,9 @@ export async function getCatalogBook(id: string): Promise<CatalogBook | null> {
     coverData: data.cover_data ?? undefined,
     level: levelOf(data.cefr_level),
     category: categoryOf(data.category),
+    categories: categoriesOf(data.categories, categoryOf(data.category)),
+    ageMin: data.age_min ?? undefined,
+    ageInfo: data.age_info ?? undefined,
     pages: pagesOf(data.pages),
     createdAt: data.created_at,
   }

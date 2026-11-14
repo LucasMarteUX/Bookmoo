@@ -61,13 +61,16 @@ export function bookStyleKey(book: Pick<Book, 'comicStyleDoc'>): string {
  */
 export async function applyBookStyle(book: Book, styleId: string, userId: string | undefined): Promise<void> {
   const comicStyleDoc = { references: book.comicStyleDoc?.references, styleId }
-  useBookStore.getState().updateBook(book.id, { comicStyleDoc, comicPages: {}, comicLayouts: {} })
+  // Livro da galeria: só o estilo padrão é compartilhado com a comunidade. Outro estilo vira coleção individual.
+  const defaultStyle = book.catalogId ? (await catalogStyleOptions(book.catalogId)).find(option => option.isDefault)?.styleId : undefined
+  const imageMode: Book['imageMode'] = book.catalogId ? (defaultStyle && styleId !== defaultStyle ? 'personal' : 'shared') : book.imageMode
+  useBookStore.getState().updateBook(book.id, { comicStyleDoc, comicPages: {}, comicLayouts: {}, ...(imageMode ? { imageMode } : {}) })
   if (!supabase || !userId) return
   const { error } = await supabase.from('books')
     .update({ comic_style_doc: comicStyleDoc, comic_pages: null, comic_layouts: {} })
     .eq('id', book.id).eq('user_id', userId)
   if (error) throw new Error(error.message)
-  if (book.catalogId) await supabase.from('book_links').update({ style_id: styleId }).eq('book_id', book.id).eq('user_id', userId)
+  if (book.catalogId) await supabase.from('book_links').update({ style_id: styleId, ...(imageMode ? { image_mode: imageMode } : {}) }).eq('book_id', book.id).eq('user_id', userId)
 }
 
 // ─── Admin ───

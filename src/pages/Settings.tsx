@@ -12,6 +12,7 @@ import { VoiceSettings } from '@/components/settings/VoiceSettings'
 import { AiConnections } from '@/components/settings/AiConnections'
 import { ProfileSection } from '@/components/settings/ProfileSection'
 import { restartTour } from '@/components/onboarding/GuidedTour'
+import { BirthDateField } from '@/components/settings/BirthDate'
 
 /** Seção de configurações: título com ícone e um cartão com as linhas. */
 function Section({ id, icon, title, description, children }: { id: string; icon: ReactNode; title: string; description?: string; children: ReactNode }) {
@@ -124,6 +125,12 @@ export function Settings() {
         </nav>
 
         <div className="space-y-10 min-w-0">
+          <Section id="age" icon={<User className="w-4 h-4" />} title={pt ? 'Idade' : 'Age'}>
+            <Row label={pt ? 'Data de nascimento' : 'Date of birth'} hint={pt ? 'Privada. Serve só para indicar livros acima da sua idade.' : 'Private. Used only to flag books above your age.'}>
+              <BirthDateField pt={pt} />
+            </Row>
+          </Section>
+
           <Section id="tutorial" icon={<Sparkles className="w-4 h-4" />} title={pt ? 'Tutorial' : 'Tutorial'}>
             <Row label={pt ? 'Rever o tutorial' : 'Replay the tutorial'} hint={pt ? 'Um passeio rápido pelas principais funções do Bookmoo.' : 'A quick tour of Bookmoo’s main features.'}>
               <button type="button" onClick={restartTour} className="h-9 px-4 rounded-full border text-[13px]" style={{ borderColor: 'var(--theme-border)' }}>{pt ? 'Começar tutorial' : 'Start tutorial'}</button>

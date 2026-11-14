@@ -231,6 +231,9 @@ export function Dashboard() {
   }
  
   const hour = new Date().getHours()
+  // Primeiro nome: do nome cadastrado; sem nome, a parte inicial do e-mail.
+  const rawName = String(session?.user?.user_metadata?.full_name ?? session?.user?.user_metadata?.name ?? '').trim() || String(session?.user?.email ?? '').split('@')[0].split(/[._\-+]/)[0]
+  const firstName = rawName ? rawName.split(/\s+/)[0].charAt(0).toLocaleUpperCase() + rawName.split(/\s+/)[0].slice(1) : ''
   const greetingKey: 'goodMorning' | 'goodAfternoon' | 'goodEvening' = hour >= 5 && hour < 12 ? 'goodMorning' : hour >= 12 && hour < 18 ? 'goodAfternoon' : 'goodEvening'
 
   // Fallback: garantir que livros sejam carregados direto na Dashboard,
@@ -330,7 +333,7 @@ export function Dashboard() {
           <p className="text-[13px] capitalize" style={{ color: 'var(--theme-text-secondary)' }}>
             {new Date().toLocaleDateString(pt ? 'pt-BR' : 'en-US', { weekday: 'long', day: 'numeric', month: 'long' })}
           </p>
-          <h1 className="font-display mt-1 text-[32px] md:text-[40px] leading-[1.05]" style={{ color: 'var(--theme-text)' }}>{t(greetingKey)}</h1>
+          <h1 className="font-display mt-1 text-[32px] md:text-[40px] leading-[1.05]" style={{ color: 'var(--theme-text)' }}>{t(greetingKey)}{firstName ? `, ${firstName}` : ''}</h1>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <input ref={epubInputRef} type="file" accept=".epub,application/epub+zip" className="hidden" onChange={handleEpubChange} />

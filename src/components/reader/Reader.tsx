@@ -12,7 +12,7 @@ import { FloatingAction } from './FloatingAction'
 import { NoteDialog } from './NoteDialog'
 import { deletePin, loadPins, savePin, usePinStore, type StoryPin } from '@/store/usePinStore'
 import { fetchSharedImages, publishSharedImage } from '@/lib/catalog'
-import { bookStyleKey } from '@/lib/comicStyles'
+import { bookStyleKey, catalogStyleOptions } from '@/lib/comicStyles'
 import { StylePickerDialog, useApplyBookStyle, useStyleBank } from '@/components/book/StylePicker'
 import { VocabularyModal, type VocabTab } from '../vocabulary/VocabularyModal'
 import { useMediaSession, useWakeLock } from '@/hooks/useNativeMedia'
@@ -733,11 +733,16 @@ export function Reader({ book, autoPlay = false, headerSlot }: ReaderProps) {
         characters: generated.characters, previousCharacters: generated.previousCharacters,
       })
       // Só estilos do banco têm imagens oficiais compartilhadas.
+      // Só o estilo padrão do livro é compartilhado; cada página publicada nele vale pontos de contribuição.
       const publishStyle = generated.styleDoc?.styleId
-      if (book.catalogId && publishStyle && book.imageMode !== 'personal' && userId && /^https?:\/\//.test(generated.imageUrl) && !sharedImages[pageIndex]) {
+      const defaultStyle = book.catalogId ? (await catalogStyleOptions(book.catalogId).catch(() => [])).find(option => option.isDefault)?.styleId : undefined
+      if (book.catalogId && publishStyle && (!defaultStyle || publishStyle === defaultStyle) && book.imageMode !== 'personal' && userId && /^https?:\/\//.test(generated.imageUrl) && !sharedImages[pageIndex]) {
         try {
           const published = await publishSharedImage(book.catalogId, publishStyle, pageIndex, generated.imageUrl, userId)
-          if (published) setSharedImages(prev => ({ ...prev, [pageIndex]: generated.imageUrl }))
+          if (published) {
+            setSharedImages(prev => ({ ...prev, [pageIndex]: generated.imageUrl }))
+            useXpStore.getState().award(`community:page:${book.catalogId}:${publishStyle}:${pageIndex}`, XP.communityImage)
+          }
         } catch (error) {
           console.warn('shared comic image', error)
         }

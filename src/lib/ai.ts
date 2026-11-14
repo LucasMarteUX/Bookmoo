@@ -1,6 +1,7 @@
 // Cliente das funções de IA. Nenhuma chave existe no navegador: cada chamada vai para uma
 // Edge Function do Supabase, que usa a chave que o próprio usuário conectou em Configurações.
 import type { ComicStyleDoc, ComicCharacter } from "@/store/useBookStore"
+import { getShared, putShared, sharedKey } from './sharedContent'
 import type { ComicInspection, EditorialLayout, GenerationRecord, Rect, StoryContext, VisualBeat } from '../../supabase/functions/_shared/comicEditorial'
 import { supabase } from "@/lib/supabase"
 
@@ -84,8 +85,14 @@ export async function generateExplanation(
   targetLanguageCode?: string,
   nativeLanguageCode?: string
 ): Promise<VocabExplanation> {
+  // Compartilhado: a mesma palavra no mesmo par de idiomas usa a explicação que alguém já gerou.
+  const key = sharedKey(text, level, targetLanguageCode || "en", nativeLanguageCode)
+  const cached = await getShared<VocabExplanation>("explain", key)
+  if (cached?.definition) return cached
   try {
-    return await aiText<VocabExplanation>("explain", { text, level, languageCode: targetLanguageCode || "en", nativeLanguageCode })
+    const result = await aiText<VocabExplanation>("explain", { text, level, languageCode: targetLanguageCode || "en", nativeLanguageCode })
+    if (result?.definition) void putShared("explain", key, result)
+    return result
   } catch (e) {
     return { definition: aiErrorMessage(e), ipa: "", examples: [], grammarExamples: [], usageNote: "" }
   }
@@ -99,7 +106,11 @@ export async function translateTerm(text: string, targetLanguageCode = 'pt'): Pr
 
 export async function generateVariantStory(text: string, targetLanguageCode?: string): Promise<string | null> {
   if (!text.trim()) return null
+  const key = sharedKey(text, targetLanguageCode)
+  const cached = await getShared<{ story: string }>("variant-story", key)
+  if (cached?.story) return cached.story
   const r = await aiText<{ story: string }>("variant-story", { text, languageCode: targetLanguageCode })
+  if (r.story) void putShared("variant-story", key, { story: r.story })
   return r.story || null
 }
 

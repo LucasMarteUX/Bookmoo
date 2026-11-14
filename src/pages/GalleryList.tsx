@@ -9,9 +9,10 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { LevelBadge } from '@/components/ui/level-badge'
 import { useLanguage } from '@/store/useLanguage'
 import { CEFR, type CefrId } from '@/lib/cefr'
-import { BOOK_CATEGORIES, cachedThumbs, categoryName, listCatalogLite, loadCoverThumbs, type BookCategory, type CatalogBook } from '@/lib/catalog'
+import { BOOK_CATEGORIES, bookCategories, cachedThumbs, categoryName, listCatalogLite, loadCoverThumbs, type BookCategory, type CatalogBook } from '@/lib/catalog'
 import { CollectionCard, CollectionCardSkeleton } from '@/components/book/CollectionCard'
 import { FilterChip, FilterClear, FilterSelect, SegmentedTabs } from '@/components/ui/filter-controls'
+import { BirthDateField, useBirthDate } from '@/components/settings/BirthDate'
 import { CategoryTile } from '@/components/book/CategoryTiles'
 import { COLLECTION_RAIL_ITEM, useFeaturedCollections } from '@/components/book/FeaturedCollections'
 import { loadCatalogSocial, type CatalogSocial } from '@/lib/social'
@@ -94,6 +95,8 @@ export function GalleryList() {
   const [error, setError] = useState('')
   // Capas por dobra: só pede as miniaturas do que está perto da tela, em lotes que se juntam num único pedido.
   const [socialReady, setSocialReady] = useState(false)
+  const birthDate = useBirthDate()
+  const [birthHidden, setBirthHidden] = useState(() => { try { return localStorage.getItem('bookmoo.birth-prompt') === '1' } catch { return false } })
   const [thumbs, setThumbs] = useState<Record<string, string>>(() => cachedThumbs())
   const queue = useRef(new Set<string>())
   const timer = useRef<number>(0)
@@ -126,7 +129,7 @@ export function GalleryList() {
     const q = query.trim().toLowerCase()
     const list = (books ?? []).filter(book => {
       if (level !== 'all' && book.level !== level) return false
-      if (category !== 'all' && book.category !== category) return false
+      if (category !== 'all' && !bookCategories(book).includes(category as BookCategory)) return false
       if (author !== 'all' && book.author !== author) return false
       if (q && !`${book.title} ${book.author ?? ''} ${book.description ?? ''}`.toLowerCase().includes(q)) return false
       if (minStars && (social[book.id]?.rating ?? 0) < minStars) return false
@@ -152,7 +155,7 @@ export function GalleryList() {
     return [...(books ?? [])].sort((a, b) => readers(b) - readers(a) || (b.createdAt ?? '').localeCompare(a.createdAt ?? ''))[0]
   }, [books, social])
   const categories = useMemo(() => BOOK_CATEGORIES
-    .map(item => ({ ...item, count: (books ?? []).filter(book => book.category === item.id).length }))
+    .map(item => ({ ...item, count: (books ?? []).filter(book => bookCategories(book).includes(item.id)).length }))
     .filter(item => item.count > 0), [books])
 
   const shelves = useMemo(() => {
@@ -171,7 +174,7 @@ export function GalleryList() {
     rows.push({ id: 'new', title: pt ? 'Chegaram agora' : 'Just added', hint: pt ? 'Os mais novos da galeria' : 'Newest in the gallery', books: fresh })
     for (const item of categories) {
       if (item.count < 3) continue
-      rows.push({ id: item.id, title: pt ? item.pt : item.en, hint: `${item.count} ${pt ? 'livros' : 'books'}`, books: list.filter(book => book.category === item.id), onAll: () => setFilter('cat', item.id) })
+      rows.push({ id: item.id, title: pt ? item.pt : item.en, hint: `${item.count} ${pt ? 'livros' : 'books'}`, books: list.filter(book => bookCategories(book).includes(item.id)), onAll: () => setFilter('cat', item.id) })
     }
     return rows
   }, [books, social, categories, pt])
@@ -208,7 +211,7 @@ export function GalleryList() {
   )
 
   const card = (book: CatalogBook, className?: string) => (
-    <BookCard key={book.id} to={`/gallery/${book.id}`} title={book.title} subtitle={book.author || categoryName(book.category, pt)} coverData={thumbs[book.id]} coverPending={!thumbs[book.id]} level={book.level} pt={pt}
+    <BookCard key={book.id} to={`/gallery/${book.id}`} title={book.title} subtitle={book.author || categoryName(book.category, pt)} coverData={thumbs[book.id]} coverPending={!thumbs[book.id]} ageMin={book.ageMin} ageInfo={book.ageInfo} level={book.level} pt={pt}
       linkState={{ gallerySearch: search }} readers={readers(book)} faces={social[book.id]?.faces} rating={social[book.id]?.rating} ratings={social[book.id]?.ratings} illustrated={social[book.id]?.illustrated} className={className} />
   )
 
@@ -235,6 +238,15 @@ export function GalleryList() {
 
       {books === null && !error && <HeroSkeleton />}
       {!filtered && featured && <Featured book={{ ...featured, coverData: thumbs[featured.id] }} social={social} pt={pt} />}
+      {!birthDate && !birthHidden && (
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl border px-4 py-3" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg-secondary)' }}>
+          <p className="min-w-0 flex-1 basis-64 text-[13px] leading-snug" style={muted}>
+            {pt ? 'Informe sua data de nascimento para ver quais livros estão acima da sua idade. Ela fica privada e não aparece no perfil.' : 'Add your date of birth to see which books are above your age. It stays private and never appears on your profile.'}
+          </p>
+          <BirthDateField pt={pt} compact />
+          <button type="button" onClick={() => { try { localStorage.setItem('bookmoo.birth-prompt', '1') } catch { /* sem armazenamento */ } setBirthHidden(true) }} className="h-9 px-3 rounded-full text-[13px]" style={muted}>{pt ? 'Agora não' : 'Not now'}</button>
+        </div>
+      )}
       {categories.length > 0 && (
         <section aria-label={pt ? 'Categorias' : 'Categories'}>
           <ScrollRail className="gap-3 pt-1 pb-3 snap-x" label={pt ? 'Categorias' : 'Categories'} arrowsTop="45%" top>

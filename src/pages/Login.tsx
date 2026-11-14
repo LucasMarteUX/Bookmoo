@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { ageFrom } from '@/lib/catalog'
 import { Link, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { Eye, EyeOff, Moon, Sun } from 'lucide-react'
@@ -44,6 +45,10 @@ export function Login({ mode = 'login' }: { mode?: Mode }) {
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [accepted, setAccepted] = useState(false)
+  const [name, setName] = useState('')
+  const [birthDate, setBirthDate] = useState('')
+  const [guardianOk, setGuardianOk] = useState(false)
+  const signupAge = ageFrom(birthDate)
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
@@ -81,11 +86,14 @@ export function Login({ mode = 'login' }: { mode?: Mode }) {
     e.preventDefault()
     setError(''); setMessage('')
     if (signup && password !== confirm) { setError(pt ? 'As senhas não são iguais.' : 'Passwords do not match.'); return }
+    if (signup && !name.trim()) { setError(pt ? 'Informe seu nome.' : 'Enter your name.'); return }
+    if (signup && signupAge === null) { setError(pt ? 'Informe uma data de nascimento válida.' : 'Enter a valid date of birth.'); return }
+    if (signup && signupAge !== null && signupAge < 12 && !guardianOk) { setError(pt ? 'Para menores de 12 anos, um responsável precisa autorizar o cadastro.' : 'Under 12, a guardian must authorize the sign-up.'); return }
     if (signup && !accepted) { setError(pt ? 'Para criar a conta, aceite os Termos e a Política de Privacidade.' : 'To create an account, accept the Terms and Privacy Policy.'); return }
     if (signup) rememberTermsAccepted()
     setLoading('email')
     const normalized = email.trim().toLowerCase()
-    const { error } = signup ? await signUp(normalized, password) : await signIn(normalized, password)
+    const { error } = signup ? await signUp(normalized, password, { full_name: name.trim(), birth_date: birthDate, ...(signupAge !== null && signupAge < 12 ? { guardian_consent_at: new Date().toISOString() } : {}) }) : await signIn(normalized, password)
     setLoading(null)
     if (error) { setError(errorMessage(error)); return }
     if (signup) setMessage(pt ? 'Conta criada! Se pedirmos, confirme pelo link que enviamos ao seu e-mail.' : 'Account created! If asked, confirm with the link we sent to your email.')
@@ -198,6 +206,26 @@ export function Login({ mode = 'login' }: { mode?: Mode }) {
                   <span className="block text-[13px] font-medium mb-1.5" style={{ color: 'var(--theme-text)' }}>{pt ? 'Confirmar senha' : 'Confirm password'}</span>
                   <input type={showPassword ? 'text' : 'password'} autoComplete="new-password" required minLength={6}
                     value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="••••••••" className={field} />
+                </label>
+              )}
+
+              {signup && (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="block">
+                    <span className="block text-[13px] font-medium mb-1.5" style={{ color: 'var(--theme-text)' }}>{pt ? 'Seu nome' : 'Your name'}</span>
+                    <input type="text" autoComplete="given-name" required value={name} onChange={e => setName(e.target.value)} placeholder={pt ? 'Como quer ser chamado' : 'What we should call you'} className={field} />
+                  </label>
+                  <label className="block">
+                    <span className="block text-[13px] font-medium mb-1.5" style={{ color: 'var(--theme-text)' }}>{pt ? 'Data de nascimento' : 'Date of birth'}</span>
+                    <input type="date" autoComplete="bday" required value={birthDate} max={new Date().toISOString().slice(0, 10)} onChange={e => setBirthDate(e.target.value)} className={field} />
+                  </label>
+                  <p className="sm:col-span-2 -mt-1 text-[12px] leading-snug" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? 'Usamos a data só para indicar quais livros são adequados à sua idade. Ela não aparece no seu perfil.' : 'We use the date only to show which books suit your age. It never appears on your profile.'}</p>
+                </div>
+              )}
+              {signup && signupAge !== null && signupAge < 12 && (
+                <label className="flex items-start gap-2.5 pt-1 cursor-pointer select-none text-[13px]" style={{ color: 'var(--theme-text-secondary)' }}>
+                  <input type="checkbox" checked={guardianOk} onChange={e => setGuardianOk(e.target.checked)} className="mt-0.5 size-4 shrink-0" />
+                  <span>{pt ? 'Sou o responsável legal por esta criança e autorizo o cadastro e o tratamento dos dados conforme a Política de Privacidade.' : 'I am this child’s legal guardian and authorize the sign-up and data processing under the Privacy Policy.'}</span>
                 </label>
               )}
 

@@ -6,6 +6,8 @@ import { AvatarStack } from '@/components/community/AvatarStack'
 import type { CefrId } from '@/lib/cefr'
 import type { Author } from '@/lib/communityProfile'
 import { cn } from '@/lib/utils'
+import { AgeBadge } from '@/components/book/AgeBadge'
+import type { AgeInfo } from '@/lib/catalog'
 
 /** Capa 2:3. A versão desfocada preenche as sobras de capas com outra proporção. */
 export function BookCover({ title, coverData, pending, className, children }: { title: string; coverData?: string; /** Capa ainda baixando: bloco neutro em vez do título escrito. */ pending?: boolean; className?: string; children?: ReactNode }) {
@@ -23,12 +25,15 @@ export function BookCover({ title, coverData, pending, className, children }: { 
   )
 }
 
-export function BookCard({ to, title, subtitle, coverData, coverPending, level, pt, linkState, className, readers = 0, faces = [], rating, ratings = 0, illustrated = 0 }: {
+export function BookCard({ to, title, subtitle, coverData, coverPending, ageMin, ageInfo, level, pt, linkState, className, readers = 0, faces = [], rating, ratings = 0, illustrated = 0 }: {
   to: string
   title: string
   subtitle?: string
   coverData?: string
   coverPending?: boolean
+  /** Faixa etária indicada (aviso na capa quando acima da idade da pessoa). */
+  ageMin?: number
+  ageInfo?: AgeInfo
   level?: CefrId
   pt: boolean
   /** Enviado ao destino, para ele saber voltar aos filtros de origem. */
@@ -47,6 +52,7 @@ export function BookCard({ to, title, subtitle, coverData, coverPending, level, 
     <Link to={to} state={linkState} className={cn('group block', className)}>
       <BookCover title={title} coverData={coverData} pending={coverPending} className="transition-transform duration-300 group-hover:-translate-y-1">
         {level && <LevelBadge id={level} pt={pt} variant="compact" className="absolute left-1.5 top-1.5" />}
+        <AgeBadge compact ageMin={ageMin} info={ageInfo} pt={pt} className="absolute left-1.5 bottom-1.5" />
         {illustrated > 0 && (
           <span className="absolute right-1.5 top-1.5 h-5 px-1.5 rounded-full inline-flex items-center gap-1 text-[10.5px] font-semibold backdrop-blur-md"
             style={{ backgroundColor: 'color-mix(in srgb, var(--theme-card-bg) 85%, transparent)', color: 'var(--theme-text)' }}

@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { askConfirm } from '@/components/ui/confirm'
 import { toast } from '@/components/ui/toast'
 import { BookCover } from '@/components/book/BookCard'
+import { AgeBadge } from '@/components/book/AgeBadge'
 import { BookReviews } from '@/components/community/BookReviews'
 import { StyleCard, useStyleBank } from '@/components/book/StylePicker'
 import { bookStyleKey, catalogStyleOptions, LEGACY_STYLE } from '@/lib/comicStyles'
@@ -19,7 +20,7 @@ import { countWords } from '@/lib/utils'
 import { upsertBook } from '@/lib/supabaseSync'
 import { supabase } from '@/lib/supabase'
 import {
-  addCatalogBook, addFeedback, deleteCatalogBook, BOOK_CATEGORIES, categoryName, getCatalogBook, listFeedback, listVersions, rateVersion, saveBookLink, updateCatalogMeta,
+  addCatalogBook, addFeedback, bookCategories, deleteCatalogBook, BOOK_CATEGORIES, categoryName, getCatalogBook, listFeedback, listVersions, rateVersion, saveBookLink, updateCatalogMeta,
   type BookCategory, type BookFeedback, type CatalogBook, type CatalogVersion,
 } from '@/lib/catalog'
 
@@ -151,7 +152,8 @@ function GalleryBook({ id }: { id: string }) {
           {book.author && <p className="mt-3 text-[16px]" style={{ color: 'var(--theme-text-secondary)' }}>{book.author}</p>}
           <div className="mt-4 flex flex-wrap gap-2">
             {book.level && <LevelBadge id={book.level} pt={pt} />}
-            {book.category && <Pill>{categoryName(book.category, pt)}</Pill>}
+            <AgeBadge ageMin={book.ageMin} info={book.ageInfo} pt={pt} />
+            {bookCategories(book).map(item => <Pill key={item}>{categoryName(item, pt)}</Pill>)}
             <Pill>{lang}</Pill>
             {defaultStyle && (
               <button type="button" onClick={() => setStyleOpen(true)} title={pt ? 'Estilo das ilustrações' : 'Illustration style'}

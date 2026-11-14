@@ -29,7 +29,7 @@ export function useApplyBookStyle(book: Book, userId: string | undefined, pt: bo
   const warn = (styleId: string) => {
     if (!generated || styleId === book.comicStyleDoc?.styleId) return null
     const name = styles?.find(style => style.id === styleId)?.name ?? styleId
-    return pt ? `Isso apaga as ${generated} páginas desenhadas deste livro e recomeça em ${name}.` : `This deletes the ${generated} drawn pages of this book and starts over in ${name}.`
+    return pt ? `Isso apaga as ${generated} páginas desenhadas deste livro e recomeça em ${name}. Fora do estilo padrão do livro, as imagens ficam só para você e não são compartilhadas com a comunidade.` : `This deletes the ${generated} drawn pages of this book and starts over in ${name}. Outside the book’s default style, images are yours alone and not shared with the community.`
   }
   const apply = async (styleId: string) => {
     if (styleId === book.comicStyleDoc?.styleId) return true
