@@ -76,7 +76,7 @@ export function ActivityPanel({ pt }: { pt: boolean }) {
           {pt ? `${fmt.format(yearCount)} atividades no último ano` : `${fmt.format(yearCount)} activities in the last year`}
         </p>
         <div ref={scroller} className="overflow-x-auto pb-1">
-          <div className="inline-grid gap-[3px]" style={{ gridTemplateColumns: `28px repeat(53, 11px)`, gridTemplateRows: '14px repeat(7, 11px)' }}>
+          <div className="grid w-full min-w-[720px] gap-[3px]" style={{ gridTemplateColumns: `28px repeat(53, minmax(0, 1fr))`, gridTemplateRows: '14px repeat(7, auto)' }}>
             <span />
             {months.map((m, i) => <span key={i} className="text-[11.5px] leading-none whitespace-nowrap" style={{ color: 'var(--theme-text-secondary)' }}>{m}</span>)}
             {Array.from({ length: 7 }, (_, d) => (
@@ -86,7 +86,7 @@ export function ActivityPanel({ pt }: { pt: boolean }) {
                 </span>
                 {weeks.map((col, w) => {
                   const cell = col[d]
-                  return <span key={`${w}-${d}`} className="rounded-[2px]"
+                  return <span key={`${w}-${d}`} className="rounded-[2px] aspect-square"
                     style={{ gridColumn: w + 2, gridRow: d + 2, backgroundColor: cell.future ? 'transparent' : LEVELS[level(cell.count)] }}
                     title={cell.future ? undefined : `${cell.date.toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' })}: ${cell.count} ${pt ? 'atividade(s)' : 'activit(ies)'} · ${cell.points} ${pt ? 'pontos' : 'points'}`} />
                 })}

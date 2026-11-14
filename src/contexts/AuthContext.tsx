@@ -20,6 +20,28 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
+// Dados de estudo ficam no aparelho (localStorage). Ao trocar de conta eles precisam sair, senão uma conta nova
+// herda pontos, vocabulário e sequência de quem usou o aparelho antes. Preferências (tema, idioma) permanecem.
+const OWNER_KEY = 'bookmoo-owner'
+const ACCOUNT_DATA_KEYS = ['lexis-books', 'lexis-study', 'lexis-vocabulary', 'bookmoo-xp', 'bookmoo-practice', 'bookmoo-pins']
+const clearAccountData = () => { for (const k of ACCOUNT_DATA_KEYS) { try { localStorage.removeItem(k) } catch { /* ignore */ } } }
+
+/** Devolve true se os dados locais eram de outra conta e foram apagados (a página precisa recarregar). */
+function claimDevice(user: { id: string; created_at?: string } | null | undefined): boolean {
+  try {
+    if (!user) return false
+    const owner = localStorage.getItem(OWNER_KEY)
+    if (owner === user.id) return false
+    // Sem dono registrado: dados antigos só são mantidos se a conta já existia (uso anterior à regra); conta recém-criada começa limpa.
+    const fresh = !!user.created_at && Date.now() - new Date(user.created_at).getTime() < 24 * 3600 * 1000
+    const hadData = ACCOUNT_DATA_KEYS.some(k => localStorage.getItem(k))
+    const mustClear = hadData && (!!owner || fresh)
+    localStorage.setItem(OWNER_KEY, user.id)
+    if (mustClear) { clearAccountData(); return true }
+  } catch { /* sem armazenamento */ }
+  return false
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
@@ -32,6 +54,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     let accountId: string | undefined
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (claimDevice(session?.user)) { window.location.reload(); return }
       if (accountId !== session?.user.id) {
         accountId = session?.user.id
         resetAiStatus()
@@ -75,8 +98,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     resetAiStatus()
     if (supabase) await supabase.auth.signOut()
+    clearAccountData()
+    try { localStorage.removeItem(OWNER_KEY) } catch { /* ignore */ }
     setSession(null)
     setUser(null)
+    window.location.assign('/login') // recarrega para a memória não guardar dados da conta anterior
   }
 
   const isAdmin = !!user && ADMIN_EMAILS.includes((user.email ?? '').toLowerCase())
