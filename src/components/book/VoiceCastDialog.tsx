@@ -94,7 +94,7 @@ export function VoiceCastDialog({ book, open, pt, onOpenChange, onSave }: {
         {characters.length > 0 && enabled && (
           <details className="min-w-0 rounded-2xl border p-3" style={{ borderColor: 'var(--theme-border-subtle)' }}>
             <summary className="cursor-pointer text-sm font-medium" style={{ color: 'var(--theme-text)' }}>
-              {pt ? `Personagens (${characters.length}) — corrigir voz de alguém` : `Characters (${characters.length}) — fix someone’s voice`}
+              {pt ? `Personagens (${characters.length}): corrigir voz de alguém` : `Characters (${characters.length}): fix someone’s voice`}
             </summary>
             <div className="mt-2 divide-y" style={{ borderColor: 'var(--theme-border-subtle)' }}>
               {characters.map(c => {

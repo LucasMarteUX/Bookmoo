@@ -1,5 +1,4 @@
-// "Decifrar a página": regras de gramática da página, antes de ler. Gerada uma vez; livros da galeria
-// reaproveitam a explicação de outra pessoa (sem custo). "Desafio": quiz da página com dificuldade gradual.
+// "Desafio": quiz da página com dificuldade gradual (o "Estudar" fica em PageStudy.tsx).
 import { useEffect, useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { Check, Flame, Loader2, RotateCcw, Sparkles, Star, Users, X } from 'lucide-react'
@@ -15,7 +14,7 @@ const muted = { color: 'var(--theme-text-secondary)' }
 type BookRef = { id: string; title: string; currentPage: number }
 
 /** Desliga os botões de ajuda de gramática (a pessoa escolhe a partir do B1). */
-function HideHelp({ pt, onDone }: { pt: boolean; onDone: () => void }) {
+export function HideHelp({ pt, onDone }: { pt: boolean; onDone: () => void }) {
   const level = useStudyLevel()
   const setGrammarHelp = useReaderSettings(s => s.setGrammarHelp)
   const advanced = ['B1', 'B2', 'C1', 'C2'].includes(level.id)
@@ -24,121 +23,6 @@ function HideHelp({ pt, onDone }: { pt: boolean; onDone: () => void }) {
       className="text-[12.5px] underline underline-offset-4" style={muted}>
       {advanced ? (pt ? 'Já leio bem sem isso: ocultar estes botões' : 'I read fine without this: hide these buttons') : (pt ? 'Ocultar estes botões' : 'Hide these buttons')}
     </button>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Decifrar a página
-// ---------------------------------------------------------------------------
-export function PageGrammarDialog({ open, onOpenChange, book }: { open: boolean; onOpenChange: (o: boolean) => void; book: BookRef }) {
-  const pt = useLanguage().locale === 'pt-BR'
-  const lang = pt ? 'pt' : 'en'
-  const level = useStudyLevel()
-  const [state, setState] = useState<'loading' | 'missing' | 'generating' | 'ready' | 'error'>('loading')
-  const [content, setContent] = useState<GrammarContent | null>(null)
-  const [shared, setShared] = useState(false)
-  const page = book.currentPage
-
-  useEffect(() => {
-    if (!open) return
-    let alive = true
-    setState('loading'); setContent(null)
-    grammar.get(book.id, page, lang).then(r => {
-      if (!alive) return
-      if (r.found && r.content) { setContent(r.content); setShared(r.shared); setState('ready') } else setState('missing')
-    }).catch(() => { if (alive) setState('error') })
-    return () => { alive = false }
-  }, [open, book.id, page, lang])
-
-  const generate = async () => {
-    setState('generating')
-    try {
-      const r = await grammar.generate(book.id, page, lang, level.id)
-      setContent(r.content); setShared(r.shared); setState('ready')
-    } catch (e) {
-      const code = (e as { code?: string }).code
-      setState(code === 'no_credits' || code === 'cap_reached' || code === 'plan_required' ? 'missing' : 'error')
-    }
-  }
-
-  const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
-    <section><h3 className="text-[12.5px] font-semibold uppercase tracking-[0.08em]" style={muted}>{title}</h3><div className="mt-2.5 space-y-2.5">{children}</div></section>
-  )
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl">
-        <DialogHeader>
-          <DialogTitle>{pt ? `Decifrar a página ${page + 1}` : `Decode page ${page + 1}`}</DialogTitle>
-          <DialogDescription>{pt ? 'As regras de inglês que aparecem nesta página, antes de você ler.' : 'The English rules on this page, before you read it.'}</DialogDescription>
-        </DialogHeader>
-
-        {(state === 'loading' || state === 'generating') && (
-          <div className="py-8 text-center">
-            <Loader2 className="w-6 h-6 mx-auto animate-spin" style={muted} />
-            <p className="mt-3 text-[14px]" style={muted}>{state === 'generating' ? (pt ? 'Analisando a página…' : 'Analysing the page…') : (pt ? 'Procurando a explicação…' : 'Looking for the explanation…')}</p>
-          </div>
-        )}
-
-        {state === 'missing' && (
-          <div className="py-4 text-center">
-            <p className="text-[15px] leading-relaxed">{pt ? 'Ninguém gerou a explicação desta página ainda. Gere agora: ela fica salva e vale para todos os leitores deste livro.' : 'Nobody has generated this page’s explanation yet. Generate it now: it is saved for every reader of this book.'}</p>
-            <button type="button" onClick={generate} className="mt-5 h-12 px-6 rounded-full text-[15px] font-semibold inline-flex items-center gap-2" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
-              <Sparkles className="w-4 h-4" />{pt ? 'Gerar explicação (1 crédito)' : 'Generate explanation (1 credit)'}
-            </button>
-          </div>
-        )}
-
-        {state === 'error' && (
-          <div className="py-6 text-center">
-            <p className="text-[14.5px]" style={muted}>{pt ? 'Não foi possível carregar agora.' : 'Could not load right now.'}</p>
-            <button type="button" onClick={() => { setState('loading'); grammar.get(book.id, page, lang).then(r => { if (r.found && r.content) { setContent(r.content); setShared(r.shared); setState('ready') } else setState('missing') }).catch(() => setState('error')) }}
-              className="mt-3 h-10 px-5 rounded-full border text-[14px]" style={{ borderColor: 'var(--theme-border)' }}>{pt ? 'Tentar de novo' : 'Try again'}</button>
-          </div>
-        )}
-
-        {state === 'ready' && content && (
-          <div className="space-y-6 max-h-[62dvh] overflow-y-auto pr-1">
-            {shared && <p className="inline-flex items-center gap-1.5 text-[12.5px] px-2.5 h-6 rounded-full border" style={{ borderColor: 'var(--theme-border)', ...muted }}><Users className="w-3.5 h-3.5" />{pt ? 'Explicação reaproveitada da comunidade' : 'Reused from the community'}</p>}
-            {content.summary && <p className="text-[15.5px] leading-relaxed">{content.summary}</p>}
-            {content.tip && <p className="text-[14px] rounded-xl p-3 border" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg-secondary)' }}><b>{pt ? 'Dica: ' : 'Tip: '}</b>{content.tip}</p>}
-
-            {content.rules.length > 0 && (
-              <Section title={pt ? 'Regras desta página' : 'Rules on this page'}>
-                {content.rules.map((r, i) => (
-                  <div key={i} className="rounded-xl border p-3.5" style={{ borderColor: 'var(--theme-border)' }}>
-                    <p className="text-[14.5px] font-semibold">{r.title}</p>
-                    <p className="mt-1 text-[14px] leading-relaxed" style={muted}>{r.explanation}</p>
-                    {r.examples.length > 0 && <ul className="mt-2 space-y-1">{r.examples.map((e, j) => <li key={j} className="text-[14px] font-serif italic pl-3 border-l-2" style={{ borderColor: 'var(--theme-text)' }}>{e}</li>)}</ul>}
-                  </div>
-                ))}
-              </Section>
-            )}
-            {content.tenses.length > 0 && (
-              <Section title={pt ? 'Passado, presente e futuro' : 'Past, present and future'}>
-                {content.tenses.map((t, i) => (
-                  <div key={i} className="text-[14px]"><p className="font-serif italic">{t.sentence}</p><p className="mt-0.5"><span className="inline-flex h-5 px-2 rounded-full text-[11.5px] font-semibold items-center mr-2" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>{t.tense}</span><span style={muted}>{t.why}</span></p></div>
-                ))}
-              </Section>
-            )}
-            {content.questions_negatives.length > 0 && (
-              <Section title={pt ? 'Perguntas e negativas' : 'Questions and negatives'}>
-                {content.questions_negatives.map((q, i) => <div key={i} className="text-[14px]"><p className="font-serif italic">{q.sentence}</p><p className="mt-0.5" style={muted}>{q.why}</p></div>)}
-              </Section>
-            )}
-            {content.phrasal.length > 0 && (
-              <Section title={pt ? 'Palavras que mudam quando juntas' : 'Words that change when together'}>
-                {content.phrasal.map((p, i) => (
-                  <div key={i} className="text-[14px]"><p className="font-semibold">{p.phrase}</p><p style={muted}>{pt ? 'Junto' : 'Together'}: {p.together}{p.apart ? ` · ${pt ? 'Separado' : 'Apart'}: ${p.apart}` : ''}</p></div>
-                ))}
-              </Section>
-            )}
-          </div>
-        )}
-
-        <div className="pt-1"><HideHelp pt={pt} onDone={() => onOpenChange(false)} /></div>
-      </DialogContent>
-    </Dialog>
   )
 }
 
@@ -324,7 +208,7 @@ export function PageQuizDialog({ open, onOpenChange, book }: { open: boolean; on
             </div>
             <p className="mt-3 font-display text-[30px] leading-tight tabular-nums">{correct} / {total}</p>
             <p className="mt-1 text-[14px]" style={muted}>
-              {stars === 3 ? (pt ? 'Perfeito. Você dominou esta página.' : 'Perfect. You nailed this page.') : stars >= 1 ? (pt ? 'Bom trabalho. Reler a explicação da página ajuda a fixar.' : 'Good job. Re-reading the page explanation helps it stick.') : (pt ? 'Tudo bem: errar faz parte. Abra "Decifrar" e tente de novo.' : 'That’s fine: mistakes are part of it. Open "Decode" and try again.')}
+              {stars === 3 ? (pt ? 'Perfeito. Você dominou esta página.' : 'Perfect. You nailed this page.') : stars >= 1 ? (pt ? 'Bom trabalho. Reler a explicação da página ajuda a fixar.' : 'Good job. Re-reading the page explanation helps it stick.') : (pt ? 'Tudo bem: errar faz parte. Abra "Estudar" e tente de novo.' : 'That’s fine: mistakes are part of it. Open "Study" and try again.')}
             </p>
             <p className="mt-2 text-[13px]" style={muted}>{gained > 0 ? `+${gained} ${pt ? 'pontos' : 'points'}` : (pt ? 'Pontos já contados para este desafio.' : 'Points already counted for this challenge.')}{best >= 3 ? ` · ${pt ? 'melhor sequência' : 'best streak'}: ${best}` : ''}</p>
             <div className="mt-5 flex justify-center gap-2">

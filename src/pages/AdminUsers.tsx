@@ -13,11 +13,39 @@ import { SURVEY } from '@/lib/survey'
 type Row = {
   id: string; email: string; name: string | null; created_at: string; last_sign_in_at: string | null; confirmed: boolean
   blocked: boolean; flagged: boolean; birth_date: string | null; step: string | null; is_admin: boolean; plan: string
+  ai_plan?: string | null; plan_until?: string | null
   credits: number | null; survey: Record<string, string | string[]> | null
 }
 const FILTERS: [string, string][] = [['all', 'Todos'], ['free', 'Grátis'], ['essencial', 'Essencial'], ['plus', 'Plus'], ['pro', 'Pro'], ['blocked', 'Bloqueados'], ['unconfirmed', 'Sem e-mail confirmado']]
 const muted = { color: 'var(--theme-text-secondary)' }
 const field = 'w-full h-10 rounded-lg border px-3 text-[14px] bg-transparent outline-none'
+const PLAN_NAME: Record<string, string> = { free: 'Grátis', essencial: 'Essencial', plus: 'Plus', pro: 'Pro' }
+const NO_EXPIRY_YEAR = 2099
+
+type Grant = { plan: string; aiPlan: string; days: string; forever: boolean }
+/** Plano dado pelo admin: acesso (livros, biblioteca) e IA (créditos e recursos de IA) separados, com ou sem expiração. */
+function GrantFields({ g, onChange, allowFree }: { g: Grant; onChange: (g: Grant) => void; allowFree?: boolean }) {
+  const sel = { borderColor: 'var(--theme-border)' }
+  return (
+    <div className="grid grid-cols-2 gap-2 text-[13px]">
+      <label className="space-y-1"><span style={muted}>Plano (acesso)</span>
+        <select value={g.plan} onChange={e => onChange({ ...g, plan: e.target.value })} className={field} style={sel}>
+          {allowFree && <option value="">Grátis</option>}
+          <option value="essencial">Essencial</option><option value="plus">Plus</option><option value="pro">Pro</option>
+        </select></label>
+      <label className="space-y-1"><span style={muted}>IA usa o plano</span>
+        <select value={g.aiPlan} onChange={e => onChange({ ...g, aiPlan: e.target.value })} disabled={allowFree && !g.plan} className={field} style={sel}>
+          <option value="">Igual ao plano</option><option value="free">Grátis</option><option value="essencial">Essencial</option><option value="plus">Plus</option><option value="pro">Pro</option>
+        </select></label>
+      {(!allowFree || g.plan) && <>
+        <label className="space-y-1"><span style={muted}>Dias</span>
+          <input value={g.forever ? '' : g.days} disabled={g.forever} placeholder={g.forever ? 'Sem expiração' : '30'} onChange={e => onChange({ ...g, days: e.target.value.replace(/\D/g, '') })} className={field} style={sel} /></label>
+        <label className="flex items-center gap-2 self-end h-10"><input type="checkbox" checked={g.forever} onChange={e => onChange({ ...g, forever: e.target.checked })} className="w-4 h-4 accent-[var(--theme-text)]" />Sem expiração</label>
+      </>}
+      <p className="col-span-2 text-[12px] leading-snug" style={muted}>O plano libera livros, biblioteca e importações. A IA (créditos do mês, ilustrações, tutora e cenas) segue o plano escolhido em "IA usa o plano".</p>
+    </div>
+  )
+}
 const date = (iso: string | null) => iso ? new Date(iso).toLocaleDateString('pt-BR') : '—'
 const age = (b: string | null) => b ? Math.floor((Date.now() - new Date(`${b}T12:00:00`).getTime()) / (365.25 * 86400_000)) : null
 
@@ -75,7 +103,7 @@ export function AdminUsers() {
             {rows.map(r => (
               <tr key={r.id} onClick={() => setOpen(r)} className="border-t cursor-pointer hover:bg-[var(--ui-hover)]" style={{ borderColor: 'var(--theme-border)' }}>
                 <td className="px-3 py-2.5"><span className="block font-medium truncate max-w-[260px]">{r.name || r.email}</span><span className="block text-[12px] truncate max-w-[260px]" style={muted}>{r.name ? r.email : ''}</span></td>
-                <td className="px-3 py-2.5 capitalize">{r.plan}</td>
+                <td className="px-3 py-2.5">{PLAN_NAME[r.plan] ?? r.plan}{r.ai_plan && r.ai_plan !== r.plan && <span className="block text-[12px]" style={muted}>IA {PLAN_NAME[r.ai_plan] ?? r.ai_plan}</span>}</td>
                 <td className="px-3 py-2.5 tabular-nums">{r.is_admin ? '∞' : r.credits ?? '—'}</td>
                 <td className="px-3 py-2.5 tabular-nums">{date(r.created_at)}</td>
                 <td className="px-3 py-2.5 tabular-nums">{date(r.last_sign_in_at)}</td>
@@ -108,8 +136,7 @@ function Badge({ children, danger }: { children: React.ReactNode; danger?: boole
 
 function UserDialog({ row, onClose, onChanged }: { row: Row; onClose: () => void; onChanged: () => void }) {
   const [credits, setCredits] = useState('50')
-  const [plan, setPlan] = useState('essencial')
-  const [days, setDays] = useState('30')
+  const [grant, setGrant] = useState<Grant>({ plan: 'essencial', aiPlan: '', days: '30', forever: false })
   const [busy, setBusy] = useState(false)
   const [link, setLink] = useState('')
 
@@ -125,18 +152,18 @@ function UserDialog({ row, onClose, onChanged }: { row: Row; onClose: () => void
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{row.name || row.email}</DialogTitle>
-          <DialogDescription>{row.email} · plano {row.plan} · {age(row.birth_date) ?? '?'} anos · cadastro {date(row.created_at)}</DialogDescription>
+          <DialogDescription>{row.email} · plano {PLAN_NAME[row.plan] ?? row.plan}{row.ai_plan && row.ai_plan !== row.plan ? ` (IA ${PLAN_NAME[row.ai_plan] ?? row.ai_plan})` : ''}{row.plan_until ? ` até ${new Date(row.plan_until).getFullYear() >= NO_EXPIRY_YEAR ? 'sem expiração' : date(row.plan_until)}` : ''} · {age(row.birth_date) ?? '?'} anos · cadastro {date(row.created_at)}</DialogDescription>
         </DialogHeader>
         <div className="space-y-5 text-[14px]">
           <section className="grid grid-cols-[1fr_auto] gap-2 items-center">
             <p>Dar créditos bônus</p>
             <span className="flex gap-2"><input value={credits} onChange={e => setCredits(e.target.value)} className={`${field} w-20`} style={{ borderColor: 'var(--theme-border)' }} /><button type="button" disabled={busy} onClick={() => run(() => rpc('admin_grant', { p_email: row.email, p_credits: Number(credits), p_reason: 'admin' }), 'Créditos concedidos')} className="h-10 px-3 rounded-lg border" style={{ borderColor: 'var(--theme-border)' }}>Dar</button></span>
+          </section>
+          <section className="space-y-2">
             <p>Plano de cortesia</p>
-            <span className="flex gap-2">
-              <select value={plan} onChange={e => setPlan(e.target.value)} className={`${field} w-28`} style={{ borderColor: 'var(--theme-border)' }}><option value="essencial">Essencial</option><option value="plus">Plus</option><option value="pro">Pro</option></select>
-              <input value={days} onChange={e => setDays(e.target.value)} className={`${field} w-16`} style={{ borderColor: 'var(--theme-border)' }} aria-label="dias" />
-              <button type="button" disabled={busy} onClick={() => run(() => rpc('admin_set_plan', { p_email: row.email, p_plan: plan, p_days: Number(days) }), 'Plano aplicado')} className="h-10 px-3 rounded-lg border" style={{ borderColor: 'var(--theme-border)' }}>Aplicar</button>
-            </span>
+            <GrantFields g={grant} onChange={setGrant} />
+            <button type="button" disabled={busy || (!grant.forever && !Number(grant.days))} onClick={() => run(() => rpc('admin_set_plan', { p_email: row.email, p_plan: grant.plan, p_days: grant.forever ? 0 : Number(grant.days), p_ai_plan: grant.aiPlan || null }), 'Plano aplicado')}
+              className="h-10 px-4 rounded-lg border" style={{ borderColor: 'var(--theme-border)' }}>Aplicar plano</button>
           </section>
 
           <section className="flex flex-wrap gap-2">
@@ -172,13 +199,14 @@ function Act({ children, onClick, busy, danger }: { children: React.ReactNode; o
 }
 
 function CreateDialog({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
-  const [f, setF] = useState({ email: '', name: '', password: '', plan: '', days: '30' })
+  const [f, setF] = useState({ email: '', name: '', password: '' })
+  const [grant, setGrant] = useState<Grant>({ plan: '', aiPlan: '', days: '30', forever: false })
   const [busy, setBusy] = useState(false)
   const [link, setLink] = useState('')
   const save = async () => {
     setBusy(true)
     try {
-      const r = await callFn<{ recovery_link: string | null; password_set: boolean }>('admin-users', { action: 'create', email: f.email, name: f.name, password: f.password || undefined, plan: f.plan || undefined, days: Number(f.days) }, { paywall: false })
+      const r = await callFn<{ recovery_link: string | null; password_set: boolean }>('admin-users', { action: 'create', email: f.email, name: f.name, password: f.password || undefined, plan: grant.plan || undefined, days: grant.forever ? 0 : Number(grant.days || 30), aiPlan: grant.plan ? grant.aiPlan || undefined : undefined }, { paywall: false })
       toast('Usuário criado')
       if (!r.password_set && r.recovery_link) setLink(r.recovery_link); else onCreated()
     } catch (e) { toast(`Erro: ${(e as { code?: string }).code ?? 'falhou'}`, { tone: 'error' }) } finally { setBusy(false) }
@@ -197,11 +225,8 @@ function CreateDialog({ onClose, onCreated }: { onClose: () => void; onCreated: 
           <div className="space-y-3">
             <input value={f.email} onChange={e => setF({ ...f, email: e.target.value })} placeholder="E-mail" className={field} style={{ borderColor: 'var(--theme-border)' }} />
             <input value={f.name} onChange={e => setF({ ...f, name: e.target.value })} placeholder="Nome (opcional)" className={field} style={{ borderColor: 'var(--theme-border)' }} />
-            <input value={f.password} onChange={e => setF({ ...f, password: e.target.value })} placeholder="Senha (opcional, mín. 8) — sem senha, gera um link" className={field} style={{ borderColor: 'var(--theme-border)' }} />
-            <div className="flex gap-2">
-              <select value={f.plan} onChange={e => setF({ ...f, plan: e.target.value })} className={field} style={{ borderColor: 'var(--theme-border)' }}><option value="">Plano Grátis</option><option value="essencial">Cortesia Essencial</option><option value="plus">Cortesia Plus</option><option value="pro">Cortesia Pro</option></select>
-              {f.plan && <input value={f.days} onChange={e => setF({ ...f, days: e.target.value })} className={`${field} w-24`} style={{ borderColor: 'var(--theme-border)' }} aria-label="dias" />}
-            </div>
+            <input value={f.password} onChange={e => setF({ ...f, password: e.target.value })} placeholder="Senha (opcional, mín. 8). Sem senha, gera um link" className={field} style={{ borderColor: 'var(--theme-border)' }} />
+            <GrantFields g={grant} onChange={setGrant} allowFree />
             <button type="button" disabled={busy || !f.email} onClick={save} className="h-11 w-full rounded-xl text-[14.5px] font-medium disabled:opacity-50" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>{busy ? 'Criando…' : 'Criar usuário'}</button>
           </div>
         )}

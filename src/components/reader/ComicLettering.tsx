@@ -487,7 +487,7 @@ export function ComicLettering({ layout, width, height, wordsHtml, sourceText, e
             className={`comic-speaker-chip ${current ? 'is-current' : ''} ${active ? 'is-speaking' : ''}`}
             style={{ height: chipH, fontSize: chipH * 0.42, fontFamily: theme.font, ['--chip-bg' as string]: theme.caption.border, ['--chip-fg' as string]: theme.caption.top,
               ['--chip-hl' as string]: theme.highlight.bg, ['--chip-hl-fg' as string]: theme.highlight.text ?? '#1d1a16', ['--chip-ring' as string]: theme.caption.border }}
-            title={`${name}: ${first.text} — clique para ouvir, arraste para mover`} aria-label={`${name}: ${first.text}`}
+            title={`${name}: ${first.text}. Clique para ouvir, arraste para mover`} aria-label={`${name}: ${first.text}`}
             onPointerDown={e => {
               e.stopPropagation()
               e.currentTarget.setPointerCapture(e.pointerId)

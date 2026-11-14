@@ -1,4 +1,4 @@
-// "Decifrar a página" (gramática da página) e "Desafio" (quiz). O texto da página vem SEMPRE do banco,
+// "Estudar a página" (lição completa da página, como num livro de inglês) e "Desafio" (quiz). O texto da página vem SEMPRE do banco,
 // nunca do aparelho. A gramática de livros da galeria é compartilhada: gerada uma vez, reaproveitada por todos.
 import { adminClient, corsHeaders, getUser, json, log, sha256Hex } from '../_shared/tts.ts'
 import { AiError, llmJson, pickProvider } from '../_shared/ai.ts'
@@ -7,7 +7,8 @@ import { entitlements, metered } from '../_shared/billing.ts'
 type Body = { action?: string; bookId?: string; page?: number; lang?: string; level?: string; tier?: number; correct?: number; total?: number }
 class GrammarError extends Error { constructor(public code: string, public status = 400) { super(code) } }
 
-const clean = (v: unknown, max: number) => String(v ?? '').replace(/\s+/g, ' ').trim().slice(0, max)
+// Sem travessão nos textos do app: " — " vira vírgula.
+const clean = (v: unknown, max: number) => String(v ?? '').replace(/\s+[—–]\s+/g, ', ').replace(/\s+/g, ' ').trim().slice(0, max)
 const arr = <T,>(v: unknown, n: number): T[] => (Array.isArray(v) ? (v as T[]).slice(0, n) : [])
 
 type Ctx = { userId: string; bookId: string; page: number; lang: 'pt' | 'en'; text: string; hash: string; catalogId: string | null; title: string; prevText: string }
@@ -37,30 +38,78 @@ async function loadContext(userId: string, b: Body): Promise<Ctx> {
 
 async function findGrammar(c: Ctx) {
   const db = adminClient()
-  const q = db.from('page_grammar').select('content, created_by, created_at').eq('page', c.page).eq('text_hash', c.hash).eq('lang', c.lang)
+  const q = db.from('page_grammar').select('id, content, created_by, created_at').eq('page', c.page).eq('text_hash', c.hash).eq('lang', c.lang)
   const { data } = c.catalogId
     ? await q.eq('catalog_id', c.catalogId).maybeSingle()
     : await q.eq('owner_id', c.userId).eq('book_id', c.bookId).maybeSingle()
-  return data as { content: Record<string, unknown>; created_by: string | null; created_at: string } | null
+  const row = data as { id: string; content: Record<string, unknown>; created_by: string | null; created_at: string } | null
+  // Versão antiga (antes da lição completa): tratada como inexistente e regerada.
+  if (row && row.content?.v !== LESSON_VERSION) { await db.from('page_grammar').delete().eq('id', row.id); return null }
+  return row
 }
+
+const LESSON_VERSION = 2
 
 function grammarPrompt(c: Ctx, level: string) {
   const out = c.lang === 'pt' ? 'Brazilian Portuguese' : 'simple English'
-  return `You are an expert English teacher helping a ${c.lang === 'pt' ? 'Brazilian' : ''} learner (level ${level}) understand the grammar of ONE page of the book "${c.title}" BEFORE reading it.
-Explain only what actually appears in the text below. Be concrete, short and friendly. Write all explanations in ${out}; keep English examples in English, quoting exact words from the page.
+  const basic = level === 'A1' || level === 'A2'
+  return `You are an excellent English teacher writing ONE lesson of an English course book for a ${c.lang === 'pt' ? 'Brazilian ' : ''}learner (level ${level}).
+The lesson teaches the English of ONE page of the book "${c.title}", so the learner understands it deeply before and while reading.
+Write like a good textbook: clear, warm, progressive, concrete. ${basic ? 'The learner is a beginner: explain step by step, avoid jargon, always translate examples.' : 'Go deeper: nuance, register, contrasts between close forms.'}
+All explanations in ${out}. English examples stay in English. Never use em dashes or en dashes (use commas, colons or periods) and no emojis. "from_page" examples must quote the page EXACTLY. "other" examples are NEW everyday situations (work, travel, home, friends) using the same structure.
 
 PAGE TEXT:
 """
 ${c.text}
 """
+${c.prevText ? `PREVIOUS PAGE (context only):\n"""\n${c.prevText.slice(0, 900)}\n"""` : ''}
 
 Return JSON only:
-{"summary": "1-2 sentences: what this page trains and what to watch for",
- "rules": [{"title": "rule name (e.g. Adjective before the noun)", "explanation": "2-3 short sentences", "examples": ["exact short quotes from the page"]}] (3 to 6 rules, most important first; always include how "to be" is used if it appears; adjective/noun order, plurals, articles, word order, prepositions when present),
- "tenses": [{"sentence": "exact sentence or clause from the page", "tense": "Past simple | Present simple | Present continuous | Future (will / going to) | Present perfect | Imperative | ...", "why": "short reason"}] (up to 8, covering past/present/future found on the page),
- "questions_negatives": [{"sentence": "exact sentence from the page", "why": "why 'do/does/did/don't/not' or inversion is used here"}] (up to 5; empty if none),
- "phrasal": [{"phrase": "multi-word expression found on the page (phrasal verb, idiom, compound)", "together": "meaning together", "apart": "meaning of the words separately, if different"}] (up to 6; empty if none),
+{"title": "lesson title (short, catchy, in ${c.lang === 'pt' ? 'Portuguese' : 'English'})",
+ "summary": "2-3 sentences: what happens on the page and what English it trains",
+ "goals": ["3-4 short items: what the learner will be able to do after this lesson"],
+ "vocabulary": [{"word": "key word or expression from the page", "meaning": "meaning in context", "example": "exact short quote from the page", "note": "optional: false friend, register, plural, pronunciation hint"}] (6 to 10, most useful first),
+ "units": [{"title": "grammar point (e.g. Adjective before the noun; Past simple of 'to be')",
+   "explanation": "3-5 sentences, teaching it from scratch at this level",
+   "formula": "pattern like 'Subject + was/were + adjective' (or empty)",
+   "from_page": [{"en": "exact quote", "pt": "translation"}] (1-3),
+   "other": [{"en": "new example", "pt": "translation"}] (2-3),
+   "mistake": {"wrong": "typical mistake of Brazilian learners", "right": "correct version", "why": "short reason"},
+   "practice": {"prompt": "one short exercise (fill the gap / translate / transform)", "answer": "answer"}}] (3 to 6 units, most important first; always cover 'to be' if present, adjective/noun order, articles, plurals, word order, prepositions, auxiliary do/does/did when present),
+ "tenses": [{"sentence": "exact clause from the page", "tense": "Past simple | Present simple | Present continuous | Past continuous | Future (will / going to) | Present perfect | Past perfect | Imperative | Modal ...", "time": "past | present | future", "why": "short reason"}] (up to 8),
+ "questions_negatives": [{"sentence": "exact sentence from the page", "why": "why do/does/did/don't/not or inversion is used", "build": "how to build it step by step (short)"}] (up to 5; empty if none),
+ "phrasal": [{"phrase": "phrasal verb, idiom or compound found on the page", "together": "meaning together", "apart": "meaning of the parts, if different", "example": "new example sentence"}] (up to 6; empty if none),
+ "pronunciation": [{"word": "word from the page", "tip": "how to say it (simple phonetic hint for Brazilians)"}] (2 to 4),
+ "recap": ["3 short bullets to remember"],
  "tip": "one practical tip to read this page more fluently"}`
+}
+
+type Pair = { en?: string; pt?: string }
+function lessonFrom(raw: Record<string, unknown>) {
+  const pairs = (v: unknown, n: number) => arr<Pair>(v, n).map(e => ({ en: clean(e?.en, 200), pt: clean(e?.pt, 200) })).filter(e => e.en)
+  return {
+    v: LESSON_VERSION,
+    title: clean(raw.title, 90),
+    summary: clean(raw.summary, 500),
+    goals: arr<string>(raw.goals, 4).map(g => clean(g, 140)).filter(Boolean),
+    vocabulary: arr<Record<string, unknown>>(raw.vocabulary, 10).map(v => ({ word: clean(v.word, 50), meaning: clean(v.meaning, 140), example: clean(v.example, 180), note: clean(v.note, 160) })).filter(v => v.word),
+    units: arr<Record<string, unknown>>(raw.units, 6).map(u => {
+      const m = (u.mistake ?? {}) as Record<string, unknown>
+      const pr = (u.practice ?? {}) as Record<string, unknown>
+      return {
+        title: clean(u.title, 100), explanation: clean(u.explanation, 900), formula: clean(u.formula, 120),
+        from_page: pairs(u.from_page, 3), other: pairs(u.other, 3),
+        mistake: m.wrong ? { wrong: clean(m.wrong, 160), right: clean(m.right, 160), why: clean(m.why, 240) } : null,
+        practice: pr.prompt ? { prompt: clean(pr.prompt, 240), answer: clean(pr.answer, 200) } : null,
+      }
+    }).filter(u => u.title),
+    tenses: arr<Record<string, unknown>>(raw.tenses, 8).map(t => ({ sentence: clean(t.sentence, 200), tense: clean(t.tense, 60), time: ['past', 'present', 'future'].includes(String(t.time)) ? String(t.time) : 'present', why: clean(t.why, 240) })),
+    questions_negatives: arr<Record<string, unknown>>(raw.questions_negatives, 5).map(t => ({ sentence: clean(t.sentence, 200), why: clean(t.why, 240), build: clean(t.build, 240) })),
+    phrasal: arr<Record<string, unknown>>(raw.phrasal, 6).map(t => ({ phrase: clean(t.phrase, 60), together: clean(t.together, 160), apart: clean(t.apart, 160), example: clean(t.example, 180) })),
+    pronunciation: arr<Record<string, unknown>>(raw.pronunciation, 4).map(t => ({ word: clean(t.word, 40), tip: clean(t.tip, 200) })).filter(t => t.word),
+    recap: arr<string>(raw.recap, 4).map(r => clean(r, 200)).filter(Boolean),
+    tip: clean(raw.tip, 300),
+  }
 }
 
 type QuizQuestion = { type: 'choice' | 'order'; prompt: string; options?: string[]; answer: number | string; words?: string[]; explain: string }
@@ -73,7 +122,7 @@ function quizPrompt(c: Ctx, tier: number, level: string, grammar: Record<string,
       : 'HARD: reorder words into a correct sentence, fix tense or word-order mistakes, choose between close forms (past simple vs present perfect), use the learner’s words in new sentences.'
   return `Create a gamified quiz of 6 questions in English for a learner (level ${level}) based on ONE book page, to practise its grammar and vocabulary. Difficulty tier ${tier}/3 — ${guide}
 Use sentences adapted from the page or the previous page, plus the learner's words when natural: ${words.length ? words.join(', ') : '(none yet)'}.
-${grammar ? `Grammar of this page (focus on these rules): ${JSON.stringify({ rules: arr<{ title?: string }>(grammar.rules, 6).map(r => r.title) })}` : ''}
+${grammar ? `Grammar of this page (focus on these rules): ${JSON.stringify({ rules: arr<{ title?: string }>(grammar.units ?? grammar.rules, 6).map(r => r.title) })}` : ''}
 
 PAGE TEXT:
 """
@@ -105,14 +154,8 @@ async function handle(userId: string, b: Body) {
         const { provider, key } = await pickProvider(userId, ['openai', 'gemini'])
         return await llmJson<Record<string, unknown>>(provider, key, { prompt: grammarPrompt(c, level) })
       }, { plan: ent.plan, ref: `${c.bookId}:${c.page}` })
-      const content = {
-        summary: clean(raw.summary, 400),
-        rules: arr<{ title?: string; explanation?: string; examples?: string[] }>(raw.rules, 6).map(r => ({ title: clean(r.title, 100), explanation: clean(r.explanation, 500), examples: arr<string>(r.examples, 3).map(e => clean(e, 160)) })),
-        tenses: arr<{ sentence?: string; tense?: string; why?: string }>(raw.tenses, 8).map(t => ({ sentence: clean(t.sentence, 200), tense: clean(t.tense, 60), why: clean(t.why, 240) })),
-        questions_negatives: arr<{ sentence?: string; why?: string }>(raw.questions_negatives, 5).map(t => ({ sentence: clean(t.sentence, 200), why: clean(t.why, 240) })),
-        phrasal: arr<{ phrase?: string; together?: string; apart?: string }>(raw.phrasal, 6).map(t => ({ phrase: clean(t.phrase, 60), together: clean(t.together, 160), apart: clean(t.apart, 160) })),
-        tip: clean(raw.tip, 300),
-      }
+      const content = lessonFrom(raw)
+      if (content.units.length < 2) throw new AiError('lesson_invalid', 502, 'lesson_invalid')
       const row = c.catalogId
         ? { catalog_id: c.catalogId, page: c.page, text_hash: c.hash, lang: c.lang, content, created_by: userId }
         : { owner_id: userId, book_id: c.bookId, page: c.page, text_hash: c.hash, lang: c.lang, content, created_by: userId }

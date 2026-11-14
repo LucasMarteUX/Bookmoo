@@ -2,7 +2,7 @@
 // confirmar e-mail e encerrar sessões. Só quem está em admin_users pode chamar.
 import { adminClient, corsHeaders, getUser, json, log } from '../_shared/tts.ts'
 
-type Body = { action?: string; email?: string; password?: string; name?: string; userId?: string; plan?: string; days?: number; confirm?: boolean }
+type Body = { action?: string; email?: string; password?: string; name?: string; userId?: string; plan?: string; days?: number; aiPlan?: string; confirm?: boolean }
 
 class AdminError extends Error { constructor(public code: string, public status = 400) { super(code) } }
 
@@ -23,12 +23,15 @@ async function handle(callerId: string, b: Body) {
       // Conta criada pelo admin já cumpriu cadastro e questionário: cai na tela de planos.
       await db.from('user_accounts').upsert({ user_id: data.user.id, onboarding_step: 'plans', terms_accepted_at: new Date().toISOString() })
       if (b.plan && ['essencial', 'plus', 'pro'].includes(b.plan)) {
-        const days = Math.max(1, Math.min(Number(b.days ?? 30), 366))
+        // days <= 0: sem expiração. aiPlan: plano cujos créditos e recursos de IA valem (pode ser menor que o de acesso).
+        const days = Number(b.days ?? 30)
+        const end = days <= 0 ? '2099-12-31T23:59:59Z' : new Date(Date.now() + Math.min(days, 3660) * 86400_000).toISOString()
+        const aiPlan = b.aiPlan && ['free', 'essencial', 'plus', 'pro'].includes(b.aiPlan) && b.aiPlan !== b.plan ? b.aiPlan : null
         const { data: plan } = await db.from('plans').select('id').eq('id', b.plan).maybeSingle()
         if (plan) {
           await db.from('subscriptions').insert({
-            user_id: data.user.id, plan_id: b.plan, status: 'active', price_cents: 0, provider: 'admin',
-            current_period_start: new Date().toISOString(), current_period_end: new Date(Date.now() + days * 86400_000).toISOString(),
+            user_id: data.user.id, plan_id: b.plan, ai_plan_id: aiPlan, status: 'active', price_cents: 0, provider: 'admin',
+            current_period_start: new Date().toISOString(), current_period_end: end,
           })
         }
       }

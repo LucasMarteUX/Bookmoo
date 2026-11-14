@@ -1,6 +1,7 @@
 // Estatísticas das práticas (Falar e Escrever/ditado): filtros por atividade e livro, notas por
 // página, evolução e as palavras que o aluno mais erra (com envio para a revisão do vocabulário).
 import { FilterSelect } from '@/components/ui/filter-controls'
+import { AnimatedValue, GrowBar } from '@/components/ui/animated'
 import { useEffect, useMemo, useState } from 'react'
 import { Check, Keyboard, Mic, Plus, Star, Volume2 } from 'lucide-react'
 import { usePracticeStore, type PracticeKind } from '@/store/usePracticeStore'
@@ -123,10 +124,10 @@ export function PracticeStats({ pt, fixedKind }: { pt: boolean; fixedKind?: Prac
               [pt ? 'Média' : 'Average', `${avg}%`, scoreColor(avg)],
               [pt ? 'Melhor nota' : 'Best score', `${best}%`, scoreColor(best)],
               [pt ? 'Estrelas' : 'Stars', `★ ${stars}`, 'var(--pastel-amber-fg)'],
-            ].map(([k, v, c]) => (
+            ].map(([k, v, c], i) => (
               <div key={k} className="rounded-2xl border p-4" style={card}>
                 <div className="text-sm" style={{ color: 'var(--theme-nav-text-muted)' }}>{k}</div>
-                <div className="text-2xl font-bold tabular-nums" style={{ color: c }}>{v}</div>
+                <div className="text-2xl font-bold tabular-nums" style={{ color: c }}><AnimatedValue value={v} delay={i * 80} /></div>
               </div>
             ))}
           </div>
@@ -142,11 +143,11 @@ export function PracticeStats({ pt, fixedKind }: { pt: boolean; fixedKind?: Prac
                 </div>
               ))}
               <div className="absolute inset-0 left-8 flex items-end gap-2 overflow-x-auto">
-                {recent.map(s => (
+                {recent.map((s, ri) => (
                   <div key={s.id} className="flex flex-col items-center justify-end h-full shrink-0 w-7"
                     title={`${s.bookTitle} · ${pt ? 'pág.' : 'p.'} ${s.page + 1} · ${s.accuracy}%`}>
                     <span className="text-[11.5px] font-semibold tabular-nums mb-0.5" style={{ color: scoreColor(s.accuracy) }}>{s.accuracy}</span>
-                    <div className="w-full rounded-t-md" style={{ height: `calc(${Math.max(3, s.accuracy)}% * 0.78)`, backgroundColor: scoreColor(s.accuracy), opacity: s.kind === 'speak' ? 1 : 0.75 }} />
+                    <GrowBar axis="y" className="w-full rounded-t-md" size={Math.max(3, s.accuracy) * 0.78} delay={0.1 + ri * 0.04} style={{ backgroundColor: scoreColor(s.accuracy), opacity: s.kind === 'speak' ? 1 : 0.75 }} />
                     <span className="h-[22px] pt-1 text-[11.5px] tabular-nums" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? 'p.' : 'p.'}{s.page + 1}</span>
                   </div>
                 ))}

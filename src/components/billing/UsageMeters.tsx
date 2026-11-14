@@ -36,7 +36,7 @@ const OP_LABEL: Record<string, [string, string]> = {
   'comic-page': ['Página ilustrada', 'Illustrated page'], 'comic-replan': ['Página redesenhada', 'Redrawn page'], 'comic-panel': ['Quadro editado', 'Edited panel'],
   explain: ['Explicação', 'Explanation'], 'variant-story': ['História', 'Story'], 'vocab-explain': ['Explicação de palavra', 'Word explanation'],
   'vocab-story': ['História da palavra', 'Word story'], 'vocab-image': ['Imagem do mosaico', 'Mosaic image'], 'style-extract': ['Estilo próprio', 'Own style'],
-  'detect-characters': ['Personagens', 'Characters'], 'transcribe-page': ['Transcrição de PDF', 'PDF transcription'], scene: ['Conversa — Cena', 'Conversation — Scene'],
+  'detect-characters': ['Personagens', 'Characters'], 'transcribe-page': ['Transcrição de PDF', 'PDF transcription'], scene: ['Cena (conversa)', 'Scene (conversation)'],
   tutor: ['Conversa livre', 'Free talk'], reader: ['Tutor de leitura', 'Reading tutor'], admin_grant: ['Bônus', 'Bonus'], upgrade_proration: ['Bônus do upgrade', 'Upgrade bonus'],
 }
 
@@ -77,8 +77,17 @@ export function CreditsDialog({ open, onOpenChange }: { open: boolean; onOpenCha
               </p>
             </div>
           )}
+          {!ent.is_admin && (ent.limits.pages != null || ent.limits.mosaic != null) && (
+            <div>
+              <p className="text-[13px] font-semibold">{pt ? 'Limites do seu plano neste mês' : 'Your plan limits this month'}</p>
+              <ul className="mt-2 divide-y rounded-xl border text-[13.5px]" style={{ borderColor: 'var(--theme-border)' }}>
+                {ent.limits.pages != null && <li className="flex justify-between px-3 py-2" style={{ borderColor: 'var(--theme-border)' }}><span>{pt ? 'Páginas ilustradas' : 'Illustrated pages'}</span><span className="tabular-nums">{Math.min(ent.usage.pages ?? 0, ent.limits.pages)} {pt ? 'de' : 'of'} {ent.limits.pages}</span></li>}
+                {ent.limits.mosaic != null && <li className="flex justify-between px-3 py-2" style={{ borderColor: 'var(--theme-border)' }}><span>{pt ? 'Imagens do mosaico' : 'Mosaic images'}</span><span className="tabular-nums">{Math.min(ent.usage.mosaic ?? 0, ent.limits.mosaic)} {pt ? 'de' : 'of'} {ent.limits.mosaic}</span></li>}
+              </ul>
+            </div>
+          )}
           <div>
-            <p className="text-[13px] font-semibold">{pt ? 'Quanto cada coisa usa' : 'What each thing costs'}</p>
+            <p className="text-[13px] font-semibold flex justify-between"><span>{pt ? 'Quanto cada coisa usa' : 'What each thing costs'}</span><span className="font-normal" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? 'créditos' : 'credits'}</span></p>
             <ul className="mt-2 divide-y rounded-xl border text-[13.5px]" style={{ borderColor: 'var(--theme-border)' }}>
               {COST_TABLE.map(r => (
                 <li key={r.pt} className="flex justify-between px-3 py-2" style={{ borderColor: 'var(--theme-border)' }}>

@@ -1,7 +1,7 @@
 import type { KokoroVoice } from '@/lib/kokoro/voices'
 
 // Avatar minimalista da voz: círculo pastel com a inicial (rosa = feminina, azul = masculina) e o selo do sotaque.
-export function VoiceAvatar({ voice, size = 56 }: { voice: KokoroVoice; size?: number }) {
+export function VoiceAvatar({ voice, size = 56, square }: { voice: KokoroVoice; size?: number; square?: boolean }) {
   const female = voice.gender === 'female'
   // Cores próprias do círculo: pastel claro com letra escura, no dia e na noite.
   // Não usa o pastel do tema, senão os cards de prática ficam com letra clara em fundo claro.
@@ -9,7 +9,7 @@ export function VoiceAvatar({ voice, size = 56 }: { voice: KokoroVoice; size?: n
     ? { bg: '#F8E4E1', fg: '#8A3C33', bd: '#EDCBC6' }
     : { bg: '#E4ECF7', fg: '#2F4B73', bd: '#CBD9EC' }
   return (
-    <span className="relative inline-grid shrink-0 place-items-center rounded-full font-semibold"
+    <span className={`relative inline-grid shrink-0 place-items-center font-semibold ${square ? 'rounded-[8px]' : 'rounded-full'}`}
       style={{
         width: size, height: size, fontSize: size * 0.4,
         backgroundColor: tone.bg, color: tone.fg, border: `1px solid ${tone.bd}`,

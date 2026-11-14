@@ -834,3 +834,11 @@ select:not([multiple]):not([size]) {
   text-overflow: ellipsis;
 }
 select:not([multiple]):not([size]):disabled { opacity: 0.6; }
+
+/* Barra do livro: conforme encolhe, os botões com texto viram só ícone (nada de rolagem lateral). */
+.book-headerbar { container: bookbar / inline-size; }
+@container bookbar (max-width: 1240px) { .book-headerbar [data-tool-label] { display: none !important; } }
+@container bookbar (max-width: 880px) { .book-headerbar [data-tab-label] { display: none !important; } }
+
+/* Trecho que a tutora está explicando */
+::highlight(tutor) { background-color: color-mix(in srgb, #F4D35E 55%, transparent); color: inherit; }

@@ -2,7 +2,7 @@
 // A situação (conversa livre ou uma Cena) e os ajustes ficam em painéis discretos.
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { Captions, CaptionsOff, Check, ChevronDown, History, Languages, LifeBuoy, Lock, Mic, MicOff, Plus, SlidersHorizontal, X } from 'lucide-react'
+import { Captions, CaptionsOff, Check, ChevronDown, ChevronLeft, ChevronRight, History, Languages, LifeBuoy, Lock, Mic, MicOff, Plus, RefreshCw, SlidersHorizontal, X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useLanguage } from '@/store/useLanguage'
 import { useEntitlements } from '@/store/useEntitlements'
@@ -10,7 +10,10 @@ import { useStudyLevel } from '@/hooks/useStudyLevel'
 import { conversation, type Feedback } from '@/lib/billingApi'
 import { openPaywall } from '@/components/billing/Paywall'
 import { useVoiceConversation } from '@/hooks/useVoiceConversation'
-import { TutorAvatar, avatarKindFor } from '@/components/voice/TutorAvatar'
+import { AvatarBubble, TutorAvatar, avatarKindFor, type Mood } from '@/components/voice/TutorAvatar'
+import { TUTOR_LANG_OPTIONS, useTutorLang } from '@/lib/tutorLang'
+import { greetingFor } from '@/lib/greetings'
+import { pickTopics, type TalkTopic } from '@/lib/talkTopics'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { toast } from '@/components/ui/toast'
 import { CATEGORY_LABEL, DEMO_SCENE_KEY, SCENES, type Scene, type SceneCategory } from '../../supabase/functions/_shared/scenes'
@@ -60,11 +63,17 @@ export function ConversePage() {
   const visible = SCENES.filter(s => !s.ageMin || age === null || age >= s.ageMin)
   const byCat = useMemo(() => ORDER.map(c => [c, visible.filter(s => s.category === c)] as const).filter(([, l]) => l.length), [visible.length])
 
+  // Itens bloqueados também podem ser vistos: a tela mostra o cadeado e o botão de assinar.
   const pick = (c: Choice) => {
-    if (c.kind === 'tutor' && !canFree) { openPaywall('free_talk'); return }
-    if (c.kind === 'scene' && demoOnly && c.scene.key !== DEMO_SCENE_KEY) { openPaywall('scenes'); return }
     setChoice(c)
     setPicker(false)
+  }
+  const isLocked = (c: Choice) => (c.kind === 'tutor' ? !canFree : !c.customId && demoOnly && c.scene.key !== DEMO_SCENE_KEY)
+  // Setas: tutor e todas as cenas, na ordem do catálogo.
+  const ring = useMemo<Choice[]>(() => [{ kind: 'tutor' }, ...byCat.flatMap(([, list]) => list.map(sc => ({ kind: 'scene' as const, scene: sc })))], [byCat])
+  const step = (dir: 1 | -1) => {
+    const at = ring.findIndex(c => (c.kind === 'tutor' ? choice.kind === 'tutor' : choice.kind === 'scene' && c.scene.key === choice.scene.key))
+    setChoice(ring[((at < 0 ? 0 : at) + dir + ring.length) % ring.length])
   }
 
   if (creating) return <CreateScene pt={pt} level={level.id} onDone={created => { setCreating(false); if (created) loadCustom() }} />
@@ -77,7 +86,10 @@ export function ConversePage() {
     <>
       <Session key={`${choice.kind}:${choice.kind === 'scene' ? choice.scene.key : ''}`} choice={choice} pt={pt} level={level.id} rate={rate} captions={captions} minutes={Math.min(minutes, maxMin)}
         title={title} subtitle={subtitle} onOpenPicker={() => setPicker(true)} onOpenSettings={() => setSettings(true)} onOpenHistory={() => setHistory(true)} onToggleCaptions={() => setCaptions(c => !c)}
-        onFeedback={setFeedback} />
+        onFeedback={setFeedback}
+        sceneSuggestions={visible.filter(s => choice.kind === 'scene' && s.key !== choice.scene.key)}
+        locked={isLocked(choice)} onStep={step}
+        onPickScene={sc => pick({ kind: 'scene', scene: sc })} />
 
       <Dialog open={picker} onOpenChange={setPicker}>
         <DialogContent className="sm:max-w-lg max-h-[85dvh] overflow-y-auto">
@@ -120,6 +132,7 @@ export function ConversePage() {
             <Seg label={pt ? 'Velocidade da voz' : 'Voice speed'} options={SPEEDS.map(s => ({ value: s.v, label: pt ? s.pt : s.en }))} value={rate} onChange={setRate} />
             <Seg label={pt ? 'Duração das Cenas' : 'Scene length'} options={[3, 5, 10].map(m => ({ value: m, label: `${m} min`, locked: m > maxMin }))} value={minutes}
               onChange={m => (m > maxMin ? openPaywall('scenes') : setMinutes(m))} />
+            <TutorLangPicker pt={pt} />
             <label className="flex items-center justify-between text-[14px]">
               <span>{pt ? 'Mostrar legendas' : 'Show captions'}</span>
               <input type="checkbox" checked={captions} onChange={e => setCaptions(e.target.checked)} className="w-5 h-5 accent-[var(--theme-text)]" />
@@ -150,6 +163,35 @@ function Row({ title, sub, active, locked, icon, onClick }: { title: string; sub
   )
 }
 
+function ArrowBtn({ dir, onClick, label }: { dir: 1 | -1; onClick: () => void; label: string }) {
+  return (
+    <motion.button type="button" whileTap={{ scale: 0.9 }} onClick={onClick} aria-label={label} title={label}
+      className="w-11 h-11 rounded-full border grid place-items-center transition-colors hover:bg-[var(--ui-hover)] shrink-0" style={{ borderColor: 'var(--theme-border)' }}>
+      {dir < 0 ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+    </motion.button>
+  )
+}
+
+function TutorLangPicker({ pt }: { pt: boolean }) {
+  const [mode, setMode] = useTutorLang()
+  const current = TUTOR_LANG_OPTIONS.find(o => o.id === mode) ?? TUTOR_LANG_OPTIONS[0]
+  return (
+    <div>
+      <p className="text-[13px] font-medium mb-1.5">{pt ? 'Idioma da tutora (conversa livre)' : 'Tutor language (free talk)'}</p>
+      <div className="grid grid-cols-4 gap-1 p-0.5 rounded-xl" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
+        {TUTOR_LANG_OPTIONS.map(o => (
+          <button key={o.id} type="button" onClick={() => setMode(o.id)} aria-pressed={mode === o.id}
+            className="h-9 rounded-lg text-[12.5px] font-medium transition-colors"
+            style={{ backgroundColor: mode === o.id ? 'var(--theme-card-bg)' : 'transparent', color: mode === o.id ? 'var(--theme-text)' : 'var(--theme-text-secondary)', boxShadow: mode === o.id ? '0 1px 2px rgba(0,0,0,0.12)' : undefined }}>
+            {pt ? o.pt : o.en}
+          </button>
+        ))}
+      </div>
+      <p className="mt-1.5 text-[12px]" style={muted}>{current.hint[pt ? 0 : 1]} {pt ? 'Nas Cenas o personagem fala sempre em inglês.' : 'In Scenes the character always speaks English.'}</p>
+    </div>
+  )
+}
+
 function Seg<T extends number>({ label, options, value, onChange }: { label: string; options: { value: T; label: string; locked?: boolean }[]; value: T; onChange: (v: T) => void }) {
   return (
     <div>
@@ -170,8 +212,10 @@ function Seg<T extends number>({ label, options, value, onChange }: { label: str
 // ---------------------------------------------------------------------------
 // Sessão
 // ---------------------------------------------------------------------------
-function Session({ choice, pt, level, rate, captions, minutes, title, subtitle, onOpenPicker, onOpenSettings, onOpenHistory, onToggleCaptions, onFeedback }: {
+function Session({ choice, pt, level, rate, captions, minutes, title, subtitle, onOpenPicker, onOpenSettings, onOpenHistory, onToggleCaptions, onFeedback, sceneSuggestions, onPickScene, locked, onStep }: {
   choice: Choice; pt: boolean; level: string; rate: number; captions: boolean; minutes: number; title: string; subtitle: string
+  sceneSuggestions: Scene[]; onPickScene: (s: Scene) => void
+  locked: boolean; onStep: (dir: 1 | -1) => void
   onOpenPicker: () => void; onOpenSettings: () => void; onOpenHistory: () => void; onToggleCaptions: () => void; onFeedback: (f: Feedback | null | 'loading' | 'short') => void
 }) {
   const [phase, setPhase] = useState<'ready' | 'starting' | 'live'>('ready')
@@ -184,6 +228,28 @@ function Session({ choice, pt, level, rate, captions, minutes, title, subtitle, 
   const sid = useRef<string | null>(null)
   const ended = useRef(false)
   const scene = choice.kind === 'scene' ? choice.scene : null
+  const [langMode] = useTutorLang()
+  // Sugestões abaixo do texto: assuntos (conversa livre) ou outras situações (cenas). Somem ao começar.
+  const [topics, setTopics] = useState<TalkTopic[]>(() => pickTopics(3))
+  const [topic, setTopic] = useState<TalkTopic | null>(null)
+  const [sceneSeed, setSceneSeed] = useState(0)
+  const otherScenes = useMemo(() => {
+    const pool = [...sceneSuggestions]
+    const out: Scene[] = []
+    let seed = sceneSeed * 7 + 3
+    while (out.length < 3 && pool.length) { seed = (seed * 31 + 11) % 997; out.push(...pool.splice(seed % pool.length, 1)) }
+    return out
+  }, [sceneSuggestions, sceneSeed])
+  // Reação do rosto e saudação: ao abrir, o personagem acena e fala num balão.
+  const [mood, setMood] = useState<Mood>('happy')
+  const [wave, setWave] = useState(false)
+  const [bubble, setBubble] = useState('')
+  const greet = () => {
+    setWave(true); setMood('happy')
+    setBubble(greetingFor({ pt, name: scene?.persona.name ?? 'Bea', scene: !!scene, title }))
+    window.setTimeout(() => setWave(false), 2300)
+  }
+  useEffect(() => { const t = window.setTimeout(greet, 350); return () => window.clearTimeout(t) }, [choice]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const voice = useVoiceConversation({
     continuous: true,
@@ -193,10 +259,11 @@ function Session({ choice, pt, level, rate, captions, minutes, title, subtitle, 
     fillers: scene?.fillers,
     keywords: scene?.usefulPhrases.flatMap(p => p.replace(/[…?.!,]/g, '').split(' ').filter(w => w.length > 4)),
     onTurn: async (text, filler) => {
-      const r = await conversation.turn({ sessionId: sid.current!, text, filler, level })
-      return { reply: r.reply, extra: { goalsMet: r.goalsMet, wrapUp: r.wrapUp } }
+      const r = await conversation.turn({ sessionId: sid.current!, text, filler, level, langMode: scene ? undefined : langMode })
+      return { reply: r.reply, segments: r.segments, extra: { goalsMet: r.goalsMet, wrapUp: r.wrapUp, mood: r.mood } }
     },
     onExtra: extra => {
+      if (typeof extra.mood === 'string') setMood(extra.mood as Mood)
       if (Array.isArray(extra.goalsMet)) setGoalsMet(g => [...new Set([...g, ...(extra.goalsMet as number[])])])
       if (extra.wrapUp && scene) window.setTimeout(() => void finish(), 600)
     },
@@ -205,18 +272,21 @@ function Session({ choice, pt, level, rate, captions, minutes, title, subtitle, 
   })
 
   const begin = async () => {
+    if (locked) { openPaywall(scene ? 'scenes' : 'free_talk'); return }
     setPhase('starting')
     try {
       const r = await conversation.start(scene
         ? { kind: 'scene', ...(choice.kind === 'scene' && choice.customId ? { sceneId: choice.customId } : { sceneKey: scene.key }), minutes, level }
-        : { kind: 'tutor', level })
+        : { kind: 'tutor', level, opening: topic?.opening })
       sid.current = r.sessionId
       setPlanned(r.plannedSeconds ?? 0)
       setStartedAt(Date.now())
       setGoals(r.scene?.goals ?? [])
       if (r.scene) voice.preload([...(r.scene.fillers ?? []), 'Good question…', 'Oh, I see…', 'Alright…'])
       setPhase('live')
-      await voice.start(r.opening ?? (pt ? "Hi! I'm Bea. What would you like to talk about today?" : "Hi! I'm Bea. What would you like to talk about today?"))
+      setBubble('')
+      setWave(true); window.setTimeout(() => setWave(false), 2000)
+      await voice.start(r.opening ?? topic?.opening ?? (pt ? "Hi! I'm Bea. What would you like to talk about today?" : "Hi! I'm Bea. What would you like to talk about today?"))
     } catch {
       setPhase('ready')
     }
@@ -281,7 +351,20 @@ function Session({ choice, pt, level, rate, captions, minutes, title, subtitle, 
       )}
 
       <div className="flex-1 flex flex-col items-center justify-center py-6">
-        <TutorAvatar kind={scene ? avatarKindFor(scene.persona, scene.category) : 'woman'} state={live ? voice.state : 'idle'} speakingText={voice.speakingText} rate={rate} size={190} />
+        <div className="h-[60px] flex items-end justify-center mb-2">{!live && <AvatarBubble text={bubble} side="top" />}</div>
+        <div className="flex items-center gap-3 sm:gap-6">
+          {!live && <ArrowBtn dir={-1} onClick={() => onStep(-1)} label={pt ? 'Anterior' : 'Previous'} />}
+          <div className="relative">
+            <TutorAvatar kind={scene ? avatarKindFor(scene.persona, scene.category) : 'woman'} state={live ? voice.state : 'idle'} speakingText={voice.speakingText} rate={rate} size={190}
+              mood={mood} wave={wave} onPoke={() => { if (!live) setBubble(pt ? ['Ei! Isso faz cócegas.', 'Oi de novo!', 'Pronto para conversar?', 'Haha, estou aqui!'][Math.floor(Math.random() * 4)] : ['Hey! That tickles.', 'Hi again!', 'Ready to talk?', 'Haha, I am here!'][Math.floor(Math.random() * 4)]) }} />
+            {locked && !live && (
+              <span className="absolute right-1 bottom-2 w-10 h-10 rounded-full grid place-items-center border-2" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)', borderColor: 'var(--theme-bg)' }} aria-label={pt ? 'Bloqueado no seu plano' : 'Locked on your plan'}>
+                <Lock className="w-4 h-4" />
+              </span>
+            )}
+          </div>
+          {!live && <ArrowBtn dir={1} onClick={() => onStep(1)} label={pt ? 'Próximo' : 'Next'} />}
+        </div>
         <AnimatePresence mode="wait">
           <motion.p key={status} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="mt-2 h-5 text-[13px] tracking-wide" style={muted} aria-live="polite">{status}</motion.p>
         </AnimatePresence>
@@ -290,6 +373,36 @@ function Session({ choice, pt, level, rate, captions, minutes, title, subtitle, 
             {scene ? scene.setting : (pt ? 'Converse sobre o que quiser. Ela conhece seu nível e puxa as palavras e a gramática que você mais precisa.' : 'Talk about anything. She knows your level and works on what you need most.')}
           </p>
         )}
+        <AnimatePresence>
+          {!live && (scene ? otherScenes.length > 0 : true) && (
+            <motion.div key="suggest" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6, transition: { duration: 0.15 } }} className="mt-6 w-full flex flex-col items-center">
+              <p className="text-[12.5px] font-medium" style={muted}>{scene ? (pt ? 'Ou pratique outra situação' : 'Or practise another situation') : (pt ? 'Escolha um assunto, se quiser' : 'Pick a topic, if you like')}</p>
+              <div className="mt-2.5 flex flex-wrap justify-center gap-2">
+                <AnimatePresence mode="popLayout">
+                  {scene
+                    ? otherScenes.map(sc => (
+                      <motion.button layout key={sc.key} type="button" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}
+                        onClick={() => onPickScene(sc)} className="h-9 px-3.5 rounded-full border text-[13.5px] transition-colors hover:bg-[var(--ui-hover)]" style={{ borderColor: 'var(--theme-border)' }}>
+                        {pt ? sc.title.pt : sc.title.en}
+                      </motion.button>
+                    ))
+                    : topics.map(t => (
+                      <motion.button layout key={t.id} type="button" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}
+                        onClick={() => setTopic(cur => (cur?.id === t.id ? null : t))} aria-pressed={topic?.id === t.id}
+                        className="h-9 px-3.5 rounded-full border text-[13.5px] transition-colors hover:bg-[var(--ui-hover)] inline-flex items-center gap-1.5"
+                        style={topic?.id === t.id ? { backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)', borderColor: 'var(--theme-primary)' } : { borderColor: 'var(--theme-border)' }}>
+                        {topic?.id === t.id && <Check className="w-3.5 h-3.5" />}{pt ? t.pt : t.en}
+                      </motion.button>
+                    ))}
+                </AnimatePresence>
+                <button type="button" onClick={() => (scene ? setSceneSeed(n => n + 1) : setTopics(cur => { const keep = topic && cur.some(x => x.id === topic.id) ? [topic] : []; return [...keep, ...pickTopics(3 - keep.length, cur.map(x => x.id))] }))}
+                  className="h-9 px-3 rounded-full text-[13px] inline-flex items-center gap-1.5 transition-colors hover:bg-[var(--ui-hover)]" style={muted} aria-label={pt ? 'Trocar sugestões' : 'Shuffle suggestions'}>
+                  <RefreshCw className="w-3.5 h-3.5" />{pt ? 'Trocar' : 'Shuffle'}
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
         {captions && live && (
           <div className="mt-6 w-full space-y-3 text-center min-h-[96px]">
             <AnimatePresence mode="popLayout">
@@ -309,11 +422,22 @@ function Session({ choice, pt, level, rate, captions, minutes, title, subtitle, 
 
       <footer className="pb-4">
         {!live ? (
+          locked ? (
+            <div className="text-center">
+              <p className="text-[13.5px] inline-flex items-center gap-1.5" style={muted}><Lock className="w-3.5 h-3.5" />{scene ? (pt ? 'Esta cena faz parte dos planos pagos' : 'This scene is part of the paid plans') : (pt ? 'A conversa livre faz parte do plano Plus' : 'Free talk is part of the Plus plan')}</p>
+              <motion.button type="button" whileTap={{ scale: 0.97 }} onClick={() => openPaywall(scene ? 'scenes' : 'free_talk')}
+                className="mt-3 w-full h-14 rounded-full text-[16px] font-semibold inline-flex items-center justify-center gap-2"
+                style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
+                {pt ? 'Assinar para liberar' : 'Subscribe to unlock'}
+              </motion.button>
+            </div>
+          ) : (
           <motion.button type="button" whileTap={{ scale: 0.97 }} onClick={begin} disabled={phase === 'starting'}
             className="w-full h-14 rounded-full text-[16px] font-semibold inline-flex items-center justify-center gap-2 disabled:opacity-60"
             style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
             <Mic className="w-5 h-5" />{phase === 'starting' ? (pt ? 'Preparando…' : 'Getting ready…') : (pt ? 'Começar a conversar' : 'Start talking')}
           </motion.button>
+          )
         ) : (
           <div className="flex items-center justify-center gap-3">
             <IconBtn label={pt ? 'Ajuda: o que posso dizer?' : 'Help: what can I say?'} onClick={() => ask('hint')} ring><LifeBuoy className="w-5 h-5" /></IconBtn>

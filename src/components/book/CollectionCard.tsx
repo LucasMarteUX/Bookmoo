@@ -18,7 +18,7 @@ export const collectionFallback = (slug: string) => { const [a, b] = FALLBACK[sl
 export function CollectionCard({ collection, pt, className }: { collection: Collection; pt: boolean; className?: string }) {
   const count = collection.bookCount
   return (
-    <Link to={`/collections/${collection.slug}`} aria-label={`${collection.title} — ${count} ${pt ? 'livros' : 'books'}`}
+    <Link to={`/collections/${collection.slug}`} aria-label={`${collection.title}, ${count} ${pt ? 'livros' : 'books'}`}
       className={cn('group relative block aspect-[12/5] overflow-hidden rounded-xl isolate outline-none transition-[transform,box-shadow] duration-300 hover:-translate-y-0.5 hover:shadow-lg focus-visible:ring-2 focus-visible:ring-offset-2 cursor-pointer', className)}
       style={{ background: collectionFallback(collection.slug), boxShadow: '0 1px 2px rgba(0,0,0,.18)', containerType: 'inline-size' }}>
       {collection.bannerData && (

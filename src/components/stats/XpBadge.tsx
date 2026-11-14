@@ -9,8 +9,8 @@ export function XpBadge({ pt }: { pt: boolean }) {
   const { total, streak, studiedToday } = useMemo(() => xpSummary(events), [events])
   const fmt = new Intl.NumberFormat(pt ? 'pt-BR' : 'en-US')
   const hint = pt
-    ? `Sequência de ${streak} dia(s)${studiedToday ? '' : ' — estude hoje para não perder'} · ${fmt.format(total)} pontos`
-    : `${streak}-day streak${studiedToday ? '' : ' — study today to keep it'} · ${fmt.format(total)} points`
+    ? `Sequência de ${streak} dia(s)${studiedToday ? '' : '. Estude hoje para não perder'} · ${fmt.format(total)} pontos`
+    : `${streak}-day streak${studiedToday ? '' : '. Study today to keep it'} · ${fmt.format(total)} points`
   return (
     <button type="button" onClick={() => navigate('/stats')} title={hint} aria-label={hint}
       className="h-9 rounded-lg border px-3 inline-flex items-center gap-2.5 text-sm font-medium tabular-nums transition-colors hover:bg-[var(--ui-hover)]"

@@ -43,6 +43,7 @@ export function BookPage() {
   const [styleOpen, setStyleOpen] = useState(false)
   const [setupOpen, setSetupOpen] = useState(false)
   const [headerSlot, setHeaderSlot] = useState<HTMLDivElement | null>(null)
+  const [headerEndSlot, setHeaderEndSlot] = useState<HTMLDivElement | null>(null)
   const [pageSizeOpen, setPageSizeOpen] = useState(false)
   const [castOpen, setCastOpen] = useState(false)
   const [writeMode, setWriteMode] = useState<'dictation' | 'edit'>('dictation')
@@ -130,7 +131,7 @@ export function BookPage() {
           O título do livro fica no conteúdo, sem disputar espaço com as barras. */}
       <div ref={headerRef} className="sticky top-[calc(var(--safe-t,0px)+var(--navbar-h,0px))] md:top-0 z-40 -mx-4 md:-mx-10 mb-4 md:mb-6"
         style={{ backgroundColor: 'var(--theme-bg)' }}>
-        <div className="h-12 px-2 md:px-6 flex items-stretch gap-1 border-b" style={{ borderColor: 'var(--theme-border)' }}>
+        <div className="book-headerbar h-12 px-2 md:px-6 flex items-stretch gap-1 border-b" style={{ borderColor: 'var(--theme-border)' }}>
           <nav role="tablist" aria-label={pt ? 'Atividade' : 'Activity'} className="flex items-stretch gap-0.5 min-w-0 overflow-x-auto overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {([
               ['read', t('readTab'), <BookOpen key="i" className="w-4 h-4" />],
@@ -141,7 +142,7 @@ export function BookPage() {
               <button key={m} type="button" role="tab" aria-selected={mode === m} onClick={() => setMode(m)}
                 className="relative px-3 inline-flex items-center gap-2 text-[13.5px] font-medium whitespace-nowrap transition-colors hover:text-[var(--theme-text)]"
                 style={{ color: mode === m ? 'var(--theme-text)' : 'var(--theme-text-secondary)' }}>
-                {icon}<span className="hidden sm:inline">{label}</span>
+                {icon}<span data-tab-label className="hidden sm:inline">{label}</span>
                 {mode === m && <span aria-hidden className="absolute left-2 right-2 -bottom-px h-0.5 rounded-full" style={{ backgroundColor: 'var(--theme-text)' }} />}
               </button>
             ))}
@@ -172,12 +173,14 @@ export function BookPage() {
             </button>
             <button type="button" onClick={() => setCastOpen(true)} title={pt ? 'Vozes da leitura' : 'Reading voices'}
               className="h-9 w-9 grid place-items-center rounded-lg transition-colors hover:bg-[var(--ui-hover)]">
-              {narratorVoice ? <VoiceAvatar voice={narratorVoice} size={26} /> : <Users className="w-4 h-4" />}
+              {narratorVoice ? <VoiceAvatar voice={narratorVoice} size={26} square /> : <Users className="w-4 h-4" />}
             </button>
             <button type="button" onClick={() => setPageSizeOpen(true)} title={pt ? 'Tamanho da página' : 'Page length'} aria-label={pt ? 'Tamanho da página' : 'Page length'}
               className="h-9 w-9 grid place-items-center rounded-lg transition-colors hover:bg-[var(--ui-hover)]" style={{ color: 'var(--theme-text-secondary)' }}>
               <Rows3 className="w-4 h-4" />
             </button>
+            {/* Menu ⋮ da página ilustrada: sempre o último item à direita. */}
+            <div ref={setHeaderEndSlot} className="flex items-center empty:hidden" />
           </div>
         </div>
       </div>
@@ -193,7 +196,7 @@ export function BookPage() {
           <SpeakPractice book={book} />
         ) : (
           <>
-            <Reader book={book} autoPlay={mode === 'listen'} headerSlot={headerSlot} />
+            <Reader book={book} autoPlay={mode === 'listen'} headerSlot={headerSlot} headerEndSlot={headerEndSlot} />
             <ReaderTutor book={book} />
           </>
         )}

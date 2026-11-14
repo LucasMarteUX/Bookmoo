@@ -66,7 +66,7 @@ export function CheckoutReturn() {
             <h1 className="mt-4 font-display text-[28px]">{state === 'none' ? (pt ? 'Nenhum pagamento em andamento' : 'No payment in progress') : (pt ? 'Pagamento em processamento' : 'Payment processing')}</h1>
             <p className="mt-2 text-[15px]" style={{ color: 'var(--theme-text-secondary)' }}>
               {state === 'none' ? (pt ? 'Se você acabou de pagar, aguarde um instante e confira em Minha assinatura.' : 'If you just paid, wait a moment and check My subscription.')
-                : (pt ? 'Pix e boleto podem levar alguns minutos. Avisaremos por e-mail assim que for aprovado — o plano libera sozinho.' : 'Pix and bank slips can take a few minutes. We will email you once approved — your plan unlocks automatically.')}
+                : (pt ? 'Pix e boleto podem levar alguns minutos. Avisaremos por e-mail assim que for aprovado. O plano libera sozinho.' : 'Pix and bank slips can take a few minutes. We will email you once approved. Your plan unlocks automatically.')}
             </p>
             <button type="button" onClick={() => navigate('/', { replace: true })} className="mt-8 h-12 w-full rounded-2xl text-[15px] font-medium border" style={{ borderColor: 'var(--theme-border)' }}>{pt ? 'Ir para o início' : 'Go home'}</button>
           </>

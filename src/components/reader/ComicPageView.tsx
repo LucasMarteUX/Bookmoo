@@ -56,6 +56,8 @@ interface Props {
   onNext: () => void
   /** Elemento que entra em tela cheia (inclui a barra de controles flutuante do leitor). */
   fullscreenTarget: () => HTMLElement | null
+  /** Onde fica o menu ⋮ (fim da barra do livro). Sem slot, fica junto das ferramentas. */
+  menuSlot?: HTMLElement | null
   labels: {
     generate: string; regenerate: string; delete: string; preparingArt: string; generatingImage: string
     generatingLayout: string; empty: string; fitWidth: string; fitPage: string
@@ -64,6 +66,16 @@ interface Props {
 
 const MIN_ZOOM = 1
 const MAX_ZOOM = 3
+// Zoom da leitura imersiva: vale para todas as páginas e fica salvo para os próximos acessos.
+const FS_KEY = 'bookmoo.comic.fullscreen.v1'
+type FsPrefs = { fit: 'width' | 'page'; zoom: number }
+function loadFsPrefs(): FsPrefs {
+  try {
+    const v = JSON.parse(localStorage.getItem(FS_KEY) || 'null') as Partial<FsPrefs> | null
+    if (v && (v.fit === 'width' || v.fit === 'page') && typeof v.zoom === 'number') return { fit: v.fit, zoom: Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, v.zoom)) }
+  } catch { /* sem armazenamento */ }
+  return { fit: 'page', zoom: 1 }
+}
 const FONT_RATIO = 0.0185 // tamanho da letra relativo à largura da página
 
 function ComicArtFrame({ imageUrl, source, bounds, art, width, height }: {
@@ -137,6 +149,14 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
   const [fit, setFit] = useState<'width' | 'page'>('width')
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  // Controles de zoom da tela cheia: escondidos atrás da lupa; somem sozinhos depois de um tempo sem uso.
+  const [zoomOpen, setZoomOpen] = useState(false)
+  const zoomTimer = useRef(0)
+  const bumpZoom = useCallback(() => {
+    window.clearTimeout(zoomTimer.current)
+    zoomTimer.current = window.setTimeout(() => setZoomOpen(false), 5000)
+  }, [])
+  useEffect(() => { if (zoomOpen) bumpZoom(); return () => window.clearTimeout(zoomTimer.current) }, [zoomOpen, bumpZoom])
   const [box, setBox] = useState({ w: 800, h: 800 })
   const prevPage = useRef(pageIndex)
   const direction = pageIndex >= prevPage.current ? 1 : -1
@@ -243,6 +263,7 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId])
   const toolbarSlot = props.toolbarSlot
+  const menuSlot = props.menuSlot ?? null
   useEffect(() => { setMoveMode(false) }, [pageIndex])
   useEffect(() => {
     if (!moveMode) return
@@ -256,7 +277,12 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
     ? { ...editorial, balloons: editorial.balloons.map(line => line.panelId === draft.panelId ? { ...line, box: draft.box, font: draft.font } : line) }
     : editorial
 
-  useEffect(() => { setZoom(1); viewportRef.current?.scrollTo({ left: 0, top: 0 }) }, [pageIndex])
+  // Trocar de página mantém o zoom escolhido (só volta a rolagem para o começo).
+  useEffect(() => { viewportRef.current?.scrollTo({ left: 0, top: 0 }) }, [pageIndex])
+  useEffect(() => {
+    if (!isFullscreen) return
+    try { localStorage.setItem(FS_KEY, JSON.stringify({ fit, zoom })) } catch { /* sem armazenamento */ }
+  }, [isFullscreen, fit, zoom])
 
   const setZoomClamped = useCallback((z: number) => setZoom(Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, z))), [])
 
@@ -363,7 +389,8 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
   const toggleFullscreen = () => setIsFullscreen(on => !on)
   useEffect(() => {
     if (!isFullscreen) return
-    setFit('page'); setZoom(1)
+    const prefs = loadFsPrefs()
+    setFit(prefs.fit); setZoom(prefs.zoom)
     const root = document.documentElement
     root.classList.add('comic-immersive')
     if (!document.fullscreenElement) root.requestFullscreen?.().catch(() => {})
@@ -378,6 +405,7 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
       window.removeEventListener('keydown', onKey)
       document.removeEventListener('fullscreenchange', onChange)
       if (document.fullscreenElement) void document.exitFullscreen().catch(() => {})
+      setFit('width'); setZoom(1)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isFullscreen])
@@ -407,6 +435,44 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
     turned: (d: number) => ({ x: d > 0 ? '-100%' : '100%', opacity: 1, transition: { duration: 0.42, ease: turnEase } }),
   }
 
+  const moreMenu = (
+    <Popover open={menuOpen} onOpenChange={setMenuOpen}>
+      <PopoverTrigger asChild>
+        <ToolButton icon={generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <MoreVertical className="w-4 h-4" />}
+          hint={pt ? 'Mais opções do quadrinho' : 'More comic options'} disabled={generating || editor.saving} />
+      </PopoverTrigger>
+      <PopoverContent className="w-72 p-1.5 rounded-2xl shadow-2xl border z-50" style={{ backgroundColor: 'var(--theme-nav-bg)', borderColor: 'var(--theme-border-subtle)' }} align="end">
+        <MenuSection title={pt ? 'Visualização' : 'View'}>
+          <MenuItem icon={fit === 'width' ? <RectangleVertical className="w-4 h-4" /> : <Columns2 className="w-4 h-4" />}
+            label={fit === 'width' ? labels.fitPage : labels.fitWidth}
+            description={fit === 'width' ? (pt ? 'Mostra a página inteira na tela' : 'Show the whole page on screen') : (pt ? 'Ocupa toda a largura do leitor' : 'Use the full reader width')}
+            onClick={() => { setMenuOpen(false); setFit(fit === 'width' ? 'page' : 'width'); setZoom(1) }} />
+          <MenuItem icon={zoom > 1 ? <ZoomOut className="w-4 h-4" /> : <ZoomIn className="w-4 h-4" />}
+            label={zoom > 1 ? (pt ? 'Tamanho original' : 'Actual size') : (pt ? 'Ampliar 2×' : 'Zoom 2×')}
+            description={pt ? 'Também com Ctrl + roda do mouse ou pinça' : 'Also Ctrl + scroll wheel or pinch'}
+            onClick={() => { setMenuOpen(false); setZoomClamped(zoom > 1 ? 1 : 2) }} />
+          <MenuItem icon={isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+            label={isFullscreen ? (pt ? 'Sair da tela cheia' : 'Exit full screen') : (pt ? 'Tela cheia' : 'Full screen')}
+            onClick={() => { setMenuOpen(false); void toggleFullscreen() }} />
+        </MenuSection>
+        <div className="h-px mx-2" style={{ backgroundColor: 'var(--theme-border-subtle)' }} />
+        <MenuSection title={pt ? 'Esta página' : 'This page'}>
+          {editorial && <MenuItem icon={<Move className="w-4 h-4" />} label={pt ? 'Mover caixas de texto' : 'Move text boxes'}
+            description={pt ? 'Arraste qualquer caixa, inclusive pelo texto. Esc para sair.' : 'Drag any box, even by its text. Esc to exit.'}
+            onClick={() => { setMenuOpen(false); setMoveMode(true) }} />}
+          {editorial && <MenuItem icon={<MessageSquareQuote className="w-4 h-4" />} label={pt ? 'Reposicionar texto' : 'Reposition text'}
+            description={pt ? 'Localiza os rostos e reposiciona as caixas para não cobri-los. Não gera outra imagem.' : 'Finds the faces and moves the text boxes off them. No new image.'}
+            onClick={() => { setMenuOpen(false); props.onRelayout() }} />}
+          <MenuItem icon={<RefreshCw className="w-4 h-4" />} label={labels.regenerate}
+            description={pt ? 'Desenha de novo, com outra composição. Usa 10 créditos.' : 'Draws it again with a new composition. Uses 10 credits.'}
+            onClick={() => { setMenuOpen(false); onGenerate() }} />
+          <MenuItem icon={<Trash2 className="w-4 h-4" />} label={labels.delete} tone="danger"
+            description={pt ? 'Volta a página para o modo só texto' : 'Returns this page to text only'}
+            onClick={() => { setMenuOpen(false); onDelete() }} />
+        </MenuSection>
+      </PopoverContent>
+    </Popover>
+  )
   const tools = (
     <>
         {/* Mover caixas fica no menu ⋮; enquanto ativo, aparece aqui o botão de concluir. */}
@@ -418,42 +484,7 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
           onClick={toggleFullscreen} />
         {editorial && <LetteringThemePicker theme={props.letteringTheme} choice={props.letteringChoice}
           detected={props.letteringDetected} onChange={props.onLetteringThemeChange} pt={pt} />}
-        <Popover open={menuOpen} onOpenChange={setMenuOpen}>
-          <PopoverTrigger asChild>
-            <ToolButton icon={generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <MoreVertical className="w-4 h-4" />}
-              hint={pt ? 'Mais opções do quadrinho' : 'More comic options'} disabled={generating || editor.saving} />
-          </PopoverTrigger>
-          <PopoverContent className="w-72 p-1.5 rounded-2xl shadow-2xl border z-50" style={{ backgroundColor: 'var(--theme-nav-bg)', borderColor: 'var(--theme-border-subtle)' }} align="end">
-            <MenuSection title={pt ? 'Visualização' : 'View'}>
-              <MenuItem icon={fit === 'width' ? <RectangleVertical className="w-4 h-4" /> : <Columns2 className="w-4 h-4" />}
-                label={fit === 'width' ? labels.fitPage : labels.fitWidth}
-                description={fit === 'width' ? (pt ? 'Mostra a página inteira na tela' : 'Show the whole page on screen') : (pt ? 'Ocupa toda a largura do leitor' : 'Use the full reader width')}
-                onClick={() => { setMenuOpen(false); setFit(fit === 'width' ? 'page' : 'width'); setZoom(1) }} />
-              <MenuItem icon={zoom > 1 ? <ZoomOut className="w-4 h-4" /> : <ZoomIn className="w-4 h-4" />}
-                label={zoom > 1 ? (pt ? 'Tamanho original' : 'Actual size') : (pt ? 'Ampliar 2×' : 'Zoom 2×')}
-                description={pt ? 'Também com Ctrl + roda do mouse ou pinça' : 'Also Ctrl + scroll wheel or pinch'}
-                onClick={() => { setMenuOpen(false); setZoomClamped(zoom > 1 ? 1 : 2) }} />
-              <MenuItem icon={isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-                label={isFullscreen ? (pt ? 'Sair da tela cheia' : 'Exit full screen') : (pt ? 'Tela cheia' : 'Full screen')}
-                onClick={() => { setMenuOpen(false); void toggleFullscreen() }} />
-            </MenuSection>
-            <div className="h-px mx-2" style={{ backgroundColor: 'var(--theme-border-subtle)' }} />
-            <MenuSection title={pt ? 'Esta página' : 'This page'}>
-              {editorial && <MenuItem icon={<Move className="w-4 h-4" />} label={pt ? 'Mover caixas de texto' : 'Move text boxes'}
-                description={pt ? 'Arraste qualquer caixa, inclusive pelo texto. Esc para sair.' : 'Drag any box, even by its text. Esc to exit.'}
-                onClick={() => { setMenuOpen(false); setMoveMode(true) }} />}
-              {editorial && <MenuItem icon={<MessageSquareQuote className="w-4 h-4" />} label={pt ? 'Reposicionar texto' : 'Reposition text'}
-                description={pt ? 'Localiza os rostos e reposiciona as caixas para não cobri-los. Não gera outra imagem.' : 'Finds the faces and moves the text boxes off them. No new image.'}
-                onClick={() => { setMenuOpen(false); props.onRelayout() }} />}
-              <MenuItem icon={<RefreshCw className="w-4 h-4" />} label={labels.regenerate}
-                description={pt ? 'Desenha de novo, com outra composição. Usa 10 créditos.' : 'Draws it again with a new composition. Uses 10 credits.'}
-                onClick={() => { setMenuOpen(false); onGenerate() }} />
-              <MenuItem icon={<Trash2 className="w-4 h-4" />} label={labels.delete} tone="danger"
-                description={pt ? 'Volta a página para o modo só texto' : 'Returns this page to text only'}
-                onClick={() => { setMenuOpen(false); onDelete() }} />
-            </MenuSection>
-          </PopoverContent>
-        </Popover>
+        {!menuSlot && moreMenu}
     </>
   )
   // Dentro da barra do leitor (ao lado de Texto | Ilustrado) as ferramentas entram sem moldura própria.
@@ -489,8 +520,13 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
     <div ref={wordsRef} className={isFullscreen ? 'comic-reader comic-immersive-stage fixed inset-0 z-[80] flex flex-col justify-start' : 'comic-reader w-full flex flex-col gap-3'}
       style={isFullscreen ? { backgroundColor: '#0d0c0b', paddingTop: zoom > 1 ? 'var(--safe-t, 0px)' : 'calc(var(--safe-t, 0px) + 24px)' } : undefined}>
       {!isFullscreen && (toolbarSlot ? createPortal(toolbar, toolbarSlot) : <div className="sticky top-2 z-30 flex justify-end">{toolbar}</div>)}
+      {!isFullscreen && menuSlot && createPortal(moreMenu, menuSlot)}
       {isFullscreen && <>
-        <div className="absolute right-3 z-10 flex items-center gap-2" style={{ top: 'max(0.75rem, var(--safe-t, 0px))' }}>
+        <div className="absolute right-3 z-[92] flex items-center gap-2" style={{ top: 'max(0.75rem, var(--safe-t, 0px))' }}>
+          <button type="button" onClick={() => setZoomOpen(o => !o)} aria-expanded={zoomOpen} aria-label={pt ? 'Zoom' : 'Zoom'} title={pt ? 'Zoom e enquadramento' : 'Zoom and fit'}
+            className="w-9 h-9 grid place-items-center rounded-full transition-colors hover:bg-white/20" style={{ backgroundColor: zoomOpen ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.1)', color: '#fff' }}>
+            <ZoomIn className="w-4 h-4" />
+          </button>
           <button type="button" onClick={toggleFullscreen} aria-label={pt ? 'Sair da tela cheia' : 'Exit full screen'} title={pt ? 'Sair (Esc)' : 'Exit (Esc)'}
             className="w-9 h-9 grid place-items-center rounded-full transition-colors hover:bg-white/20" style={{ backgroundColor: 'rgba(255,255,255,0.1)', color: '#fff' }}>
             <X className="w-4 h-4" />
@@ -504,6 +540,29 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
           className="hidden md:grid absolute right-3 top-1/2 -translate-y-1/2 z-10 w-11 h-11 place-items-center rounded-full transition-colors hover:bg-white/20" style={{ backgroundColor: 'rgba(255,255,255,0.08)', color: '#fff' }}>
           <ChevronRight className="w-5 h-5" />
         </button>
+        <AnimatePresence>
+          {zoomOpen && (
+            <motion.div key="zoom" initial={{ opacity: 0, y: -6, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.96 }} transition={{ duration: 0.16 }}>
+        <div className="absolute right-3 z-[92] flex items-center gap-0.5 rounded-xl p-1 text-[12.5px] backdrop-blur-md"
+          onPointerDown={bumpZoom}
+          style={{ top: 'calc(max(0.75rem, var(--safe-t, 0px)) + 46px)', backgroundColor: 'rgba(20,19,18,0.82)', color: '#fff', border: '1px solid rgba(255,255,255,0.12)' }}
+          role="group" aria-label={pt ? 'Zoom' : 'Zoom'}>
+          <button type="button" onClick={() => setZoomClamped(Math.round((zoom - 0.25) * 4) / 4)} disabled={zoom <= MIN_ZOOM} aria-label={pt ? 'Diminuir zoom' : 'Zoom out'}
+            className="w-8 h-8 grid place-items-center rounded-lg hover:bg-white/15 disabled:opacity-35"><ZoomOut className="w-4 h-4" /></button>
+          <span className="w-12 text-center tabular-nums font-medium" aria-live="polite">{Math.round(zoom * 100)}%</span>
+          <button type="button" onClick={() => setZoomClamped(Math.round((zoom + 0.25) * 4) / 4)} disabled={zoom >= MAX_ZOOM} aria-label={pt ? 'Aumentar zoom' : 'Zoom in'}
+            className="w-8 h-8 grid place-items-center rounded-lg hover:bg-white/15 disabled:opacity-35"><ZoomIn className="w-4 h-4" /></button>
+          <span className="w-px h-5 mx-1 bg-white/20" />
+          <button type="button" onClick={() => { setFit('page'); setZoom(1) }} aria-pressed={fit === 'page' && zoom === 1}
+            className="h-8 px-2.5 rounded-lg hover:bg-white/15 inline-flex items-center gap-1.5" style={{ backgroundColor: fit === 'page' && zoom === 1 ? 'rgba(255,255,255,0.18)' : undefined }}>
+            <RectangleVertical className="w-4 h-4" /><span className="max-sm:hidden">{pt ? 'Página' : 'Page'}</span></button>
+          <button type="button" onClick={() => { setFit('width'); setZoom(1) }} aria-pressed={fit === 'width' && zoom === 1}
+            className="h-8 px-2.5 rounded-lg hover:bg-white/15 inline-flex items-center gap-1.5" style={{ backgroundColor: fit === 'width' && zoom === 1 ? 'rgba(255,255,255,0.18)' : undefined }}>
+            <Columns2 className="w-4 h-4" /><span className="max-sm:hidden">{pt ? 'Tela toda' : 'Full width'}</span></button>
+        </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </>}
 
       {props.error && <p role="alert" className="text-sm">{props.error}</p>}
@@ -517,7 +576,7 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
       <div
         ref={viewportRef}
         className="relative w-full overflow-auto rounded-xl select-none"
-        style={{ maxHeight: fit === 'page' || zoom > 1 ? box.h + 40 : undefined, perspective: 2000, touchAction: zoom > 1 ? 'pan-x pan-y' : 'pan-y', cursor: zoom > 1 ? 'grab' : 'default' }}
+        style={{ maxHeight: isFullscreen ? box.h + 84 : fit === 'page' || zoom > 1 ? box.h + 40 : undefined, perspective: 2000, touchAction: zoom > 1 ? 'pan-x pan-y' : 'pan-y', cursor: zoom > 1 ? 'grab' : 'default' }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}

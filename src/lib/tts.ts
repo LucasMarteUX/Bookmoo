@@ -5,6 +5,7 @@
 import { supabase } from '@/lib/supabase'
 import { activeKokoroVoice, kokoroAudioUrl, type WordTiming } from '@/lib/kokoro/engine'
 import { askVoiceOnce } from '@/lib/voiceGate'
+import { audioClock, clearSpeechClock, setSpeechClock, type SpeechClock } from '@/lib/speechClock'
 import { countWords, listWords, wordRegex } from '@/lib/wordTokens'
 
 export type TtsContext = 'word' | 'phrase' | 'reader' | 'lesson' | 'preview'
@@ -243,12 +244,14 @@ async function playUrl(url: string, rate: number, text?: string, onWord?: (i: nu
   pitched.preservesPitch = true
   pitched.webkitPreservesPitch = true
   let raf = 0
+  let clock: SpeechClock | null = null
   const done = new Promise<void>((resolve) => {
     let settled = false
     const finish = () => {
       if (settled) return
       settled = true
       cancelAnimationFrame(raf)
+      if (clock) clearSpeechClock(clock)
       a.removeEventListener('ended', onEnded)
       a.removeEventListener('error', onError)
       if (finishCurrent === finish) finishCurrent = null
@@ -267,6 +270,8 @@ async function playUrl(url: string, rate: number, text?: string, onWord?: (i: nu
   await waitWhilePaused()
   if (a.src !== mySrc) return { done } // parado enquanto esperava
   await a.play()
+  // Relógio para a boca dos personagens: segue o áudio de verdade, não uma estimativa.
+  if (text) { clock = audioClock(text, a, realStarts ?? wordStartFractions(text)); setSpeechClock(clock) }
   if (text && onWord) {
     // Tempos reais do Kokoro quando disponíveis; senão, estimativa pelo tamanho das palavras.
     const starts = realStarts ?? wordStartFractions(text)

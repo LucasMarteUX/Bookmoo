@@ -41,7 +41,7 @@ export const emails = {
     layout('Pagamento não aprovado', `<p>A renovação do plano <b>${plan}</b> não foi aprovada. Você mantém o acesso por mais <b>${days} dias</b>. Atualize a forma de pagamento para não perder a biblioteca.</p>`,
       { label: 'Ver minha assinatura', href: `${APP_URL}/assinatura` })),
   canceled: (to: string, plan: string, until: string) => sendEmail(to, 'Sua assinatura foi cancelada',
-    layout('Cancelamento confirmado', `<p>O plano <b>${plan}</b> continua ativo até <b>${until}</b>. Depois disso sua conta volta para o Grátis — seu progresso, notas e vocabulário ficam guardados.</p>`,
+    layout('Cancelamento confirmado', `<p>O plano <b>${plan}</b> continua ativo até <b>${until}</b>. Depois disso sua conta volta para o Grátis, seu progresso, notas e vocabulário ficam guardados.</p>`,
       { label: 'Reativar', href: `${APP_URL}/assinatura` })),
   refunded: (to: string, cents: number) => sendEmail(to, 'Reembolso processado',
     layout('Reembolso processado', `<p>O valor de <b>${brl(cents)}</b> foi estornado. Sua conta voltou para o plano Grátis.</p>`)),

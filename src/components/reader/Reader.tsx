@@ -16,7 +16,7 @@ import { bookStyleKey, catalogStyleOptions } from '@/lib/comicStyles'
 import { StylePickerDialog, useApplyBookStyle, useStyleBank } from '@/components/book/StylePicker'
 import { VocabularyModal, type VocabTab } from '../vocabulary/VocabularyModal'
 import { useMediaSession, useWakeLock } from '@/hooks/useNativeMedia'
-import { ChevronLeft, ChevronRight, MousePointer2, Type, Pin, PinOff, Pencil, Trash2, Play, Image as ImageIcon, Loader2, WandSparkles, Pause, Settings, X, RefreshCw, Eye, EyeOff, Sparkles, Lightbulb, Dices } from 'lucide-react'
+import { ChevronLeft, ChevronRight, MousePointer2, Type, Pin, PinOff, Pencil, Trash2, Play, Image as ImageIcon, Loader2, WandSparkles, Pause, Settings, X, RefreshCw, Eye, EyeOff, Sparkles, GraduationCap, Dices } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
@@ -34,7 +34,9 @@ import { needsVoiceInstall } from './VoiceRequiredDialog'
 import { askVoiceOnce } from '@/lib/voiceGate'
 import { XP, useXpStore } from '@/store/useXpStore'
 import { AmbientSoundButton, stopAmbience } from '@/components/reader/AmbientSound'
-import { PageGrammarDialog, PageQuizDialog } from '@/components/reader/PageGrammar'
+import { PageQuizDialog } from '@/components/reader/PageGrammar'
+import { PageStudyDialog } from '@/components/reader/PageStudy'
+import { flashPassage, type TutorAction } from '@/lib/tutorActions'
 import { motion, useReducedMotion } from 'motion/react'
 import { ComicPageView, type ComicStage } from './ComicPageView'
 import { saveComicPage } from '@/lib/comicPersistence'
@@ -65,6 +67,7 @@ interface ReaderProps {
   autoPlay?: boolean
   /** No computador, a barra de leitura (Texto | Ilustrado e ferramentas) vai para o topo do livro. */
   headerSlot?: HTMLElement | null
+  headerEndSlot?: HTMLElement | null
 }
 
 function speedNumber(rate: number) {
@@ -135,7 +138,7 @@ function PageJump({ page, total, onGo, pt }: { page: number; total: number; onGo
   )
 }
 
-export function Reader({ book, autoPlay = false, headerSlot }: ReaderProps) {
+export function Reader({ book, autoPlay = false, headerSlot, headerEndSlot }: ReaderProps) {
   // Topo numa linha só a partir de 1024px; no celular a barra continua aqui embaixo.
   const [wide, setWide] = useState(() => typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches)
   useEffect(() => {
@@ -152,6 +155,8 @@ export function Reader({ book, autoPlay = false, headerSlot }: ReaderProps) {
   const { theme, fontSize, lineHeight, showHighlights, hiddenMarks, setHiddenMarks, playbackRate, setPlaybackRate, fontFamily, setFontSize, setLineHeight, setFontFamily, grammarHelp } = useReaderSettings()
   const [grammarOpen, setGrammarOpen] = useState(false)
   const [quizOpen, setQuizOpen] = useState(false)
+  const [studySection, setStudySection] = useState<string | undefined>()
+  const [studyAuto, setStudyAuto] = useState(false)
 
   const readerFontFamily = fontFamily === 'sans' ? '"Inter", ui-sans-serif, system-ui, sans-serif' : '"Playfair Display", ui-serif, Georgia, serif'
   const { updateBook } = useBookStore()
@@ -582,6 +587,29 @@ export function Reader({ book, autoPlay = false, headerSlot }: ReaderProps) {
   const changePage = (delta: number) => {
     goToPage(currentPage + delta)
   }
+
+  // A tutora opera o leitor: abre a lição/desafio, vai para uma página e destaca trechos.
+  const goToPageRef = useRef(goToPage)
+  goToPageRef.current = goToPage
+  useEffect(() => {
+    const onAction = (e: Event) => {
+      const a = (e as CustomEvent<TutorAction>).detail
+      if (!a) return
+      const target = 'page' in a && typeof a.page === 'number' && a.page >= 0 && a.page < pages.length ? a.page : null
+      if (target !== null && target !== (book.currentPage || 0)) goToPageRef.current(target)
+      if (a.type === 'open_study') { setStudySection(a.section); setStudyAuto(!!a.generate); window.setTimeout(() => setGrammarOpen(true), target !== null ? 350 : 0) }
+      else if (a.type === 'open_quiz') setQuizOpen(true)
+      else if (a.type === 'highlight') {
+        window.setTimeout(() => { const root = readerRootRef.current; if (root) flashPassage(root, a.text) }, target !== null ? 600 : 50)
+      }
+    }
+    const onStudy = (e: Event) => { const d = (e as CustomEvent<{ page?: number; section?: string }>).detail; onAction(new CustomEvent('x', { detail: { type: 'open_study', page: d?.page, section: d?.section } })) }
+    const onQuiz = () => setQuizOpen(true)
+    window.addEventListener('bookmoo:tutor-action', onAction)
+    window.addEventListener('bookmoo:study', onStudy)
+    window.addEventListener('bookmoo:quiz', onQuiz)
+    return () => { window.removeEventListener('bookmoo:tutor-action', onAction); window.removeEventListener('bookmoo:study', onStudy); window.removeEventListener('bookmoo:quiz', onQuiz) }
+  }, [book.currentPage, pages.length])
 
   // Preload comic images (previous, current, next) for smoother navigation
   useEffect(() => {
@@ -1303,10 +1331,10 @@ export function Reader({ book, autoPlay = false, headerSlot }: ReaderProps) {
               <AmbientSoundButton pt={locale === 'pt-BR'} />
               {grammarHelp && (
                 <>
-                  <ToolButton icon={<Lightbulb className="w-4 h-4" />} label={locale === 'pt-BR' ? 'Decifrar' : 'Decode'} compact
-                    hint={locale === 'pt-BR' ? 'Entender as regras de gramática desta página' : 'Understand the grammar rules on this page'} onClick={() => setGrammarOpen(true)} />
+                  <ToolButton data-tour="study" icon={<GraduationCap className="w-4 h-4" />} label={locale === 'pt-BR' ? 'Estudar' : 'Study'} compact
+                    hint={locale === 'pt-BR' ? 'Lição completa desta página: vocabulário, regras, exemplos e exercícios' : 'Full lesson for this page: vocabulary, rules, examples and exercises'} onClick={() => setGrammarOpen(true)} />
                   {currentPage >= 1 && (
-                    <ToolButton icon={<Dices className="w-4 h-4" />} aria-label={locale === 'pt-BR' ? 'Desafio da página' : 'Page challenge'}
+                    <ToolButton data-tour="quiz" icon={<Dices className="w-4 h-4" />} aria-label={locale === 'pt-BR' ? 'Desafio da página' : 'Page challenge'}
                       hint={locale === 'pt-BR' ? 'Desafio: treine esta página' : 'Challenge: practise this page'} onClick={() => setQuizOpen(true)} />
                   )}
                 </>
@@ -1528,6 +1556,7 @@ export function Reader({ book, autoPlay = false, headerSlot }: ReaderProps) {
             letteringTheme={letteringThemeFor(book.comicStyleDoc)}
             letteringDetected={detectLetteringTheme(book.comicStyleDoc)}
             toolbarSlot={toolbarSlot}
+            menuSlot={inHeader ? headerEndSlot ?? null : null}
             letteringChoice={(book.comicStyleDoc?.letteringTheme as LetteringThemeId | undefined) ?? null}
             onLetteringThemeChange={(id) => {
               const { letteringTheme: _previous, ...rest } = book.comicStyleDoc ?? {}
@@ -1594,6 +1623,7 @@ export function Reader({ book, autoPlay = false, headerSlot }: ReaderProps) {
               backgroundColor: interactionMode === 'text' ? 'var(--theme-nav-active)' : 'transparent',
               color: interactionMode === 'text' ? 'var(--theme-text)' : 'var(--theme-nav-text-muted)'
             }}
+            data-tour="select-text"
             title={t('selectText')}
             aria-label={t('selectText')}
           >
@@ -1601,6 +1631,7 @@ export function Reader({ book, autoPlay = false, headerSlot }: ReaderProps) {
             <span className="hidden md:inline">{t('selectText')}</span>
           </button>
           <button
+            data-tour="note-mode"
             onClick={() => { setInteractionMode('pin'); setSelectedRange(null) }}
             className="flex items-center gap-2 px-3 h-10 rounded-xl text-[13.5px] font-medium transition-all min-w-[40px] justify-center shrink-0"
             style={{
@@ -1826,9 +1857,9 @@ export function Reader({ book, autoPlay = false, headerSlot }: ReaderProps) {
         }}
       />
 
-      {grammarHelp && (
+      {(
         <>
-          <PageGrammarDialog open={grammarOpen} onOpenChange={setGrammarOpen} book={{ id: book.id, title: book.title, currentPage }} />
+          <PageStudyDialog open={grammarOpen} onOpenChange={o => { setGrammarOpen(o); if (!o) { setStudySection(undefined); setStudyAuto(false) } }} section={studySection} autoGenerate={studyAuto} book={{ id: book.id, title: book.title, currentPage }} />
           <PageQuizDialog open={quizOpen} onOpenChange={setQuizOpen} book={{ id: book.id, title: book.title, currentPage }} />
         </>
       )}

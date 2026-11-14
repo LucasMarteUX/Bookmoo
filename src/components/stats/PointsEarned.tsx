@@ -19,7 +19,7 @@ export function PointsEarned({ kind, bookId, page, pt }: { kind: PracticeKind; b
       <span className="font-semibold">+{base + bonus} {pt ? 'pontos' : 'points'}</span>
       {recovered.length > 0 && (
         <span className="inline-flex flex-wrap items-center gap-1" style={{ color: 'var(--theme-text-secondary)' }}>
-          🔁 {pt ? `${recovered.length} palavra(s) que você tinha errado — em dobro (+${bonus}):` : `${recovered.length} word(s) you had missed — double points (+${bonus}):`}
+          {pt ? `${recovered.length} palavra(s) que você tinha errado, em dobro (+${bonus}):` : `${recovered.length} word(s) you had missed, double points (+${bonus}):`}
           {recovered.slice(0, 8).map(w => (
             <button key={w} type="button" onClick={() => sayWord(w)} className="speak-word speak-ok px-1 rounded">{w}</button>
           ))}

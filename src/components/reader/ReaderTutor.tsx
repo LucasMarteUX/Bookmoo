@@ -2,7 +2,7 @@
 // (história até onde a pessoa leu, palavras da página, personagens). Plus e Pro; nos outros planos, convite.
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { AudioLines, Captions, CaptionsOff, Lock, Minus, Rabbit, Turtle, EyeOff, BookmarkPlus } from 'lucide-react'
+import { AudioLines, Captions, CaptionsOff, Lock, Minus, Rabbit, Turtle, EyeOff, BookmarkPlus, Languages, X } from 'lucide-react'
 import type { Book } from '@/store/useBookStore'
 import { useLanguage } from '@/store/useLanguage'
 import { useEntitlements } from '@/store/useEntitlements'
@@ -15,7 +15,11 @@ import { useStudyLevel } from '@/hooks/useStudyLevel'
 import { conversation } from '@/lib/billingApi'
 import { openPaywall } from '@/components/billing/Paywall'
 import { toast } from '@/components/ui/toast'
-import { TutorAvatar, PlayStopButton } from '@/components/voice/TutorAvatar'
+import { AvatarBubble, TutorAvatar, PlayStopButton, type Mood } from '@/components/voice/TutorAvatar'
+import { greetingFor } from '@/lib/greetings'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { runTutorAction, type TutorAction } from '@/lib/tutorActions'
+import { TUTOR_LANG_OPTIONS, useTutorLang } from '@/lib/tutorLang'
 
 const HIDDEN_KEY = 'bookmoo-tutor-hidden'
 const CAPTIONS_KEY = 'bookmoo-tutor-captions'
@@ -39,6 +43,11 @@ export function ReaderTutor({ book }: { book: Book }) {
   const [slow, setSlow] = useState(false)
   const [highlight, setHighlight] = useState<string | null>(null)
   const [paused, setPaused] = useState(false)
+  const [langMode, setLangMode] = useTutorLang()
+  const [mood, setMood] = useState<Mood>('happy')
+  const [wave, setWave] = useState(false)
+  const [hello, setHello] = useState('')
+  const [examples, setExamples] = useState<{ title: string; items: { en: string; pt?: string }[] } | null>(null)
   const session = useRef<string | null>(null)
   const allowed = !!ent && (ent.is_admin || ent.limits.tutor)
   const creditsLeft = ent ? ent.credits.available : 0
@@ -59,10 +68,18 @@ export function ReaderTutor({ book }: { book: Book }) {
     onIdle: () => setPaused(true),
     onTurn: async (text, filler) => {
       if (!session.current) session.current = (await conversation.start({ kind: 'reader', bookId: book.id, level: level.id })).sessionId
-      const r = await conversation.turn({ sessionId: session.current, text, filler, page: book.currentPage, level: level.id })
-      return { reply: r.reply, extra: { highlight: r.highlight, offerSave: r.offerSave } }
+      const r = await conversation.turn({ sessionId: session.current, text, filler, page: book.currentPage, level: level.id, langMode })
+      return { reply: r.reply, segments: r.segments, extra: { highlight: r.highlight, offerSave: r.offerSave, actions: r.actions ?? [], mood: r.mood } }
     },
-    onExtra: extra => { if (extra.highlight && extra.offerSave) setHighlight(String(extra.highlight)) },
+    onExtra: extra => {
+      if (typeof extra.mood === 'string') setMood(extra.mood as Mood)
+      if (extra.highlight && extra.offerSave) setHighlight(String(extra.highlight))
+      // A tutora mostra na tela o que está explicando: destaca, volta páginas, abre a lição ou o desafio.
+      for (const a of (extra.actions as TutorAction[] | undefined) ?? []) {
+        if (a.type === 'show_examples') setExamples({ title: a.title, items: a.items })
+        else runTutorAction(a)
+      }
+    },
     onError: code => {
       if (code === 'session_over' || code === 'book_not_found') session.current = null
       if (!['no_minutes', 'plan_required'].includes(code)) toast(pt ? 'O tutor não conseguiu responder agora' : 'The tutor could not answer right now', { tone: 'error' })
@@ -75,10 +92,30 @@ export function ReaderTutor({ book }: { book: Book }) {
     if (session.current) void conversation.end(session.current).catch(() => {})
   }, [book.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // O tutorial do livro abre e fecha o painel para apresentar a tutora.
+  useEffect(() => {
+    const show = () => { if (allowed) setOpen(true) }
+    const hide = () => setOpen(false)
+    window.addEventListener('bookmoo:tutor-open', show)
+    window.addEventListener('bookmoo:tutor-close', hide)
+    return () => { window.removeEventListener('bookmoo:tutor-open', show); window.removeEventListener('bookmoo:tutor-close', hide) }
+  }, [allowed])
+
+  // Ao abrir o painel: acena e cumprimenta num balão.
+  useEffect(() => {
+    if (!open) return
+    setMood('happy'); setWave(true)
+    setHello(greetingFor({ pt, name: 'Bea', book: book.title }))
+    const t1 = window.setTimeout(() => setWave(false), 2300)
+    const t2 = window.setTimeout(() => setHello(''), 6000)
+    return () => { window.clearTimeout(t1); window.clearTimeout(t2) }
+  }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
+
   if (hidden) return null
   const running = voice.state !== 'idle' && voice.state !== 'error'
   const toggle = () => {
     setPaused(false)
+    setHello('')
     if (running) voice.stop()
     else void voice.listen()
   }
@@ -103,13 +140,28 @@ export function ReaderTutor({ book }: { book: Book }) {
             transition={{ type: 'spring', stiffness: 320, damping: 26 }}
             className="pointer-events-auto mb-3 w-[min(92vw,360px)] rounded-[28px] border shadow-2xl overflow-hidden backdrop-blur-xl"
             style={{ borderColor: 'var(--theme-border)', backgroundColor: 'color-mix(in srgb, var(--theme-card-bg) 92%, transparent)' }}
-            role="dialog" aria-label={pt ? 'Tutor de leitura' : 'Reading tutor'}>
+            data-tour="tutor-panel" role="dialog" aria-label={pt ? 'Tutor de leitura' : 'Reading tutor'}>
             <div className="flex items-center justify-between px-4 pt-3">
               <div>
                 <p className="text-[14px] font-semibold">Bea · {pt ? 'tutora de leitura' : 'reading tutor'}</p>
                 <p className="text-[11.5px]" style={{ color: !ent?.is_admin && creditsLeft < 5 ? '#dc2626' : 'var(--theme-text-secondary)' }}>{pt ? '1 crédito por minuto de conversa' : '1 credit per conversation minute'}</p>
               </div>
               <div className="flex items-center gap-0.5">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button type="button" aria-label={pt ? 'Idioma da tutora' : 'Tutor language'} title={pt ? 'Idioma da tutora' : 'Tutor language'}
+                      className="w-9 h-9 rounded-full grid place-items-center transition-colors hover:bg-[var(--ui-hover)]" style={{ color: langMode === 'auto' ? 'var(--theme-text-secondary)' : 'var(--theme-text)' }}><Languages className="w-4 h-4" /></button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-72 p-1.5 z-[60]" align="end">
+                    <p className="px-2.5 pt-1.5 pb-1 text-[12px] font-medium" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? 'Como a tutora responde' : 'How the tutor answers'}</p>
+                    {TUTOR_LANG_OPTIONS.map(o => (
+                      <button key={o.id} type="button" onClick={() => setLangMode(o.id)} className="w-full text-left px-2.5 py-2 rounded-lg hover:bg-[var(--ui-hover)]" style={{ backgroundColor: langMode === o.id ? 'var(--theme-bg-secondary)' : undefined }}>
+                        <span className="block text-[13.5px] font-medium">{pt ? o.pt : o.en}</span>
+                        <span className="block text-[12px]" style={{ color: 'var(--theme-text-secondary)' }}>{o.hint[pt ? 0 : 1]}</span>
+                      </button>
+                    ))}
+                  </PopoverContent>
+                </Popover>
                 <IconBtn label={captions ? (pt ? 'Esconder legendas' : 'Hide captions') : (pt ? 'Mostrar legendas' : 'Show captions')} onClick={() => setCaptions(c => !c)}>{captions ? <Captions className="w-4 h-4" /> : <CaptionsOff className="w-4 h-4" />}</IconBtn>
                 <IconBtn label={slow ? (pt ? 'Voz normal' : 'Normal voice') : (pt ? 'Voz mais lenta' : 'Slower voice')} onClick={() => setSlow(v => !v)}>{slow ? <Turtle className="w-4 h-4" /> : <Rabbit className="w-4 h-4" />}</IconBtn>
                 <IconBtn label={pt ? 'Ocultar tutor' : 'Hide tutor'} onClick={() => { voice.stop(); setOpen(false); setTutorHidden(true); toast(pt ? 'Tutor oculto. Reative em Configurações → Leitura.' : 'Tutor hidden. Turn it back on in Settings.') }}><EyeOff className="w-4 h-4" /></IconBtn>
@@ -131,6 +183,17 @@ export function ReaderTutor({ book }: { book: Book }) {
                   <motion.div key="interim" initial={{ opacity: 0 }} animate={{ opacity: 0.6 }} className="self-end max-w-[88%] rounded-2xl px-3 py-2 text-[13.5px] italic" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>{voice.interim}</motion.div>
                 )}
               </AnimatePresence>
+              {examples && (
+                <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="self-stretch rounded-2xl border p-3" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-card-bg)' }}>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[12.5px] font-semibold">{examples.title || (pt ? 'Exemplos' : 'Examples')}</p>
+                    <button type="button" onClick={() => setExamples(null)} aria-label={pt ? 'Fechar exemplos' : 'Close examples'} className="w-6 h-6 grid place-items-center rounded-full hover:bg-[var(--ui-hover)]"><X className="w-3.5 h-3.5" /></button>
+                  </div>
+                  <ul className="mt-1.5 space-y-1.5">{examples.items.map((e, i) => (
+                    <li key={i}><p className="font-serif italic text-[14.5px] leading-snug">{e.en}</p>{e.pt && <p className="text-[12.5px]" style={{ color: 'var(--theme-text-secondary)' }}>{e.pt}</p>}</li>
+                  ))}</ul>
+                </motion.div>
+              )}
               {highlight && (
                 <motion.button initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} type="button" onClick={() => saveWord(highlight)}
                   className="self-start inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-[12.5px] font-medium border" style={{ borderColor: 'var(--theme-border)' }}>
@@ -139,21 +202,26 @@ export function ReaderTutor({ book }: { book: Book }) {
               )}
             </div>
 
-            <div className="flex flex-col items-center pb-4">
-              <TutorAvatar kind="woman" state={voice.state} speakingText={voice.speakingText} rate={slow ? 0.8 : 0.95} size={104} />
-              <p className="-mt-2 text-[12.5px] text-center px-4" style={{ color: 'var(--theme-text-secondary)' }} aria-live="polite">{statusText}</p>
-              <div className="mt-3"><PlayStopButton active={running} onClick={toggle} label={running ? (pt ? 'Parar' : 'Stop') : (pt ? 'Começar a conversar' : 'Start talking')} /></div>
+            <div className="flex items-center gap-4 px-4 pt-3 pb-4">
+              <TutorAvatar kind="woman" state={voice.state} speakingText={voice.speakingText} size={84} mood={mood} wave={wave}
+                onPoke={() => setHello(pt ? ['Oi! Pode perguntar.', 'Estou aqui!', 'Haha, cócegas!'][Math.floor(Math.random() * 3)] : ['Hi! Ask away.', 'I am here!', 'Haha, that tickles!'][Math.floor(Math.random() * 3)])} />
+              <div className="flex-1 min-w-0">
+                {hello && !running
+                  ? <AvatarBubble text={hello} side="right" tone="accent" />
+                  : <p className="text-[13px] leading-snug" style={{ color: 'var(--theme-text-secondary)' }} aria-live="polite">{statusText}</p>}
+              </div>
+              <PlayStopButton active={running} onClick={toggle} size={52} label={running ? (pt ? 'Parar' : 'Stop') : (pt ? 'Começar a conversar' : 'Start talking')} />
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      <motion.button type="button" layout onClick={() => (allowed ? setOpen(o => !o) : openPaywall('tutor'))}
+      <motion.button data-tour="tutor-fab" type="button" layout onClick={() => (allowed ? setOpen(o => !o) : openPaywall('tutor'))}
         whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.06 }}
-        className="pointer-events-auto relative w-14 h-14 rounded-full shadow-xl grid place-items-center overflow-hidden border" style={{ borderColor: 'var(--theme-border)' }}
+        className="pointer-events-auto relative w-14 h-14 rounded-2xl shadow-xl grid place-items-center overflow-hidden border" style={{ borderColor: 'var(--theme-border)' }}
         aria-label={allowed ? (pt ? 'Abrir tutor de leitura' : 'Open reading tutor') : (pt ? 'Tutor de leitura (Plus)' : 'Reading tutor (Plus)')}
-        title={allowed ? (pt ? 'Converse com a tutora sobre o livro' : 'Talk with the tutor about the book') : (pt ? 'Tutor de leitura — disponível no Plus' : 'Reading tutor — Plus plan')}>
-        <motion.span className="absolute inset-[3px] rounded-full grid place-items-center text-[22px]" style={{ backgroundColor: 'var(--theme-card-bg)' }}
+        title={allowed ? (pt ? 'Converse com a tutora sobre o livro' : 'Talk with the tutor about the book') : (pt ? 'Tutor de leitura, disponível no Plus' : 'Reading tutor, Plus plan')}>
+        <motion.span className="absolute inset-[3px] rounded-[13px] grid place-items-center text-[22px]" style={{ backgroundColor: 'var(--theme-card-bg)' }}
           animate={running ? { scale: 1 + voice.level * 0.08 } : { scale: [1, 1.04, 1] }} transition={running ? { type: 'spring', stiffness: 300, damping: 15 } : { duration: 4, repeat: Infinity }}>
           <AudioLines className="w-5 h-5" strokeWidth={1.8} />
         </motion.span>

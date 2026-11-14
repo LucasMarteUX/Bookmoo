@@ -50,7 +50,7 @@ export const ToolButton = forwardRef<HTMLButtonElement, ToolButtonProps>(functio
       }}
       {...props}>
       {icon}
-      {label && <span className={compact ? 'hidden md:inline' : undefined}>{label}</span>}
+      {label && <span data-tool-label={compact ? '' : undefined} className={compact ? 'hidden md:inline' : undefined}>{label}</span>}
     </button>
   )
 })

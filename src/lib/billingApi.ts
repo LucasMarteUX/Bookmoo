@@ -1,3 +1,4 @@
+import type { TutorAction } from '@/lib/tutorActions'
 // Chamadas às Edge Functions de assinatura, conversa e análise.
 import { supabase } from '@/lib/supabase'
 import { paywallForError } from '@/components/billing/Paywall'
@@ -64,10 +65,10 @@ export type Feedback = {
 }
 
 export const conversation = {
-  start: (body: { kind: 'scene' | 'tutor' | 'reader'; sceneKey?: string; sceneId?: string; minutes?: number; bookId?: string; level?: string }) =>
+  start: (body: { kind: 'scene' | 'tutor' | 'reader'; sceneKey?: string; sceneId?: string; minutes?: number; bookId?: string; level?: string; opening?: string }) =>
     callFn<{ sessionId: string; plannedSeconds?: number; opening?: string; secondsAvailable?: number; scene?: { persona: { name: string; emoji: string; gender: 'female' | 'male'; pace: string }; goals: string[]; usefulPhrases: string[]; fillers: string[]; ambient?: string } }>('conversation', { action: 'start', ...body }).finally(refreshEntitlements),
-  turn: (body: { sessionId: string; text: string; confidence?: number; filler?: string | null; page?: number; level?: string }) =>
-    callFn<{ reply: string; goalsMet?: number[]; wrapUp?: boolean; highlight?: string | null; offerSave?: boolean; remaining?: number | null }>('conversation', { action: 'turn', ...body }),
+  turn: (body: { sessionId: string; text: string; confidence?: number; filler?: string | null; page?: number; level?: string; langMode?: TutorLangMode }) =>
+    callFn<{ reply: string; mood?: string; segments?: SpeechSegment[] | null; actions?: TutorAction[]; goalsMet?: number[]; wrapUp?: boolean; highlight?: string | null; offerSave?: boolean; remaining?: number | null }>('conversation', { action: 'turn', ...body }),
   assist: (sessionId: string, mode: 'hint' | 'translate') =>
     callFn<{ suggestions?: { en: string; pt: string }[]; translation?: string }>('conversation', { action: 'assist', sessionId, mode }),
   end: (sessionId: string, metrics?: { wpm?: number; avgResponseMs?: number; unclear?: number }) =>
@@ -100,14 +101,32 @@ export const coach = {
 }
 
 // ---------------------------------------------------------------------------
-// Decifrar a página (gramática) e Desafio (quiz)
+/** Idioma da tutora: automático (híbrido no A1/A2), híbrido, só português (exemplos em inglês) ou só inglês. */
+export type TutorLangMode = 'auto' | 'hybrid' | 'pt' | 'en'
+export type SpeechSegment = { lang: 'en' | 'pt'; text: string }
+
+// Estudar a página (lição) e Desafio (quiz)
 // ---------------------------------------------------------------------------
+export type LessonPair = { en: string; pt: string }
+export type LessonUnit = {
+  title: string; explanation: string; formula: string
+  from_page: LessonPair[]; other: LessonPair[]
+  mistake: { wrong: string; right: string; why: string } | null
+  practice: { prompt: string; answer: string } | null
+}
+/** Lição da página ("Estudar"), no formato de um livro de inglês. */
 export type GrammarContent = {
+  v: 2
+  title: string
   summary: string
-  rules: { title: string; explanation: string; examples: string[] }[]
-  tenses: { sentence: string; tense: string; why: string }[]
-  questions_negatives: { sentence: string; why: string }[]
-  phrasal: { phrase: string; together: string; apart: string }[]
+  goals: string[]
+  vocabulary: { word: string; meaning: string; example: string; note: string }[]
+  units: LessonUnit[]
+  tenses: { sentence: string; tense: string; time: 'past' | 'present' | 'future'; why: string }[]
+  questions_negatives: { sentence: string; why: string; build: string }[]
+  phrasal: { phrase: string; together: string; apart: string; example: string }[]
+  pronunciation: { word: string; tip: string }[]
+  recap: string[]
   tip: string
 }
 export type QuizQuestion =

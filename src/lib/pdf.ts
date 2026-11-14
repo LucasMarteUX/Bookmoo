@@ -139,7 +139,7 @@ export async function parsePdf(file: File, onStatus?: PdfStatus): Promise<PdfImp
   for (const para of clean) {
     if (isHeading(para)) {
       // Título seguido de outro título ("Capítulo 1" + "A chegada") vira um só.
-      if (current.paragraphs.length === 0 && chapters.length > 0 && current.title !== title) { current.title += ` — ${para.text}`; continue }
+      if (current.paragraphs.length === 0 && chapters.length > 0 && current.title !== title) { current.title += `: ${para.text}`; continue }
       if (current.paragraphs.length) chapters.push(current)
       current = { title: para.text, paragraphs: [] }
     } else current.paragraphs.push(para.text)

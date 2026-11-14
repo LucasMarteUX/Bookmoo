@@ -434,7 +434,7 @@ export function SpeakPractice({ book }: Props) {
             >
               <span className={`speak-word ${GRADE_CLASS[sel.grade]} font-semibold text-base`}>{sel.expected}</span>
               <span style={{ color: 'var(--theme-text-secondary)' }}>
-                {s.youSaid}: <em>{sel.heard ?? `— (${s.skipped})`}</em>
+                {s.youSaid}: <em>{sel.heard ?? `(${s.skipped})`}</em>
               </span>
               <button type="button" className="btn-3d btn-3d--explain text-xs" onClick={() => setSlowNext(!sayWord(sel.expected))}>
                 {slowNext ? <Snail className="w-3.5 h-3.5" strokeWidth={2.5} /> : <Volume2 className="w-3.5 h-3.5" strokeWidth={3} />} {slowNext ? s.hearSlow : s.hearRight}

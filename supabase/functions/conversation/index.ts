@@ -11,6 +11,8 @@ type Body = {
   action?: string; kind?: 'scene' | 'tutor' | 'reader'; sceneKey?: string; sceneId?: string; minutes?: number
   sessionId?: string; text?: string; confidence?: number; filler?: string; bookId?: string; page?: number
   mode?: 'hint' | 'translate'; metrics?: { wpm?: number; avgResponseMs?: number; unclear?: number }
+  langMode?: 'auto' | 'hybrid' | 'pt' | 'en'
+  opening?: string
   setting?: string; level?: string; personaName?: string; personaRole?: string; personaTraits?: string; goal?: string; level?: string; title?: string
 }
 
@@ -23,8 +25,54 @@ const LEVEL_GUIDE: Record<string, string> = {
 }
 const SPEECH_WPS = 2.5 // palavras por segundo para estimar tempo de fala
 
+type LangMode = 'hybrid' | 'pt' | 'en'
+/** Idioma da tutora: escolha da pessoa; no automático, híbrido no A1/A2 e só inglês do B1 em diante. */
+function langModeFor(mode: unknown, level: string): LangMode {
+  if (mode === 'hybrid' || mode === 'pt' || mode === 'en') return mode
+  return level === 'A1' || level === 'A2' ? 'hybrid' : 'en'
+}
+function langRule(mode: LangMode, level: string) {
+  if (mode === 'en') return 'LANGUAGE: speak only English, adapted to the level. If the learner speaks Portuguese, understand it and answer in simple English.'
+  if (mode === 'pt') return 'LANGUAGE: explain and talk in Brazilian Portuguese. Use English only for the words, phrases and example sentences you are teaching, and invite the learner to try saying them in English.'
+  return `LANGUAGE: hybrid. Talk in simple English, and switch to Brazilian Portuguese to explain meanings, grammar or whenever the learner seems confused${level === 'A1' || level === 'A2' ? ' (at this level, explanations mostly in Portuguese and examples in English)' : ''}. Never translate everything twice.`
+}
+const MOODS = ['neutral', 'happy', 'laughing', 'excited', 'sad', 'angry', 'surprised', 'confused', 'wink']
+const MOOD_SPEC = `"mood": "${MOODS.join(' | ')}" (your facial reaction while saying this; mostly happy/neutral, use the others when they fit the moment; angry only playfully)`
+const STYLE_RULE = 'Never use em dashes or en dashes; use commas or periods. No emojis.'
+const SEGMENTS_SPEC = `"segments": [{"lang": "en" | "pt", "text": "..."}] (the reply split in speaking order, each piece in ONE language; "reply" is the same text joined)`
+
+type Segment = { lang: 'en' | 'pt'; text: string }
+function segmentsFrom(v: unknown, reply: string): Segment[] {
+  const list = (Array.isArray(v) ? v : []).slice(0, 12).flatMap((x: { lang?: string; text?: string }) => {
+    const text = clean(x?.text, 400)
+    return text ? [{ lang: x?.lang === 'pt' ? 'pt' as const : 'en' as const, text }] : []
+  })
+  return list.length ? list : [{ lang: 'en', text: reply }]
+}
+
+const STUDY_SECTIONS = ['vocab', 'unit-1', 'unit-2', 'unit-3', 'unit-4', 'unit-5', 'unit-6', 'tenses', 'questions', 'phrasal', 'pronunciation', 'recap']
+type Action = Record<string, unknown>
+/** Ações na tela pedidas pela tutora. Páginas chegam numeradas a partir de 1 e nunca passam da atual (sem spoiler). */
+function actionsFrom(v: unknown, current: number): Action[] {
+  return (Array.isArray(v) ? v : []).slice(0, 3).flatMap((a: Record<string, unknown>) => {
+    const page = Number.isInteger(Number(a?.page)) ? Math.max(0, Math.min(current, Number(a.page) - 1)) : undefined
+    switch (a?.type) {
+      case 'highlight': { const text = clean(a.text, 160); return text ? [{ type: 'highlight', text, page }] : [] }
+      case 'goto_page': return page !== undefined ? [{ type: 'goto_page', page }] : []
+      case 'open_study': return [{ type: 'open_study', page, section: STUDY_SECTIONS.includes(String(a.section)) ? String(a.section) : undefined, generate: a.generate === true }]
+      case 'open_quiz': return [{ type: 'open_quiz' }]
+      case 'show_examples': {
+        const items = (Array.isArray(a.items) ? a.items : []).slice(0, 5).map((i: { en?: string; pt?: string }) => ({ en: clean(i?.en, 180), pt: clean(i?.pt, 180) })).filter(i => i.en)
+        return items.length ? [{ type: 'show_examples', title: clean(a.title, 80), items }] : []
+      }
+      default: return []
+    }
+  })
+}
+
 const words = (s: string) => s.trim().split(/\s+/).filter(Boolean).length
-const clean = (v: unknown, max: number) => String(v ?? '').replace(/\s+/g, ' ').trim().slice(0, max)
+// Sem travessão nos textos do app: " — " vira vírgula.
+const clean = (v: unknown, max: number) => String(v ?? '').replace(/\s+[—–]\s+/g, ', ').replace(/\s+/g, ' ').trim().slice(0, max)
 const ageOf = (birth: string | null) => {
   if (!birth) return null
   const b = new Date(`${birth}T12:00:00Z`)
@@ -77,31 +125,43 @@ Rules:
 - ${remaining < 25 ? 'Time is almost up: wrap up the conversation naturally and say goodbye in character.' : `About ${Math.round(remaining)} seconds left.`}
 - Keep content appropriate${age !== null && age < 18 ? ' for a minor' : ''}; politely deflect anything inappropriate, in character.
 ${filler ? `- You have ALREADY said out loud: "${filler}". Continue naturally right after it. Do NOT repeat it and do NOT contradict it.` : ''}
-Return JSON only: {"reply": "what you say next", "goals_met": [indexes of goals the learner has achieved so far], "wrap_up": true|false}`
+${STYLE_RULE}
+Return JSON only: {"reply": "what you say next", ${MOOD_SPEC}, "goals_met": [indexes of goals the learner has achieved so far], "wrap_up": true|false}`
 }
 
-function tutorPrompt(level: string, profile: string, filler?: string) {
+function tutorPrompt(level: string, profile: string, mode: LangMode, filler?: string) {
   return `You are Bea, a warm, encouraging English conversation tutor talking by voice with a Brazilian learner (level ${level}). ${LEVEL_GUIDE[level] ?? LEVEL_GUIDE.B1}
 What you know about the learner: ${profile || 'nothing yet'}.
 Have a natural conversation about their interests, and naturally bring in their difficult words and grammar so they practise them. When they make an important mistake, recast it naturally in your reply (say it correctly), without lecturing.
-Reply in 1–3 short spoken sentences (max 45 words) and usually end with a question. Speech recognition may have errors: interpret charitably.
+${langRule(mode, level)}
+Reply in 1–3 short spoken sentences (max 50 words) and usually end with a question. Speech recognition may have errors: interpret charitably.
+When an example would help, also show it on screen with a "show_examples" action.
 ${filler ? `You have ALREADY said out loud: "${filler}". Continue right after it, without repeating or contradicting it.` : ''}
-Return JSON only: {"reply": "..."}`
+${STYLE_RULE}
+Return JSON only: {"reply": "...", ${MOOD_SPEC}, ${SEGMENTS_SPEC}, "actions": [] or [{"type": "show_examples", "title": "...", "items": [{"en": "...", "pt": "..."}]}]}`
 }
 
-function readerPrompt(level: string, book: { title: string; author?: string | null; description?: string | null }, read: string, page: string, filler?: string) {
+function readerPrompt(level: string, book: { title: string; author?: string | null; description?: string | null }, read: string, page: string, pageNo: number, mode: LangMode, filler?: string) {
   return `You are Bea, a friendly reading tutor inside a reading app. The learner (level ${level}) is reading "${book.title}"${book.author ? ` by ${book.author}` : ''} and talks to you by voice.
 ${LEVEL_GUIDE[level] ?? LEVEL_GUIDE.B1}
 You may talk about: the story so far, characters, the learner's opinions and predictions, words and expressions on the current page, grammar in the text, pronunciation, and quick quizzes about what was read.
-NO SPOILERS: you only know the text below (everything up to the current page). If asked about what happens later, playfully refuse ("No spoilers! Keep reading 😉").
-If the learner speaks Portuguese, understand it and answer in simple English; at A1/A2 you may add a very short Portuguese gloss in parentheses.
+NO SPOILERS: you only know the text below (everything up to the current page). If asked about what happens later, playfully refuse ("No spoilers! Keep reading.").
+${langRule(mode, level)}
 Stay on the book and language learning; politely redirect other topics.
-Reply in 1–3 short spoken sentences (max 50 words), friendly and encouraging.
+You OPERATE the reading app for the learner: guide them, point at the text and show things on screen while you talk. Use actions when they help:
+- {"type": "highlight", "text": "exact passage from the page", "page": N} to highlight a passage you are explaining (N = page number; omit for the current page; earlier pages appear as [p.N]).
+- {"type": "goto_page", "page": N} to go back to an earlier page and show another situation with the same word or structure (never beyond the current page ${pageNo}).
+- {"type": "open_study", "section": "vocab | unit-1..unit-6 | tenses | questions | phrasal | pronunciation | recap", "generate": true} to open the full lesson of the current page (generate=true creates it if it does not exist yet; use when the learner wants to study or understand the grammar in depth).
+- {"type": "open_quiz"} to start the page challenge when the learner wants to practise.
+- {"type": "show_examples", "title": "...", "items": [{"en": "...", "pt": "..."}]} to show 2-4 extra example sentences on screen.
+Say what you are showing ("Look at the highlighted sentence…"). At most 2 actions per reply; none when just chatting.
+Reply in 1–3 short spoken sentences (max 55 words), friendly and encouraging.
 ${filler ? `You have ALREADY said out loud: "${filler}". Continue right after it, without repeating or contradicting it.` : ''}
 Book description: ${clean(book.description, 600)}
 Story so far (earlier pages, condensed): ${read}
-Current page: ${page}
-Return JSON only: {"reply": "...", "highlight": "an exact word or short phrase from the current page to highlight, or null", "offer_save": true|false}`
+Current page [p.${pageNo}]: ${page}
+${STYLE_RULE}
+Return JSON only: {"reply": "...", ${MOOD_SPEC}, ${SEGMENTS_SPEC}, "actions": [...], "highlight": "an exact word or short phrase from the current page worth saving to vocabulary, or null", "offer_save": true|false}`
 }
 
 async function learnerProfile(db: ReturnType<typeof adminClient>, userId: string, official?: string) {
@@ -140,6 +200,9 @@ async function handle(userId: string, b: Body) {
         }
         const { data: s, error } = await db.from('conversation_sessions').insert({ user_id: userId, kind, book_id: kind === 'reader' ? b.bookId : null, title }).select('id').single()
         if (error) throw new ConvError('session_failed', 500)
+        // Assunto escolhido na tela: vira a primeira fala da tutora (ela continua a partir dele).
+        const opening = kind === 'tutor' ? clean(b.opening, 300) : ''
+        if (opening) await db.from('conversation_turns').insert({ session_id: s.id, role: 'ai', text: opening })
         return { sessionId: s.id, creditsAvailable: ent.credits_available }
       }
       const scene = await loadScene(db, userId, ent, b)
@@ -181,6 +244,7 @@ async function handle(userId: string, b: Body) {
       const elapsed = (now - new Date(session.started_at).getTime()) / 1000
 
       let system: string
+      let readerPage = 0
       if (session.kind === 'scene') {
         if (elapsed > session.planned_seconds + 30) throw new ConvError('session_over', 409)
         const scene = session.context?.sceneId
@@ -189,7 +253,7 @@ async function handle(userId: string, b: Body) {
         system = scenePrompt(scene, String(session.context?.level ?? 'B1'), ageOf(ent.birth_date), String(session.context?.twist ?? ''), elapsed / session.planned_seconds, session.planned_seconds - elapsed, filler)
       } else if (session.kind === 'tutor') {
         const prof = await learnerProfile(db, userId, b.level)
-        system = tutorPrompt(prof.level, prof.text, filler)
+        system = tutorPrompt(prof.level, prof.text, langModeFor(b.langMode, prof.level), filler)
       } else {
         const { data: book } = await db.from('books').select('title, author, description, pages').eq('id', session.book_id).eq('user_id', userId).maybeSingle()
         if (!book) throw new ConvError('book_not_found', 404)
@@ -197,9 +261,10 @@ async function handle(userId: string, b: Body) {
         const at = Math.max(0, Math.min(pages.length - 1, Number(b.page ?? 0)))
         const pageText = (i: number) => clean(typeof pages[i] === 'string' ? pages[i] : (pages[i] as { text?: string })?.text ?? '', 4000)
         // Só o que já foi lido: as páginas anteriores entram resumidas (cortadas), a atual inteira.
-        const earlier = Array.from({ length: Math.min(at, 6) }, (_, k) => at - 6 + k).filter((i) => i >= 0).map((i) => pageText(i).slice(0, 700)).join(' … ')
+        const earlier = Array.from({ length: Math.min(at, 6) }, (_, k) => at - 6 + k).filter((i) => i >= 0).map((i) => `[p.${i + 1}] ${pageText(i).slice(0, 700)}`).join(' … ')
         const prof = await learnerProfile(db, userId, b.level)
-        system = readerPrompt(prof.level, book, earlier, pageText(at), filler)
+        readerPage = at
+        system = readerPrompt(prof.level, book, earlier, pageText(at), at + 1, langModeFor(b.langMode, prof.level), filler)
       }
 
       // Tutores: 1 crédito por minuto de fala (do aluno + da IA), cobrado a cada minuto completado.
@@ -218,11 +283,17 @@ async function handle(userId: string, b: Body) {
       try {
         const raw = await measured(userId, `conversation-${session.kind}`, async () => {
           const { provider, key } = await pickProvider(userId, ['openai', 'gemini'])
-          return await llmChat(provider, key, { system, messages, json: true, maxTokens: 200 })
+          return await llmChat(provider, key, { system, messages, json: true, maxTokens: session.kind === 'scene' ? 200 : 520 })
         }, plan)
-        const parsed = parseJson<{ reply?: string; goals_met?: number[]; wrap_up?: boolean; highlight?: string | null; offer_save?: boolean }>(raw)
-        reply = clean(parsed.reply, 500) || "Sorry, could you say that again?"
-        extra = { goalsMet: Array.isArray(parsed.goals_met) ? parsed.goals_met.filter(Number.isInteger) : [], wrapUp: !!parsed.wrap_up, highlight: parsed.highlight ? clean(parsed.highlight, 60) : null, offerSave: !!parsed.offer_save }
+        const parsed = parseJson<{ reply?: string; mood?: string; segments?: unknown; actions?: unknown; goals_met?: number[]; wrap_up?: boolean; highlight?: string | null; offer_save?: boolean }>(raw)
+        const segs = session.kind === 'scene' ? null : segmentsFrom(parsed.segments, clean(parsed.reply, 700))
+        reply = clean(parsed.reply, 700) || (segs ? segs.map(x => x.text).join(' ') : '') || "Sorry, could you say that again?"
+        extra = {
+          goalsMet: Array.isArray(parsed.goals_met) ? parsed.goals_met.filter(Number.isInteger) : [], wrapUp: !!parsed.wrap_up,
+          highlight: parsed.highlight ? clean(parsed.highlight, 60) : null, offerSave: !!parsed.offer_save,
+          mood: MOODS.includes(String(parsed.mood)) ? String(parsed.mood) : 'neutral',
+          segments: segs, actions: session.kind === 'scene' ? [] : actionsFrom(parsed.actions, readerPage).filter(a => session.kind === 'reader' || a.type === 'show_examples'),
+        }
       } catch (e) {
         if (reservation) await releaseReservation(reservation)
         throw e

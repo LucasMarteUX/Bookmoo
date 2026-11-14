@@ -1,4 +1,5 @@
 import { useStudyStore } from '@/store/useStudyStore'
+import { AnimatedValue, GrowBar } from '@/components/ui/animated'
 import { useVocabularyStore } from '@/store/useVocabularyStore'
 import { useLanguage } from '@/store/useLanguage'
 import { useTranslations } from '@/lib/i18n'
@@ -52,15 +53,15 @@ export function Stats() {
       <header>
         <h1 className="font-display text-[34px] md:text-[40px] leading-[1.05]" style={{ color: 'var(--theme-text)' }}>{t('statsTitle')}</h1>
         <p className="mt-2 text-[14.5px]" style={{ color: 'var(--theme-text-secondary)' }}>
-          {pt ? 'Seu ritmo de estudo, palavras e prática — tudo num só lugar.' : 'Your study rhythm, words and practice — all in one place.'}
+          {pt ? 'Seu ritmo de estudo, palavras e prática, tudo num só lugar.' : 'Your study rhythm, words and practice, all in one place.'}
         </p>
       </header>
 
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
-        {tiles.map(({ icon: Icon, label, value }) => (
+        {tiles.map(({ icon: Icon, label, value }, i) => (
           <div key={label} className="rounded-2xl border px-5 py-4" style={cardStyle}>
             <p className="flex items-center gap-1.5 text-[13px]" style={{ color: 'var(--theme-text-secondary)' }}><Icon className="w-3.5 h-3.5" />{label}</p>
-            <p className="mt-1.5 text-[26px] font-semibold tabular-nums leading-tight" style={{ color: 'var(--theme-text)' }}>{value}</p>
+            <p className="mt-1.5 text-[26px] font-semibold tabular-nums leading-tight" style={{ color: 'var(--theme-text)' }}><AnimatedValue value={value} delay={i * 80} /></p>
           </div>
         ))}
       </div>
@@ -71,10 +72,10 @@ export function Stats() {
         <section className={card} style={cardStyle}>
           <div className="flex items-baseline justify-between mb-6">
             <h3 className="text-[15px] font-semibold" style={{ color: 'var(--theme-text)' }}>{t('activityLast7Days')}</h3>
-            <span className="text-[13px] tabular-nums" style={{ color: 'var(--theme-text-secondary)' }}>{formatTime(weekTotal)}</span>
+            <span className="text-[13px] tabular-nums" style={{ color: 'var(--theme-text-secondary)' }}><AnimatedValue value={formatTime(weekTotal)} /></span>
           </div>
           <div className="h-44 flex items-end gap-2">
-            {last7Days.map(date => {
+            {last7Days.map((date, di) => {
               const seconds = dailyStudyTime[date] || 0
               const pct = (seconds / maxDailyTime) * 100
               const isToday = date === last7Days[6]
@@ -82,8 +83,8 @@ export function Stats() {
               return (
                 <div key={date} className="flex-1 flex flex-col items-center gap-2 group">
                   <div className="w-full relative h-full flex items-end">
-                    <div className="w-full rounded-md transition-all duration-500"
-                      style={{ height: `${Math.max(pct, 3)}%`, backgroundColor: seconds ? (isToday ? 'var(--theme-text)' : 'color-mix(in srgb, var(--theme-text) 28%, transparent)') : 'var(--theme-bg-secondary)' }} />
+                    <GrowBar axis="y" size={Math.max(pct, 3)} delay={0.15 + di * 0.06} className="w-full rounded-md"
+                      style={{ backgroundColor: seconds ? (isToday ? 'var(--theme-text)' : 'color-mix(in srgb, var(--theme-text) 28%, transparent)') : 'var(--theme-bg-secondary)' }} />
                     <div className="absolute -top-8 left-1/2 -translate-x-1/2 text-[11.5px] py-1 px-2 rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10"
                       style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
                       {formatTime(seconds)}
@@ -101,7 +102,7 @@ export function Stats() {
           {/* Barra empilhada: proporção de cada status */}
           <div className="flex h-3 rounded-full overflow-hidden mb-6" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
             {segments.map(s => s.count > 0 && (
-              <div key={s.label} style={{ width: `${(s.count / total) * 100}%`, backgroundColor: s.color }} title={`${s.label}: ${s.count}`} />
+              <GrowBar key={s.label} size={(s.count / total) * 100} delay={0.2} style={{ backgroundColor: s.color }} title={`${s.label}: ${s.count}`} />
             ))}
           </div>
           <ul className="space-y-3">
@@ -109,8 +110,8 @@ export function Stats() {
               <li key={label} className="flex items-center gap-3">
                 <span className="w-7 h-7 rounded-lg grid place-items-center" style={{ backgroundColor: color, color: 'var(--theme-text)' }}><Icon className="w-3.5 h-3.5" /></span>
                 <span className="flex-1 text-[14px]" style={{ color: 'var(--theme-text)' }}>{label}</span>
-                <span className="text-[14px] font-semibold tabular-nums" style={{ color: 'var(--theme-text)' }}>{count}</span>
-                <span className="w-12 text-right text-[12.5px] tabular-nums" style={{ color: 'var(--theme-text-secondary)' }}>{Math.round((count / total) * 100)}%</span>
+                <span className="text-[14px] font-semibold tabular-nums" style={{ color: 'var(--theme-text)' }}><AnimatedValue value={count} /></span>
+                <span className="w-12 text-right text-[12.5px] tabular-nums" style={{ color: 'var(--theme-text-secondary)' }}><AnimatedValue value={`${Math.round((count / total) * 100)}%`} /></span>
               </li>
             ))}
           </ul>

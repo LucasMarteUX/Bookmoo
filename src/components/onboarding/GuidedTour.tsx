@@ -1,13 +1,14 @@
 // Tutorial guiado do primeiro acesso: destaca cada área do app e explica passo a passo, com diálogo.
 // Aparece uma vez por pessoa (guardado no aparelho) e pode ser revisto em Configurações.
-import { useCallback, useEffect, useLayoutEffect, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, X } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useLanguage } from '@/store/useLanguage'
 
-export type TourStep = { selector?: string; route?: string; pt: [string, string]; en: [string, string] }
+/** enter/leave: eventos disparados ao entrar e sair do passo (ex.: abrir o painel da tutora). */
+export type TourStep = { selector?: string; route?: string; pt: [string, string]; en: [string, string]; enter?: string; leave?: string }
 type Step = TourStep
 
 const STEPS: Step[] = [
@@ -26,13 +27,50 @@ const STEPS: Step[] = [
 const keyFor = (id?: string) => `bookmoo.tour.v1.${id ?? 'anon'}`
 export const restartTour = () => window.dispatchEvent(new Event('bookmoo:tour'))
 
+/** Elemento do passo, só se estiver de fato visível na tela (não escondido, fora da tela ou coberto por outro). */
 export function targetRect(selector?: string) {
   if (!selector) return null
-  for (const el of Array.from(document.querySelectorAll(selector))) {
-    const r = el.getBoundingClientRect()
-    if (r.width > 0 && r.height > 0) { el.scrollIntoView({ block: 'nearest' }); return el.getBoundingClientRect() }
+  const vw = window.innerWidth, vh = window.innerHeight
+  for (const el of Array.from(document.querySelectorAll<HTMLElement>(selector))) {
+    let r = el.getBoundingClientRect()
+    if (r.width < 2 || r.height < 2) continue
+    const cs = getComputedStyle(el)
+    if (cs.visibility === 'hidden' || Number(cs.opacity) === 0) continue
+    if (r.bottom < 0 || r.top > vh || r.right < 0 || r.left > vw) { el.scrollIntoView({ block: 'center', inline: 'nearest' }); r = el.getBoundingClientRect() }
+    if (r.bottom <= 0 || r.top >= vh || r.right <= 0 || r.left >= vw) continue
+    const cx = Math.min(Math.max(r.left + r.width / 2, 1), vw - 1), cy = Math.min(Math.max(r.top + r.height / 2, 1), vh - 1)
+    const hit = document.elementsFromPoint(cx, cy).find(n => !n.closest('[data-tour-root]'))
+    if (hit && !el.contains(hit) && !hit.contains(el)) continue
+    return r
   }
   return null
+}
+
+/** Navegação comum dos tutoriais: mede o alvo e pula passos cujo elemento não aparece nesta tela (ex.: celular). */
+export function useTourRect(steps: TourStep[], step: number | null, setStep: (n: number) => void, dir: React.MutableRefObject<1 | -1>) {
+  const [rect, setRect] = useState<DOMRect | null>(null)
+  const measure = useCallback(() => {
+    if (step === null) return
+    const s = steps[step]
+    const r = targetRect(s.selector)
+    if (s.selector && !r) {
+      const next = step + dir.current
+      if (next >= 0 && next < steps.length) { setStep(next); return }
+      if (dir.current === -1 && step + 1 < steps.length) { dir.current = 1; setStep(step + 1); return }
+    }
+    setRect(r)
+  }, [step, steps, setStep, dir])
+  useLayoutEffect(() => { measure() }, [measure])
+  useEffect(() => {
+    if (step === null) return
+    let raf = 0
+    const again = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => setRect(targetRect(steps[step].selector))) }
+    window.addEventListener('resize', again); window.addEventListener('scroll', again, true)
+    // Painéis que abrem com animação: mede de novo quando terminam de abrir.
+    const late = window.setTimeout(again, 480)
+    return () => { cancelAnimationFrame(raf); window.clearTimeout(late); window.removeEventListener('resize', again); window.removeEventListener('scroll', again, true) }
+  }, [step, steps])
+  return rect
 }
 
 /** Balão do tutorial com recorte no elemento destacado. Usado pelo tutorial do app e pelo do livro. */
@@ -40,41 +78,70 @@ export function TourOverlay({ steps, step, rect, pt, onStep, onClose, doneLabel 
   steps: TourStep[]; step: number; rect: DOMRect | null; pt: boolean
   onStep: (n: number) => void; onClose: () => void; doneLabel?: string
 }) {
-  const STEPS = steps
-  const s = STEPS[step]
+  const s = steps[step]
   const [title, body] = pt ? s.pt : s.en
-  const last = step === STEPS.length - 1
-  const W = 340, M = 12
-  const vw = window.innerWidth, vh = window.innerHeight
-  let left = (vw - W) / 2, top = vh / 2 - 110
-  if (rect) {
-    const toRight = rect.right + W + 24 < vw && rect.left < vw * 0.5
-    left = toRight ? rect.right + 16 : Math.min(Math.max(M, rect.left + rect.width / 2 - W / 2), vw - W - M)
-    top = toRight ? Math.min(Math.max(M, rect.top + rect.height / 2 - 90), vh - 250) : (rect.bottom + 16 + 230 < vh ? rect.bottom + 16 : Math.max(M, rect.top - 16 - 230))
-  }
-  const close = onClose
+  const last = step === steps.length - 1
+  const cardRef = useRef<HTMLDivElement>(null)
+  const [pos, setPos] = useState<{ left: number; top: number; width: number } | null>(null)
+
+  // Posiciona pelo tamanho real do balão: nunca cobre o alvo e nunca sai da tela.
+  useLayoutEffect(() => {
+    const vw = window.innerWidth, vh = window.innerHeight, M = 12, GAP = 14
+    const mobile = vw < 640
+    const width = mobile ? vw - 2 * M : Math.min(360, vw - 2 * M)
+    const h = cardRef.current?.offsetHeight ?? 240
+    let left = (vw - width) / 2, top = (vh - h) / 2
+    if (rect) {
+      const below = rect.bottom + GAP, above = rect.top - GAP - h
+      if (mobile) {
+        // Celular: o balão vira uma folha no lado oposto ao alvo (topo ou base da tela).
+        top = rect.top + rect.height / 2 > vh / 2 ? M + 4 : vh - h - M - 4
+      } else if (below + h <= vh - M) {
+        top = below; left = rect.left + rect.width / 2 - width / 2
+      } else if (above >= M) {
+        top = above; left = rect.left + rect.width / 2 - width / 2
+      } else if (rect.right + GAP + width <= vw - M) {
+        left = rect.right + GAP; top = rect.top + rect.height / 2 - h / 2
+      } else if (rect.left - GAP - width >= M) {
+        left = rect.left - GAP - width; top = rect.top + rect.height / 2 - h / 2
+      }
+      left = Math.min(Math.max(M, left), vw - width - M)
+      top = Math.min(Math.max(M, top), vh - h - M)
+    }
+    setPos({ left, top, width })
+  }, [rect, step])
+
+  const vw = typeof window === 'undefined' ? 0 : window.innerWidth, vh = typeof window === 'undefined' ? 0 : window.innerHeight
+  const hole = rect && { x: Math.max(4, rect.left - 6), y: Math.max(4, rect.top - 6), w: 0, h: 0 }
+  if (hole && rect) { hole.w = Math.min(vw - 4, rect.right + 6) - hole.x; hole.h = Math.min(vh - 4, rect.bottom + 6) - hole.y }
+
   return createPortal(
-    <div className="fixed inset-0 z-[200]" role="dialog" aria-modal="true" aria-label="Tutorial">
-      <svg className="absolute inset-0 h-full w-full" onClick={close} aria-hidden>
-        <defs><mask id="tour-hole"><rect width="100%" height="100%" fill="white" />{rect && <rect x={rect.left - 6} y={rect.top - 6} width={rect.width + 12} height={rect.height + 12} rx="10" fill="black" />}</mask></defs>
-        <rect width="100%" height="100%" fill="rgba(0,0,0,0.6)" mask="url(#tour-hole)" />
-        {rect && <rect x={rect.left - 6} y={rect.top - 6} width={rect.width + 12} height={rect.height + 12} rx="10" fill="none" stroke="rgba(255,255,255,0.85)" strokeWidth="2" />}
+    <div data-tour-root className="fixed inset-0 z-[200]" role="dialog" aria-modal="true" aria-label="Tutorial">
+      <svg className="absolute inset-0 h-full w-full" onClick={onClose} aria-hidden>
+        <defs><mask id="tour-hole"><rect width="100%" height="100%" fill="white" />{hole && <rect x={hole.x} y={hole.y} width={hole.w} height={hole.h} rx="12" fill="black" />}</mask></defs>
+        <rect width="100%" height="100%" fill="rgba(0,0,0,0.62)" mask="url(#tour-hole)" />
+        {hole && <rect x={hole.x} y={hole.y} width={hole.w} height={hole.h} rx="12" fill="none" stroke="rgba(255,255,255,0.9)" strokeWidth="2" />}
       </svg>
-      <div className="absolute rounded-2xl border p-5 shadow-2xl" style={{ left, top, width: Math.min(W, vw - 2 * M), backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }}>
-        <button type="button" onClick={close} aria-label={pt ? 'Pular tutorial' : 'Skip tutorial'} className="absolute right-2 top-2 grid size-8 place-items-center rounded-full hover:bg-[var(--ui-hover)]" style={{ color: 'var(--theme-text-secondary)' }}><X className="w-4 h-4" /></button>
-        <p className="text-[11.5px] font-semibold uppercase tracking-[0.12em]" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? 'Passo' : 'Step'} {step + 1}/{STEPS.length}</p>
-        <h2 className="mt-1.5 pr-6 font-display text-[22px] leading-tight">{title}</h2>
+      <div ref={cardRef} className="absolute rounded-2xl border p-5 shadow-2xl transition-[left,top] duration-200"
+        style={{ left: pos?.left ?? -9999, top: pos?.top ?? 0, width: pos?.width ?? 360, visibility: pos ? 'visible' : 'hidden', backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }}>
+        <button type="button" onClick={onClose} aria-label={pt ? 'Fechar tutorial' : 'Close tutorial'} className="absolute right-2.5 top-2.5 grid size-8 place-items-center rounded-full hover:bg-[var(--ui-hover)]" style={{ color: 'var(--theme-text-secondary)' }}><X className="w-4 h-4" /></button>
+        <p className="text-[11.5px] font-semibold uppercase tracking-[0.12em] tabular-nums" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? 'Passo' : 'Step'} {step + 1} {pt ? 'de' : 'of'} {steps.length}</p>
+        <div className="mt-2 mr-8 h-1 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--theme-border)' }} aria-hidden>
+          <div className="h-full rounded-full transition-[width] duration-300" style={{ width: `${((step + 1) / steps.length) * 100}%`, backgroundColor: 'var(--theme-text)' }} />
+        </div>
+        <h2 className="mt-3 pr-6 font-display text-[21px] leading-tight">{title}</h2>
         <p className="mt-2 text-[14px] leading-relaxed" style={{ color: 'var(--theme-text-secondary)' }}>{body}</p>
-        <div className="mt-4 flex items-center justify-between gap-2">
-          <div className="flex gap-1" aria-hidden>{STEPS.map((_, i) => <span key={i} className="h-1.5 rounded-full transition-all" style={{ width: i === step ? 16 : 6, backgroundColor: i === step ? 'var(--theme-text)' : 'var(--theme-border)' }} />)}</div>
-          <div className="flex items-center gap-2">
-            {step > 0 && <button type="button" onClick={() => onStep(step - 1)} className="h-9 px-3 inline-flex items-center gap-1 rounded-full border text-[13px]" style={{ borderColor: 'var(--theme-border)' }}><ArrowLeft className="w-3.5 h-3.5" />{pt ? 'Voltar' : 'Back'}</button>}
-            <button type="button" onClick={() => (last ? close() : onStep(step + 1))} className="h-9 px-4 inline-flex items-center gap-1.5 rounded-full text-[13px] font-medium" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
+        <div className="mt-5 flex items-center justify-between gap-2">
+          {!last
+            ? <button type="button" onClick={onClose} className="h-9 -ml-1 px-1 text-[13px] underline-offset-2 hover:underline shrink-0" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? 'Pular' : 'Skip'}</button>
+            : <span />}
+          <div className="flex items-center gap-2 min-w-0">
+            {step > 0 && <button type="button" onClick={() => onStep(step - 1)} aria-label={pt ? 'Voltar' : 'Back'} className="h-9 px-3 inline-flex items-center gap-1 rounded-full border text-[13px] shrink-0" style={{ borderColor: 'var(--theme-border)' }}><ArrowLeft className="w-3.5 h-3.5" /><span className="max-[360px]:hidden">{pt ? 'Voltar' : 'Back'}</span></button>}
+            <button type="button" onClick={() => (last ? onClose() : onStep(step + 1))} className="h-9 px-4 inline-flex items-center gap-1.5 rounded-full text-[13px] font-medium shrink-0" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
               {last ? (doneLabel ?? (pt ? 'Começar' : 'Start')) : (pt ? 'Próximo' : 'Next')}{!last && <ArrowRight className="w-3.5 h-3.5" />}
             </button>
           </div>
         </div>
-        {!last && <button type="button" onClick={close} className="mt-3 text-[12.5px] underline-offset-2 hover:underline" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? 'Pular tutorial' : 'Skip tutorial'}</button>}
       </div>
     </div>,
     document.body,
@@ -87,7 +154,9 @@ export function GuidedTour() {
   const navigate = useNavigate()
   const location = useLocation()
   const [step, setStep] = useState<number | null>(null)
-  const [rect, setRect] = useState<DOMRect | null>(null)
+  const dir = useRef<1 | -1>(1)
+  const go = useCallback((n: number) => { setStep(cur => { dir.current = cur !== null && n < cur ? -1 : 1; return n }) }, [])
+  const rect = useTourRect(STEPS, step, go, dir)
 
   // Primeira visita: abre sozinho na Home.
   useEffect(() => {
@@ -97,7 +166,7 @@ export function GuidedTour() {
     return () => window.clearTimeout(t)
   }, [user?.id, location.pathname])
   useEffect(() => {
-    const open = () => { if (location.pathname !== '/') navigate('/'); setStep(0) }
+    const open = () => { if (location.pathname !== '/') navigate('/'); dir.current = 1; setStep(0) }
     window.addEventListener('bookmoo:tour', open)
     return () => window.removeEventListener('bookmoo:tour', open)
   }, [location.pathname, navigate])
@@ -107,20 +176,17 @@ export function GuidedTour() {
     setStep(null)
   }, [user?.id])
 
-  const measure = useCallback(() => { if (step !== null) setRect(targetRect(STEPS[step].selector)) }, [step])
-  useLayoutEffect(() => { measure() }, [measure])
   useEffect(() => {
     if (step === null) return
-    window.addEventListener('resize', measure); window.addEventListener('scroll', measure, true)
     const key = (e: KeyboardEvent) => {
       if (e.key === 'Escape') close()
-      else if (e.key === 'ArrowRight') setStep(s => (s === null ? s : Math.min(STEPS.length - 1, s + 1)))
-      else if (e.key === 'ArrowLeft') setStep(s => (s === null ? s : Math.max(0, s - 1)))
+      else if (e.key === 'ArrowRight') go(Math.min(STEPS.length - 1, step + 1))
+      else if (e.key === 'ArrowLeft') go(Math.max(0, step - 1))
     }
     window.addEventListener('keydown', key)
-    return () => { window.removeEventListener('resize', measure); window.removeEventListener('scroll', measure, true); window.removeEventListener('keydown', key) }
-  }, [step, measure, close])
+    return () => window.removeEventListener('keydown', key)
+  }, [step, go, close])
 
   if (step === null) return null
-  return <TourOverlay steps={STEPS} step={step} rect={rect} pt={pt} onStep={setStep} onClose={close} />
+  return <TourOverlay steps={STEPS} step={step} rect={rect} pt={pt} onStep={go} onClose={close} />
 }

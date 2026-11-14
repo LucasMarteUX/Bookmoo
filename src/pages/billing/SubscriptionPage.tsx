@@ -36,7 +36,8 @@ export function SubscriptionPage() {
   if (!ent) return null
   const plan = planById(ent.plan)
   const sub = ent.subscription
-  const date = (iso?: string | null) => iso ? new Date(iso).toLocaleDateString(pt ? 'pt-BR' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' }) : ''
+  // Cortesia sem expiração é gravada com data em 2099.
+  const date = (iso?: string | null) => !iso ? '' : new Date(iso).getFullYear() >= 2099 ? (pt ? 'sem data de término' : 'no end date') : new Date(iso).toLocaleDateString(pt ? 'pt-BR' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' })
   const fail = (e: unknown) => {
     const code = (e as { code?: string }).code ?? ''
     toast(BILLING_ERRORS[code]?.[pt ? 'pt' : 'en'] ?? (pt ? 'Não foi possível concluir.' : 'Could not complete.'), { tone: 'error' })
@@ -57,7 +58,7 @@ export function SubscriptionPage() {
   const downgrade = async (to: PlanId) => {
     const target = planById(to)
     const ok = await askConfirm(pt ? `Mudar para o ${target.name}?` : `Switch to ${target.name}?`, {
-      detail: pt ? `O ${plan.name} continua até ${date(sub?.current_period_end)}. Nessa data a cobrança atual é encerrada e você assina o ${target.name} (${formatBRL(target.priceCents)}/mês) — avisaremos para concluir.` : `${plan.name} stays until ${date(sub?.current_period_end)}. Then you subscribe to ${target.name}.`,
+      detail: pt ? `O ${plan.name} continua até ${date(sub?.current_period_end)}. Nessa data a cobrança atual é encerrada e você assina o ${target.name} (${formatBRL(target.priceCents)}/mês), avisaremos para concluir.` : `${plan.name} stays until ${date(sub?.current_period_end)}. Then you subscribe to ${target.name}.`,
       confirmLabel: pt ? 'Agendar mudança' : 'Schedule change',
     })
     if (ok) await run(() => billing.downgrade(to), pt ? 'Mudança agendada.' : 'Change scheduled.')
@@ -85,8 +86,8 @@ export function SubscriptionPage() {
             <p className="mt-1 text-[26px] font-semibold">{plan.name}</p>
             {sub && (
               <p className="mt-1 text-[14px]" style={{ color: 'var(--theme-text-secondary)' }}>
-                {sub.status === 'past_due' ? (pt ? `Pagamento pendente — acesso até ${date(sub.grace_until)}` : `Payment pending — access until ${date(sub.grace_until)}`)
-                  : sub.cancel_at_period_end ? (pt ? `Cancelada — ativa até ${date(sub.current_period_end)}${sub.pending_plan ? ` (depois: ${planById(sub.pending_plan).name})` : ''}` : `Cancelled — active until ${date(sub.current_period_end)}`)
+                {sub.status === 'past_due' ? (pt ? `Pagamento pendente, acesso até ${date(sub.grace_until)}` : `Payment pending, access until ${date(sub.grace_until)}`)
+                  : sub.cancel_at_period_end ? (pt ? `Cancelada, ativa até ${date(sub.current_period_end)}${sub.pending_plan ? ` (depois: ${planById(sub.pending_plan).name})` : ''}` : `Cancelled, active until ${date(sub.current_period_end)}`)
                   : sub.provider === 'admin' ? (pt ? `Cortesia até ${date(sub.current_period_end)}` : `Complimentary until ${date(sub.current_period_end)}`)
                   : (pt ? `${formatBRL(sub.price_cents)}/mês · renova em ${date(sub.current_period_end)}` : `${formatBRL(sub.price_cents)}/mo · renews ${date(sub.current_period_end)}`)}
               </p>

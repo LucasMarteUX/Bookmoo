@@ -1,6 +1,7 @@
 // Painel de atividade estilo GitHub: um quadradinho por dia (último ano), sequência de dias,
 // horários em que o aluno mais estuda e de onde vieram os pontos.
 import { Fragment, useEffect, useMemo, useRef } from 'react'
+import { AnimatedValue, GrowBar } from '@/components/ui/animated'
 import { CalendarDays, Flame, Star, Trophy } from 'lucide-react'
 import { kindOf, useXpStore, xpSummary, type XpKind } from '@/store/useXpStore'
 
@@ -62,10 +63,10 @@ export function ActivityPanel({ pt }: { pt: boolean }) {
           [<Trophy key="i" className="w-3.5 h-3.5" />, pt ? 'Recorde' : 'Best streak', `${summary.best} ${pt ? (summary.best === 1 ? 'dia' : 'dias') : (summary.best === 1 ? 'day' : 'days')}`, pt ? 'maior sequência' : 'longest run'],
           [<Star key="i" className="w-3.5 h-3.5" />, pt ? 'Pontos' : 'Points', fmt.format(summary.total), pt ? 'Falar, ditado, leitura e vocabulário' : 'Speak, dictation, reading, vocabulary'],
           [<CalendarDays key="i" className="w-3.5 h-3.5" />, pt ? 'Dias de estudo' : 'Study days', fmt.format(activeDays), pt ? `${fmt.format(yearCount)} atividades no último ano` : `${fmt.format(yearCount)} activities last year`],
-        ].map(([icon, label, value, sub]) => (
+        ].map(([icon, label, value, sub], i) => (
           <div key={String(label)} className="rounded-2xl border px-5 py-4" style={card}>
             <div className="flex items-center gap-1.5 text-[13px]" style={{ color: 'var(--theme-text-secondary)' }}>{icon}{label}</div>
-            <div className="mt-1.5 text-[26px] font-semibold tabular-nums leading-tight" style={{ color: 'var(--theme-text)' }}>{value}</div>
+            <div className="mt-1.5 text-[26px] font-semibold tabular-nums leading-tight" style={{ color: 'var(--theme-text)' }}><AnimatedValue value={String(value)} delay={i * 80} /></div>
             <div className="text-[12px] mt-0.5" style={{ color: 'var(--theme-text-secondary)' }}>{sub}</div>
           </div>
         ))}
@@ -106,8 +107,8 @@ export function ActivityPanel({ pt }: { pt: boolean }) {
           <p className="text-sm font-semibold mb-3" style={{ color: 'var(--theme-text)' }}>{pt ? 'Horários em que você estuda' : 'When you study'}</p>
           <div className="flex items-end gap-[3px] h-24">
             {summary.byHour.map((n, h) => (
-              <div key={h} className="flex-1 rounded-t-sm" title={`${h}h: ${n}`}
-                style={{ height: `${Math.max(n ? 6 : 2, (n / maxHour) * 100)}%`, backgroundColor: n ? 'color-mix(in srgb, var(--theme-text) 55%, transparent)' : 'var(--theme-border-subtle)' }} />
+              <GrowBar key={h} axis="y" size={Math.max(n ? 6 : 2, (n / maxHour) * 100)} delay={0.1 + h * 0.02} className="flex-1 rounded-t-sm" title={`${h}h: ${n}`}
+                style={{ backgroundColor: n ? 'color-mix(in srgb, var(--theme-text) 55%, transparent)' : 'var(--theme-border-subtle)' }} />
             ))}
           </div>
           <div className="flex justify-between text-[11.5px] mt-1" style={{ color: 'var(--theme-text-secondary)' }}>
@@ -121,9 +122,9 @@ export function ActivityPanel({ pt }: { pt: boolean }) {
               <div key={k} className="flex items-center gap-2 text-sm">
                 <span className="w-48 shrink-0 truncate" style={{ color: 'var(--theme-text-secondary)' }}>{kindLabels[k]}</span>
                 <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--theme-border-subtle)' }}>
-                  <div className="h-full rounded-full" style={{ width: `${summary.total ? (byKind[k] / summary.total) * 100 : 0}%`, backgroundColor: 'color-mix(in srgb, var(--theme-text) 55%, transparent)' }} />
+                  <GrowBar className="h-full rounded-full" size={summary.total ? (byKind[k] / summary.total) * 100 : 0} delay={0.2} style={{ backgroundColor: 'color-mix(in srgb, var(--theme-text) 55%, transparent)' }} />
                 </div>
-                <span className="w-12 text-right tabular-nums font-semibold" style={{ color: 'var(--theme-text)' }}>{fmt.format(byKind[k])}</span>
+                <span className="w-12 text-right tabular-nums font-semibold" style={{ color: 'var(--theme-text)' }}><AnimatedValue value={fmt.format(byKind[k])} /></span>
               </div>
             ))}
           </div>
