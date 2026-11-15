@@ -1,10 +1,13 @@
 import { adminClient, corsHeaders, getUser, json } from '../_shared/tts.ts'
+import { rateLimit } from '../_shared/rate.ts'
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405)
   const user = await getUser(req)
   if (!user) return json({ error: 'unauthorized' }, 401)
+  const limited = await rateLimit(req, user.id, 'tts-prefs', 30)
+  if (limited) return limited
 
   const b = await req.json().catch(() => null) as
     { preferred_voice_id?: string | null; playback_speed?: number; auto_play?: boolean } | null

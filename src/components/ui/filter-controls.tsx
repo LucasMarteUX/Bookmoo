@@ -11,7 +11,7 @@ const field = { borderColor: 'var(--theme-border)', backgroundColor: 'var(--them
 export function SegmentedTabs<T extends string>({ value, onChange, options, label, stretch = false, className }: {
   value: T
   onChange: (value: T) => void
-  options: { id: T; label: ReactNode; icon?: ReactNode; className?: string }[]
+  options: { id: T; label: ReactNode; icon?: ReactNode; className?: string; /** Explicação ao passar o mouse. */ title?: string }[]
   label?: string
   stretch?: boolean
   className?: string
@@ -21,7 +21,7 @@ export function SegmentedTabs<T extends string>({ value, onChange, options, labe
       {options.map(option => {
         const on = value === option.id
         return (
-          <button key={option.id} type="button" role="tab" aria-selected={on} onClick={() => onChange(option.id)}
+          <button key={option.id} type="button" role="tab" aria-selected={on} title={option.title} onClick={() => onChange(option.id)}
             className={cn('h-7 px-2.5 inline-flex items-center justify-center gap-1.5 shrink-0 rounded-md text-[12.5px] font-medium whitespace-nowrap transition-colors', stretch && 'flex-1', option.className)}
             style={{ backgroundColor: on ? 'var(--theme-card-bg)' : 'transparent', color: on ? 'var(--theme-text)' : 'var(--theme-text-secondary)', boxShadow: on ? '0 1px 2px rgba(0,0,0,0.08)' : undefined }}>
             {option.icon}{option.label}

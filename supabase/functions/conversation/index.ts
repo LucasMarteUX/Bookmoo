@@ -3,6 +3,7 @@
 // Minutos: Cenas reservam a duração no início e devolvem a sobra no fim; tutores cobram por turno
 // (tempo de fala estimado pelo texto, que o servidor vê — não dá para burlar pelo aparelho).
 import { adminClient, corsHeaders, getUser, json, log } from '../_shared/tts.ts'
+import { rateLimit } from '../_shared/rate.ts'
 import { AiError, llmChat, llmJson, parseJson, pickProvider } from '../_shared/ai.ts'
 import { commitCredits, creditsForSeconds, entitlements, measured, metered, releaseReservation, requireFeature, reserveConversation, type Entitlements } from '../_shared/billing.ts'
 import { DEMO_SCENE_KEY, findScene, type Scene } from '../_shared/scenes.ts'
@@ -457,6 +458,8 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405)
   const user = await getUser(req)
   if (!user) return json({ error: 'unauthorized' }, 401)
+  const limited = await rateLimit(req, user.id, 'conversation', 60)
+  if (limited) return limited
   const body = await req.json().catch(() => null) as Body | null
   if (!body) return json({ error: 'invalid_json' }, 400)
   try {

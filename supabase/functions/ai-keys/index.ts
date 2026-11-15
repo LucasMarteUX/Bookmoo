@@ -1,6 +1,7 @@
 // Conecta, consulta e remove as chaves de IA do próprio usuário.
 // A chave é validada, guardada cifrada no Vault e NUNCA devolvida ao cliente.
 import { adminClient, corsHeaders, getUser, json, log } from '../_shared/tts.ts'
+import { rateLimit } from '../_shared/rate.ts'
 import { validateKey, type Provider } from '../_shared/ai.ts'
 
 const PROVIDERS: Provider[] = ['openai', 'gemini']
@@ -19,6 +20,8 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
   const user = await getUser(req)
   if (!user) return json({ error: 'unauthorized' }, 401)
+  const limited = await rateLimit(req, user.id, 'ai-keys', 10)
+  if (limited) return limited
 
   if (req.method === 'GET') return json({ providers: await status(user.id) })
 

@@ -2,10 +2,13 @@
 // Idempotente: o mesmo evento nunca é aplicado duas vezes. Falha → 500 para o gateway tentar de novo.
 import { adminClient, corsHeaders, json, log } from '../_shared/tts.ts'
 import { applyEvent, normalize, verifySignature } from '../_shared/payments.ts'
+import { clientIp, rateLimit } from '../_shared/rate.ts'
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405)
+  const limited = await rateLimit(req, clientIp(req), 'webhook', 240)
+  if (limited) return limited
   const raw = await req.text()
   if (raw.length > 1_000_000) return json({ error: 'too_large' }, 413)
   if (!(await verifySignature(raw, req))) {

@@ -1,9 +1,12 @@
 import { adminClient, corsHeaders, getUser, json, signedUrl } from '../_shared/tts.ts'
+import { rateLimit } from '../_shared/rate.ts'
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
   const user = await getUser(req)
   if (!user) return json({ error: 'unauthorized' }, 401)
+  const limited = await rateLimit(req, user.id, 'tts-status', 120)
+  if (limited) return limited
 
   const url = new URL(req.url)
   let jobId = url.searchParams.get('job_id')

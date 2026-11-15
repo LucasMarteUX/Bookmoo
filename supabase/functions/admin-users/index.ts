@@ -1,6 +1,7 @@
 // Ações de admin que precisam da API de Auth (chave de serviço): criar usuário, link de nova senha,
 // confirmar e-mail e encerrar sessões. Só quem está em admin_users pode chamar.
 import { adminClient, corsHeaders, getUser, json, log } from '../_shared/tts.ts'
+import { rateLimit } from '../_shared/rate.ts'
 
 type Body = { action?: string; email?: string; password?: string; name?: string; userId?: string; plan?: string; days?: number; aiPlan?: string; confirm?: boolean }
 
@@ -70,6 +71,8 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405)
   const user = await getUser(req)
   if (!user) return json({ error: 'unauthorized' }, 401)
+  const limited = await rateLimit(req, user.id, 'admin', 20)
+  if (limited) return limited
   const body = await req.json().catch(() => null) as Body | null
   if (!body) return json({ error: 'invalid_json' }, 400)
   try {

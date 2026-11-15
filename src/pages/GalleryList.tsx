@@ -89,6 +89,13 @@ function useGalleryFilters() {
   }
 }
 
+/** Explicação de cada nível ao passar o mouse no filtro. */
+function levelTip(id: CefrId | 'all', pt: boolean): string {
+  if (id === 'all') return pt ? 'Mostrar livros de todos os níveis' : 'Show books of every level'
+  const band = CEFR.find(item => item.id === id)!
+  return `${id} · ${pt ? band.pt : band.en}. ${pt ? band.can.pt : band.can.en}`
+}
+
 export function GalleryList() {
   const ent = useEntitlements(s => s.data)
   const giftMode = new URLSearchParams(useLocation().search).get('presente') === '1'
@@ -281,7 +288,7 @@ export function GalleryList() {
           <div className="grid gap-3 [&_select]:h-11 [&_select]:max-w-none [&_select]:w-full [&_select]:flex-none [&_select]:text-[14px] [&_button]:h-11">
             
         <SegmentedTabs className="w-full sm:w-fit" stretch label={pt ? 'Nível' : 'Level'} value={level} onChange={v => setFilter('level', v)}
-          options={(['all', ...CEFR.map(band => band.id)] as (CefrId | 'all')[]).map(id => ({ id, label: id === 'all' ? (pt ? 'Todos' : 'All') : id }))} />
+          options={(['all', ...CEFR.map(band => band.id)] as (CefrId | 'all')[]).map(id => ({ id, label: id === 'all' ? (pt ? 'Todos' : 'All') : id, title: levelTip(id, pt) }))} />
         <span className="mx-1.5 h-4 w-px shrink-0 hidden sm:block" style={{ backgroundColor: 'var(--theme-border)' }} aria-hidden />
         {categories.length > 0 && (
           <FilterSelect value={category} onChange={v => setFilter('cat', v)} label={pt ? 'Categoria' : 'Category'}
@@ -314,7 +321,7 @@ export function GalleryList() {
       <div role="group" aria-label={pt ? 'Filtros' : 'Filters'} className="hidden sm:flex flex-wrap items-center gap-2">
 
         <SegmentedTabs className="w-full sm:w-fit" stretch label={pt ? 'Nível' : 'Level'} value={level} onChange={v => setFilter('level', v)}
-          options={(['all', ...CEFR.map(band => band.id)] as (CefrId | 'all')[]).map(id => ({ id, label: id === 'all' ? (pt ? 'Todos' : 'All') : id }))} />
+          options={(['all', ...CEFR.map(band => band.id)] as (CefrId | 'all')[]).map(id => ({ id, label: id === 'all' ? (pt ? 'Todos' : 'All') : id, title: levelTip(id, pt) }))} />
         <span className="mx-1.5 h-4 w-px shrink-0 hidden sm:block" style={{ backgroundColor: 'var(--theme-border)' }} aria-hidden />
         {categories.length > 0 && (
           <FilterSelect value={category} onChange={v => setFilter('cat', v)} label={pt ? 'Categoria' : 'Category'}

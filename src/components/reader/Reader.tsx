@@ -16,7 +16,7 @@ import { bookStyleKey, catalogStyleOptions } from '@/lib/comicStyles'
 import { StylePickerDialog, useApplyBookStyle, useStyleBank } from '@/components/book/StylePicker'
 import { VocabularyModal, type VocabTab } from '../vocabulary/VocabularyModal'
 import { useMediaSession, useWakeLock } from '@/hooks/useNativeMedia'
-import { ChevronLeft, ChevronRight, MousePointer2, Type, Pin, PinOff, Pencil, Trash2, Play, Image as ImageIcon, Loader2, WandSparkles, Pause, Settings, X, RefreshCw, Eye, EyeOff, Sparkles, GraduationCap, Dices } from 'lucide-react'
+import { ChevronLeft, ChevronRight, MousePointer2, Type, Pin, PinOff, Pencil, Trash2, Play, Image as ImageIcon, Loader2, WandSparkles, Pause, Settings, X, RefreshCw, Eye, EyeOff, Sparkles, GraduationCap, Dices, MoreVertical, CircleHelp, Settings2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
@@ -29,7 +29,8 @@ import {
   aiErrorMessage,
 } from '@/lib/ai'
 import { detectLetteringTheme, letteringThemeFor, type LetteringThemeId } from '@/lib/comicThemes'
-import { ToolButton, ToolDivider, ToolGroup } from '@/components/ui/toolbar'
+import { MenuItem, ToolButton, ToolDivider, ToolGroup } from '@/components/ui/toolbar'
+import { restartBookTour } from '@/components/onboarding/BookTour'
 import { needsVoiceInstall } from './VoiceRequiredDialog'
 import { askVoiceOnce } from '@/lib/voiceGate'
 import { XP, useXpStore } from '@/store/useXpStore'
@@ -152,7 +153,7 @@ export function Reader({ book, autoPlay = false, headerSlot, headerEndSlot }: Re
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const { locale } = useLanguage()
   const { t } = useTranslations(locale)
-  const { theme, fontSize, lineHeight, showHighlights, hiddenMarks, setHiddenMarks, playbackRate, setPlaybackRate, fontFamily, setFontSize, setLineHeight, setFontFamily, grammarHelp } = useReaderSettings()
+  const { theme, fontSize, lineHeight, showHighlights, hiddenMarks, setHiddenMarks, playbackRate, setPlaybackRate, fontFamily, setFontSize, setLineHeight, setFontFamily, grammarHelp, setGrammarHelp } = useReaderSettings()
   const [grammarOpen, setGrammarOpen] = useState(false)
   const [quizOpen, setQuizOpen] = useState(false)
   const [studySection, setStudySection] = useState<string | undefined>()
@@ -789,7 +790,7 @@ export function Reader({ book, autoPlay = false, headerSlot, headerEndSlot }: Re
     if (comicOperation.current || !book.comicPages?.[currentPage]) return
     const pt = locale === 'pt-BR'
     if (!await askConfirm(pt ? 'Apagar a ilustração desta página?' : 'Delete this page’s illustration?',
-      { detail: pt ? 'A página volta a ser só texto. Para ter a imagem de novo é preciso gerar outra vez (usa 10 créditos).' : 'The page goes back to text only. Getting an image again means generating it again (uses 10 credits).', confirmLabel: pt ? 'Apagar' : 'Delete' })) return
+      { detail: pt ? 'A página volta a ser só texto. Para ter a imagem de novo é preciso gerar outra vez.' : 'The page goes back to text only. Getting an image again means generating it again.', confirmLabel: pt ? 'Apagar' : 'Delete' })) return
     comicOperation.current = true
     try { await saveComicPage(book, currentPage, null, null) }
     catch (error) { console.error('Comic delete failed:', error); toast(aiErrorMessage(error), { tone: 'error' }) }
@@ -1321,6 +1322,26 @@ export function Reader({ book, autoPlay = false, headerSlot, headerEndSlot }: Re
   // No modo HQ, página ainda sem quadrinho continua mostrando o texto (com o botão de gerar no topo).
   const showComicPage = viewMode === 'comic' && !!comicImage
 
+  // Menu ⋮ do livro: sempre presente. Com a página ilustrada, as opções do quadrinho ficam no ⋮ do próprio quadrinho.
+  const bookMenu = (
+    <Popover>
+      <PopoverTrigger asChild>
+        <ToolButton icon={<MoreVertical className="w-4 h-4" />} hint={locale === 'pt-BR' ? 'Mais opções do livro' : 'More book options'} />
+      </PopoverTrigger>
+      <PopoverContent className="w-72 p-1.5 rounded-2xl shadow-2xl border z-50" style={{ backgroundColor: 'var(--theme-nav-bg)', borderColor: 'var(--theme-border-subtle)' }} align="end" collisionPadding={12}>
+        <MenuItem icon={<WandSparkles />} label={locale === 'pt-BR' ? 'Ilustrar esta página' : 'Illustrate this page'}
+          description={locale === 'pt-BR' ? 'Desenha a página como quadrinho, com o texto nos balões.' : 'Draws the page as a comic with the text in balloons.'}
+          onClick={openComicMode} />
+        <MenuItem icon={<GraduationCap />} label={grammarHelp ? (locale === 'pt-BR' ? 'Esconder Estudar e Desafio' : 'Hide Study and Challenge') : (locale === 'pt-BR' ? 'Mostrar Estudar e Desafio' : 'Show Study and Challenge')}
+          description={locale === 'pt-BR' ? 'Os botões de lição e quiz na barra do livro.' : 'The lesson and quiz buttons in the book bar.'}
+          onClick={() => setGrammarHelp(!grammarHelp)} />
+        <div className="h-px mx-2 my-1" style={{ backgroundColor: 'var(--theme-border-subtle)' }} />
+        <MenuItem icon={<CircleHelp />} label={locale === 'pt-BR' ? 'Rever o tutorial do livro' : 'Replay the book tutorial'} onClick={() => window.setTimeout(restartBookTour, 150)} />
+        <MenuItem icon={<Settings2 />} label={locale === 'pt-BR' ? 'Ajustes do app' : 'App settings'} onClick={() => navigate('/settings')} />
+      </PopoverContent>
+    </Popover>
+  )
+
   const modeBar = (
             <ToolGroup flat={inHeader} label={locale === 'pt-BR' ? 'Modo de leitura' : 'Reading mode'}>
               <ToolButton icon={<Type className="w-4 h-4" />} label={t('text')} compact active={viewMode === 'text'}
@@ -1372,8 +1393,9 @@ export function Reader({ book, autoPlay = false, headerSlot, headerEndSlot }: Re
                       ? { prepare: 'Preparando a arte…', image: 'Desenhando a página…', layout: 'Encaixando os balões…' }[comicStage]
                       : { prepare: 'Preparing the art…', image: 'Drawing the page…', layout: 'Fitting balloons…' }[comicStage])
                     : (locale === 'pt-BR' ? 'Ilustrar esta página' : 'Illustrate this page')}
-                  hint={locale === 'pt-BR' ? 'Desenha esta página como quadrinho, com o texto nos balões. Usa 10 créditos.' : 'Draws this page as a comic with the text in balloons. Uses 10 credits.'} />
+                  hint={locale === 'pt-BR' ? 'Desenha esta página como quadrinho, com o texto nos balões.' : 'Draws this page as a comic with the text in balloons.'} />
               </>}
+              {!showComicPage && <>{!(viewMode === 'comic' && !comicImage) && <ToolDivider />}{bookMenu}</>}
             </ToolGroup>
   )
 

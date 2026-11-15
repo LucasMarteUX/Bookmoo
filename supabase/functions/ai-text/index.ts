@@ -1,6 +1,7 @@
 // Tarefas de texto/visão que antes rodavam no navegador com uma chave exposta.
 // Usa a chave da plataforma e cobra créditos do plano (billing.ts).
 import { corsHeaders, getUser, json, log } from '../_shared/tts.ts'
+import { rateLimit } from '../_shared/rate.ts'
 import { AiError, llmJson, llmText, pickProvider, type ImagePart } from '../_shared/ai.ts'
 import { explainTerm, glossTerm, sharedExamples, sharedExplain, sharedImages, sharedStory, storyForTerm } from '../_shared/vocab.ts'
 import { entitlements, measured, metered, requireFeature } from '../_shared/billing.ts'
@@ -137,6 +138,8 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405)
   const user = await getUser(req)
   if (!user) return json({ error: 'unauthorized' }, 401)
+  const limited = await rateLimit(req, user.id, 'ai-text', 20)
+  if (limited) return limited
   const body = await req.json().catch(() => null) as Body | null
   if (!body) return json({ error: 'invalid_json' }, 400)
   try {

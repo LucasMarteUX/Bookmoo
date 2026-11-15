@@ -1,6 +1,7 @@
 // "Estudar a página" (lição completa da página, como num livro de inglês) e "Desafio" (quiz). O texto da página vem SEMPRE do banco,
 // nunca do aparelho. A gramática de livros da galeria é compartilhada: gerada uma vez, reaproveitada por todos.
 import { adminClient, corsHeaders, getUser, json, log, sha256Hex } from '../_shared/tts.ts'
+import { rateLimit } from '../_shared/rate.ts'
 import { AiError, llmJson, pickProvider } from '../_shared/ai.ts'
 import { entitlements, metered } from '../_shared/billing.ts'
 
@@ -224,6 +225,8 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405)
   const user = await getUser(req)
   if (!user) return json({ error: 'unauthorized' }, 401)
+  const limited = await rateLimit(req, user.id, 'grammar', 20)
+  if (limited) return limited
   const body = await req.json().catch(() => null) as Body | null
   if (!body) return json({ error: 'invalid_json' }, 400)
   try {

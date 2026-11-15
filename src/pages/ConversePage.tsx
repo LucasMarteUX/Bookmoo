@@ -137,7 +137,7 @@ export function ConversePage() {
               <span>{pt ? 'Mostrar legendas' : 'Show captions'}</span>
               <input type="checkbox" checked={captions} onChange={e => setCaptions(e.target.checked)} className="w-5 h-5 accent-[var(--theme-text)]" />
             </label>
-            <p className="text-[12.5px]" style={muted}>{pt ? 'A conversa usa 1 crédito por minuto. Ela escuta sozinha: fale normalmente e faça pausas à vontade; ela espera você terminar. Você pode interromper a voz falando por cima.' : 'Uses 1 credit per minute. It listens on its own: speak naturally and pause freely; it waits for you to finish. You can interrupt by speaking.'}</p>
+            <p className="text-[12.5px]" style={muted}>{pt ? 'Ela escuta sozinha: fale normalmente e faça pausas à vontade; ela espera você terminar. Você pode interromper a voz falando por cima.' : 'It listens on its own: speak naturally and pause freely; it waits for you to finish. You can interrupt by speaking.'}</p>
           </div>
         </DialogContent>
       </Dialog>

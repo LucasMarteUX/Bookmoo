@@ -3,6 +3,7 @@
 // Vozes novas entram com is_active=false: um admin precisa ativá-las explicitamente
 // (body: { activate: [uuid], deactivate: [uuid], default_voice_id: uuid }).
 import { adminClient, corsHeaders, getUser, isAdmin, json, log } from '../_shared/tts.ts'
+import { rateLimit } from '../_shared/rate.ts'
 
 type VsVoice = Record<string, unknown>
 
@@ -27,6 +28,8 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405)
   const user = await getUser(req)
   if (!user || !isAdmin(user)) return json({ error: 'forbidden' }, 403)
+  const limited = await rateLimit(req, user.id, 'tts-sync', 5)
+  if (limited) return limited
 
   const body = await req.json().catch(() => ({})) as {
     model_id?: string; model_version?: string; activate?: string[]; deactivate?: string[]; default_voice_id?: string

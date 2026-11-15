@@ -129,7 +129,6 @@ export function PageQuizDialog({ open, onOpenChange, book }: { open: boolean; on
             <button type="button" onClick={start} className="mt-5 h-12 px-8 rounded-full text-[15px] font-semibold" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
               {pt ? 'Começar' : 'Start'}
             </button>
-            <p className="mt-2 text-[12.5px]" style={muted}>{saved ? (pt ? 'Desafio já gerado: sem custo.' : 'Already generated: free.') : (pt ? 'Usa 1 crédito na primeira vez.' : 'Uses 1 credit the first time.')}</p>
             <div className="mt-4"><HideHelp pt={pt} onDone={() => onOpenChange(false)} /></div>
           </div>
         )}

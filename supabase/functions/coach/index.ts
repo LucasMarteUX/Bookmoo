@@ -1,6 +1,7 @@
 // Análise avançada de perfil (Raio-X) e Histórias de reforço — Plus e Pro.
 // O resumo enviado à IA é compacto e sem texto de livros: palavras, erros, práticas e nível.
 import { adminClient, corsHeaders, getUser, json, log } from '../_shared/tts.ts'
+import { rateLimit } from '../_shared/rate.ts'
 import { AiError, llmJson, pickProvider } from '../_shared/ai.ts'
 import { entitlements, measured, requireFeature } from '../_shared/billing.ts'
 
@@ -156,6 +157,8 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405)
   const user = await getUser(req)
   if (!user) return json({ error: 'unauthorized' }, 401)
+  const limited = await rateLimit(req, user.id, 'coach', 20)
+  if (limited) return limited
   const body = await req.json().catch(() => null) as Body | null
   if (!body) return json({ error: 'invalid_json' }, 400)
   try {

@@ -1,6 +1,7 @@
 // Localiza os balões vazios numa página de quadrinho (IA de visão) e encaixa os trechos do texto
 // neles, na ordem de leitura. Devolve caixas normalizadas (0–1) com charStart/charEnd.
 import { corsHeaders, getUser, json, log } from '../_shared/tts.ts'
+import { rateLimit } from '../_shared/rate.ts'
 import { AiError, bytesToB64, llmJson, pickProvider } from '../_shared/ai.ts'
 import { measured } from '../_shared/billing.ts'
 import { inspectComic } from './inspect.ts'
@@ -64,6 +65,8 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405)
   const user = await getUser(req)
   if (!user) return json({ error: 'unauthorized' }, 401)
+  const limited = await rateLimit(req, user.id, 'comic-layout', 10)
+  if (limited) return limited
   const b = await req.json().catch(() => null) as { action?: string; imageUrl?: string; segments?: Segment[]; pageText?: string; panels?: unknown } | null
   if (!b) return json({ error: 'invalid_json' }, 400)
   if (b.action === 'editorial-version') return json({ editorialVersion: 3 })

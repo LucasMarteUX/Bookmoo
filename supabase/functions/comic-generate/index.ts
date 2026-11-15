@@ -1,4 +1,5 @@
 import { adminClient, corsHeaders, getUser, json, log } from '../_shared/tts.ts'
+import { rateLimit } from '../_shared/rate.ts'
 import { AiError, generateImage, llmJson, pickProvider, type ImageReference } from '../_shared/ai.ts'
 import { entitlements, measured, metered, requireFeature } from '../_shared/billing.ts'
 import { sentenceSpans } from '../_shared/comic.ts'
@@ -101,6 +102,8 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405)
   const user = await getUser(req)
   if (!user) return json({ error: 'unauthorized' }, 401)
+  const limited = await rateLimit(req, user.id, 'comic-generate', 6)
+  if (limited) return limited
   const b = await req.json().catch(() => null) as Body | null
   if (!b) return json({ error: 'invalid_json' }, 400)
   if (b.action === 'editorial-version') return json({ editorialVersion: 3 })

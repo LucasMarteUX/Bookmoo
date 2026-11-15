@@ -1,3 +1,4 @@
+import { rateLimit } from '../_shared/rate.ts'
 import {
   adminClient, contentHash, corsHeaders, getUser, json, log, MAX_JOBS_PER_HOUR, MAX_TEXT_CHARS,
   normalizeText, signedUrl,
@@ -13,6 +14,8 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405)
   const user = await getUser(req)
   if (!user) return json({ error: 'unauthorized' }, 401)
+  const limited = await rateLimit(req, user.id, 'tts-generate', 30)
+  if (limited) return limited
 
   let body: { text?: string; language?: string; voice_id?: string; context?: Context }
   try { body = await req.json() } catch { return json({ error: 'invalid_json' }, 400) }

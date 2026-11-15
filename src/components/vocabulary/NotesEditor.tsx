@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { sanitizeHtml } from '@/lib/sanitizeHtml'
 import { Bold, Highlighter, Italic, List, ListOrdered, RemoveFormatting, Underline } from 'lucide-react'
 
 const COLORS = ['#E24B4B', '#E09A2B', '#3E9B62', '#3C7BE0', '#8A5CD0']
@@ -17,7 +18,7 @@ export function NotesEditor({ value, onChange, placeholder }: { value: string; o
     const el = ref.current
     if (!el || seeded.current) return
     seeded.current = true
-    if (value && /<[a-z]/i.test(value)) el.innerHTML = value
+    if (value && /<[a-z]/i.test(value)) el.innerHTML = sanitizeHtml(value)
     else el.textContent = value
   }, [value])
 
@@ -53,7 +54,7 @@ export function NotesEditor({ value, onChange, placeholder }: { value: string; o
         data-placeholder={placeholder}
         className="notes-editor min-h-[180px] px-4 py-3 text-[15px] leading-relaxed outline-none"
         style={{ color: 'var(--theme-text)' }}
-        onInput={(e) => onChange((e.currentTarget.innerHTML || '').replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, ''))}
+        onInput={(e) => onChange(sanitizeHtml(e.currentTarget.innerHTML || ''))}
       />
     </div>
   )

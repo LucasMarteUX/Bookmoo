@@ -290,7 +290,7 @@ export function PageStudyDialog({ open, onOpenChange, book, section, autoGenerat
                     <h2 className="mt-2 font-display text-[34px] leading-tight">{pt ? 'Transforme esta página numa aula' : 'Turn this page into a lesson'}</h2>
                     <p className="mt-4 text-[16px] leading-relaxed" style={muted}>{pt ? 'Uma lição como a de um livro de inglês: vocabulário da página, cada regra explicada com exemplos do livro e de outras situações, erros comuns, exercícios e pronúncia. Fica salva e vale para todos os leitores deste livro.' : 'A lesson like an English course book: page vocabulary, each rule explained with examples from the book and other situations, common mistakes, exercises and pronunciation. Saved for every reader of this book.'}</p>
                     <button type="button" onClick={generate} className="mt-7 h-12 px-6 rounded-full text-[15px] font-semibold inline-flex items-center gap-2" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
-                      <Sparkles className="w-4 h-4" />{pt ? 'Criar a lição (1 crédito)' : 'Create the lesson (1 credit)'}
+                      <Sparkles className="w-4 h-4" />{pt ? 'Criar a lição' : 'Create the lesson'}
                     </button>
                     <div className="mt-8"><HideHelp pt={pt} onDone={() => onOpenChange(false)} /></div>
                   </motion.div>

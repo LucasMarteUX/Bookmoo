@@ -53,13 +53,6 @@ export function BookCard({ to, title, subtitle, coverData, coverPending, ageMin,
     <Link to={to} state={linkState} className={cn('group block', className)}>
       <BookCover title={title} coverData={coverData} pending={coverPending} className="transition-transform duration-300 group-hover:-translate-y-1">
         {level && <LevelBadge id={level} pt={pt} variant="compact" className="absolute left-1.5 top-1.5" />}
-        {illustrated > 0 && (
-          <span className="absolute right-1.5 top-1.5 h-5 px-1.5 rounded-full inline-flex items-center gap-1 text-[10.5px] font-semibold backdrop-blur-md"
-            style={{ backgroundColor: 'color-mix(in srgb, var(--theme-card-bg) 85%, transparent)', color: 'var(--theme-text)' }}
-            title={pt ? `${illustrated} páginas ilustradas` : `${illustrated} illustrated pages`}>
-            <ImageIcon className="w-3 h-3" />{illustrated}
-          </span>
-        )}
         {premium && (
           <span className="absolute left-1.5 bottom-1.5 h-5 px-1.5 rounded-full inline-flex items-center gap-1 text-[10.5px] font-semibold backdrop-blur-md"
             style={{ backgroundColor: 'color-mix(in srgb, #111 70%, transparent)', color: '#FCD34D' }}>

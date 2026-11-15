@@ -1,6 +1,7 @@
 // Ações de assinatura da pessoa logada: checkout, orçamento de upgrade, cancelar/reativar,
 // downgrade, reembolso (arrependimento) e status da intenção (tela de retorno do pagamento).
 import { adminClient, corsHeaders, getUser, json, log } from '../_shared/tts.ts'
+import { rateLimit } from '../_shared/rate.ts'
 import { buildCheckoutUrl, checkoutUrlFor, PAID_PLANS, upgradeQuote, type Plan } from '../_shared/payments.ts'
 import { emails } from '../_shared/email.ts'
 
@@ -125,6 +126,8 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405)
   const user = await getUser(req)
   if (!user?.email) return json({ error: 'unauthorized' }, 401)
+  const limited = await rateLimit(req, user.id, 'billing', 20)
+  if (limited) return limited
   const body = await req.json().catch(() => null) as Body | null
   if (!body) return json({ error: 'invalid_json' }, 400)
   try {

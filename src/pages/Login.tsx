@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { throttleFail, throttleReset, throttleWait } from '@/lib/authThrottle'
 import { ageFrom } from '@/lib/catalog'
 import { Link, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
@@ -80,13 +81,18 @@ export function Login({ mode = 'login' }: { mode?: Mode }) {
     if (code === 'email_not_confirmed' || msg.includes('email not confirmed')) return t('loginErrorEmailNotConfirmed')
     if (msg.includes('provider is not enabled') || msg.includes('unsupported provider')) return pt ? 'O login com Google ainda não está ativado.' : 'Google sign-in is not enabled yet.'
     if (msg.includes('already registered')) return pt ? 'Este e-mail já tem conta. Entre com ele.' : 'This email already has an account. Sign in instead.'
-    if (msg.includes('password should be')) return pt ? 'A senha precisa ter pelo menos 6 caracteres.' : 'Password must be at least 6 characters.'
+    if (msg.includes('password should be')) return pt ? 'A senha precisa ter pelo menos 8 caracteres.' : 'Password must be at least 8 characters.'
+    if (msg.includes('rate limit') || msg.includes('too many') || (err as { status?: number })?.status === 429) return pt ? 'Muitas tentativas. Aguarde alguns minutos e tente de novo.' : 'Too many attempts. Wait a few minutes and try again.'
+    if (msg.includes('pwned') || msg.includes('compromised') || msg.includes('weak password')) return pt ? 'Essa senha é muito comum ou já vazou. Escolha outra.' : 'That password is too common or has been leaked. Pick another.'
     return err?.message || t('loginErrorGeneric')
   }
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(''); setMessage('')
+    const wait = throttleWait()
+    if (wait > 0) { setError(pt ? `Muitas tentativas. Aguarde ${wait}s para tentar de novo.` : `Too many attempts. Wait ${wait}s and try again.`); return }
+    if (signup && password.length < 8) { setError(pt ? 'Use pelo menos 8 caracteres na senha.' : 'Use at least 8 characters.'); return }
     if (signup && password !== confirm) { setError(pt ? 'As senhas não são iguais.' : 'Passwords do not match.'); return }
     if (signup && !name.trim()) { setError(pt ? 'Informe seu nome.' : 'Enter your name.'); return }
     if (signup && signupAge === null) { setError(pt ? 'Informe uma data de nascimento válida.' : 'Enter a valid date of birth.'); return }
@@ -98,7 +104,8 @@ export function Login({ mode = 'login' }: { mode?: Mode }) {
     const result: { error: Error | null; needsConfirmation?: boolean } = signup ? await signUp(normalized, password, { full_name: name.trim(), birth_date: birthDate, ...(signupAge !== null && signupAge < 12 ? { guardian_consent_at: new Date().toISOString() } : {}) }) : await signIn(normalized, password)
     setLoading(null)
     const { error, needsConfirmation } = result
-    if (error) { setError(errorMessage(error)); return }
+    if (error) { throttleFail(); setError(errorMessage(error)); return }
+    throttleReset()
     // Cadastro: o aviso aparece aqui, na hora, e não só na tela de login.
     if (signup && needsConfirmation) setSentTo(normalized)
     else if (signup) setMessage(pt ? 'Conta criada! Entrando…' : 'Account created! Signing you in…')
@@ -212,7 +219,7 @@ export function Login({ mode = 'login' }: { mode?: Mode }) {
               <label className="block">
                 <span className="block text-[13px] font-medium mb-1.5" style={{ color: 'var(--theme-text)' }}>{pt ? 'Senha' : 'Password'}</span>
                 <span className="relative block">
-                  <input type={showPassword ? 'text' : 'password'} autoComplete={signup ? 'new-password' : 'current-password'} required minLength={6}
+                  <input type={showPassword ? 'text' : 'password'} autoComplete={signup ? 'new-password' : 'current-password'} required minLength={8}
                     value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" className={`${field} pr-10`} />
                   <button type="button" onClick={() => setShowPassword(v => !v)}
                     className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 grid place-items-center rounded-md hover:bg-[var(--ui-hover)]"
@@ -227,7 +234,7 @@ export function Login({ mode = 'login' }: { mode?: Mode }) {
               {signup && (
                 <label className="block">
                   <span className="block text-[13px] font-medium mb-1.5" style={{ color: 'var(--theme-text)' }}>{pt ? 'Confirmar senha' : 'Confirm password'}</span>
-                  <input type={showPassword ? 'text' : 'password'} autoComplete="new-password" required minLength={6}
+                  <input type={showPassword ? 'text' : 'password'} autoComplete="new-password" required minLength={8}
                     value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="••••••••" className={field} />
                 </label>
               )}
