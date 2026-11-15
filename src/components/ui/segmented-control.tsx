@@ -29,7 +29,7 @@ export function SegmentedControl<T extends string>({ value, onChange, options, l
         return (
           <button key={o.value} ref={el => { refs.current[i] = el }} type="button" role="radio" aria-checked={active} tabIndex={active ? 0 : -1}
             onClick={() => { if (!active) { onChange(o.value); haptics.selection() } }}
-            className="flex-1 min-h-[2.25rem] px-3 rounded-[8px] text-[13px] font-medium transition-all focus-visible:outline-2 focus-visible:outline-offset-1"
+            className="flex-1 min-h-[2.25rem] px-3 rounded-[8px] text-[13px] font-medium whitespace-nowrap transition-all focus-visible:outline-2 focus-visible:outline-offset-1"
             style={{
               backgroundColor: active ? 'var(--theme-card-bg)' : 'transparent',
               color: active ? 'var(--theme-text)' : 'var(--theme-text-secondary)',

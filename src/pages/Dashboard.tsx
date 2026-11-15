@@ -277,7 +277,10 @@ export function Dashboard() {
   const fmt = new Intl.NumberFormat(pt ? 'pt-BR' : 'en-US')
   const sortedByRecent = [...books].sort((a, b) => +new Date(b.lastRead) - +new Date(a.lastRead))
   const progressOf = (b: (typeof books)[number]) => readingProgress(b.currentPage, b.pages.length, b.totalPages)
-  const hero = sortedByRecent.find(b => progressOf(b) < 100) ?? sortedByRecent[0]
+  // Começou a ler assim que passa da primeira página (em livros longos 1 página ainda dá 0%).
+  const startedOf = (b: (typeof books)[number]) => (b.currentPage || 0) >= 1
+  const finishedOf = (b: (typeof books)[number]) => startedOf(b) && progressOf(b) >= 100
+  const hero = sortedByRecent.find(b => !finishedOf(b)) ?? sortedByRecent[0]
   const today = new Date().toISOString().split('T')[0]
   const minutesToday = Math.floor((dailyStudyTime[today] ?? 0) / 60)
   const goal = dailyGoalMinutes
@@ -291,7 +294,7 @@ export function Dashboard() {
   ]
   const q = libraryQuery.trim().toLowerCase()
   const shelf = (librarySort === 'recent' ? sortedByRecent : librarySort === 'title' ? [...books].sort((a, b) => a.title.localeCompare(b.title)) : [...books].sort((a, b) => progressOf(b) - progressOf(a)))
-    .filter(b => libraryFilter === 'all' || (libraryFilter === 'reading' ? progressOf(b) > 0 && progressOf(b) < 100 : libraryFilter === 'new' ? progressOf(b) === 0 : progressOf(b) >= 100))
+    .filter(b => libraryFilter === 'all' || (libraryFilter === 'reading' ? startedOf(b) && !finishedOf(b) : libraryFilter === 'new' ? !startedOf(b) : finishedOf(b)))
     .filter(b => !q || `${b.title} ${b.author ?? ''}`.toLowerCase().includes(q))
 
   const renderBook = (book: (typeof books)[number]) => {
@@ -355,16 +358,8 @@ export function Dashboard() {
         <div className="flex w-full sm:w-auto flex-wrap items-center gap-2">
           <input ref={epubInputRef} type="file" accept=".epub,application/epub+zip" className="hidden" onChange={handleEpubChange} />
           <input ref={pdfInputRef} type="file" accept=".pdf,application/pdf" className="hidden" onChange={handlePdfChange} />
-          {/* No celular só o "Adicionar livro": a janela já tem as opções de EPUB e PDF. */}
-          <Button variant="outline" className="hidden sm:inline-flex" onClick={() => pickImport('EPUB')} disabled={epubStatus.busy}>
-            <BookUp className="w-4 h-4" />
-            {epubStatus.busy && epubStatus.kind === 'EPUB' ? (pt ? 'Lendo EPUB…' : 'Reading EPUB…') : (pt ? 'Importar EPUB' : 'Import EPUB')}
-          </Button>
-          <Button variant="outline" className="hidden sm:inline-flex" onClick={() => pickImport('PDF')} disabled={epubStatus.busy}>
-            <FileText className="w-4 h-4" />
-            {epubStatus.busy && epubStatus.kind === 'PDF' ? (pt ? 'Lendo PDF…' : 'Reading PDF…') : (pt ? 'Importar PDF' : 'Import PDF')}
-          </Button>
-          <Button data-tour="add-book" className="w-full sm:w-auto" onClick={() => setIsAddModalOpen(true)}>
+          {/* Só no desktop: um botão discreto. No celular o "+" fica na barra superior e a opção no menu. A janela escolhe EPUB, PDF ou texto. */}
+          <Button data-tour="add-book" variant="outline" size="sm" className="hidden sm:inline-flex" onClick={() => setIsAddModalOpen(true)}>
             <Plus className="w-4 h-4" />
             {t('addBook')}
           </Button>
@@ -383,7 +378,7 @@ export function Dashboard() {
               {hero.coverData ? <img src={hero.coverData} alt="" className="w-full h-full object-cover" /> : <BookOpen className="w-8 h-8 m-auto opacity-40" />}
             </button>
             <div className="min-w-0 flex-1">
-              <p className="text-[12.5px] font-medium" style={{ color: 'var(--theme-text-secondary)' }}>{progressOf(hero) > 0 ? (pt ? 'Continuar lendo' : 'Continue reading') : (pt ? 'Comece a ler' : 'Start reading')}</p>
+              <p className="text-[12.5px] font-medium" style={{ color: 'var(--theme-text-secondary)' }}>{startedOf(hero) ? (pt ? 'Continuar lendo' : 'Continue reading') : (pt ? 'Comece a ler' : 'Start reading')}</p>
               <h2 className="font-display mt-0.5 text-[22px] md:text-[30px] leading-[1.1] line-clamp-2" style={{ color: 'var(--theme-text)' }}>{hero.title}</h2>
               {hero.author && <p className="mt-1 text-[14px]" style={{ color: 'var(--theme-text-secondary)' }}>{hero.author}</p>}
               <div className="mt-3 md:mt-4 flex items-center gap-3 max-w-md">
@@ -393,7 +388,7 @@ export function Dashboard() {
                 <span className="text-[12.5px] tabular-nums" style={{ color: 'var(--theme-text-secondary)' }}>{progressOf(hero)}%</span>
               </div>
               <div className="mt-4 md:mt-5 flex flex-wrap gap-2">
-                <Button className="h-10" onClick={() => handleOpenBook(hero.id)}><BookOpen className="w-4 h-4" />{progressOf(hero) > 0 ? (pt ? 'Continuar' : 'Continue') : (pt ? 'Começar' : 'Start')}</Button>
+                <Button className="h-10" onClick={() => handleOpenBook(hero.id)}><BookOpen className="w-4 h-4" />{startedOf(hero) ? (pt ? 'Continuar' : 'Continue') : (pt ? 'Começar' : 'Start')}</Button>
                 <Button variant="outline" className="h-10" onClick={() => navigate('/practice/speak')} aria-label={pt ? 'Praticar fala' : 'Practice speaking'}><AudioLines className="w-4 h-4" /><span className="hidden sm:inline">{pt ? 'Praticar fala' : 'Practice speaking'}</span></Button>
               </div>
             </div>

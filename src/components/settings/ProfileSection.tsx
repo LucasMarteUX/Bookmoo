@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { Camera, Check, Eye, EyeOff, ExternalLink, ImagePlus, Trash2 } from 'lucide-react'
+import { Camera, Check, Eye, EyeOff, ExternalLink, ImagePlus, Trash2, Users } from 'lucide-react'
+import { Switch } from '@/components/ui/switch'
 import { Avatar } from '@/components/ui/avatar'
 import { toast } from '@/components/ui/toast'
 import { errorText, loadBlocked, unblockUser } from '@/lib/social'
@@ -175,20 +176,23 @@ export function ProfileSection({ pt }: { pt: boolean }) {
   }
 
   return (
-    <section id="profile" ref={section} className="scroll-mt-8">
-      <div className="mb-3 flex items-end justify-between gap-3">
-        <div>
-          <h2 className="text-[15px] font-semibold" style={{ color: 'var(--theme-text)' }}>{pt ? 'Perfil na comunidade' : 'Community profile'}</h2>
-          <p className="mt-1 text-[13.5px]" style={{ color: 'var(--theme-text-secondary)' }}>
-            {pt ? 'Foto, @, bio e o que você quer mostrar. O perfil começa privado.' : 'Photo, handle, bio and what you want to show. The profile starts private.'}
+    <section id="profile" ref={section} data-settings-section className="scroll-mt-24">
+      <header className="mb-3.5 flex items-start gap-3">
+        <span className="mt-0.5 w-9 h-9 shrink-0 rounded-xl grid place-items-center" style={{ backgroundColor: 'var(--theme-bg-secondary)', color: 'var(--theme-text)' }}>
+          <Users className="w-[18px] h-[18px]" aria-hidden />
+        </span>
+        <div className="min-w-0 flex-1">
+          <h2 className="text-[17px] font-semibold leading-tight" style={{ color: 'var(--theme-text)' }}>{pt ? 'Perfil público' : 'Public profile'}</h2>
+          <p className="mt-1 text-[13.5px] leading-snug" style={{ color: 'var(--theme-text-secondary)' }}>
+            {pt ? 'Foto, @, bio e o que você quer mostrar na Comunidade. O perfil começa fechado.' : 'Photo, handle, bio and what you show in the Community. It starts closed.'}
           </p>
         </div>
         {savedHandle && (
-          <Link to={`/u/${savedHandle}`} className="shrink-0 inline-flex items-center gap-1 text-[13px] underline" style={{ color: 'var(--theme-text-secondary)' }}>
+          <Link to={`/u/${savedHandle}`} className="ui-hover shrink-0 self-center h-9 px-3 inline-flex items-center gap-1.5 rounded-lg border text-[13px] font-medium" style={{ borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }}>
             {pt ? 'Abrir perfil' : 'Open profile'}<ExternalLink className="w-3.5 h-3.5" />
           </Link>
         )}
-      </div>
+      </header>
       <div className="rounded-2xl border p-5 sm:p-6 space-y-5" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-card-bg)' }}>
         <div className="flex items-center gap-4">
           <div className="w-20 h-20 rounded-full overflow-hidden border shrink-0" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--pastel-lavender-bg)' }}>
@@ -297,6 +301,7 @@ export function ProfileSection({ pt }: { pt: boolean }) {
           ))}
         </div>
 
+        <p className="block text-[12.5px] font-medium -mb-3" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? 'Privacidade e o que mostrar' : 'Privacy and what to show'}</p>
         <div className="rounded-xl overflow-hidden border" style={{ borderColor: 'var(--theme-border)' }}>
           <Toggle checked={profile.isPublic} onChange={isPublic => set({ isPublic })} strong
             title={pt ? 'Perfil aberto' : 'Open profile'}
@@ -314,7 +319,7 @@ export function ProfileSection({ pt }: { pt: boolean }) {
         </div>
 
         <div>
-          <p className="block text-[12.5px] mb-2" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? 'Publicar automaticamente na timeline' : 'Share automatically on the timeline'}</p>
+          <p className="block text-[12.5px] font-medium mb-2" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? 'Publicar automaticamente na timeline' : 'Share automatically on the timeline'}</p>
           <div className="rounded-xl overflow-hidden border" style={{ borderColor: 'var(--theme-border)' }}>
             <Toggle checked={profile.shareReading} onChange={shareReading => set({ shareReading, shareProgress: shareReading && profile.shareProgress })}
               title={pt ? 'Quando começo e termino um livro' : 'When I start and finish a book'} hint={pt ? 'Uma publicação por livro. Desligar esconde as que já foram feitas.' : 'One post per book. Turning off hides the ones already made.'} />
@@ -331,10 +336,10 @@ export function ProfileSection({ pt }: { pt: boolean }) {
         </p>
 
         <div className="flex flex-wrap items-center gap-3">
-          <button type="button" onClick={save} disabled={saving || !handleOk} className="h-9 px-4 rounded-lg text-[13.5px] font-medium disabled:opacity-60" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
+          <button type="button" onClick={save} disabled={saving || !handleOk} className="h-10 px-5 rounded-lg text-[14px] font-medium disabled:opacity-60 hover:opacity-90" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
             {saving ? (pt ? 'Salvando…' : 'Saving…') : (pt ? 'Salvar perfil' : 'Save profile')}
           </button>
-          <button type="button" onClick={() => setPreview(value => !value)} aria-pressed={preview} className="h-9 px-3.5 inline-flex items-center gap-1.5 rounded-lg border text-[13.5px]" style={{ borderColor: 'var(--theme-border)' }}>
+          <button type="button" onClick={() => setPreview(value => !value)} aria-pressed={preview} className="ui-hover h-10 px-4 inline-flex items-center gap-1.5 rounded-lg border text-[13.5px] font-medium" style={{ borderColor: 'var(--theme-border)' }}>
             {preview ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             {preview ? (pt ? 'Fechar prévia' : 'Close preview') : (pt ? 'Ver como os outros veem' : 'See it as others do')}
           </button>
@@ -360,14 +365,15 @@ export function ProfileSection({ pt }: { pt: boolean }) {
 
 function Toggle({ checked, onChange, title, hint, disabled, strong }: { checked: boolean; onChange: (value: boolean) => void; title: ReactNode; hint: ReactNode; disabled?: boolean; strong?: boolean }) {
   return (
-    <label className="flex items-center justify-between gap-4 px-3.5 py-3 border-b last:border-b-0 cursor-pointer"
+    <div className={`flex items-center justify-between gap-4 px-4 py-3.5 border-b last:border-b-0 ${disabled ? '' : 'cursor-pointer'}`}
+      onClick={e => { if (!disabled && !(e.target as HTMLElement).closest('button')) onChange(!checked) }}
       style={{ borderColor: 'var(--theme-border)', backgroundColor: strong ? 'var(--pastel-blue-bg)' : undefined, color: strong ? 'var(--pastel-blue-fg)' : undefined }}>
-      <span>
+      <span className="min-w-0">
         <span className="block text-[14px] font-medium">{title}</span>
-        <span className="block text-[12.5px]" style={{ opacity: 0.75 }}>{hint}</span>
+        <span className="block mt-0.5 text-[12.5px] leading-snug" style={{ opacity: 0.75 }}>{hint}</span>
       </span>
-      <input type="checkbox" checked={checked} disabled={disabled} onChange={e => onChange(e.target.checked)} className="w-4 h-4 shrink-0" />
-    </label>
+      <Switch checked={checked} disabled={disabled} onChange={onChange} label={typeof title === 'string' ? title : undefined} />
+    </div>
   )
 }
 

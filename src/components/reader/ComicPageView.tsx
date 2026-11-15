@@ -410,6 +410,35 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isFullscreen])
 
+  // Dock: em leitura imersiva a barra de baixo some depois de 5 s sem uso e volta quando o mouse chega à base.
+  const [dockHidden, setDockHidden] = useState(false)
+  useEffect(() => {
+    if (!isFullscreen) { document.documentElement.classList.remove('dock-hidden'); setDockHidden(false); return }
+    const root = document.documentElement
+    let timer = 0
+    let overBar = false
+    const hide = () => { if (overBar) { arm(); return } root.classList.add('dock-hidden'); setDockHidden(true) }
+    const arm = () => { window.clearTimeout(timer); timer = window.setTimeout(hide, 5000) }
+    const show = () => { root.classList.remove('dock-hidden'); setDockHidden(false); arm() }
+    const onMove = (e: PointerEvent) => {
+      const bar = (e.target as Element | null)?.closest?.('[data-reader-bar]')
+      overBar = !!bar
+      // Perto da base da tela (onde fica o dock) ou sobre a barra: mostra e reinicia a contagem.
+      if (bar || e.clientY > window.innerHeight - 96) show()
+    }
+    const onKey = () => { if (root.classList.contains('dock-hidden')) show(); else arm() }
+    const onTouch = (e: TouchEvent) => { const y = e.touches[0]?.clientY ?? 0; if (y > window.innerHeight - 96 || (e.target as Element | null)?.closest?.('[data-reader-bar]')) show(); else arm() }
+    window.addEventListener('pointermove', onMove, { passive: true })
+    window.addEventListener('keydown', onKey)
+    window.addEventListener('touchstart', onTouch, { passive: true })
+    arm()
+    return () => {
+      window.clearTimeout(timer); root.classList.remove('dock-hidden')
+      window.removeEventListener('pointermove', onMove); window.removeEventListener('keydown', onKey); window.removeEventListener('touchstart', onTouch)
+    }
+  }, [isFullscreen])
+  const showDock = () => { document.documentElement.classList.remove('dock-hidden'); setDockHidden(false) }
+
   const generating = stage !== null
   const stageLabel = stage === 'prepare' ? labels.preparingArt : stage === 'image' ? labels.generatingImage : labels.generatingLayout
   const btn = 'h-9 min-w-9 px-2 rounded-full flex items-center justify-center gap-1.5 text-xs font-semibold border transition-colors hover:bg-[var(--ui-hover)] disabled:opacity-40'
@@ -522,6 +551,15 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
       {!isFullscreen && (toolbarSlot ? createPortal(toolbar, toolbarSlot) : <div className="sticky top-2 z-30 flex justify-end">{toolbar}</div>)}
       {!isFullscreen && menuSlot && createPortal(moreMenu, menuSlot)}
       {isFullscreen && <>
+        <AnimatePresence>
+          {dockHidden && (
+            <motion.button key="dock-handle" type="button" onClick={showDock} aria-label={pt ? 'Mostrar ferramentas' : 'Show tools'}
+              initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} transition={{ delay: 0.25, duration: 0.25 }}
+              className="fixed left-1/2 -translate-x-1/2 z-[91] h-8 w-28 grid place-items-center" style={{ bottom: 'max(0.4rem, env(safe-area-inset-bottom))' }}>
+              <span className="block h-1.5 w-20 rounded-full" style={{ backgroundColor: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.35)' }} />
+            </motion.button>
+          )}
+        </AnimatePresence>
         <div className="absolute right-3 z-[92] flex items-center gap-2" style={{ top: 'max(0.75rem, var(--safe-t, 0px))' }}>
           <button type="button" onClick={() => setZoomOpen(o => !o)} aria-expanded={zoomOpen} aria-label={pt ? 'Zoom' : 'Zoom'} title={pt ? 'Zoom e enquadramento' : 'Zoom and fit'}
             className="w-9 h-9 grid place-items-center rounded-full transition-colors hover:bg-white/20" style={{ backgroundColor: zoomOpen ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.1)', color: '#fff' }}>

@@ -11,7 +11,7 @@ import { InfoHint } from '@/components/ui/info-hint'
 import { CEFR, type CefrId } from '@/lib/cefr'
 import { parseEpub } from '@/lib/epub'
 import { countWords } from '@/lib/utils'
-import { BOOK_CATEGORIES, getCatalogBook, updateCatalogBook, type BookCategory, type CatalogBook } from '@/lib/catalog'
+import { sortedCategories, getCatalogBook, updateCatalogBook, type BookCategory, type CatalogBook } from '@/lib/catalog'
 
 const PER_PAGE = 8
 
@@ -208,7 +208,7 @@ export function AdminBookEdit() {
               <span className="text-[13px] font-medium">{pt ? 'Categoria' : 'Category'}</span>
               <select value={draft.category} onChange={e => set('category', e.target.value as BookCategory | '')} className={`${field} h-10 mt-1`} style={{ ...border, backgroundColor: 'var(--theme-bg)' }}>
                 <option value="">{pt ? 'Sem categoria' : 'No category'}</option>
-                {BOOK_CATEGORIES.map(item => <option key={item.id} value={item.id}>{pt ? item.pt : item.en}</option>)}
+                {sortedCategories(pt).map(item => <option key={item.id} value={item.id}>{pt ? item.pt : item.en}</option>)}
               </select>
             </label>
             <label className="block">

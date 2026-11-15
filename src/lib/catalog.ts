@@ -73,7 +73,7 @@ export type BookLink = {
 export const BOOK_CATEGORIES = [
   { id: 'classic', pt: 'Clássico', en: 'Classic' },
   { id: 'children', pt: 'Infantil', en: "Children's" },
-  { id: 'bible-stories', pt: 'Histórias Bíblicas', en: 'Bible Stories' },
+  { id: 'bible-stories', pt: 'Religioso', en: 'Religious' },
   { id: 'adventure', pt: 'Aventura', en: 'Adventure' },
   { id: 'fantasy', pt: 'Fantasia', en: 'Fantasy' },
   { id: 'mystery', pt: 'Mistério', en: 'Mystery' },
@@ -85,6 +85,11 @@ export const BOOK_CATEGORIES = [
 ] as const
 
 export type BookCategory = (typeof BOOK_CATEGORIES)[number]['id']
+
+/** Categorias em ordem alfabética no idioma da tela (a ordem fixa acima não é usada para exibir). */
+export function sortedCategories(pt: boolean) {
+  return [...BOOK_CATEGORIES].sort((a, b) => (pt ? a.pt : a.en).localeCompare(pt ? b.pt : b.en, pt ? 'pt-BR' : 'en'))
+}
 
 const LEVELS: CefrId[] = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
 const CATEGORY_IDS = BOOK_CATEGORIES.map(item => item.id)

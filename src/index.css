@@ -728,6 +728,15 @@
 /* Leitura imersiva da página ilustrada: a barra de play fica por cima do palco escuro, centralizada. */
 html.comic-immersive { overflow: hidden; }
 html.comic-immersive [data-reader-bar] { z-index: 90; left: 0.5rem !important; right: 0.5rem !important; }
+/* Dock da leitura imersiva: sem uso por alguns segundos, a barra desce e some (como o dock do macOS);
+   ao levar o mouse à base da tela, ela sobe de novo. */
+html.comic-immersive [data-reader-bar] { transition: transform 0.42s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.3s ease; will-change: transform; }
+html.comic-immersive.dock-hidden [data-reader-bar] { transform: translateY(calc(100% + 40px)) scale(0.94); opacity: 0; pointer-events: none; }
+html.comic-immersive:not(.dock-hidden) [data-reader-bar] { transform: translateY(0) scale(1); opacity: 1; }
+@media (prefers-reduced-motion: reduce) { html.comic-immersive [data-reader-bar] { transition: opacity 0.15s ease; } }
+/* Palavra tocada: o balão e os pontos ficam por cima do palco escuro */
+html.comic-immersive .word-tooltip { z-index: 130 !important; }
+html.comic-immersive .score-burst { z-index: 135 !important; }
 
 /* Faixa de ferramentas do livro: some quando não há nada nela (ex.: Falar). */
 .book-toolrow:not(:has(> :not(.book-toolslot, .book-tooldivider))):has(> .book-toolslot:empty) { display: none; }

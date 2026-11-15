@@ -7,7 +7,7 @@ import { toast } from '@/components/ui/toast'
 import { useAuth } from '@/contexts/AuthContext'
 import { useLanguage } from '@/store/useLanguage'
 import { CEFR, type CefrId } from '@/lib/cefr'
-import { adminOverview, BOOK_CATEGORIES, deleteCatalogBook, listCatalog, updateCatalogMeta, type BookCategory, type CatalogBook } from '@/lib/catalog'
+import { adminOverview, sortedCategories, deleteCatalogBook, listCatalog, updateCatalogMeta, type BookCategory, type CatalogBook } from '@/lib/catalog'
 import { AdminGalleryForm } from './Gallery'
 import { AdminReports } from '@/components/community/AdminReports'
 import { StyleBankAdmin } from '@/components/book/StyleBankAdmin'
@@ -98,7 +98,7 @@ function PublishedBooks({ pt, books, onChange }: { pt: boolean; books: CatalogBo
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <FilterSearch grow value={query} onChange={v => { setQuery(v); setPage(1) }} placeholder={pt ? 'Pesquisar por título ou autor' : 'Search by title or author'} label={pt ? 'Pesquisar livros' : 'Search books'} />
           <FilterSelect value={category} onChange={v => { setCategory(v as BookCategory | 'none' | ''); setPage(1) }} label={pt ? 'Filtrar por categoria' : 'Filter by category'}
-            options={[{ value: '', label: pt ? 'Todas as categorias' : 'All categories' }, ...BOOK_CATEGORIES.map(item => ({ value: item.id, label: pt ? item.pt : item.en })), { value: 'none', label: pt ? 'Sem categoria' : 'No category' }]} />
+            options={[{ value: '', label: pt ? 'Todas as categorias' : 'All categories' }, ...sortedCategories(pt).map(item => ({ value: item.id, label: pt ? item.pt : item.en })), { value: 'none', label: pt ? 'Sem categoria' : 'No category' }]} />
           <FilterSelect value={level} onChange={v => { setLevel(v as CefrId | 'none' | ''); setPage(1) }} label={pt ? 'Filtrar por nível' : 'Filter by level'}
             options={[{ value: '', label: pt ? 'Todos os níveis' : 'All levels' }, ...CEFR.map(band => ({ value: band.id, label: band.id })), { value: 'none', label: pt ? 'Sem nível' : 'No level' }]} />
           {filtering && (
@@ -218,7 +218,7 @@ function PublishedBook({ book, pt, onSaved }: { book: CatalogBook; pt: boolean; 
           </select>
           <select aria-label={pt ? 'Categoria' : 'Category'} className={field} style={style} value={category} onChange={e => setCategory(e.target.value as BookCategory | '')}>
             <option value="">{pt ? 'Sem categoria' : 'No category'}</option>
-            {BOOK_CATEGORIES.map(item => <option key={item.id} value={item.id}>{pt ? item.pt : item.en}</option>)}
+            {sortedCategories(pt).map(item => <option key={item.id} value={item.id}>{pt ? item.pt : item.en}</option>)}
           </select>
           <button type="button" disabled={!dirty || saving} onClick={() => { void save() }}
             className="h-8 px-3 rounded-lg text-[13px] font-medium disabled:opacity-40"

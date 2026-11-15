@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { ChevronLeft, Search } from 'lucide-react'
+import { ChevronLeft, Menu, Plus, Search } from 'lucide-react'
+import { MenuSheet } from './MenuSheet'
 import { useLanguage } from '@/store/useLanguage'
 import { useUiStore } from '@/store/useUiStore'
 import { haptics } from '@/lib/haptics'
@@ -23,9 +24,11 @@ export function NavBar() {
   const navigate = useNavigate()
   const pt = useLanguage().locale === 'pt-BR'
   const setCommandOpen = useUiStore(s => s.setCommandOpen)
+  const requestAddBook = useUiStore(s => s.requestAddBook)
   const root = isTabRoot(pathname)
   const title = screenTitle(pathname, pt)
   const [scrolled, setScrolled] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 44)
@@ -65,8 +68,15 @@ export function NavBar() {
           <button type="button" className={btn} style={{ color: 'var(--theme-text)' }} onClick={() => setCommandOpen(true)} aria-label={pt ? 'Buscar' : 'Search'}>
             <Search className="w-[22px] h-[22px]" aria-hidden />
           </button>
+          <button type="button" data-tour="add-book" className={btn} style={{ color: 'var(--theme-text)' }} onClick={() => { haptics.selection(); navigate('/'); requestAddBook() }} aria-label={pt ? 'Adicionar um livro' : 'Add a book'}>
+            <Plus className="w-[22px] h-[22px]" aria-hidden />
+          </button>
+          <button type="button" className={btn} style={{ color: 'var(--theme-text)' }} onClick={() => { haptics.selection(); setMenuOpen(true) }} aria-label={pt ? 'Abrir menu' : 'Open menu'} aria-haspopup="dialog">
+            <Menu className="w-[22px] h-[22px]" aria-hidden />
+          </button>
         </div>
       </div>
+      <MenuSheet open={menuOpen} onOpenChange={setMenuOpen} />
     </header>
   )
 }

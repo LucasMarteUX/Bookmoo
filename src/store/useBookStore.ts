@@ -40,6 +40,8 @@ export interface Book {
   coverData?: string
   /** Livro puxado da galeria. EPUB enviado pela pessoa não tem isso. */
   catalogId?: string
+  /** Assinatura da capa do catálogo já copiada para este livro (só local; ver useCatalogCoverSync). */
+  coverSig?: string
   /** shared: imagens da galeria. personal: só as imagens desta pessoa. */
   imageMode?: 'shared' | 'personal'
   /** Dificuldade marcada na galeria. Livro enviado pela pessoa não tem. */
@@ -125,7 +127,7 @@ export const useBookStore = create<BookState>()(
         books: books.map(book => {
           const prev = state.books.find(item => item.id === book.id)
           if (!prev?.catalogId && !prev?.imageMode) return book
-          return { ...book, catalogId: book.catalogId ?? prev.catalogId, imageMode: book.imageMode ?? prev.imageMode }
+          return { ...book, catalogId: book.catalogId ?? prev.catalogId, imageMode: book.imageMode ?? prev.imageMode, coverSig: book.coverSig ?? prev.coverSig }
         }),
         currentBookId: state.currentBookId && books.some(b => b.id === state.currentBookId) ? state.currentBookId : (books[0]?.id ?? null)
       }))

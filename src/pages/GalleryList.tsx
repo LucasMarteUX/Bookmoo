@@ -12,7 +12,7 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { LevelBadge } from '@/components/ui/level-badge'
 import { useLanguage } from '@/store/useLanguage'
 import { CEFR, type CefrId } from '@/lib/cefr'
-import { BOOK_CATEGORIES, bookCategories, cachedThumbs, categoryName, listCatalogLite, loadCoverThumbs, type BookCategory, type CatalogBook } from '@/lib/catalog'
+import { BOOK_CATEGORIES, sortedCategories, bookCategories, cachedThumbs, categoryName, listCatalogLite, loadCoverThumbs, type BookCategory, type CatalogBook } from '@/lib/catalog'
 import { CollectionCard, CollectionCardSkeleton } from '@/components/book/CollectionCard'
 import { FilterChip, FilterClear, FilterSelect, SegmentedTabs } from '@/components/ui/filter-controls'
 import { CategoryTile } from '@/components/book/CategoryTiles'
@@ -158,9 +158,9 @@ export function GalleryList() {
   const featured = useMemo(() => {
     return [...(books ?? [])].sort((a, b) => readers(b) - readers(a) || (b.createdAt ?? '').localeCompare(a.createdAt ?? ''))[0]
   }, [books, social])
-  const categories = useMemo(() => BOOK_CATEGORIES
+  const categories = useMemo(() => sortedCategories(pt)
     .map(item => ({ ...item, count: (books ?? []).filter(book => bookCategories(book).includes(item.id)).length }))
-    .filter(item => item.count > 0), [books])
+    .filter(item => item.count > 0), [books, pt])
 
   const shelves = useMemo(() => {
     const list = books ?? []

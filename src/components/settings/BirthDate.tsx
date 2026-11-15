@@ -25,9 +25,9 @@ export function BirthDateField({ pt, onSaved, compact = false }: { pt: boolean; 
     <div className={compact ? 'flex flex-wrap items-center gap-2' : 'flex flex-wrap items-center gap-2'}>
       <input type="date" value={value} max={new Date().toISOString().slice(0, 10)} onChange={e => { setValue(e.target.value); setState('idle') }}
         aria-label={pt ? 'Data de nascimento' : 'Date of birth'}
-        className="h-9 rounded-lg border px-2.5 text-[13.5px] outline-none" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg)', color: 'var(--theme-text)' }} />
+        className="h-10 rounded-lg border px-3 text-[14px] outline-none focus-visible:border-[var(--theme-accent)]" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg)', color: 'var(--theme-text)' }} />
       <button type="button" disabled={!value || state === 'saving' || value === current} onClick={() => { void save() }}
-        className="h-9 px-4 rounded-full text-[13px] font-medium disabled:opacity-50" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
+        className="ui-hover h-10 px-4 rounded-lg border text-[13.5px] font-medium disabled:opacity-50" style={{ borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }}>
         {state === 'saving' ? (pt ? 'Salvando…' : 'Saving…') : (pt ? 'Salvar' : 'Save')}
       </button>
       {state === 'saved' && <span className="text-[12.5px]" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? 'Salvo.' : 'Saved.'}</span>}

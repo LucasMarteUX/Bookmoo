@@ -33,6 +33,14 @@ export function voiceForGender(gender: 'female' | 'male' | undefined): string | 
   return installed.find(id => getKokoroVoice(id)?.gender === gender)
 }
 
+/** O aparelho tem alguma voz em português? (null enquanto a lista de vozes ainda não carregou) */
+export function hasPortugueseVoice(): boolean | null {
+  const list = window.speechSynthesis?.getVoices() ?? []
+  if (!window.speechSynthesis) return false
+  if (!list.length) return null
+  return list.some(v => /^pt/i.test(v.lang))
+}
+
 /** Melhor voz pt-BR do aparelho (o Kokoro no navegador só fala inglês). */
 function ptVoice(gender?: 'female' | 'male') {
   const voices = window.speechSynthesis?.getVoices() ?? []
@@ -52,6 +60,8 @@ async function say(text: string, rate: number, alive: () => boolean, voice?: str
     await h.done
     return
   }
+  // Português sem voz em português no aparelho: não lê com sotaque inglês; o texto aparece nas legendas.
+  if (lang === 'pt' && hasPortugueseVoice() === false) { await new Promise(r => setTimeout(r, Math.min(2500, text.length * 45))); return }
   await new Promise<void>(resolve => {
     const synth = window.speechSynthesis
     if (!synth) { resolve(); return }

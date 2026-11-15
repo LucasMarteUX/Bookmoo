@@ -32,10 +32,10 @@ export function BookReviews({ catalogId, cover, pt }: { catalogId: string; cover
   const others = (data?.items ?? []).filter(item => !item.mine)
 
   return (
-    <section className="mt-10">
+    <section>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="text-[15px] font-semibold">{pt ? 'Avaliações e resenhas' : 'Ratings and reviews'}</h2>
+          <h2 className="font-display text-[24px] leading-tight">{pt ? 'Avaliações e resenhas' : 'Ratings and reviews'}</h2>
           {data && data.count > 0 && data.average != null && (
             <p className="mt-1.5 flex items-center gap-2 text-[13.5px]" style={muted}>
               <RatingStars value={data.average} size={16} />

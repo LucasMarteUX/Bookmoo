@@ -2,7 +2,7 @@
 // (história até onde a pessoa leu, palavras da página, personagens). Plus e Pro; nos outros planos, convite.
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { AudioLines, Captions, CaptionsOff, Lock, Minus, Rabbit, Turtle, EyeOff, BookmarkPlus, Languages, X } from 'lucide-react'
+import { Captions, CaptionsOff, Lock, Minus, Rabbit, Turtle, EyeOff, BookmarkPlus, SlidersHorizontal, X } from 'lucide-react'
 import type { Book } from '@/store/useBookStore'
 import { useLanguage } from '@/store/useLanguage'
 import { useEntitlements } from '@/store/useEntitlements'
@@ -10,7 +10,7 @@ import { useVocabularyStore } from '@/store/useVocabularyStore'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
 import { upsertVocabulary } from '@/lib/supabaseSync'
-import { useVoiceConversation } from '@/hooks/useVoiceConversation'
+import { hasPortugueseVoice, useVoiceConversation } from '@/hooks/useVoiceConversation'
 import { useStudyLevel } from '@/hooks/useStudyLevel'
 import { conversation } from '@/lib/billingApi'
 import { openPaywall } from '@/components/billing/Paywall'
@@ -44,6 +44,8 @@ export function ReaderTutor({ book }: { book: Book }) {
   const [highlight, setHighlight] = useState<string | null>(null)
   const [paused, setPaused] = useState(false)
   const [langMode, setLangMode] = useTutorLang()
+  const [ptVoice, setPtVoice] = useState<boolean | null>(null)
+  useEffect(() => { const sync = () => setPtVoice(hasPortugueseVoice()); sync(); window.speechSynthesis?.addEventListener?.('voiceschanged', sync); return () => window.speechSynthesis?.removeEventListener?.('voiceschanged', sync) }, [])
   const [mood, setMood] = useState<Mood>('happy')
   const [wave, setWave] = useState(false)
   const [hello, setHello] = useState('')
@@ -136,35 +138,41 @@ export function ReaderTutor({ book }: { book: Book }) {
       style={{ bottom: 'calc(var(--safe-b, 0px) + var(--tutor-bottom, 1.5rem) + 4.5rem)' }}>
       <AnimatePresence>
         {open && (
-          <motion.div key="panel" layout initial={{ opacity: 0, scale: 0.6, y: 30, originX: 1, originY: 1 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.6, y: 30 }}
-            transition={{ type: 'spring', stiffness: 320, damping: 26 }}
-            className="pointer-events-auto mb-3 w-[min(92vw,360px)] rounded-[28px] border shadow-2xl overflow-hidden backdrop-blur-xl"
-            style={{ borderColor: 'var(--theme-border)', backgroundColor: 'color-mix(in srgb, var(--theme-card-bg) 92%, transparent)' }}
+          <motion.div key="panel" initial={{ opacity: 0, scale: 0.92, y: 16 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.94, y: 12 }}
+            transition={{ type: 'spring', stiffness: 380, damping: 32 }} style={{ transformOrigin: 'bottom right', borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-card-bg)' }}
+            className="pointer-events-auto mb-3 w-[min(92vw,360px)] rounded-3xl border shadow-2xl overflow-hidden"
             data-tour="tutor-panel" role="dialog" aria-label={pt ? 'Tutor de leitura' : 'Reading tutor'}>
-            <div className="flex items-center justify-between px-4 pt-3">
-              <div>
-                <p className="text-[14px] font-semibold">Bea · {pt ? 'tutora de leitura' : 'reading tutor'}</p>
-                <p className="text-[11.5px]" style={{ color: !ent?.is_admin && creditsLeft < 5 ? '#dc2626' : 'var(--theme-text-secondary)' }}>{pt ? '1 crédito por minuto de conversa' : '1 credit per conversation minute'}</p>
+            <div className="flex items-center justify-between gap-2 px-4 pt-3.5">
+              <div className="min-w-0">
+                <p className="text-[15px] font-semibold leading-tight">Bea</p>
+                <p className="text-[12px] leading-tight" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? 'Tutora de leitura' : 'Reading tutor'}</p>
               </div>
-              <div className="flex items-center gap-0.5">
+              <div className="flex items-center gap-0.5 shrink-0">
                 <Popover>
                   <PopoverTrigger asChild>
-                    <button type="button" aria-label={pt ? 'Idioma da tutora' : 'Tutor language'} title={pt ? 'Idioma da tutora' : 'Tutor language'}
-                      className="w-9 h-9 rounded-full grid place-items-center transition-colors hover:bg-[var(--ui-hover)]" style={{ color: langMode === 'auto' ? 'var(--theme-text-secondary)' : 'var(--theme-text)' }}><Languages className="w-4 h-4" /></button>
+                    <button type="button" aria-label={pt ? 'Ajustes da tutora' : 'Tutor settings'} title={pt ? 'Ajustes da tutora' : 'Tutor settings'}
+                      className="w-9 h-9 rounded-full grid place-items-center transition-colors hover:bg-[var(--ui-hover)]" style={{ color: 'var(--theme-text-secondary)' }}><SlidersHorizontal className="w-4 h-4" /></button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-72 p-1.5 z-[60]" align="end">
-                    <p className="px-2.5 pt-1.5 pb-1 text-[12px] font-medium" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? 'Como a tutora responde' : 'How the tutor answers'}</p>
+                  <PopoverContent className="w-72 p-2 z-[160]" align="end" side="top" sideOffset={8}>
+                    <p className="px-2 pt-1 pb-1 text-[12px] font-medium" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? 'Como a tutora responde' : 'How the tutor answers'}</p>
                     {TUTOR_LANG_OPTIONS.map(o => (
                       <button key={o.id} type="button" onClick={() => setLangMode(o.id)} className="w-full text-left px-2.5 py-2 rounded-lg hover:bg-[var(--ui-hover)]" style={{ backgroundColor: langMode === o.id ? 'var(--theme-bg-secondary)' : undefined }}>
                         <span className="block text-[13.5px] font-medium">{pt ? o.pt : o.en}</span>
-                        <span className="block text-[12px]" style={{ color: 'var(--theme-text-secondary)' }}>{o.hint[pt ? 0 : 1]}</span>
+                        <span className="block text-[12px] leading-snug" style={{ color: 'var(--theme-text-secondary)' }}>{o.hint[pt ? 0 : 1]}</span>
                       </button>
                     ))}
+                    {langMode !== 'en' && ptVoice === false && (
+                      <p className="mx-2 mt-1.5 mb-1 text-[12px] leading-snug rounded-lg px-2.5 py-2" style={{ backgroundColor: 'var(--theme-bg-secondary)', color: 'var(--theme-text-secondary)' }}>
+                        {pt ? 'Este aparelho não tem voz em português instalada. A tutora fala o inglês em voz alta e mostra o português nas legendas.' : 'This device has no Portuguese voice installed. The tutor speaks the English aloud and shows the Portuguese in the captions.'}
+                      </p>
+                    )}
+                    <div className="my-1.5 h-px mx-2" style={{ backgroundColor: 'var(--theme-border)' }} />
+                    <MenuRow icon={captions ? <Captions className="w-4 h-4" /> : <CaptionsOff className="w-4 h-4" />} label={captions ? (pt ? 'Esconder legendas' : 'Hide captions') : (pt ? 'Mostrar legendas' : 'Show captions')} onClick={() => setCaptions(c => !c)} />
+                    <MenuRow icon={slow ? <Turtle className="w-4 h-4" /> : <Rabbit className="w-4 h-4" />} label={slow ? (pt ? 'Voz em velocidade normal' : 'Normal speed voice') : (pt ? 'Voz mais lenta' : 'Slower voice')} onClick={() => setSlow(v => !v)} />
+                    <MenuRow icon={<EyeOff className="w-4 h-4" />} label={pt ? 'Ocultar a tutora' : 'Hide the tutor'} onClick={() => { voice.stop(); setOpen(false); setTutorHidden(true); toast(pt ? 'Tutora oculta. Reative em Configurações.' : 'Tutor hidden. Turn it back on in Settings.') }} />
+                    <p className="px-2.5 pt-2 pb-1 text-[11.5px]" style={{ color: !ent?.is_admin && creditsLeft < 5 ? '#dc2626' : 'var(--theme-text-secondary)' }}>{pt ? '1 crédito por minuto de conversa' : '1 credit per conversation minute'}</p>
                   </PopoverContent>
                 </Popover>
-                <IconBtn label={captions ? (pt ? 'Esconder legendas' : 'Hide captions') : (pt ? 'Mostrar legendas' : 'Show captions')} onClick={() => setCaptions(c => !c)}>{captions ? <Captions className="w-4 h-4" /> : <CaptionsOff className="w-4 h-4" />}</IconBtn>
-                <IconBtn label={slow ? (pt ? 'Voz normal' : 'Normal voice') : (pt ? 'Voz mais lenta' : 'Slower voice')} onClick={() => setSlow(v => !v)}>{slow ? <Turtle className="w-4 h-4" /> : <Rabbit className="w-4 h-4" />}</IconBtn>
-                <IconBtn label={pt ? 'Ocultar tutor' : 'Hide tutor'} onClick={() => { voice.stop(); setOpen(false); setTutorHidden(true); toast(pt ? 'Tutor oculto. Reative em Configurações → Leitura.' : 'Tutor hidden. Turn it back on in Settings.') }}><EyeOff className="w-4 h-4" /></IconBtn>
                 <IconBtn label={pt ? 'Minimizar' : 'Minimize'} onClick={() => setOpen(false)}><Minus className="w-4 h-4" /></IconBtn>
               </div>
             </div>
@@ -216,18 +224,26 @@ export function ReaderTutor({ book }: { book: Book }) {
         )}
       </AnimatePresence>
 
-      <motion.button data-tour="tutor-fab" type="button" layout onClick={() => (allowed ? setOpen(o => !o) : openPaywall('tutor'))}
+      <motion.button data-tour="tutor-fab" type="button" onClick={() => (allowed ? setOpen(o => !o) : openPaywall('tutor'))}
         whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.06 }}
         className="pointer-events-auto relative w-14 h-14 rounded-2xl shadow-xl grid place-items-center overflow-hidden border" style={{ borderColor: 'var(--theme-border)' }}
         aria-label={allowed ? (pt ? 'Abrir tutor de leitura' : 'Open reading tutor') : (pt ? 'Tutor de leitura (Plus)' : 'Reading tutor (Plus)')}
         title={allowed ? (pt ? 'Converse com a tutora sobre o livro' : 'Talk with the tutor about the book') : (pt ? 'Tutor de leitura, disponível no Plus' : 'Reading tutor, Plus plan')}>
-        <motion.span className="absolute inset-[3px] rounded-[13px] grid place-items-center text-[22px]" style={{ backgroundColor: 'var(--theme-card-bg)' }}
-          animate={running ? { scale: 1 + voice.level * 0.08 } : { scale: [1, 1.04, 1] }} transition={running ? { type: 'spring', stiffness: 300, damping: 15 } : { duration: 4, repeat: Infinity }}>
-          <AudioLines className="w-5 h-5" strokeWidth={1.8} />
-        </motion.span>
+        <span className="absolute inset-0 grid place-items-center" style={{ backgroundColor: 'var(--theme-card-bg)' }}>
+          <TutorAvatar kind="woman" state="idle" size={44} followPointer={false} mood="happy" />
+        </span>
+        {running && <motion.span aria-hidden className="absolute inset-0 rounded-2xl border-2" style={{ borderColor: 'var(--theme-text)' }} animate={{ opacity: [0.2, 0.6, 0.2] }} transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }} />}
         {!allowed && <span className="absolute right-0.5 bottom-0.5 w-5 h-5 rounded-full grid place-items-center" style={{ backgroundColor: '#111', color: '#FCD34D' }}><Lock className="w-3 h-3" /></span>}
       </motion.button>
     </div>
+  )
+}
+
+function MenuRow({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick} className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left text-[13.5px] hover:bg-[var(--ui-hover)]">
+      <span style={{ color: 'var(--theme-text-secondary)' }}>{icon}</span>{label}
+    </button>
   )
 }
 

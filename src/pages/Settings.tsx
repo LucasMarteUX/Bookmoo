@@ -1,4 +1,4 @@
-import { useState, useEffect, type ReactNode } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useBookStore } from '@/store/useBookStore'
 import { useAuth } from '@/contexts/AuthContext'
@@ -9,182 +9,97 @@ import { useUiStore } from '@/store/useUiStore'
 import { useTranslations } from '@/lib/i18n'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Camera, Coffee, KeyRound, Lock, Moon, Palette, Sparkles, Sun, User, Volume2 } from 'lucide-react'
+import { SegmentedControl } from '@/components/ui/segmented-control'
+import { BookOpen, CircleHelp, Coffee, KeyRound, Moon, Palette, Sparkles, Sun, UserRound, Users, Volume2, type LucideIcon } from 'lucide-react'
 import { VoiceSettings } from '@/components/settings/VoiceSettings'
 import { PlanCreditsCard } from '@/components/billing/PlanCreditsCard'
 import { ProfileSection } from '@/components/settings/ProfileSection'
 import { restartTour } from '@/components/onboarding/GuidedTour'
 import { restartBookTour } from '@/components/onboarding/BookTour'
 import { BirthDateField } from '@/components/settings/BirthDate'
+import { isTutorHidden, setTutorHidden } from '@/components/reader/ReaderTutor'
+import { SettingsNote, SettingsRow, SettingsSection, SettingsToggle } from '@/components/settings/SettingsUI'
+import { cn } from '@/lib/utils'
 
-/** Seção de configurações: título com ícone e um cartão com as linhas. */
-function Section({ id, icon, title, description, children }: { id: string; icon: ReactNode; title: string; description?: string; children: ReactNode }) {
-  return (
-    <section id={id} className="scroll-mt-8">
-      <div className="mb-3">
-        <h2 className="flex items-center gap-2 text-[15px] font-semibold" style={{ color: 'var(--theme-text)' }}>{icon}{title}</h2>
-        {description && <p className="mt-1 text-[13.5px]" style={{ color: 'var(--theme-text-secondary)' }}>{description}</p>}
-      </div>
-      <div className="rounded-2xl border divide-y" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-card-bg)' }}>{children}</div>
-    </section>
-  )
-}
-
-/** Linha: rótulo e explicação à esquerda, controle à direita (empilha no celular). */
-function Row({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
-  return (
-    <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-6 px-5 py-4" style={{ borderColor: 'var(--theme-border)' }}>
-      <div className="sm:w-[42%] shrink-0">
-        <p className="text-[14px] font-medium" style={{ color: 'var(--theme-text)' }}>{label}</p>
-        {hint && <p className="mt-0.5 text-[12.5px] leading-snug" style={{ color: 'var(--theme-text-secondary)' }}>{hint}</p>}
-      </div>
-      <div className="flex-1 min-w-0">{children}</div>
-    </div>
-  )
-}
-
-function Feedback({ state, ok, error }: { state: 'success' | 'error' | null; ok: string; error: string }) {
-  if (!state) return null
-  return <p className="mt-2 text-[12.5px]" style={{ color: state === 'success' ? 'var(--pastel-green-fg)' : 'var(--pastel-rose-fg)' }}>{state === 'success' ? ok : error}</p>
-}
+type NavItem = { id: string; label: string; icon: LucideIcon; account?: boolean }
 
 export function Settings() {
   const navigate = useNavigate()
   const { locale, setLocale } = useLanguage()
   const { t } = useTranslations(locale)
   const pt = locale === 'pt-BR'
-  const { theme, setTheme } = useReaderSettings()
+  const { theme, setTheme, grammarHelp, setGrammarHelp } = useReaderSettings()
   const { dailyGoalMinutes, setDailyGoalMinutes } = useUiStore()
   const { hasSupabase, user, loading } = useAuth()
-  const [displayName, setDisplayName] = useState(user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? '')
-  const [displayNameSaving, setDisplayNameSaving] = useState(false)
-  const [displayNameMessage, setDisplayNameMessage] = useState<'success' | 'error' | null>(null)
-  const [newPassword, setNewPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
-  const [passwordSaving, setPasswordSaving] = useState(false)
-  const [passwordMessage, setPasswordMessage] = useState<'success' | 'error' | null>(null)
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(user?.user_metadata?.avatar_url ?? null)
-  const [avatarUploading, setAvatarUploading] = useState(false)
-  const [newEmail, setNewEmail] = useState('')
-  const [confirmNewEmail, setConfirmNewEmail] = useState('')
-  const [emailSaving, setEmailSaving] = useState(false)
-  const [emailMessage, setEmailMessage] = useState<'success' | 'error' | null>(null)
+  const signedIn = !loading && hasSupabase && !!user
+  const [tutorOn, setTutorOn] = useState(!isTutorHidden())
+  const [active, setActive] = useState('account')
 
   useEffect(() => {
-    const name = user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? ''
-    setDisplayName(name)
-    setAvatarUrl(user?.user_metadata?.avatar_url ?? null)
-  }, [user])
+    const sync = () => setTutorOn(!isTutorHidden())
+    window.addEventListener('bookmoo-tutor-visibility', sync)
+    return () => window.removeEventListener('bookmoo-tutor-visibility', sync)
+  }, [])
 
-  const userEmail = user?.email ?? ''
-  const canChangeEmail = newEmail.trim() && confirmNewEmail.trim() && newEmail === confirmNewEmail && newEmail !== userEmail
-
-  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file || !supabase || !user) return
-    setAvatarUploading(true)
-    const ext = file.name.split('.').pop() ?? 'jpg'
-    const path = `${user.id}/avatar.${ext}`
-    const { error: uploadError } = await supabase.storage.from('avatars').upload(path, file, { upsert: true })
-    if (uploadError) { setAvatarUploading(false); return }
-    const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path)
-    const { error: updateError } = await supabase.auth.updateUser({ data: { avatar_url: publicUrl } })
-    setAvatarUploading(false)
-    if (!updateError) setAvatarUrl(publicUrl)
-  }
-
-  const nav = [
+  const nav: NavItem[] = [
+    { id: 'account', label: t('account'), icon: UserRound, account: true },
+    { id: 'profile', label: pt ? 'Perfil público' : 'Public profile', icon: Users, account: true },
     { id: 'appearance', label: pt ? 'Aparência' : 'Appearance', icon: Palette },
-    { id: 'profile', label: pt ? 'Perfil' : 'Profile', icon: User },
-    { id: 'account', label: t('account'), icon: User },
-    { id: 'security', label: pt ? 'Segurança' : 'Security', icon: Lock },
-    { id: 'ai', label: pt ? 'Plano e créditos' : 'Plan and credits', icon: Sparkles },
-    { id: 'voices', label: pt ? 'Vozes' : 'Voices', icon: Volume2 },
+    { id: 'reading', label: pt ? 'Leitura' : 'Reading', icon: BookOpen },
+    { id: 'voices', label: pt ? 'Voz de leitura' : 'Reading voice', icon: Volume2 },
+    { id: 'plan', label: pt ? 'Plano e créditos' : 'Plan and credits', icon: Sparkles, account: true },
+    { id: 'security', label: pt ? 'Segurança' : 'Security', icon: KeyRound, account: true },
+    { id: 'help', label: pt ? 'Ajuda' : 'Help', icon: CircleHelp },
+  ].filter(item => signedIn || !item.account)
+
+  // Destaca no menu a seção que está na tela.
+  useEffect(() => {
+    const sections = Array.from(document.querySelectorAll<HTMLElement>('[data-settings-section]'))
+    if (!sections.length) return
+    const observer = new IntersectionObserver(entries => {
+      const visible = entries.filter(e => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0]
+      if (visible) setActive(visible.target.id)
+    }, { rootMargin: '-20% 0px -65% 0px' })
+    sections.forEach(section => observer.observe(section))
+    return () => observer.disconnect()
+  }, [signedIn])
+
+  const themes: { value: Theme; label: string; icon: typeof Sun }[] = [
+    { value: 'light', label: t('day'), icon: Sun }, { value: 'sepia', label: t('afternoon'), icon: Coffee }, { value: 'dark', label: t('night'), icon: Moon },
   ]
-  const themes: { id: Theme; label: string; icon: typeof Sun }[] = [
-    { id: 'light', label: t('day'), icon: Sun }, { id: 'sepia', label: t('afternoon'), icon: Coffee }, { id: 'dark', label: t('night'), icon: Moon },
-  ]
-  const segmented = (on: boolean) => ({
-    backgroundColor: on ? 'var(--theme-card-bg)' : 'transparent',
-    color: on ? 'var(--theme-text)' : 'var(--theme-text-secondary)',
-    boxShadow: on ? '0 1px 2px rgba(0,0,0,0.1)' : undefined,
-  })
+
+  const openBookTour = () => {
+    const books = useBookStore.getState().books
+    const last = [...books].sort((a, b) => +new Date(b.lastRead) - +new Date(a.lastRead))[0]
+    if (!last) return
+    navigate(`/book/${last.id}`)
+    window.setTimeout(restartBookTour, 900)
+  }
+  const hasBooks = useBookStore(s => s.books.length > 0)
 
   return (
-    <div className="max-w-5xl mx-auto">
-      <header className="mb-8">
+    <div className="max-w-5xl mx-auto pb-16">
+      <header className="mb-8 md:mb-10">
         <h1 className="font-display text-[34px] md:text-[40px] leading-[1.05]" style={{ color: 'var(--theme-text)' }}>{t('settingsTitle')}</h1>
-        <p className="mt-2 text-[14.5px]" style={{ color: 'var(--theme-text-secondary)' }}>{t('settingsAccountSubtitle')}</p>
+        <p className="mt-2 text-[14.5px]" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? 'Conta, perfil, aparência, leitura e voz.' : 'Account, profile, appearance, reading and voice.'}</p>
       </header>
 
-      <div className="grid md:grid-cols-[190px_minmax(0,1fr)] gap-8">
-        <nav className="hidden md:flex flex-col gap-0.5 sticky top-8 self-start" aria-label={t('settingsTitle')}>
-          {nav.map(({ id, label, icon: Icon }) => (
-            <a key={id} href={`#${id}`} className="flex items-center gap-2.5 h-8 px-2 rounded-md text-[13.5px] transition-colors hover:bg-[var(--ui-hover)]"
-              style={{ color: 'var(--theme-text-secondary)' }}
-              onClick={e => { e.preventDefault(); document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' }) }}>
-              <Icon className="w-4 h-4" />{label}
-            </a>
-          ))}
+      <div className="grid md:grid-cols-[200px_minmax(0,1fr)] gap-8 lg:gap-12">
+        <nav className="hidden md:flex flex-col gap-0.5 sticky top-6 self-start" aria-label={t('settingsTitle')}>
+          {nav.map(({ id, label, icon: Icon }) => {
+            const on = active === id
+            return (
+              <a key={id} href={`#${id}`} aria-current={on ? 'true' : undefined}
+                className={cn('relative flex items-center gap-2.5 h-9 px-3 rounded-lg text-[13.5px] transition-colors', !on && 'hover:bg-[var(--ui-hover)]')}
+                style={{ color: on ? 'var(--theme-text)' : 'var(--theme-text-secondary)', backgroundColor: on ? 'var(--theme-nav-active)' : undefined, fontWeight: on ? 600 : 400 }}
+                onClick={e => { e.preventDefault(); setActive(id); document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }}>
+                <Icon className="w-4 h-4" />{label}
+              </a>
+            )
+          })}
         </nav>
 
-        <div className="space-y-10 min-w-0">
-          <Section id="age" icon={<User className="w-4 h-4" />} title={pt ? 'Idade' : 'Age'}>
-            <Row label={pt ? 'Data de nascimento' : 'Date of birth'} hint={pt ? 'Privada. Não aparece no seu perfil.' : 'Private. It never appears on your profile.'}>
-              <BirthDateField pt={pt} />
-            </Row>
-          </Section>
-
-          <Section id="reading-help" icon={<Sparkles className="w-4 h-4" />} title={pt ? 'Ajuda na leitura' : 'Reading help'}>
-            <Row label={pt ? 'Decifrar a página e Desafio' : 'Decode the page and Challenge'} hint={pt ? 'Botões no leitor com as regras de gramática da página e um quiz. A partir do nível B1 você pode desligar.' : 'Reader buttons with the page grammar rules and a quiz. From B1 you can turn them off.'}>
-              <GrammarHelpToggle />
-            </Row>
-          </Section>
-
-          <Section id="tutorial" icon={<Sparkles className="w-4 h-4" />} title={pt ? 'Tutorial' : 'Tutorial'}>
-            <Row label={pt ? 'Rever o tutorial' : 'Replay the tutorial'} hint={pt ? 'Um passeio rápido pelas principais funções do Bookmoo.' : 'A quick tour of Bookmoo’s main features.'}>
-              <button type="button" onClick={restartTour} className="h-9 px-4 rounded-full border text-[13px]" style={{ borderColor: 'var(--theme-border)' }}>{pt ? 'Começar tutorial' : 'Start tutorial'}</button>
-            </Row>
-            <Row label={pt ? 'Rever o tutorial do livro' : 'Replay the book tutorial'} hint={pt ? 'Como estudar dentro de um livro. Abre no seu último livro.' : 'How to study inside a book. Opens your latest book.'}>
-              <button type="button" onClick={() => {
-                const books = useBookStore.getState().books
-                const last = [...books].sort((a, b) => +new Date(b.lastRead) - +new Date(a.lastRead))[0]
-                if (!last) return
-                navigate(`/book/${last.id}`)
-                window.setTimeout(restartBookTour, 900)
-              }} className="h-9 px-4 rounded-full border text-[13px]" style={{ borderColor: 'var(--theme-border)' }}>{pt ? 'Começar tutorial' : 'Start tutorial'}</button>
-            </Row>
-          </Section>
-
-          <Section id="appearance" icon={<Palette className="w-4 h-4" />} title={pt ? 'Aparência' : 'Appearance'}>
-            <Row label={pt ? 'Tema' : 'Theme'} hint={pt ? 'Vale para o app e para a leitura.' : 'Applies to the app and the reader.'}>
-              <div className="inline-grid grid-cols-3 gap-1 p-0.5 rounded-lg" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
-                {themes.map(({ id, label, icon: Icon }) => (
-                  <button key={id} type="button" onClick={() => setTheme(id)} aria-pressed={theme === id}
-                    className="h-8 px-3 rounded-md inline-flex items-center justify-center gap-1.5 text-[13px] font-medium transition-colors" style={segmented(theme === id)}>
-                    <Icon className="w-3.5 h-3.5" />{label}
-                  </button>
-                ))}
-              </div>
-            </Row>
-            <Row label={t('language')} hint={pt ? 'Idioma da interface e das explicações.' : 'Interface and explanation language.'}>
-              <div className="inline-grid grid-cols-2 gap-1 p-0.5 rounded-lg" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
-                {([['en', 'English'], ['pt-BR', 'Português']] as [Locale, string][]).map(([id, label]) => (
-                  <button key={id} type="button" onClick={() => setLocale(id)} aria-pressed={locale === id}
-                    className="h-8 px-3 rounded-md text-[13px] font-medium transition-colors" style={segmented(locale === id)}>{label}</button>
-                ))}
-              </div>
-            </Row>
-            <Row label={pt ? 'Meta diária' : 'Daily goal'} hint={pt ? 'Minutos de estudo por dia, mostrados na página inicial.' : 'Study minutes per day, shown on the home page.'}>
-              <div className="inline-grid grid-cols-4 gap-1 p-0.5 rounded-lg" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
-                {[10, 15, 30, 60].map(m => (
-                  <button key={m} type="button" onClick={() => setDailyGoalMinutes(m)} aria-pressed={dailyGoalMinutes === m}
-                    className="h-8 px-3 rounded-md text-[13px] font-medium tabular-nums transition-colors" style={segmented(dailyGoalMinutes === m)}>{m} min</button>
-                ))}
-              </div>
-            </Row>
-          </Section>
-
+        <div className="space-y-12 min-w-0">
           {loading && <p className="text-sm" style={{ color: 'var(--theme-text-secondary)' }}>{t('loading')}</p>}
           {!loading && !hasSupabase && (
             <p className="rounded-2xl border p-5 text-sm" style={{ borderColor: 'var(--theme-border)', color: 'var(--theme-text-secondary)' }}>{t('supabaseRequired')}</p>
@@ -193,97 +108,164 @@ export function Settings() {
             <p className="rounded-2xl border p-5 text-sm" style={{ borderColor: 'var(--theme-border)', color: 'var(--theme-text-secondary)' }}>{t('signInToManageAccount')}</p>
           )}
 
-          {!loading && hasSupabase && user && (
-            <>
-              <ProfileSection pt={pt} />
-              <Section id="account" icon={<User className="w-4 h-4" />} title={t('account')}>
-                <Row label={t('profilePhoto')}>
-                  <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-full border flex items-center justify-center overflow-hidden" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg-secondary)' }}>
-                      {avatarUrl ? <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
-                        : <span className="text-[18px] font-semibold" style={{ color: 'var(--theme-text)' }}>{(userEmail || 'B').charAt(0).toUpperCase()}</span>}
-                    </div>
-                    <label className="h-9 px-3.5 inline-flex items-center gap-1.5 rounded-lg border text-[13.5px] font-medium cursor-pointer transition-colors hover:bg-[var(--ui-hover)]"
-                      style={{ borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }}>
-                      <Camera className="w-4 h-4" />
-                      {avatarUploading ? t('saving') : t('uploadPhoto')}
-                      <input type="file" accept="image/*" className="sr-only" onChange={handleAvatarChange} disabled={avatarUploading} />
-                    </label>
-                  </div>
-                </Row>
-                <Row label={t('yourName')}>
-                  <div className="flex gap-2">
-                    <Input value={displayName} onChange={(e) => { setDisplayName(e.target.value); setDisplayNameMessage(null) }} placeholder={t('yourName')} />
-                    <Button variant="outline" className="h-10 shrink-0" disabled={displayNameSaving}
-                      onClick={async () => {
-                        if (!supabase) return
-                        setDisplayNameSaving(true); setDisplayNameMessage(null)
-                        const { error } = await supabase.auth.updateUser({ data: { full_name: displayName } })
-                        setDisplayNameSaving(false)
-                        setDisplayNameMessage(error ? 'error' : 'success')
-                      }}>
-                      {displayNameSaving ? t('saving') : (pt ? 'Salvar' : 'Save')}
-                    </Button>
-                  </div>
-                  <Feedback state={displayNameMessage} ok={t('nameUpdated')} error={t('nameError')} />
-                </Row>
-                <Row label={t('email')} hint={userEmail || '—'}>
-                  <div className="space-y-2">
-                    <Input type="email" value={newEmail} onChange={(e) => { setNewEmail(e.target.value); setEmailMessage(null) }} placeholder={t('newEmail')} />
-                    <Input type="email" value={confirmNewEmail} onChange={(e) => { setConfirmNewEmail(e.target.value); setEmailMessage(null) }} placeholder={t('confirmEmail')} />
-                    <Button variant="outline" disabled={!canChangeEmail || emailSaving}
-                      onClick={async () => {
-                        if (!supabase || !canChangeEmail) return
-                        setEmailSaving(true); setEmailMessage(null)
-                        const { error } = await supabase.auth.updateUser({ email: newEmail.trim() })
-                        setEmailSaving(false)
-                        setEmailMessage(error ? 'error' : 'success')
-                        if (!error) { setNewEmail(''); setConfirmNewEmail('') }
-                      }}>
-                      {emailSaving ? t('saving') : t('changeEmailButton')}
-                    </Button>
-                    <Feedback state={emailMessage} ok={t('emailUpdated')} error={t('emailUpdateError')} />
-                  </div>
-                </Row>
-              </Section>
+          {signedIn && <AccountSection pt={pt} />}
+          {signedIn && <ProfileSection pt={pt} />}
 
-              <Section id="security" icon={<KeyRound className="w-4 h-4" />} title={pt ? 'Segurança' : 'Security'}>
-                <Row label={t('changePassword')} hint={pt ? 'Use pelo menos 6 caracteres.' : 'Use at least 6 characters.'}>
-                  <div className="space-y-2">
-                    <Input type="password" value={newPassword} onChange={(e) => { setNewPassword(e.target.value); setPasswordMessage(null) }} placeholder={t('newPassword')} autoComplete="new-password" />
-                    <Input type="password" value={confirmPassword} onChange={(e) => { setConfirmPassword(e.target.value); setPasswordMessage(null) }} placeholder={t('confirmPassword')} autoComplete="new-password" />
-                    <Button variant="outline" disabled={passwordSaving || !newPassword.trim() || newPassword !== confirmPassword}
-                      onClick={async () => {
-                        if (!supabase || newPassword !== confirmPassword) return
-                        setPasswordSaving(true); setPasswordMessage(null)
-                        const { error } = await supabase.auth.updateUser({ password: newPassword })
-                        setPasswordSaving(false)
-                        setPasswordMessage(error ? 'error' : 'success')
-                        if (!error) { setNewPassword(''); setConfirmPassword('') }
-                      }}>
-                      {passwordSaving ? t('saving') : t('changePasswordButton')}
-                    </Button>
-                    <Feedback state={passwordMessage} ok={t('passwordChanged')} error={t('passwordError')} />
-                  </div>
-                </Row>
-              </Section>
+          <SettingsSection id="appearance" icon={Palette} title={pt ? 'Aparência' : 'Appearance'} description={pt ? 'Tema, idioma da interface e sua meta de estudo.' : 'Theme, interface language and your study goal.'}>
+            <SettingsRow label={pt ? 'Tema' : 'Theme'} hint={pt ? 'Vale para o app e para a leitura.' : 'Applies to the app and the reader.'}>
+              <div role="radiogroup" aria-label={pt ? 'Tema' : 'Theme'} className="flex w-full sm:w-auto sm:inline-flex p-0.5 rounded-[10px] gap-0.5" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
+                {themes.map(({ value, label, icon: Icon }) => {
+                  const on = theme === value
+                  return (
+                    <button key={value} type="button" role="radio" aria-checked={on} onClick={() => setTheme(value)}
+                      className="flex-1 min-h-[2.25rem] px-3.5 rounded-[8px] inline-flex items-center justify-center gap-1.5 text-[13px] font-medium whitespace-nowrap transition-all"
+                      style={{ backgroundColor: on ? 'var(--theme-card-bg)' : 'transparent', color: on ? 'var(--theme-text)' : 'var(--theme-text-secondary)', boxShadow: on ? '0 1px 3px rgba(0,0,0,0.10), 0 1px 1px rgba(0,0,0,0.04)' : 'none' }}>
+                      <Icon className="w-3.5 h-3.5" />{label}
+                    </button>
+                  )
+                })}
+              </div>
+            </SettingsRow>
+            <SettingsRow label={t('language')} hint={pt ? 'Idioma da interface e das explicações.' : 'Interface and explanation language.'}>
+              <SegmentedControl<Locale> className="w-full sm:w-auto" value={locale} onChange={setLocale} label={t('language')}
+                options={[{ value: 'pt-BR', label: 'Português' }, { value: 'en', label: 'English' }]} />
+            </SettingsRow>
+            <SettingsRow label={pt ? 'Meta diária' : 'Daily goal'} hint={pt ? 'Minutos de estudo por dia, mostrados na página inicial.' : 'Study minutes per day, shown on the home page.'}>
+              <SegmentedControl<string> className="w-full sm:w-auto" value={String(dailyGoalMinutes)} onChange={v => setDailyGoalMinutes(Number(v))} label={pt ? 'Meta diária' : 'Daily goal'}
+                options={[10, 15, 30, 60].map(m => ({ value: String(m), label: `${m} min` }))} />
+            </SettingsRow>
+          </SettingsSection>
 
-              <div id="ai" className="scroll-mt-8"><PlanCreditsCard pt={pt} /></div>
-              <div id="voices" className="scroll-mt-8"><VoiceSettings /></div>
-            </>
-          )}
+          <SettingsSection id="reading" icon={BookOpen} title={pt ? 'Leitura' : 'Reading'} description={pt ? 'Ajudas que aparecem dentro do livro.' : 'Helpers shown inside the book.'}>
+            <SettingsToggle checked={grammarHelp} onChange={setGrammarHelp}
+              label={pt ? 'Estudar a página e Desafio' : 'Study the page and Challenge'}
+              hint={pt ? 'Botões no leitor com a gramática da página e um quiz. A partir do nível B1 você pode desligar.' : 'Reader buttons with the page grammar and a quiz. From B1 you can turn them off.'} />
+            <SettingsToggle checked={tutorOn} onChange={on => { setTutorHidden(!on); setTutorOn(on) }}
+              label={pt ? 'Tutora de leitura' : 'Reading tutor'}
+              hint={pt ? 'Botão flutuante no leitor para conversar por voz sobre o livro.' : 'Floating button in the reader to talk about the book by voice.'} />
+          </SettingsSection>
+
+          <VoiceSettings />
+
+          {signedIn && <PlanCreditsCard pt={pt} />}
+          {signedIn && <SecuritySection pt={pt} />}
+
+          <SettingsSection id="help" icon={CircleHelp} title={pt ? 'Ajuda' : 'Help'} description={pt ? 'Reveja os passeios guiados quando quiser.' : 'Replay the guided tours whenever you want.'}>
+            <SettingsRow inline label={pt ? 'Tutorial do app' : 'App tutorial'} hint={pt ? 'Um passeio rápido pelas principais funções do Bookmoo.' : 'A quick tour of Bookmoo’s main features.'}>
+              <Button variant="outline" onClick={restartTour}>{pt ? 'Começar' : 'Start'}</Button>
+            </SettingsRow>
+            <SettingsRow inline label={pt ? 'Tutorial do livro' : 'Book tutorial'} hint={hasBooks ? (pt ? 'Como estudar dentro de um livro. Abre no seu último livro.' : 'How to study inside a book. Opens your latest book.') : (pt ? 'Adicione um livro para ver este tutorial.' : 'Add a book to see this tutorial.')}>
+              <Button variant="outline" onClick={openBookTour} disabled={!hasBooks}>{pt ? 'Começar' : 'Start'}</Button>
+            </SettingsRow>
+          </SettingsSection>
         </div>
       </div>
     </div>
   )
 }
 
-function GrammarHelpToggle() {
-  const { grammarHelp, setGrammarHelp } = useReaderSettings()
+/** Conta: nome, e-mail (com troca) e data de nascimento. A foto fica no perfil público. */
+function AccountSection({ pt }: { pt: boolean }) {
+  const { locale } = useLanguage()
+  const { t } = useTranslations(locale)
+  const { user } = useAuth()
+  const [name, setName] = useState(user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? '')
+  const [nameState, setNameState] = useState<'idle' | 'saving' | 'ok' | 'error'>('idle')
+  const [emailOpen, setEmailOpen] = useState(false)
+  const [newEmail, setNewEmail] = useState('')
+  const [confirmEmail, setConfirmEmail] = useState('')
+  const [emailState, setEmailState] = useState<'idle' | 'saving' | 'ok' | 'error'>('idle')
+  const savedName = user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? ''
+  const email = user?.email ?? ''
+  const canEmail = !!newEmail.trim() && newEmail === confirmEmail && newEmail !== email
+
+  useEffect(() => { setName(savedName) }, [savedName])
+
+  const saveName = async () => {
+    if (!supabase) return
+    setNameState('saving')
+    const { error } = await supabase.auth.updateUser({ data: { full_name: name.trim() } })
+    setNameState(error ? 'error' : 'ok')
+  }
+  const saveEmail = async () => {
+    if (!supabase || !canEmail) return
+    setEmailState('saving')
+    const { error } = await supabase.auth.updateUser({ email: newEmail.trim() })
+    setEmailState(error ? 'error' : 'ok')
+    if (!error) { setNewEmail(''); setConfirmEmail(''); setEmailOpen(false) }
+  }
+
   return (
-    <button type="button" role="switch" aria-checked={grammarHelp} onClick={() => setGrammarHelp(!grammarHelp)}
-      className="h-6 w-11 rounded-full relative transition-colors" style={{ backgroundColor: grammarHelp ? 'var(--theme-primary)' : 'var(--theme-border)' }}>
-      <span className="absolute top-0.5 h-5 w-5 rounded-full transition-all" style={{ left: grammarHelp ? 22 : 2, backgroundColor: 'var(--theme-bg)' }} />
-    </button>
+    <SettingsSection id="account" icon={UserRound} title={t('account')} description={pt ? 'Seus dados de acesso. Nada disso aparece para outras pessoas.' : 'Your sign-in details. None of this is shown to others.'}>
+      <SettingsRow label={t('yourName')} hint={pt ? 'Usado nas saudações do app.' : 'Used in the app greetings.'}
+        below={nameState === 'ok' ? <SettingsNote tone="ok">{t('nameUpdated')}</SettingsNote> : nameState === 'error' ? <SettingsNote tone="error">{t('nameError')}</SettingsNote> : null}>
+        <form className="flex gap-2 sm:w-[320px]" onSubmit={e => { e.preventDefault(); void saveName() }}>
+          <Input value={name} onChange={e => { setName(e.target.value); setNameState('idle') }} placeholder={t('yourName')} aria-label={t('yourName')} />
+          <Button type="submit" variant="outline" className="h-10 shrink-0" disabled={nameState === 'saving' || name.trim() === savedName}>
+            {nameState === 'saving' ? t('saving') : (pt ? 'Salvar' : 'Save')}
+          </Button>
+        </form>
+      </SettingsRow>
+      <SettingsRow inline label={t('email')} hint={email || '–'}
+        below={<>
+          {emailOpen && (
+            <form className="mt-4 grid gap-2 sm:grid-cols-[1fr_1fr_auto]" onSubmit={e => { e.preventDefault(); void saveEmail() }}>
+              <Input type="email" value={newEmail} onChange={e => { setNewEmail(e.target.value); setEmailState('idle') }} placeholder={t('newEmail')} autoFocus />
+              <Input type="email" value={confirmEmail} onChange={e => { setConfirmEmail(e.target.value); setEmailState('idle') }} placeholder={t('confirmEmail')} />
+              <Button type="submit" className="h-10" disabled={!canEmail || emailState === 'saving'}>{emailState === 'saving' ? t('saving') : (pt ? 'Confirmar' : 'Confirm')}</Button>
+            </form>
+          )}
+          {emailOpen && newEmail && confirmEmail && newEmail !== confirmEmail && <SettingsNote tone="error">{pt ? 'Os dois e-mails precisam ser iguais.' : 'Both emails must match.'}</SettingsNote>}
+          {emailState === 'ok' && <SettingsNote tone="ok">{t('emailUpdated')}</SettingsNote>}
+          {emailState === 'error' && <SettingsNote tone="error">{t('emailUpdateError')}</SettingsNote>}
+        </>}>
+        <Button variant="outline" onClick={() => { setEmailOpen(v => !v); setEmailState('idle') }} aria-expanded={emailOpen}>
+          {emailOpen ? (pt ? 'Cancelar' : 'Cancel') : (pt ? 'Alterar' : 'Change')}
+        </Button>
+      </SettingsRow>
+      <SettingsRow label={pt ? 'Data de nascimento' : 'Date of birth'} hint={pt ? 'Privada. Indica quais livros combinam com a sua idade.' : 'Private. Shows which books suit your age.'}>
+        <BirthDateField pt={pt} />
+      </SettingsRow>
+    </SettingsSection>
+  )
+}
+
+function SecuritySection({ pt }: { pt: boolean }) {
+  const { locale } = useLanguage()
+  const { t } = useTranslations(locale)
+  const [open, setOpen] = useState(false)
+  const [password, setPassword] = useState('')
+  const [confirm, setConfirm] = useState('')
+  const [state, setState] = useState<'idle' | 'saving' | 'ok' | 'error'>('idle')
+  const valid = password.length >= 6 && password === confirm
+
+  const save = async () => {
+    if (!supabase || !valid) return
+    setState('saving')
+    const { error } = await supabase.auth.updateUser({ password })
+    setState(error ? 'error' : 'ok')
+    if (!error) { setPassword(''); setConfirm(''); setOpen(false) }
+  }
+
+  return (
+    <SettingsSection id="security" icon={KeyRound} title={pt ? 'Segurança' : 'Security'} description={pt ? 'Senha de acesso à sua conta.' : 'Your account password.'}>
+      <SettingsRow inline label={t('changePassword')} hint={pt ? 'Use pelo menos 6 caracteres.' : 'Use at least 6 characters.'}
+        below={<>
+          {open && (
+            <form className="mt-4 grid gap-2 sm:grid-cols-[1fr_1fr_auto]" onSubmit={e => { e.preventDefault(); void save() }}>
+              <Input type="password" value={password} onChange={e => { setPassword(e.target.value); setState('idle') }} placeholder={t('newPassword')} autoComplete="new-password" autoFocus />
+              <Input type="password" value={confirm} onChange={e => { setConfirm(e.target.value); setState('idle') }} placeholder={t('confirmPassword')} autoComplete="new-password" />
+              <Button type="submit" className="h-10" disabled={!valid || state === 'saving'}>{state === 'saving' ? t('saving') : (pt ? 'Salvar senha' : 'Save password')}</Button>
+            </form>
+          )}
+          {open && confirm && password !== confirm && <SettingsNote tone="error">{pt ? 'As senhas precisam ser iguais.' : 'Passwords must match.'}</SettingsNote>}
+          {state === 'ok' && <SettingsNote tone="ok">{t('passwordChanged')}</SettingsNote>}
+          {state === 'error' && <SettingsNote tone="error">{t('passwordError')}</SettingsNote>}
+        </>}>
+        <Button variant="outline" onClick={() => { setOpen(v => !v); setState('idle') }} aria-expanded={open}>
+          {open ? (pt ? 'Cancelar' : 'Cancel') : (pt ? 'Alterar' : 'Change')}
+        </Button>
+      </SettingsRow>
+    </SettingsSection>
   )
 }
