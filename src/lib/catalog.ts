@@ -73,6 +73,7 @@ export type BookLink = {
 export const BOOK_CATEGORIES = [
   { id: 'classic', pt: 'Clássico', en: 'Classic' },
   { id: 'children', pt: 'Infantil', en: "Children's" },
+  { id: 'bible-stories', pt: 'Histórias Bíblicas', en: 'Bible Stories' },
   { id: 'adventure', pt: 'Aventura', en: 'Adventure' },
   { id: 'fantasy', pt: 'Fantasia', en: 'Fantasy' },
   { id: 'mystery', pt: 'Mistério', en: 'Mystery' },

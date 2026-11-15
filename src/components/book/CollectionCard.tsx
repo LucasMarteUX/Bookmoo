@@ -8,8 +8,9 @@ const FALLBACK: Record<string, [string, string]> = {
   'h-g-wells-science-fiction': ['#0e1f2e', '#8a4b22'], 'wonderful-world-of-oz': ['#0b3b2a', '#c9a227'], 'edgar-allan-poe': ['#0a0a0c', '#4a1424'],
   'barsoom': ['#4a1608', '#d9772b'], 'anne-of-green-gables': ['#254a2a', '#a9c98a'], 'pellucidar': ['#0e2a1b', '#b97a1e'],
   'arsene-lupin': ['#0a1330', '#9b7a2b'], 'jules-verne': ['#0b1c33', '#8a5a2b'], 'lovecraft': ['#05120f', '#1f5a4a'],
+  'bible-stories-for-beginners': ['#2b2620', '#2b2620'],
 }
-export const collectionFallback = (slug: string) => { const [a, b] = FALLBACK[slug] ?? ['#0d1018', '#2a3040']; return `linear-gradient(135deg, ${a}, ${b})` }
+export const collectionFallback = (slug: string) => { const [a, b] = FALLBACK[slug] ?? ['#0d1018', '#2a3040']; return a === b ? a : `linear-gradient(135deg, ${a}, ${b})` }
 
 /**
  * Banner horizontal (2,4:1) de uma coleção. Dentro do grid da galeria ocupa três colunas de capas

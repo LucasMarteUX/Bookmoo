@@ -3,7 +3,7 @@ import { useReaderSettings } from '@/store/useReaderSettings'
 
 /** Fundo do tile no modo escuro (mesmos tons dos cards "Pratique hoje"); as imagens -dark.webp usam essas cores. */
 const DARK_BG: Record<string, string> = {
-  classic: '#2b2823', children: '#302b1c', adventure: '#1f2e2a', fantasy: '#2a2438', mystery: '#212c3b',
+  classic: '#2b2823', children: '#302b1c', 'bible-stories': '#2a2820', adventure: '#1f2e2a', fantasy: '#2a2438', mystery: '#212c3b',
   romance: '#33242b', short: '#33271f', poetry: '#232a3d', nonfiction: '#28301f', biography: '#2d2a26',
 }
 
