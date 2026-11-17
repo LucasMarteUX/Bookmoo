@@ -60,7 +60,6 @@ export function ProficiencyExam() {
   if (loading) return null
   if (!user) return <Navigate to="/login" replace />
   if (ov && !ov.premium) return <Navigate to="/prova" replace />
-  if (ov?.active?.status === 'scoring' && phase === 'checks') return <Navigate to={`/prova/resultado/${ov.active.id}`} replace />
 
   return (
     <div className="min-h-[100dvh] flex flex-col" style={{ backgroundColor: 'var(--theme-bg)', color: 'var(--theme-text)' }}>

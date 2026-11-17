@@ -27,7 +27,7 @@ function clearPending(id: string) {
 
 const STEPS = [
   { icon: Check, t: 'Respostas objetivas', d: 'Reading e Listening corrigidas pelo gabarito', at: 0 },
-  { icon: Mic, t: 'Transcrição da fala', d: 'As 11 gravações viram texto', at: 0.15 },
+  { icon: Mic, t: 'Leitura das gravações', d: 'O servidor ouve as 11 respostas e as passa para texto', at: 0.15 },
   { icon: PenLine, t: 'Rubricas de Writing e Speaking', d: 'Cada resposta avaliada com evidências', at: 0.45 },
   { icon: FileText, t: 'Relatório', d: 'Análise por habilidade e próximos passos', at: 0.8 },
 ]
@@ -79,14 +79,16 @@ export function ScoringWait({ sessionId, onReady, compact = false }: { sessionId
 
   return (
     <div className={`w-full max-w-4xl mx-auto px-4 ${compact ? 'py-6' : 'py-10 md:py-16'}`}>
-      <div className="grid gap-8 md:gap-12 md:grid-cols-[minmax(0,300px)_1fr] items-center">
+      <div className="grid gap-8 md:gap-12 md:grid-cols-[minmax(0,380px)_1fr] items-center">
         <div className="flex flex-col items-center">
-          <div className="relative w-[220px] h-[220px] md:w-[260px] md:h-[260px]">
-            <CharacterAvatar characterId={tutorId} kind="woman" state="thinking" size={260} />
-          </div>
-          <p className="mt-3 max-w-[260px] text-center text-[14px] leading-relaxed rounded-2xl px-4 py-3 border" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-card-bg)' }}>
+          {/* Balão em cima da Bia, com a ponta apontando para ela. */}
+          <div className="relative max-w-[320px] text-center text-[14.5px] leading-relaxed rounded-2xl px-4 py-3 border shadow-[0_2px_10px_rgba(0,0,0,0.06)]" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-card-bg)' }}>
             <span className="block text-[11.5px] font-semibold uppercase tracking-[0.08em] mb-1" style={muted}>{tutor?.name}</span>{line}
-          </p>
+            <span aria-hidden className="absolute left-1/2 -bottom-[7px] w-3.5 h-3.5 -translate-x-1/2 rotate-45 border-r border-b" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-card-bg)' }} />
+          </div>
+          <div className="relative mt-4 w-[280px] h-[280px] md:w-[360px] md:h-[360px]">
+            <CharacterAvatar characterId={tutorId} kind="woman" state="thinking" size={360} />
+          </div>
         </div>
 
         <div>

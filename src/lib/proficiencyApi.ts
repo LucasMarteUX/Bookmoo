@@ -45,6 +45,8 @@ export type Overview = {
   premium: boolean; available: boolean; nextAvailableAt: string | null; minPlanRank: number
   monthUsed: number; monthLimit: number; monthBest: number | null
   active: { id: string; section: string; module: string; started_at: string; status: string } | null
+  /** Prova concluída que ainda está em correção (não impede uma nova tentativa). */
+  scoring: { id: string; started_at: string; submitted_at: string | null } | null
   history: HistoryRow[]
   blueprint: { version: string; sections: { id: Section; seconds: number }[] }
 }

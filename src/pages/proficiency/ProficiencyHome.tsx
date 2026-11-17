@@ -36,20 +36,19 @@ export function ProficiencyHome() {
   useEffect(() => { proficiency.overview().then(setOv, e => setError(profErrorText(e))) }, [])
 
   const cooling = ov?.nextAvailableAt && new Date(ov.nextAvailableAt) > new Date() ? ov.nextAvailableAt : null
-  const scoring = ov?.active?.status === 'scoring'
+  const scoring = ov?.scoring ?? null
+  const used = ov?.monthUsed ?? 0
   const cta = () => {
     if (!ov) return
-    if (scoring) return nav(`/prova/resultado/${ov.active!.id}`)
     if (!ov.premium) return openPaywall('proficiency')
     nav('/prova/sessao')
   }
   const ctaLabel = !ov ? 'Carregando…'
-    : scoring ? 'Acompanhar a avaliação'
     : ov.active ? 'Retomar a prova'
     : !ov.premium ? 'Liberar com o plano Pro'
     : !ov.available ? 'Em preparação'
     : cooling ? `Nova tentativa em ${fmtDate(cooling)}`
-    : 'Começar a prova'
+    : used > 0 ? `Fazer a ${used + 1}ª tentativa` : 'Começar a prova'
   const ctaDisabled = !ov || (!ov.active && ov.premium && (!ov.available || !!cooling))
   const last = ov?.history.find(h => h.status === 'final')
 
@@ -74,7 +73,9 @@ export function ProficiencyHome() {
                 {!ov?.premium && ov ? <Lock className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
                 {ctaLabel}
               </Button>
-              <a href="#como-funciona" className="inline-flex items-center gap-1 h-12 px-2 text-[14.5px] font-medium" style={muted}>Como funciona<ChevronDown className="w-4 h-4" /></a>
+              {scoring
+                ? <Button size="lg" variant="outline" onClick={() => nav(`/prova/resultado/${scoring.id}`)} className="h-12">Acompanhar a avaliação</Button>
+                : <a href="#como-funciona" className="inline-flex items-center gap-1 h-12 px-2 text-[14.5px] font-medium" style={muted}>Como funciona<ChevronDown className="w-4 h-4" /></a>}
             </div>
             {ov?.premium && (
               <p className="mt-3 text-[13px] tabular-nums" style={muted}>

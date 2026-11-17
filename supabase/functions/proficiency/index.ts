@@ -511,13 +511,15 @@ async function handle(userId: string, b: Body) {
   switch (b.action) {
     case 'overview': {
       const e = await eligibility(db, userId, ent)
-      const { data: active } = await db.from('prof_sessions').select('id, section, module, started_at, status').eq('user_id', userId).in('status', ['active', 'scoring']).order('started_at', { ascending: false }).limit(1).maybeSingle()
+      const { data: active } = await db.from('prof_sessions').select('id, section, module, started_at, status').eq('user_id', userId).eq('status', 'active').order('started_at', { ascending: false }).limit(1).maybeSingle()
+      const { data: scoringRow } = await db.from('prof_sessions').select('id, started_at, submitted_at').eq('user_id', userId).eq('status', 'scoring').order('started_at', { ascending: false }).limit(1).maybeSingle()
       const { data: results } = await db.from('prof_results').select('session_id, status, overall, cefr, sections, created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(20)
       return {
         premium: e.premium, available: !!e.version, nextAvailableAt: e.nextAvailableAt, minPlanRank: e.minRank,
         monthUsed: e.monthUsed, monthLimit: e.monthLimit,
         monthBest: (results ?? []).filter(r => r.status === 'final' && new Date(r.created_at) >= monthWindow().start).reduce<number | null>((m, r) => Math.max(m ?? 0, Number(r.overall) || 0), null),
         active: active ?? null,
+        scoring: scoringRow ?? null,
         history: (results ?? []).map(r => ({ id: r.session_id, status: r.status, overall: r.overall, cefr: r.cefr, created_at: r.created_at, bands: Object.fromEntries(Object.entries((r.sections ?? {}) as Record<string, { band: number | null }>).map(([k, v]) => [k, v.band])) })),
         blueprint: { version: BLUEPRINT_VERSION, sections: SECTIONS.map(x => ({ id: x, seconds: SECTION_SECONDS[x] })) },
       }
