@@ -18,6 +18,12 @@ export type Character = {
   gestures?: boolean
   /** O corpo está no mesmo grupo da cabeça (Bia, Yuno, Yuri): o desenho gira inteiro, então a base é compensada. O Luck tem grupo próprio. */
   bodyInHead?: boolean
+  /** Usa `model.app.json`: o rig aprovado (model.json, intacto) com o corpo e os gestos no grupo `body`, para o tronco inclinar
+   *  como o do Luck (deforma suave para o lado, base fixa) em vez de girar o desenho inteiro como um pêndulo. */
+  appModel?: boolean
+  /** Quanto deslocar o desenho (fração da largura) por grau de inclinação para a base ficar parada. Medido em cada rig: o ponto
+   *  de giro muda de um para outro (na Yuno fica acima da base, então o sinal é oposto). */
+  basePerDeg?: number
   /** Quanto do corpo aparece no palco: abaixo de 1 afasta o enquadramento e mostra um pouco mais do corpo. */
   zoomK?: number
   /** Inclinação inicial da cabeça em graus (o encaixe aprovado da Yuno pede -4). */
@@ -34,10 +40,10 @@ const TEEN: SpeakerVoice = { gender: 'female', pitch: 1.14 }
 const TEEN_BOY: SpeakerVoice = { gender: 'male', pitch: 1.2, prefer: ['am_puck', 'bm_fable', 'am_michael'] }
 
 export const CHARACTERS: Character[] = [
-  { id: 'bookmoo-mulher', name: 'Bia', pt: 'Mulher', en: 'Woman', voice: WOMAN, folder: 'mulher', zoomK: 0.9, gestures: true, bodyInHead: true, baseAngleZ: 0 },
+  { id: 'bookmoo-mulher', name: 'Bia', pt: 'Mulher', en: 'Woman', voice: WOMAN, folder: 'mulher', zoomK: 0.9, gestures: true, appModel: true, baseAngleZ: 0 },
   { id: 'bookmoo-homem', name: 'Luck', pt: 'Homem', en: 'Man', voice: MAN, folder: 'homem', zoomK: 0.9, gestures: true, baseAngleZ: 0 },
-  { id: 'bookmoo-yuno', name: 'Yuno', pt: 'Jovem', en: 'Teen', voice: TEEN, folder: 'yuno', gestures: true, bodyInHead: true, baseAngleZ: -4, young: true },
-  { id: 'bookmoo-yuri', name: 'Yuri', pt: 'Jovem', en: 'Teen', voice: TEEN_BOY, folder: 'yuri', gestures: true, bodyInHead: true, baseAngleZ: 0, young: true },
+  { id: 'bookmoo-yuno', name: 'Yuno', pt: 'Jovem', en: 'Teen', voice: TEEN, folder: 'yuno', gestures: true, appModel: true, baseAngleZ: -4, young: true },
+  { id: 'bookmoo-yuri', name: 'Yuri', pt: 'Jovem', en: 'Teen', voice: TEEN_BOY, folder: 'yuri', gestures: true, appModel: true, baseAngleZ: 0, young: true },
 ]
 
 export const DEFAULT_CHARACTER = 'bookmoo-mulher'
@@ -52,6 +58,9 @@ export function effectiveCharacterId(id: string | null | undefined) { return id 
 const BASE = '/characters/bookmoo'
 // Versão dos arquivos dos personagens: muda sempre que uma textura é trocada. A query vai junto com cada arquivo que o
 // player busca, então o navegador não reaproveita a imagem antiga do cache.
-const ASSET_REV = '20261120-luck-gestos'
-export function characterModelUrl(id: string) { return `${BASE}/${characterById(effectiveCharacterId(id))!.folder}/model.json?v=${ASSET_REV}` }
+const ASSET_REV = '20261122-corpo-body'
+export function characterModelUrl(id: string) {
+  const c = characterById(effectiveCharacterId(id))!
+  return `${BASE}/${c.folder}/${c.appModel ? 'model.app.json' : 'model.json'}?v=${ASSET_REV}`
+}
 export function characterAvatarUrl(id: string) { return `${BASE}/${characterById(effectiveCharacterId(id))!.folder}/avatar.webp` }

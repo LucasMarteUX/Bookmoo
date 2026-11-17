@@ -11,7 +11,7 @@ import { useVocabularyStore } from '@/store/useVocabularyStore'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
 import { upsertVocabulary } from '@/lib/supabaseSync'
-import { hasPortugueseVoice, useVoiceConversation } from '@/hooks/useVoiceConversation'
+import { useVoiceConversation } from '@/hooks/useVoiceConversation'
 import { useStudyLevel } from '@/hooks/useStudyLevel'
 import { conversation } from '@/lib/billingApi'
 import { openPaywall } from '@/components/billing/Paywall'
@@ -21,7 +21,7 @@ import { CharacterAvatar } from '@/components/voice/CharacterAvatar'
 import { greetingFor } from '@/lib/greetings'
 import { useTutorPersona } from '@/hooks/useTutorPersona'
 import { runTutorAction, type TutorAction } from '@/lib/tutorActions'
-import { TUTOR_LANG_OPTIONS, useTutorLang } from '@/lib/tutorLang'
+import { useTutorLang } from '@/lib/tutorLang'
 
 const HIDDEN_KEY = 'bookmoo-tutor-hidden'
 const CAPTIONS_KEY = 'bookmoo-tutor-captions'
@@ -47,9 +47,7 @@ export function ReaderTutor({ book }: { book: Book }) {
   const [slow, setSlow] = useState(false)
   const [highlight, setHighlight] = useState<string | null>(null)
   const [paused, setPaused] = useState(false)
-  const [langMode, setLangMode] = useTutorLang()
-  const [ptVoice, setPtVoice] = useState<boolean | null>(null)
-  useEffect(() => { const sync = () => setPtVoice(hasPortugueseVoice()); sync(); window.speechSynthesis?.addEventListener?.('voiceschanged', sync); return () => window.speechSynthesis?.removeEventListener?.('voiceschanged', sync) }, [])
+  const [langMode] = useTutorLang()
   const [mood, setMood] = useState<Mood>('happy')
   const [wave, setWave] = useState(false)
   const [hello, setHello] = useState('')
@@ -169,31 +167,7 @@ export function ReaderTutor({ book }: { book: Book }) {
 
             {view === 'settings' ? (
               <div className="px-3 pb-3 pt-1 max-h-[60dvh] overflow-y-auto">
-                <p className="px-1.5 pt-1 pb-2 text-[12px] font-medium" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? 'Como a tutora responde' : 'How the tutor answers'}</p>
-                <div role="radiogroup" aria-label={pt ? 'Idioma da tutora' : 'Tutor language'} className="space-y-1.5">
-                  {TUTOR_LANG_OPTIONS.map(o => {
-                    const on = langMode === o.id
-                    return (
-                      <button key={o.id} type="button" role="radio" aria-checked={on} onClick={() => setLangMode(o.id)}
-                        className="w-full flex items-center gap-3 text-left px-3 py-2.5 rounded-xl border transition-colors"
-                        style={{ borderColor: on ? 'var(--theme-text)' : 'var(--theme-border)', backgroundColor: on ? 'var(--theme-bg-secondary)' : 'transparent' }}>
-                        <span className="min-w-0 flex-1">
-                          <span className="block text-[13.5px] font-medium">{pt ? o.pt : o.en}</span>
-                          <span className="block text-[12px] leading-snug" style={{ color: 'var(--theme-text-secondary)' }}>{o.hint[pt ? 0 : 1]}</span>
-                        </span>
-                        <span aria-hidden className="w-5 h-5 shrink-0 rounded-full grid place-items-center border" style={{ borderColor: on ? 'var(--theme-text)' : 'var(--theme-text-secondary)', backgroundColor: on ? 'var(--theme-text)' : 'transparent', color: 'var(--theme-bg)' }}>
-                          {on && <Check className="w-3 h-3" strokeWidth={3} />}
-                        </span>
-                      </button>
-                    )
-                  })}
-                </div>
-                {langMode !== 'en' && ptVoice === false && (
-                  <p className="mt-2 text-[12px] leading-snug rounded-xl px-3 py-2.5" style={{ backgroundColor: 'var(--pastel-amber-bg)', color: 'var(--pastel-amber-fg)' }}>
-                    {pt ? 'Este aparelho não tem voz em português instalada. A tutora fala o inglês em voz alta e mostra o português nas legendas.' : 'This device has no Portuguese voice installed. The tutor speaks the English aloud and shows the Portuguese in the captions.'}
-                  </p>
-                )}
-                <div className="mt-3 rounded-xl border divide-y" style={{ borderColor: 'var(--theme-border)' }}>
+                <div className="rounded-xl border divide-y" style={{ borderColor: 'var(--theme-border)' }}>
                   <ToggleRow label={pt ? 'Legendas' : 'Captions'} hint={pt ? 'Mostra o que ela fala em texto.' : 'Shows what she says as text.'} checked={captions} onChange={setCaptions} />
                   <ToggleRow label={pt ? 'Voz mais lenta' : 'Slower voice'} hint={pt ? 'Bom para acompanhar com calma.' : 'Good for following along.'} checked={slow} onChange={setSlow} />
                 </div>

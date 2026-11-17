@@ -195,7 +195,7 @@ export class GestureDirector {
   }
   listen() { this.endSpeech() }
 
-  /** Chegada: gesto de acolhida com um sorriso breve, depois neutro. */
+  /** Chegada: gesto de acolhida (uns 2 s) com um sorriso breve, depois neutro. */
   intro() {
     this.clear()
     this.speaking = false
@@ -203,7 +203,7 @@ export class GestureDirector {
     this.lastFace = this.now()
     window.setTimeout(() => this.apply('abertura'), 250)
     this.h.act('nod', 0.35)
-    this.timer = window.setTimeout(() => this.apply('neutro'), 250 + rand([3800, 4800]))
+    this.timer = window.setTimeout(() => this.apply('neutro'), 250 + rand([1900, 2300]))
   }
 
   // --- espera (antes de a pessoa começar) ----------------------------------------------------------------------------------

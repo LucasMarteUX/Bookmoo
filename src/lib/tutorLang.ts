@@ -5,9 +5,9 @@ import type { TutorLangMode } from '@/lib/billingApi'
 const KEY = 'bookmoo-tutor-lang'
 const EVT = 'bookmoo-tutor-lang'
 
-export function getTutorLang(): TutorLangMode {
-  try { const v = localStorage.getItem(KEY); return v === 'hybrid' || v === 'pt' || v === 'en' ? v : 'auto' } catch { return 'auto' }
-}
+// As vozes dos tutores (Kokoro) só falam inglês: o português caía na voz do aparelho, que é outra voz e não acompanha a boca.
+// Por isso a escolha de idioma saiu das telas e a tutora responde sempre em inglês (o servidor ainda aceita os outros modos).
+export function getTutorLang(): TutorLangMode { return 'en' }
 export function setTutorLang(mode: TutorLangMode) {
   try { localStorage.setItem(KEY, mode) } catch { /* sem armazenamento */ }
   window.dispatchEvent(new Event(EVT))

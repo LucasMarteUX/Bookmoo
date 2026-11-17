@@ -19,7 +19,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { TutorPicker } from '@/components/voice/TutorPicker'
 import { useAvatarSettings } from '@/store/useAvatarSettings'
 import { CHARACTERS, characterById, effectiveCharacterId, YOUNG_CHARACTER } from '@/lib/livliv/characters'
-import { TUTOR_LANG_OPTIONS, useTutorLang } from '@/lib/tutorLang'
+import { useTutorLang } from '@/lib/tutorLang'
 import { greetingFor } from '@/lib/greetings'
 import { holdMs, INVITES_FREE, INVITES_SCENE, lineText, MIC_SCARE, pickNext, type ReactionLine } from '@/lib/tutorReactions'
 import { pickTopics, type TalkTopic } from '@/lib/talkTopics'
@@ -147,7 +147,6 @@ export function ConversePage() {
             <Seg label={pt ? 'Velocidade da voz' : 'Voice speed'} options={SPEEDS.map(s => ({ value: s.v, label: pt ? s.pt : s.en }))} value={rate} onChange={setRate} />
             <Seg label={pt ? 'Duração das Cenas' : 'Scene length'} options={[3, 5, 10].map(m => ({ value: m, label: `${m} min`, locked: m > maxMin }))} value={minutes}
               onChange={m => (m > maxMin ? openPaywall('scenes') : setMinutes(m))} />
-            <TutorLangPicker pt={pt} />
             <label className="flex items-center justify-between text-[14px]">
               <span>{pt ? 'Mostrar legendas' : 'Show captions'}</span>
               <input type="checkbox" checked={captions} onChange={e => setCaptions(e.target.checked)} className="w-5 h-5 accent-[var(--theme-text)]" />
@@ -186,26 +185,6 @@ function ArrowBtn({ dir, onClick, label }: { dir: 1 | -1; onClick: () => void; l
       style={{ borderColor: 'var(--theme-border)', backgroundColor: 'color-mix(in srgb, var(--theme-bg) 74%, transparent)' }}>
       {dir < 0 ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
     </motion.button>
-  )
-}
-
-function TutorLangPicker({ pt }: { pt: boolean }) {
-  const [mode, setMode] = useTutorLang()
-  const current = TUTOR_LANG_OPTIONS.find(o => o.id === mode) ?? TUTOR_LANG_OPTIONS[0]
-  return (
-    <div>
-      <p className="text-[13px] font-medium mb-1.5">{pt ? 'Idioma da tutora (conversa livre)' : 'Tutor language (free talk)'}</p>
-      <div className="grid grid-cols-4 gap-1 p-0.5 rounded-xl" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
-        {TUTOR_LANG_OPTIONS.map(o => (
-          <button key={o.id} type="button" onClick={() => setMode(o.id)} aria-pressed={mode === o.id}
-            className="h-9 rounded-lg text-[12.5px] font-medium transition-colors"
-            style={{ backgroundColor: mode === o.id ? 'var(--theme-card-bg)' : 'transparent', color: mode === o.id ? 'var(--theme-text)' : 'var(--theme-text-secondary)', boxShadow: mode === o.id ? '0 1px 2px rgba(0,0,0,0.12)' : undefined }}>
-            {pt ? o.pt : o.en}
-          </button>
-        ))}
-      </div>
-      <p className="mt-1.5 text-[12px]" style={muted}>{current.hint[pt ? 0 : 1]} {pt ? 'Nas Cenas o personagem fala sempre em inglês.' : 'In Scenes the character always speaks English.'}</p>
-    </div>
   )
 }
 

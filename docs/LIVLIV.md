@@ -82,7 +82,11 @@ O player oficial desenha as expressões como patches estáticos. As camadas do r
 - **Gestos:** Bia, Luck, Yuno e Yuri têm as camadas `gesto_*` (`gestures: true` em `characters.ts`). Pacotes da Bia e do Luck copiados de `Personagens/bia/rig` e `Personagens/homem/rig` (hashes conferidos com `manifesto.json` e `manifesto_gestos.json`); ASSET_REV `20261120-luck-gestos`.
 - **Base fixa (`bodyInHead`):** Bia, Yuno e Yuri têm o corpo no grupo da cabeça (desenho aprovado, não mexer nos grupos). O `bodyZ` vira `angleZ` e o desenho é deslocado de volta (`move.x`, 0,0013 da largura por grau, medido), então o giro é em volta da cintura e a base não sai do lugar. O Luck tem grupo `body` próprio e usa o movimento normal do player.
 - **Enquadramento:** `zoomK` (0,9 para Bia e Luck) mostra um pouco mais do corpo. Cache de enquadramento v2.
-- **Piscadinha:** com `x_wink`, a cabeça inclina para o lado do olho fechado (esquerda da tela) e desce um pouco. O outro olho não fecha um pouco: a piscadinha é textura pronta (limitação do rig).
+- **Piscadinha:** com `x_wink`, a cabeça inclina para o lado do olho ABERTO (direita da tela) e desce um pouco, e o olho aberto fecha um pouco (`eyeLOpen/eyeROpen` x 0,6). Se o olho aberto não reagir num rig, é porque a textura da expressão cobre os olhos.
+- **Ações (`act`) com base fixa:** em `bodyInHead` o `act` do player é trocado por um driver próprio (nod/shake/tilt/shy só na cabeça, com a base compensada), porque o `act` nativo é aplicado depois dos drivers e balançava a base. Medido: base parada em todas as ações e no toque.
+- **Saudação de chegada:** gesto de acolhida de uns 2 s, depois neutro.
+- Método de criação de personagens novos: [METODO-PERSONAGENS.md](METODO-PERSONAGENS.md).
 - **Olhar:** a cada troca de gesto ou expressão, com o mouse parado, os olhos desviam um pouco e voltam.
 - **Espera:** convites a cada 10,5 s; mão no queixo só em confusa, triste, brava e tímida (`GestureDirector.wait`).
 - **Voz:** tom alterado gera o áudio em ritmo natural e toca mais rápido; todo áudio do Kokoro ganha 120 ms de silêncio no início (worker). Yuri: tom 1,2, vozes preferidas Puck, Fable, Michael.
+- Estudo de movimento (postura por emoção, gesto e momento; inclinação ao contrário do mouse; base fixa com `basePerDeg` medido por personagem): [MOVIMENTO-PERSONAGENS.md](MOVIMENTO-PERSONAGENS.md).

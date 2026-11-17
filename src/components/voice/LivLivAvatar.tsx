@@ -12,6 +12,7 @@ import { getSpeechClock } from '@/lib/speechClock'
 import { characterAvatarUrl, characterById, characterModelUrl } from '@/lib/livliv/characters'
 import { clearSpeakerVoice, setSpeakerVoice } from '@/lib/speakerVoice'
 import { installBodyGestures, type BodyGestureControl } from '@/lib/livliv/bodyGestures'
+import { installBodyLanguage } from '@/lib/livliv/bodyLanguage'
 import { GestureDirector } from '@/lib/livliv/performance'
 import { moodFromText, pickNext, POKE_ANGRY, POKES, type ReactionLine } from '@/lib/tutorReactions'
 
@@ -108,6 +109,7 @@ export function LivLivAvatar({ characterId, state, speakingText = '', onHead, si
   const gestureRef = useRef<BodyGestureControl | null>(null)
   const baseZRef = useRef(0)
   const fixedBase = useRef(false)
+  const basePerDeg = useRef(0.0013)
   const moodRef = useRef<Mood>(mood)
   moodRef.current = mood
   const textRef = useRef(speakingText)
@@ -161,16 +163,24 @@ export function LivLivAvatar({ characterId, state, speakingText = '', onHead, si
     p.bodyMotion = 0.5
     gestureRef.current = installBodyGestures(p)
     if (import.meta.env.DEV) (window as unknown as { __gest?: BodyGestureControl }).__gest = gestureRef.current
+    let leanDir = -1, leanTarget = -1, leanSwitch = performance.now() + 10000
     const removeRecenter = p.use({
       order: 5,
       update(frame) {
         const k = Math.min(1, frame.dt / 3)
+        // Às vezes o corpo inclina ao CONTRÁRIO do mouse e só os olhos acompanham (fica mais vivo que seguir sempre).
+        // O modo troca sozinho a cada 8 a 16 s, e a passagem de um para o outro é suave (sem tranco).
+        const now = performance.now()
+        if (now > leanSwitch) { leanSwitch = now + 8000 + Math.random() * 8000; leanTarget = -1 } // sempre ao contrário do mouse (pedido): só os olhos seguem
+        leanDir += (leanTarget - leanDir) * Math.min(1, frame.dt * 0.8)
+        const counter = (1 - leanDir) / 2 // 0 seguindo, 1 ao contrário
         for (const key of Object.keys(slow)) {
           // A inclinação inicial do personagem (Yuno: -4 graus) é o "centro" dele: o passa-altas só age em volta dela.
           const base = key === 'angleZ' ? baseZRef.current : 0
           const v = ((frame.params as unknown as Record<string, number>)[key] ?? 0) - base
           slow[key] += (v - slow[key]) * k
-          const gain = key === 'angleZ' && fixedBase.current ? 1 : GAIN[key]
+          // Ao contrário: a cabeça quase não vira para o mouse (só os olhos seguem).
+          const gain = (key === 'angleZ' && fixedBase.current ? 1 : GAIN[key]) * (key === 'angleX' ? 1 - 0.6 * counter : 1)
           ;(frame.params as unknown as Record<string, number>)[key] = (v - slow[key] * 0.92) * gain + base
         }
         // Corpo no grupo da cabeça (Bia, Yuno, Yuri): o desenho todo gira em volta da cabeça, então a base balançaria. A inclinação do
@@ -179,8 +189,14 @@ export function LivLivAvatar({ characterId, state, speakingText = '', onHead, si
         // Medido: 1 grau de angleZ desloca a base 0,0013 da largura.
         if (fixedBase.current) {
           const pr = frame.params as unknown as Record<string, number>
-          pr.angleZ = (pr.angleZ ?? 0) + 3 * (pr.bodyZ ?? 0)
-          frame.move.x += 0.0013 * (pr.angleZ - baseZRef.current)
+          // Mouse de um lado para o outro: além de virar a cabeça (angleX), o desenho inclina para o lado do mouse (o jeito da Yuno),
+          // sempre em volta da base: o deslocamento abaixo mantém a margem de baixo no lugar.
+          pr.angleZ = (pr.angleZ ?? 0) + (3 * (pr.bodyZ ?? 0) + 0.5 * (pr.angleX ?? 0) / Math.max(0.4, 1 - 0.6 * counter)) * leanDir
+          frame.move.x += basePerDeg.current * (pr.angleZ - baseZRef.current)
+        } else {
+          // Luck (corpo em grupo próprio): o tronco inclina pelo bodyZ do player, na direção do modo atual.
+          const pr = frame.params as unknown as Record<string, number>
+          pr.bodyZ = ((pr.bodyZ ?? 0) + 0.2 * (pr.angleX ?? 0) / Math.max(0.4, 1 - 0.6 * counter)) * leanDir
         }
         for (const key of Object.keys(STATIC_GAIN)) {
           const v = (frame.params as unknown as Record<string, number>)[key]
@@ -188,7 +204,8 @@ export function LivLivAvatar({ characterId, state, speakingText = '', onHead, si
         }
       },
     })
-    // Piscadinha: a cabeça inclina para o lado do olho fechado (na tela, o da esquerda) e desce um pouco, e volta suave.
+    // Piscadinha: a cabeça inclina para o lado do olho aberto (na tela, o da direita) e desce um pouco, o olho aberto fecha um
+    // pouco e tudo volta suave.
     let wink = 0
     const removeWink = p.use({
       order: 8,
@@ -198,10 +215,49 @@ export function LivLivAvatar({ characterId, state, speakingText = '', onHead, si
         wink += (target - wink) * Math.min(1, frame.dt * 8)
         if (wink < 0.01) return
         const pr = frame.params as unknown as Record<string, number>
-        pr.angleZ = (pr.angleZ ?? 0) + 6 * wink
+        pr.angleZ = (pr.angleZ ?? 0) - 6 * wink
         pr.angleY = (pr.angleY ?? 0) - 5 * wink
-        if (fixedBase.current) frame.move.x += 0.0013 * 6 * wink // a base continua parada
+        pr.eyeLOpen = (pr.eyeLOpen ?? 1) * (1 - 0.4 * wink)
+        pr.eyeROpen = (pr.eyeROpen ?? 1) * (1 - 0.4 * wink)
+        if (fixedBase.current) frame.move.x -= basePerDeg.current * 6 * wink // a base continua parada
       },
+    })
+    // Movimentos curtos (acenar, negar, inclinar, timidez). Nos personagens com o corpo no grupo da cabeça, o `act` do player
+    // (aplicado depois dos drivers) balançaria a base: aqui eles viram só cabeça e tronco para cima, com a base compensada.
+    const acts: { kind: Action; amt: number; t0: number; dur: number }[] = []
+    const origAct = p.act.bind(p)
+    ;(p as unknown as { act: (a: Action, s?: number) => void }).act = (a, st = 1) => {
+      if (!fixedBase.current) return origAct(a, st)
+      acts.push({ kind: a, amt: st, t0: performance.now(), dur: a === 'shake' ? 1100 : a === 'nod' ? 800 : 1300 })
+    }
+    const removeActs = p.use({
+      order: 9,
+      update(frame) {
+        if (!acts.length) return
+        const now = performance.now()
+        const pr = frame.params as unknown as Record<string, number>
+        let dz = 0
+        for (let i = acts.length - 1; i >= 0; i--) {
+          const a = acts[i]
+          const u = (now - a.t0) / a.dur
+          if (u >= 1) { acts.splice(i, 1); continue }
+          const env = Math.sin(Math.PI * u)
+          if (a.kind === 'nod') pr.angleY = (pr.angleY ?? 0) - 9 * a.amt * env
+          else if (a.kind === 'shake') pr.angleX = (pr.angleX ?? 0) + 10 * a.amt * env * Math.sin(u * Math.PI * 4)
+          else if (a.kind === 'tilt') dz += 4.5 * a.amt * env
+          else if (a.kind === 'shy') { dz += 4 * a.amt * env; pr.angleY = (pr.angleY ?? 0) - 4 * a.amt * env }
+        }
+        pr.angleZ = (pr.angleZ ?? 0) + dz
+        frame.move.x += basePerDeg.current * dz
+      },
+    })
+    // Linguagem corporal: a cabeça e o olhar acompanham a emoção desenhada, o gesto e o momento (ouvir, pensar, falar).
+    const removeBodyLanguage = installBodyLanguage(p, {
+      state: () => stateRef.current,
+      mood: () => (moodRef.current === 'confused' ? 'confused' : null),
+      gesture: () => gestureRef.current?.get() ?? 'neutro',
+      fixedBase: () => fixedBase.current,
+      basePerDeg: () => basePerDeg.current,
     })
     // Voz do navegador (português): a boca segue o relógio da fala, suavizada.
     let open = 0, vowel = 0
@@ -251,6 +307,8 @@ export function LivLivAvatar({ characterId, state, speakingText = '', onHead, si
     return () => {
       removeBrows()
       removeWink()
+      removeBodyLanguage()
+      removeActs()
       removeRecenter()
       gestureRef.current?.dispose()
       gestureRef.current = null
@@ -275,6 +333,7 @@ export function LivLivAvatar({ characterId, state, speakingText = '', onHead, si
         baseZRef.current = characterById(characterId)?.baseAngleZ ?? 0
         player.params.angleZ = baseZRef.current
         fixedBase.current = !!characterById(characterId)?.bodyInHead
+        basePerDeg.current = characterById(characterId)?.basePerDeg ?? 0.0013
         player.bodyMotion = fixedBase.current ? 0 : 0.5
         gestureRef.current?.set('neutro')
         player.view.head = !stage && size < 120

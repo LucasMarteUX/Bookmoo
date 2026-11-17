@@ -6,9 +6,12 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { VoiceSelect } from '@/components/layout/VoiceSelect'
 import { activeKokoroVoice, isKokoroSupported, subscribeKokoro } from '@/lib/kokoro/engine'
 import { isTtsConfigured } from '@/lib/tts'
+import { hasDeviceVoice, isMobileDevice } from '@/lib/deviceVoice'
 
-/** True quando a narração em inglês ainda não tem uma voz de verdade instalada. */
+/** True quando a narração em inglês ainda não tem uma voz de verdade instalada. No celular a voz do aparelho já serve
+ *  (ela vem pronta; baixar a Kokoro fica como opção), então ali nunca bloqueia. */
 export function needsVoiceInstall(language: string) {
+  if (isMobileDevice() && hasDeviceVoice()) return false
   return language.startsWith('en') && isKokoroSupported() && !activeKokoroVoice() && !isTtsConfigured()
 }
 

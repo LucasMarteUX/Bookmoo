@@ -4,7 +4,7 @@
 // Sem API de voz em tempo real: reconhecimento de fala do aparelho + IA de texto + voz Kokoro/VoiceStudio/navegador.
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createRecognizer, defaultEngine, MicPermissionError, type Recognizer } from '@/lib/speech/recognizers'
-import { isTtsConfigured, speak, stopSpeaking } from '@/lib/tts'
+import { speak, stopSpeaking } from '@/lib/tts'
 import { activeKokoroVoice, getKokoroState, kokoroAudioUrl } from '@/lib/kokoro/engine'
 import { getKokoroVoice } from '@/lib/kokoro/voices'
 import { pickFiller } from '../../supabase/functions/_shared/scenes'
@@ -63,8 +63,9 @@ function speakerFor(gender?: 'female' | 'male'): { voice?: string; gender?: 'fem
 
 async function say(text: string, rate: number, alive: () => boolean, voice?: string, lang: 'en' | 'pt' = 'en', gender?: 'female' | 'male', pitch = 1): Promise<void> {
   if (!alive() || !text.trim()) return
-  if (lang === 'en' && (activeKokoroVoice() || isTtsConfigured())) {
-    const h = await speak(text, { rate, context: 'phrase', kokoroVoice: voice, pitch })
+  // Inglês: sempre pela camada de voz (Kokoro baixada, servidor ou, sem nenhuma, a voz do aparelho com gênero e tom do personagem).
+  if (lang === 'en') {
+    const h = await speak(text, { rate, context: 'phrase', kokoroVoice: voice, pitch, gender })
     await h.done
     return
   }

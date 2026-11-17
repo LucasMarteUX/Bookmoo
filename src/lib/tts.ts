@@ -5,6 +5,8 @@
 import { supabase } from '@/lib/supabase'
 import { activeKokoroVoice, kokoroAudioUrl, type WordTiming } from '@/lib/kokoro/engine'
 import { askVoiceOnce } from '@/lib/voiceGate'
+import { deviceSpeak, hasDeviceVoice, isMobileDevice } from '@/lib/deviceVoice'
+import { getSpeakerVoice } from '@/lib/speakerVoice'
 import { audioClock, clearSpeechClock, setSpeechClock, type SpeechClock } from '@/lib/speechClock'
 import { countWords, listWords, wordRegex } from '@/lib/wordTokens'
 
@@ -42,6 +44,8 @@ export interface SpeakOptions {
   onWord?: (wordIndex: number) => void
   /** Tom da voz (1 = natural; 1.1–1.25 = mais jovem/infantil). O ritmo da fala continua o mesmo. */
   pitch?: number
+  /** Gênero da voz quando cai na voz do aparelho (padrão: o do personagem na tela, senão feminina). */
+  gender?: 'female' | 'male'
 }
 
 export interface SpeakHandle {
@@ -392,7 +396,9 @@ export async function speak(text: string, opts: SpeakOptions = {}): Promise<Spea
   const lang = (opts.language ?? 'en').toLowerCase()
   const kokoroVoice = activeKokoroVoice() ? (opts.kokoroVoice ?? activeKokoroVoice()) : null
   if (lang.startsWith('en') && !kokoroVoice && !isTtsConfigured()) {
-    askVoiceOnce()
+    // Sem voz baixada: fala com a voz do próprio aparelho (no celular é o normal; no computador o aviso sugere baixar a melhor).
+    if (!isMobileDevice()) askVoiceOnce()
+    if (hasDeviceVoice()) return { ...(await speakOnDevice(trimmed, opts, token)), source: 'browser' }
     return { done: Promise.resolve(), source: 'kokoro' }
   }
   if (kokoroVoice && lang.startsWith('en')) {
@@ -429,8 +435,23 @@ export async function speak(text: string, opts: SpeakOptions = {}): Promise<Spea
       opts.onFallback?.(reason)
     }
   }
+  if (hasDeviceVoice()) return { ...(await speakOnDevice(trimmed, opts, token)), source: 'browser' }
   askVoiceOnce()
   return { done: Promise.resolve(), source: 'kokoro' }
+}
+
+/** Voz do aparelho com o gênero e o tom do personagem na tela (Yuno e Yuri mais finos). */
+async function speakOnDevice(text: string, opts: SpeakOptions, token: number) {
+  const sp = getSpeakerVoice()
+  const h = await deviceSpeak(text, {
+    rate: opts.rate ?? 1,
+    pitch: opts.pitch ?? sp?.pitch ?? 1,
+    gender: opts.gender ?? sp?.gender ?? 'female',
+    onWord: opts.onWord,
+    isStale: () => token !== currentToken,
+  })
+  // Encerrar a frase (stopSpeaking/haltPlayback) cancela a voz do aparelho: a promessa termina pelo onend/onerror.
+  return h
 }
 
 // ---------------------------------------------------------------------------
