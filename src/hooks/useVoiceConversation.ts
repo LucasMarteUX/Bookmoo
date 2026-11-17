@@ -9,6 +9,7 @@ import { activeKokoroVoice, getKokoroState, kokoroAudioUrl } from '@/lib/kokoro/
 import { getKokoroVoice } from '@/lib/kokoro/voices'
 import { pickFiller } from '../../supabase/functions/_shared/scenes'
 import { boundaryClock, clearSpeechClock, setSpeechClock } from '@/lib/speechClock'
+import { getSpeakerVoice, resolveSpeakerVoice } from '@/lib/speakerVoice'
 
 export type VoiceState = 'idle' | 'listening' | 'thinking' | 'speaking' | 'error'
 export type Bubble = { id: number; role: 'user' | 'ai'; text: string; pending?: boolean }
@@ -53,10 +54,17 @@ function ptVoice(gender?: 'female' | 'male') {
   return (byGender.find(v => good.test(v.name)) ?? byGender[0] ?? pool.find(v => good.test(v.name)) ?? pool[0]) || null
 }
 
-async function say(text: string, rate: number, alive: () => boolean, voice?: string, lang: 'en' | 'pt' = 'en', gender?: 'female' | 'male'): Promise<void> {
+/** Voz da fala: a do personagem na tela (gênero e tom dele), senão a do gênero da cena. */
+function speakerFor(gender?: 'female' | 'male'): { voice?: string; gender?: 'female' | 'male'; pitch: number } {
+  const sp = getSpeakerVoice()
+  if (sp) return { voice: resolveSpeakerVoice(sp), gender: sp.gender, pitch: sp.pitch }
+  return { voice: voiceForGender(gender), gender, pitch: 1 }
+}
+
+async function say(text: string, rate: number, alive: () => boolean, voice?: string, lang: 'en' | 'pt' = 'en', gender?: 'female' | 'male', pitch = 1): Promise<void> {
   if (!alive() || !text.trim()) return
   if (lang === 'en' && (activeKokoroVoice() || isTtsConfigured())) {
-    const h = await speak(text, { rate, context: 'phrase', kokoroVoice: voice })
+    const h = await speak(text, { rate, context: 'phrase', kokoroVoice: voice, pitch })
     await h.done
     return
   }
@@ -68,6 +76,7 @@ async function say(text: string, rate: number, alive: () => boolean, voice?: str
     const u = new SpeechSynthesisUtterance(text)
     u.lang = lang === 'pt' ? 'pt-BR' : 'en-US'
     u.rate = lang === 'pt' ? Math.min(1.1, rate + 0.08) : rate
+    u.pitch = Math.max(0.5, Math.min(2, pitch))
     const bc = boundaryClock(text, rate)
     setSpeechClock(bc.clock)
     u.onstart = () => bc.start()
@@ -229,11 +238,12 @@ export function useVoiceConversation(opts: {
     parts.slice(1).filter(p => p.lang === 'en').forEach(p => warm(p.text))
     resumable.current = null
     set('speaking')
-    const g = optsRef.current.gender
     for (const p of parts) {
       if (!alive()) return false
       setSpeakingText(p.text)
-      await say(p.text, optsRef.current.rate ?? 0.95, alive, voiceForGender(g), p.lang, g)
+      // Lido a cada frase: trocar de personagem no meio da conversa já muda a próxima fala.
+      const sp = speakerFor(optsRef.current.gender)
+      await say(p.text, optsRef.current.rate ?? 0.95, alive, sp.voice, p.lang, sp.gender, sp.pitch)
     }
     setSpeakingText('')
     metrics.current.aiEndedAt = performance.now()
@@ -251,7 +261,8 @@ export function useVoiceConversation(opts: {
     const alive = () => token === speakToken.current && active.current
     set(filler ? 'speaking' : 'thinking')
     if (filler) setSpeakingText(filler)
-    const fillerDone = filler ? say(filler, o.rate ?? 0.95, alive, voiceForGender(o.gender)) : Promise.resolve()
+    const fsp = speakerFor(o.gender)
+    const fillerDone = filler ? say(filler, o.rate ?? 0.95, alive, fsp.voice, 'en', fsp.gender, fsp.pitch) : Promise.resolve()
     const turn = o.onTurn(text, filler)
     try {
       await fillerDone

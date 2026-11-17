@@ -40,6 +40,8 @@ export interface SpeakOptions {
   kokoroVoice?: string
   /** Índice (0-based) da palavra sendo falada dentro do texto, para destaque palavra a palavra. */
   onWord?: (wordIndex: number) => void
+  /** Tom da voz (1 = natural; 1.1–1.25 = mais jovem/infantil). O ritmo da fala continua o mesmo. */
+  pitch?: number
 }
 
 export interface SpeakHandle {
@@ -58,7 +60,27 @@ let player: HTMLAudioElement | null = null
 let currentToken = 0
 let serviceDownUntil = 0
 
+// Um personagem animado (LivLiv) pode emprestar o próprio <audio> enquanto está na tela: a mesma voz
+// toca por ele, e a boca do personagem lê esse áudio. Continua sendo um único player: nunca duas vozes.
+const playbackOverrides: HTMLAudioElement[] = []
+/** Usa este elemento para tocar as falas até a função devolvida ser chamada (o último a entrar vence). */
+export function borrowPlaybackElement(el: HTMLAudioElement): () => void {
+  haltPlayback()
+  playbackOverrides.push(el)
+  return () => {
+    const i = playbackOverrides.indexOf(el)
+    if (i < 0) return
+    if (i === playbackOverrides.length - 1) haltPlayback()
+    playbackOverrides.splice(i, 1)
+  }
+}
+function activeElement(): HTMLAudioElement | null {
+  return playbackOverrides[playbackOverrides.length - 1] ?? player
+}
+
 function getPlayer(): HTMLAudioElement {
+  const borrowed = playbackOverrides[playbackOverrides.length - 1]
+  if (borrowed) return borrowed
   if (!player) {
     player = new Audio()
     player.preload = 'auto'
@@ -235,14 +257,17 @@ export function startsFromTimings(text: string, timings: WordTiming[]): number[]
 
 const HIGHLIGHT_LEAD_S = 0.12
 
-async function playUrl(url: string, rate: number, text?: string, onWord?: (i: number) => void, realStarts?: number[]): Promise<{ done: Promise<void> }> {
+async function playUrl(url: string, rate: number, text?: string, onWord?: (i: number) => void, realStarts?: number[], pitch = 1): Promise<{ done: Promise<void> }> {
   const a = getPlayer()
   a.src = url
   const mySrc = a.src
-  a.playbackRate = kokoroSpeed(rate)
+  // Tom diferente: o áudio já veio gerado mais devagar (ver speak) e toca mais rápido sem preservar o tom,
+  // então fica mais agudo com o mesmo ritmo. Sem tom: velocidade com o tom preservado, como sempre.
+  const shifted = Math.abs(pitch - 1) > 0.01
+  a.playbackRate = shifted ? Math.min(1.5, pitch * kokoroSpeed(rate)) : kokoroSpeed(rate)
   const pitched = a as HTMLAudioElement & { preservesPitch?: boolean; webkitPreservesPitch?: boolean }
-  pitched.preservesPitch = true
-  pitched.webkitPreservesPitch = true
+  pitched.preservesPitch = !shifted
+  pitched.webkitPreservesPitch = !shifted
   let raf = 0
   let clock: SpeechClock | null = null
   const done = new Promise<void>((resolve) => {
@@ -317,10 +342,11 @@ function haltPlayback() {
   const f = finishCurrent
   finishCurrent = null
   f?.()
-  if (player) {
-    player.pause()
-    player.removeAttribute('src')
-    player.load()
+  const el = activeElement()
+  if (el) {
+    el.pause()
+    el.removeAttribute('src')
+    el.load()
   }
   if (typeof window !== 'undefined') window.speechSynthesis?.cancel()
 }
@@ -334,14 +360,16 @@ export function stopSpeaking() {
 
 export function pauseSpeaking() {
   paused = true
-  if (player && !player.paused) player.pause()
+  const el = activeElement()
+  if (el && !el.paused) el.pause()
   if (typeof window !== 'undefined') window.speechSynthesis?.pause()
 }
 
 export function resumeSpeaking() {
   paused = false
   releaseWaiters()
-  if (player && player.getAttribute('src') && player.paused && !player.ended) player.play().catch(() => {})
+  const el = activeElement()
+  if (el && el.getAttribute('src') && el.paused && !el.ended) el.play().catch(() => {})
   if (typeof window !== 'undefined') window.speechSynthesis?.resume()
 }
 
@@ -370,11 +398,15 @@ export async function speak(text: string, opts: SpeakOptions = {}): Promise<Spea
   if (kokoroVoice && lang.startsWith('en')) {
     try {
       opts.onLoading?.(true)
-      const clip = await kokoroAudioUrl(trimmed, kokoroVoice, 1, 'high')
+      const pitch = opts.pitch && Math.abs(opts.pitch - 1) > 0.01 ? Math.min(1.35, Math.max(0.8, opts.pitch)) : 1
+      // Com tom alterado, o Kokoro gera sempre no ritmo natural (gerar mais devagar estraga o começo das frases) e o player
+      // toca mais rápido (tom * ritmo), o que deixa a voz mais fina.
+      const genSpeed = 1
+      const clip = await kokoroAudioUrl(trimmed, kokoroVoice, genSpeed, 'high')
       opts.onLoading?.(false)
       if (token !== currentToken) return { done: Promise.resolve(), source: 'kokoro' }
       const starts = clip.words ? startsFromTimings(trimmed, clip.words) : undefined
-      return { ...(await playUrl(clip.url, opts.rate ?? 1, trimmed, opts.onWord, starts)), source: 'kokoro' }
+      return { ...(await playUrl(clip.url, opts.rate ?? 1, trimmed, opts.onWord, starts, pitch)), source: 'kokoro' }
     } catch (e) {
       opts.onLoading?.(false)
       if (token !== currentToken) return { done: Promise.resolve(), source: 'kokoro' }

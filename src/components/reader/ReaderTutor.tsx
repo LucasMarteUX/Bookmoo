@@ -16,8 +16,10 @@ import { useStudyLevel } from '@/hooks/useStudyLevel'
 import { conversation } from '@/lib/billingApi'
 import { openPaywall } from '@/components/billing/Paywall'
 import { toast } from '@/components/ui/toast'
-import { AvatarBubble, TutorAvatar, PlayStopButton, type Mood } from '@/components/voice/TutorAvatar'
+import { AvatarBubble, PlayStopButton, type Mood } from '@/components/voice/TutorAvatar'
+import { CharacterAvatar } from '@/components/voice/CharacterAvatar'
 import { greetingFor } from '@/lib/greetings'
+import { useTutorPersona } from '@/hooks/useTutorPersona'
 import { runTutorAction, type TutorAction } from '@/lib/tutorActions'
 import { TUTOR_LANG_OPTIONS, useTutorLang } from '@/lib/tutorLang'
 
@@ -34,6 +36,7 @@ export function setTutorHidden(hidden: boolean) {
 
 export function ReaderTutor({ book }: { book: Book }) {
   const pt = useLanguage().locale === 'pt-BR'
+  const tutor = useTutorPersona()
   const ent = useEntitlements(s => s.data)
   const level = useStudyLevel()
   const { user } = useAuth()
@@ -69,8 +72,8 @@ export function ReaderTutor({ book }: { book: Book }) {
     fillers: ['Hmm, let me look at the page…', 'Ooh, good one…', 'Well…', 'Let me think…'],
     onIdle: () => setPaused(true),
     onTurn: async (text, filler) => {
-      if (!session.current) session.current = (await conversation.start({ kind: 'reader', bookId: book.id, level: level.id })).sessionId
-      const r = await conversation.turn({ sessionId: session.current, text, filler, page: book.currentPage, level: level.id, langMode })
+      if (!session.current) session.current = (await conversation.start({ kind: 'reader', bookId: book.id, level: level.id, characterId: tutor.id })).sessionId
+      const r = await conversation.turn({ sessionId: session.current, text, filler, page: book.currentPage, level: level.id, langMode, tutorName: tutor.name, characterId: tutor.id })
       return { reply: r.reply, segments: r.segments, extra: { highlight: r.highlight, offerSave: r.offerSave, actions: r.actions ?? [], mood: r.mood } }
     },
     onExtra: extra => {
@@ -107,7 +110,7 @@ export function ReaderTutor({ book }: { book: Book }) {
   useEffect(() => {
     if (!open) return
     setMood('happy'); setWave(true)
-    setHello(greetingFor({ pt, name: 'Bea', book: book.title }))
+    setHello(greetingFor({ pt, name: tutor.name, female: tutor.female, book: book.title }))
     const t1 = window.setTimeout(() => setWave(false), 2300)
     const t2 = window.setTimeout(() => setHello(''), 6000)
     return () => { window.clearTimeout(t1); window.clearTimeout(t2) }
@@ -135,14 +138,14 @@ export function ReaderTutor({ book }: { book: Book }) {
 
   return (
     // A bolinha e o painel ocupam o mesmo lugar: ao abrir, o painel cresce a partir do canto da bolinha.
-    <div className="fixed z-[45] right-4 md:right-8 w-14 h-14 pointer-events-none"
+    <div data-chrome={open ? undefined : 'fade'} className="fixed z-[45] right-4 md:right-8 w-14 h-14 pointer-events-none"
       style={{ bottom: 'calc(var(--safe-b, 0px) + var(--tutor-bottom, 1.5rem) + 4.5rem)' }}>
       <AnimatePresence initial={false}>
         {open && (
           <motion.div key="panel" initial={{ opacity: 0, scale: 0.3, borderRadius: 999 }} animate={{ opacity: 1, scale: 1, borderRadius: 28 }} exit={{ opacity: 0, scale: 0.3, borderRadius: 999 }}
             transition={{ type: 'spring', stiffness: 380, damping: 34 }} style={{ transformOrigin: 'bottom right', borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-card-bg)' }}
             className="pointer-events-auto absolute bottom-0 right-0 w-[min(calc(100vw-2rem),380px)] border shadow-2xl overflow-hidden"
-            data-tour="tutor-panel" role="dialog" aria-label={pt ? 'Tutora de leitura' : 'Reading tutor'}>
+            data-tour="tutor-panel" role="dialog" aria-label={pt ? (tutor.female ? 'Tutora de leitura' : 'Tutor de leitura') : 'Reading tutor'}>
             <div className="flex items-center gap-1 px-3 pt-3 pb-1">
               {view === 'settings' ? (
                 <>
@@ -152,7 +155,7 @@ export function ReaderTutor({ book }: { book: Book }) {
               ) : (
                 <>
                   <div className="flex-1 min-w-0 pl-1.5">
-                    <p className="text-[15px] font-semibold leading-tight">Bea</p>
+                    <p className="text-[15px] font-semibold leading-tight">{tutor.name}</p>
                     <p className="text-[12px] leading-tight flex items-center gap-1.5" style={{ color: 'var(--theme-text-secondary)' }}>
                       <span aria-hidden className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: running ? '#22c55e' : 'var(--theme-border)' }} />
                       {pt ? 'Tutora de leitura' : 'Reading tutor'}
@@ -235,7 +238,7 @@ export function ReaderTutor({ book }: { book: Book }) {
                 </div>
 
                 <div className="flex items-center gap-4 px-4 pt-3 pb-4">
-                  <TutorAvatar kind="woman" state={voice.state} speakingText={voice.speakingText} size={84} mood={mood} wave={wave}
+                  <CharacterAvatar voice kind="woman" state={voice.state} speakingText={voice.speakingText} size={84} mood={mood} wave={wave}
                     onPoke={() => setHello(pt ? ['Oi! Pode perguntar.', 'Estou aqui!', 'Haha, cócegas!'][Math.floor(Math.random() * 3)] : ['Hi! Ask away.', 'I am here!', 'Haha, that tickles!'][Math.floor(Math.random() * 3)])} />
                   <div className="flex-1 min-w-0">
                     {hello && !running
@@ -257,7 +260,7 @@ export function ReaderTutor({ book }: { book: Book }) {
             aria-label={allowed ? (pt ? 'Abrir a tutora de leitura' : 'Open the reading tutor') : (pt ? 'Tutora de leitura (Plus)' : 'Reading tutor (Plus)')}
             title={allowed ? (pt ? 'Converse com a tutora sobre o livro' : 'Talk with the tutor about the book') : (pt ? 'Tutora de leitura, disponível no Plus' : 'Reading tutor, Plus plan')}>
             <span className="absolute inset-0 rounded-full overflow-hidden grid place-items-center">
-              <TutorAvatar kind="woman" state="idle" size={52} followPointer={false} mood="happy" />
+              <CharacterAvatar kind="woman" state="idle" size={52} followPointer={false} mood="happy" />
             </span>
             {running && <motion.span aria-hidden className="absolute inset-0 rounded-full border-2" style={{ borderColor: 'var(--theme-text)' }} animate={{ opacity: [0.2, 0.7, 0.2] }} transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }} />}
             {!allowed && <span className="absolute right-0 bottom-0 w-5 h-5 rounded-full grid place-items-center" style={{ backgroundColor: '#111', color: '#FCD34D' }}><Lock className="w-3 h-3" /></span>}

@@ -16,7 +16,7 @@ import { bookStyleKey, catalogStyleOptions } from '@/lib/comicStyles'
 import { StylePickerDialog, useApplyBookStyle, useStyleBank } from '@/components/book/StylePicker'
 import { VocabularyModal, type VocabTab } from '../vocabulary/VocabularyModal'
 import { useMediaSession, useWakeLock } from '@/hooks/useNativeMedia'
-import { ChevronLeft, ChevronRight, MousePointer2, Type, Pin, PinOff, Pencil, Trash2, Play, Image as ImageIcon, Loader2, WandSparkles, Pause, Settings, X, RefreshCw, Eye, EyeOff, Sparkles, GraduationCap, Dices, MoreVertical, CircleHelp, Settings2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, MousePointer2, Type, Pin, PinOff, Pencil, Trash2, Play, Image as ImageIcon, Loader2, WandSparkles, Pause, Settings, X, RefreshCw, Eye, EyeOff, Sparkles, GraduationCap, Dices, MoreVertical, CircleHelp, Settings2, ALargeSmall } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
@@ -61,6 +61,10 @@ import { findExpression } from '@/lib/expressions'
 import { isComicPageUrl } from '@/lib/comicStorage'
 import { useLanguage } from '@/store/useLanguage'
 import { useTranslations, getGeneratingComicMessage } from '@/lib/i18n'
+import { useIsMobile } from '@/hooks/useIsMobile'
+import { useReaderChrome } from '@/store/useReaderChrome'
+import { useTextGestures } from './useTextGestures'
+import { ReaderAppearanceSheet } from './ReaderAppearanceSheet'
 
 interface ReaderProps {
   book: Book
@@ -69,6 +73,8 @@ interface ReaderProps {
   /** No computador, a barra de leitura (Texto | Ilustrado e ferramentas) vai para o topo do livro. */
   headerSlot?: HTMLElement | null
   headerEndSlot?: HTMLElement | null
+  /** Celular: linha do topo onde entram as ferramentas do leitor na leitura imersiva. */
+  headerMobileSlot?: HTMLElement | null
 }
 
 function speedNumber(rate: number) {
@@ -139,7 +145,7 @@ function PageJump({ page, total, onGo, pt }: { page: number; total: number; onGo
   )
 }
 
-export function Reader({ book, autoPlay = false, headerSlot, headerEndSlot }: ReaderProps) {
+export function Reader({ book, autoPlay = false, headerSlot, headerEndSlot, headerMobileSlot }: ReaderProps) {
   // Topo numa linha só a partir de 1024px; no celular a barra continua aqui embaixo.
   const [wide, setWide] = useState(() => typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches)
   useEffect(() => {
@@ -149,6 +155,18 @@ export function Reader({ book, autoPlay = false, headerSlot, headerEndSlot }: Re
     return () => mq.removeEventListener('change', on)
   }, [])
   const inHeader = wide && !!headerSlot
+  // Celular: leitura imersiva (as barras somem; um toque traz de volta). Ver useReaderChrome.
+  const immersive = useIsMobile()
+  const edgeTap = useReaderChrome(s => s.edgeTap)
+  const [appearanceOpen, setAppearanceOpen] = useState(false)
+  useEffect(() => {
+    const chrome = useReaderChrome.getState()
+    chrome.setImmersive(immersive)
+    if (!immersive) return
+    // Mostra os controles por um instante ao abrir e depois deixa só o texto.
+    const t = window.setTimeout(() => useReaderChrome.getState().hide(), 2200)
+    return () => { window.clearTimeout(t); useReaderChrome.getState().setImmersive(false) }
+  }, [immersive])
   const containerRef = useRef<HTMLDivElement>(null)
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const { locale } = useLanguage()
@@ -460,6 +478,8 @@ export function Reader({ book, autoPlay = false, headerSlot, headerEndSlot }: Re
     return finalHtml
   }, [currentContent, charToWord, markVocabularies, showHighlights, interactionMode, selectedRange, ttsHighlightWordIndices, popWordIdx, pins, book.id, currentPage, expressionIdx])
   const contentWithHighlights = useMemo(() => buildWordsHtml(0, currentContent.length), [buildWordsHtml, currentContent])
+  const contentWithHighlightsRef = useRef(contentWithHighlights)
+  contentWithHighlightsRef.current = contentWithHighlights
 
   const handleContentClick = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement
@@ -492,6 +512,12 @@ export function Reader({ book, autoPlay = false, headerSlot, headerEndSlot }: Re
     // Modo "Click Word": clicar seleciona a palavra (ou a expressão inteira), pausa a leitura
     // e abre as opções acima (ouvir a palavra, ouvir daqui, voltar, status, explicação).
     if (idx < 0 || !wordSpan) { setWordTip(null); setExpressionIdx(null); return }
+    showWordTip(idx, wordSpan as HTMLElement)
+  }
+
+  // Abre as opções de uma palavra (ou da expressão inteira): pausa a leitura e mostra o tooltip.
+  // Usado pelo clique (computador) e por "segurar a palavra" (celular).
+  const showWordTip = (idx: number, wordSpan: HTMLElement) => {
     if (isPlaying || isPaused) stopPlayback()
     resumeFromWordRef.current = idx
     currentWordRef.current = idx
@@ -504,7 +530,7 @@ export function Reader({ book, autoPlay = false, headerSlot, headerEndSlot }: Re
     const anchors = focus
       .map(i => containerRef.current?.querySelector(`span[data-word-index="${i}"]`))
       .filter((el): el is HTMLElement => el instanceof HTMLElement)
-    const rects = (anchors.length ? anchors : [wordSpan as HTMLElement]).map(el => el.getBoundingClientRect())
+    const rects = (anchors.length ? anchors : [wordSpan]).map(el => el.getBoundingClientRect())
     const left = Math.min(...rects.map(r => r.left))
     const right = Math.max(...rects.map(r => r.right))
     const top = Math.min(...rects.map(r => r.top))
@@ -581,13 +607,74 @@ export function Reader({ book, autoPlay = false, headerSlot, headerEndSlot }: Re
       // Avançar conta a página lida (uma vez por página de cada livro).
       if (newPage > currentPage) useXpStore.getState().award(`read:${book.id}:${currentPage}`, XP.readPage)
       updateBookAndSync(book.id, { currentPage: newPage, lastRead: Date.now() })
-      window.scrollTo({ top: 0, behavior: 'smooth' })
+      // No celular a troca é como virar a folha: volta ao topo na hora e esconde os controles.
+      window.scrollTo({ top: 0, behavior: immersive ? 'auto' : 'smooth' })
+      if (immersive) useReaderChrome.getState().hide()
     }
   }
 
   const changePage = (delta: number) => {
     goToPage(currentPage + delta)
   }
+
+  // ---- Gestos da leitura no celular (ver useTextGestures) ----
+  const [touchSurface, setTouchSurface] = useState<HTMLDivElement | null>(null)
+  const [touchSelecting, setTouchSelecting] = useState(false)
+  const pinchBase = useRef<number | null>(null)
+  // Texto congelado durante o toque (ver onGestureStart) e seleção pintada direto no DOM.
+  const frozenHtml = useRef<string | null>(null)
+  const [, bumpHtml] = useState(0)
+  const paintTouchSelection = (range: [number, number] | null) => {
+    const root = containerRef.current
+    if (!root) return
+    root.querySelectorAll('span.touch-sel').forEach(el => el.classList.remove('touch-sel'))
+    if (!range) return
+    for (let i = range[0]; i <= range[1]; i++) root.querySelectorAll(`span[data-word-index="${i}"]`).forEach(el => el.classList.add('touch-sel'))
+  }
+  // O toque que fecha o tooltip ou a seleção não deve também abrir os controles.
+  const overlayClosedAt = useRef(0)
+  const overlayOpen = !!wordTip || !!selectedRange
+  const overlayWasOpen = useRef(false)
+  useEffect(() => {
+    if (overlayWasOpen.current && !overlayOpen) overlayClosedAt.current = Date.now()
+    overlayWasOpen.current = overlayOpen
+  }, [overlayOpen])
+  useTextGestures(touchSurface, immersive, {
+    onTap: (zone) => {
+      if (wordTip || selectedRange || Date.now() - overlayClosedAt.current < 450) {
+        setWordTip(null); setExpressionIdx(null); setSelectedRange(null)
+        return
+      }
+      const chrome = useReaderChrome.getState()
+      if (zone !== 'center' && edgeTap && !chrome.visible) { changePage(zone === 'right' ? 1 : -1); return }
+      chrome.toggle()
+    },
+    onGestureStart: () => { frozenHtml.current = contentWithHighlightsRef.current },
+    onGestureEnd: () => { frozenHtml.current = null; bumpHtml(n => n + 1) },
+    onLongPress: (idx) => {
+      setWordTip(null)
+      setSelectedRange(null)
+      setTouchSelecting(true)
+      paintTouchSelection([idx, idx])
+    },
+    onSelect: (start, end) => paintTouchSelection([start, end]),
+    onSelectEnd: (start, end, dragged) => {
+      setTouchSelecting(false)
+      paintTouchSelection(null)
+      if (dragged && end > start) { setSelectedRange([start, end]); return } // frase marcada: a barra de ações aparece sobre ela
+      const span = containerRef.current?.querySelector(`span[data-word-index="${start}"]`)
+      if (span instanceof HTMLElement) showWordTip(start, span)
+    },
+    onSwipe: (direction) => {
+      if (direction > 0 ? currentPage < pages.length - 1 : currentPage > 0) changePage(direction)
+    },
+    onPinch: (scale, done) => {
+      if (done) { pinchBase.current = null; return }
+      if (pinchBase.current == null) pinchBase.current = fontSize
+      const next = Math.max(12, Math.min(32, Math.round(pinchBase.current * scale)))
+      if (next !== fontSize) setFontSize(next)
+    },
+  })
 
   // A tutora opera o leitor: abre a lição/desafio, vai para uma página e destaca trechos.
   const goToPageRef = useRef(goToPage)
@@ -1322,28 +1409,38 @@ export function Reader({ book, autoPlay = false, headerSlot, headerEndSlot }: Re
   // No modo HQ, página ainda sem quadrinho continua mostrando o texto (com o botão de gerar no topo).
   const showComicPage = viewMode === 'comic' && !!comicImage
 
-  // Menu ⋮ do livro: sempre presente. Com a página ilustrada, as opções do quadrinho ficam no ⋮ do próprio quadrinho.
+  // Menu ⋮ do livro: um só, sempre o último item da barra. Com a página ilustrada, as opções do livro
+  // entram no fim do ⋮ do quadrinho (que também fica no fim da barra).
+  const [bookMenuOpen, setBookMenuOpen] = useState(false)
+  const bookMenuItems = (
+    <>
+      {viewMode === 'text' && (
+        <MenuItem icon={<WandSparkles />} label={locale === 'pt-BR' ? 'Ilustrar esta página' : 'Illustrate this page'}
+          description={locale === 'pt-BR' ? 'Desenha a página como quadrinho, com o texto nos balões.' : 'Draws the page as a comic with the text in balloons.'}
+          onClick={() => { setBookMenuOpen(false); void openComicMode() }} />
+      )}
+      <MenuItem icon={<GraduationCap />} label={grammarHelp ? (locale === 'pt-BR' ? 'Esconder Estudar e Desafio' : 'Hide Study and Challenge') : (locale === 'pt-BR' ? 'Mostrar Estudar e Desafio' : 'Show Study and Challenge')}
+        description={locale === 'pt-BR' ? 'Os botões de lição e quiz na barra do livro.' : 'The lesson and quiz buttons in the book bar.'}
+        onClick={() => { setBookMenuOpen(false); setGrammarHelp(!grammarHelp) }} />
+      <MenuItem icon={<CircleHelp />} label={locale === 'pt-BR' ? 'Rever o tutorial do livro' : 'Replay the book tutorial'} onClick={() => { setBookMenuOpen(false); window.setTimeout(restartBookTour, 150) }} />
+      <MenuItem icon={<Settings2 />} label={locale === 'pt-BR' ? 'Ajustes do app' : 'App settings'} onClick={() => { setBookMenuOpen(false); navigate('/settings') }} />
+    </>
+  )
   const bookMenu = (
-    <Popover>
+    <Popover open={bookMenuOpen} onOpenChange={setBookMenuOpen}>
       <PopoverTrigger asChild>
         <ToolButton icon={<MoreVertical className="w-4 h-4" />} hint={locale === 'pt-BR' ? 'Mais opções do livro' : 'More book options'} />
       </PopoverTrigger>
       <PopoverContent className="w-72 p-1.5 rounded-2xl shadow-2xl border z-50" style={{ backgroundColor: 'var(--theme-nav-bg)', borderColor: 'var(--theme-border-subtle)' }} align="end" collisionPadding={12}>
-        <MenuItem icon={<WandSparkles />} label={locale === 'pt-BR' ? 'Ilustrar esta página' : 'Illustrate this page'}
-          description={locale === 'pt-BR' ? 'Desenha a página como quadrinho, com o texto nos balões.' : 'Draws the page as a comic with the text in balloons.'}
-          onClick={openComicMode} />
-        <MenuItem icon={<GraduationCap />} label={grammarHelp ? (locale === 'pt-BR' ? 'Esconder Estudar e Desafio' : 'Hide Study and Challenge') : (locale === 'pt-BR' ? 'Mostrar Estudar e Desafio' : 'Show Study and Challenge')}
-          description={locale === 'pt-BR' ? 'Os botões de lição e quiz na barra do livro.' : 'The lesson and quiz buttons in the book bar.'}
-          onClick={() => setGrammarHelp(!grammarHelp)} />
-        <div className="h-px mx-2 my-1" style={{ backgroundColor: 'var(--theme-border-subtle)' }} />
-        <MenuItem icon={<CircleHelp />} label={locale === 'pt-BR' ? 'Rever o tutorial do livro' : 'Replay the book tutorial'} onClick={() => window.setTimeout(restartBookTour, 150)} />
-        <MenuItem icon={<Settings2 />} label={locale === 'pt-BR' ? 'Ajustes do app' : 'App settings'} onClick={() => navigate('/settings')} />
+        {bookMenuItems}
       </PopoverContent>
     </Popover>
   )
+  // No desktop o ⋮ vai para o fim do cabeçalho; no celular fecha a própria barra.
+  const bookMenuInHeaderEnd = inHeader && !!headerEndSlot && !showComicPage
 
   const modeBar = (
-            <ToolGroup flat={inHeader} label={locale === 'pt-BR' ? 'Modo de leitura' : 'Reading mode'}>
+            <ToolGroup flat={inHeader || immersive} label={locale === 'pt-BR' ? 'Modo de leitura' : 'Reading mode'}>
               <ToolButton icon={<Type className="w-4 h-4" />} label={t('text')} compact active={viewMode === 'text'}
                 hint={locale === 'pt-BR' ? 'Ler só o texto' : 'Read the text only'} onClick={() => setViewMode('text')} />
               <ToolButton icon={<ImageIcon className="w-4 h-4" />} label={t('comic')} compact active={viewMode === 'comic'}
@@ -1388,14 +1485,15 @@ export function Reader({ book, autoPlay = false, headerSlot, headerEndSlot }: Re
                 <ToolDivider />
                 <ToolButton tone="primary" disabled={!!comicStage} onClick={() => { void handleGenerateComic() }}
                   icon={comicStage ? <Loader2 className="w-4 h-4 animate-spin" /> : <WandSparkles className="w-4 h-4" />}
-                  label={comicStage
+                  aria-label={locale === 'pt-BR' ? 'Ilustrar esta página' : 'Illustrate this page'}
+                  label={immersive ? undefined : comicStage
                     ? (locale === 'pt-BR'
                       ? { prepare: 'Preparando a arte…', image: 'Desenhando a página…', layout: 'Encaixando os balões…' }[comicStage]
                       : { prepare: 'Preparing the art…', image: 'Drawing the page…', layout: 'Fitting balloons…' }[comicStage])
                     : (locale === 'pt-BR' ? 'Ilustrar esta página' : 'Illustrate this page')}
                   hint={locale === 'pt-BR' ? 'Desenha esta página como quadrinho, com o texto nos balões.' : 'Draws this page as a comic with the text in balloons.'} />
               </>}
-              {!showComicPage && <>{!(viewMode === 'comic' && !comicImage) && <ToolDivider />}{bookMenu}</>}
+              {!showComicPage && !bookMenuInHeaderEnd && <>{!(viewMode === 'comic' && !comicImage) && <ToolDivider />}{bookMenu}</>}
             </ToolGroup>
   )
 
@@ -1404,7 +1502,21 @@ export function Reader({ book, autoPlay = false, headerSlot, headerEndSlot }: Re
       ref={readerRootRef}
       className={`reader-root min-h-full transition-colors duration-300 theme-${theme} pb-32`}
     >
-      <div className={`${showComicPage ? 'max-w-[1400px]' : 'max-w-[720px]'} mx-auto pt-1 md:pt-2 px-4 md:px-8`}>
+      <div className={`${showComicPage ? 'max-w-[1400px]' : 'max-w-[720px]'} mx-auto pt-1 md:pt-2 ${immersive ? 'px-1' : 'px-4'} md:px-8`}>
+        {immersive ? (
+          <>
+            {/* Celular: as ferramentas vão para a linha do topo (que some com um toque); aqui fica só um título discreto, como cabeçalho de página. */}
+            {headerMobileSlot && createPortal(modeBar, headerMobileSlot)}
+            <button type="button" onClick={() => useReaderChrome.getState().show()}
+              className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:px-4 focus:py-2 focus:rounded-lg"
+              style={{ backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-text)' }}>
+              {locale === 'pt-BR' ? 'Mostrar controles da leitura' : 'Show reading controls'}
+            </button>
+            {!showComicPage && (
+              <p aria-hidden className="mb-5 text-center text-[11.5px] font-medium truncate px-8" style={{ color: 'var(--theme-text-secondary)', opacity: 0.7, fontFamily: 'var(--font-sans)' }}>{book.title}</p>
+            )}
+          </>
+        ) : (
         <div className={`mb-5 md:mb-8 flex flex-wrap justify-between items-center gap-3 ${viewMode === 'comic' && !inHeader ? 'sticky z-30 py-2 -mx-2 px-2 rounded-2xl' : ''}`}
           style={viewMode === 'comic' && !inHeader ? { top: 'var(--reader-sticky-top, 76px)', backgroundColor: 'color-mix(in srgb, var(--theme-bg) 85%, transparent)', backdropFilter: 'blur(8px)' } : undefined}>
           {/* Título do livro: no conteúdo, abaixo das barras fixas. */}
@@ -1420,6 +1532,7 @@ export function Reader({ book, autoPlay = false, headerSlot, headerEndSlot }: Re
           <div className="flex items-center gap-2 flex-wrap justify-end ml-auto min-w-0 max-w-full">
             {/* Modo de leitura e, no modo ilustrado, as ferramentas da página: uma barra só. */}
             {inHeader ? createPortal(modeBar, headerSlot!) : modeBar}
+            {bookMenuInHeaderEnd && createPortal(bookMenu, headerEndSlot!)}
             {/* Settings (gear) next to tabs — mobile only */}
             <div className="md:hidden flex items-center">
               <Popover>
@@ -1471,10 +1584,11 @@ export function Reader({ book, autoPlay = false, headerSlot, headerEndSlot }: Re
             </div>
           </div>
         </div>
+        )}
 
         {!showComicPage ? (
           <>
-            {viewMode === 'text' && !comicImage && !nudgeHidden && (
+            {viewMode === 'text' && !comicImage && !nudgeHidden && !immersive && (
               <div className="mb-5 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl border px-4 py-3" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg-secondary)' }}>
                 <span className="grid size-9 shrink-0 place-items-center rounded-xl" style={{ backgroundColor: 'var(--theme-card-bg)' }}><Sparkles className="w-4 h-4" /></span>
                 <div className="min-w-0 flex-1 basis-56">
@@ -1494,7 +1608,15 @@ export function Reader({ book, autoPlay = false, headerSlot, headerEndSlot }: Re
             {viewMode === 'comic' && comicError?.page === currentPage && (
               <p role="alert" className="mb-4 text-sm rounded-xl px-3 py-2" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>{comicError.message}</p>
             )}
-            {/* Troca de página no texto: avançar entra da direita, voltar entra da esquerda. */}
+            {/* Troca de página no texto: avançar entra da direita, voltar entra da esquerda.
+                No celular, a área toda (inclusive abaixo do texto) recebe os gestos. */}
+            <div ref={setTouchSurface} className={immersive ? 'reader-touch-surface' : undefined}
+              style={immersive ? {
+                minHeight: 'calc(100dvh - var(--safe-t) - var(--safe-b) - 7rem)',
+                // A área de toque vai até a borda da tela (as margens também viram página); o texto mantém o respiro.
+                marginLeft: 'calc(-1.25rem - var(--safe-l))', marginRight: 'calc(-1.25rem - var(--safe-r))',
+                paddingLeft: 'calc(1.25rem + var(--safe-l))', paddingRight: 'calc(1.25rem + var(--safe-r))',
+              } : undefined}>
             <motion.article
               key={currentPage}
               ref={containerRef}
@@ -1542,8 +1664,9 @@ export function Reader({ book, autoPlay = false, headerSlot, headerEndSlot }: Re
                 containerRef.current?.querySelectorAll('span.expr-hover').forEach(el => el.classList.remove('expr-hover'))
               }}
               onMouseUp={() => { dragSelect.current = null }}
-              dangerouslySetInnerHTML={{ __html: contentWithHighlights }}
+              dangerouslySetInnerHTML={{ __html: frozenHtml.current ?? contentWithHighlights }}
             />
+            </div>
           </>
         ) : (
           <ComicPageView
@@ -1579,6 +1702,9 @@ export function Reader({ book, autoPlay = false, headerSlot, headerEndSlot }: Re
             letteringDetected={detectLetteringTheme(book.comicStyleDoc)}
             toolbarSlot={toolbarSlot}
             menuSlot={inHeader ? headerEndSlot ?? null : null}
+            bookMenuItems={bookMenuItems}
+            immersive={immersive}
+            enterFromEnd={pageDirection < 0}
             letteringChoice={(book.comicStyleDoc?.letteringTheme as LetteringThemeId | undefined) ?? null}
             onLetteringThemeChange={(id) => {
               const { letteringTheme: _previous, ...rest } = book.comicStyleDoc ?? {}
@@ -1603,7 +1729,7 @@ export function Reader({ book, autoPlay = false, headerSlot, headerEndSlot }: Re
       </div>
 
       {/* Floating Toolbar — no livro no mobile fica embaixo (BottomNav escondido) */}
-      <div data-reader-bar className="fixed left-2 right-2 md:left-[var(--sidebar-w,16rem)] md:right-8 md:bottom-8 z-40 flex flex-col items-center" style={{ bottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
+      <div data-reader-bar data-chrome="bottom" className="fixed left-2 right-2 md:left-[var(--sidebar-w,16rem)] md:right-8 md:bottom-8 z-40 flex flex-col items-center" style={{ bottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
         <div 
           className="backdrop-blur-md border p-1.5 rounded-2xl shadow-[0_1px_2px_rgba(15,15,15,0.06),0_18px_44px_-14px_rgba(15,15,15,0.38)] flex items-center justify-between md:justify-center gap-0.5 md:gap-1.5 transition-colors w-full flex-nowrap md:w-auto"
           style={{ backgroundColor: 'color-mix(in srgb, var(--theme-card-bg) 92%, transparent)', borderColor: 'var(--theme-border)' }}
@@ -1625,6 +1751,14 @@ export function Reader({ book, autoPlay = false, headerSlot, headerEndSlot }: Re
           </button>
 
           <div className="flex items-center gap-0.5 md:gap-1 flex-1 justify-center min-w-0">
+          {immersive ? (
+            /* Celular: os modos (palavra, frase, nota) viram gestos; aqui fica a aparência do texto. */
+            <button type="button" onClick={() => setAppearanceOpen(true)}
+              className="flex items-center justify-center w-11 h-11 rounded-xl transition-colors shrink-0 active:bg-[var(--ui-hover)]"
+              style={{ color: 'var(--theme-nav-text)' }} aria-label={locale === 'pt-BR' ? 'Aparência do texto' : 'Text appearance'}>
+              <ALargeSmall className="w-5 h-5" />
+            </button>
+          ) : (<>
           <button
             onClick={() => setInteractionMode('hand')}
             className="flex items-center gap-2 px-3 h-10 rounded-xl text-[13.5px] font-medium transition-all min-w-[40px] justify-center shrink-0"
@@ -1668,6 +1802,7 @@ export function Reader({ book, autoPlay = false, headerSlot, headerEndSlot }: Re
           </button>
           
           <div className="w-px h-6 mx-0.5 md:mx-1 transition-colors shrink-0" style={{ backgroundColor: 'var(--theme-border-subtle)' }}></div>
+          </>)}
           
           <button
             onClick={togglePlayback}
@@ -1854,11 +1989,32 @@ export function Reader({ book, autoPlay = false, headerSlot, headerEndSlot }: Re
         </div>
       </div>
 
+      {immersive && (
+        <>
+          {/* Rodapé discreto, como no Kindle: só com os controles escondidos. */}
+          <div data-chrome="footer" aria-hidden className="fixed inset-x-0 z-30 flex justify-between px-6 text-[11px] font-medium tabular-nums pointer-events-none transition-opacity duration-200"
+            style={{ bottom: 'calc(var(--safe-b) + 0.7rem)', color: 'color-mix(in srgb, var(--theme-text-secondary) 80%, transparent)', fontFamily: 'var(--font-sans)' }}>
+            <span>{locale === 'pt-BR' ? `Página ${currentPage + 1} de ${pages.length}` : `Page ${currentPage + 1} of ${pages.length}`}</span>
+            <span>{Math.round(((currentPage + 1) / Math.max(1, pages.length)) * 100)}%</span>
+          </div>
+          <p className="sr-only" aria-live="polite">{locale === 'pt-BR' ? `Página ${currentPage + 1} de ${pages.length}` : `Page ${currentPage + 1} of ${pages.length}`}</p>
+          {/* Play/pause sempre à mão: com os controles escondidos, o botão continua flutuando embaixo, no centro. */}
+          <button type="button" data-chrome="footer" onClick={togglePlayback}
+            aria-label={isPlaying ? t('pause') : t('listen')}
+            className="fixed left-1/2 -translate-x-1/2 z-40 w-12 h-12 rounded-full grid place-items-center active:scale-95 transition-transform"
+            style={{ bottom: 'calc(var(--safe-b) + 0.35rem)', backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)', boxShadow: '0 6px 18px rgba(0,0,0,0.22), 0 0 0 1px color-mix(in srgb, var(--theme-text) 8%, transparent)' }}>
+            {isLoadingTts ? <Loader2 className="w-5 h-5 animate-spin" /> : isPlaying ? <Pause className="w-5 h-5" fill="currentColor" /> : <Play className="w-5 h-5 ml-0.5" fill="currentColor" />}
+          </button>
+          <ReaderAppearanceSheet open={appearanceOpen} onOpenChange={setAppearanceOpen} pt={locale === 'pt-BR'} />
+        </>
+      )}
+
       {renderPostIts()}
 
-      {selectedText && selectionRect && interactionMode === 'text' && (
+      {selectedText && selectionRect && (interactionMode === 'text' || (immersive && !touchSelecting)) && (
         <FloatingAction
           rect={selectionRect}
+          touch={immersive}
           pt={locale === 'pt-BR'}
           onSave={() => { setAutoExplain(false); setModalTab('meaning'); handleAddVocab() }}
           onNote={() => setNoteDraft({ bookId: book.id, page: currentPage, kind: 'word', wordIndex: selectedRange?.[0], quote: selectedText, note: '' })}

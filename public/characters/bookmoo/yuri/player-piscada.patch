@@ -1,0 +1,15 @@
+diff --git a/src/runtime/puppet.ts b/src/runtime/puppet.ts
+index a23c84c..722a388 100644
+--- a/src/runtime/puppet.ts
++++ b/src/runtime/puppet.ts
+@@ -1076,7 +1076,9 @@ export class Puppet {
+ 
+   /** how opaque an expression patch (or its brows) is drawn */
+   private exprAlpha(d: LayerDef) {
+-    return smooth(0.3, 0.7, d.param === 'smile' || !d.param ? this.smileShown : (this.expr[d.param] ?? 0))
++    const a = smooth(0.3, 0.7, d.param === 'smile' || !d.param ? this.smileShown : (this.expr[d.param] ?? 0))
++    const blink = (d as LayerDef & { 'x-blink-with-eyes'?: boolean })['x-blink-with-eyes']
++    return a * (blink ? smooth(0.05, 0.35, Math.min(this.params.eyeLOpen, this.params.eyeROpen)) : 1)
+   }
+ 
+   /** a layer's opacity from its show / hide expressions (1 without them) */

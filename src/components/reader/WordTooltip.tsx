@@ -35,7 +35,14 @@ const OPTIONS: { id: VocabStatus; icon: typeof Check }[] = [
 /** Cartão que abre ao clicar numa palavra: a palavra, o microfone, explicação, nota
  *  e os mesmos botões coloridos do cartão de estudo. */
 export function WordTooltip({ state, status, onStatus, onExplain, onNote, onImage, onSpeak, speaking, labels, burst }: Props) {
-  const quiet = 'h-8 flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg text-[12.5px] font-medium cursor-pointer transition-colors hover:bg-[var(--ui-hover)]'
+  const quiet = 'h-8 max-md:h-10 flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg text-[12.5px] font-medium cursor-pointer transition-colors hover:bg-[var(--ui-hover)]'
+  // Fica sempre dentro da tela: o cartão desliza para o lado e a seta continua apontando a palavra.
+  // Sem espaço acima (palavra perto do topo), abre abaixo dela.
+  const vw = typeof window !== 'undefined' ? window.innerWidth : 1024
+  const cardW = Math.min(336, vw * 0.92)
+  const cx = state ? Math.max(cardW / 2 + 8, Math.min(vw - cardW / 2 - 8, state.x)) : 0
+  const arrow = state ? Math.max(-cardW / 2 + 18, Math.min(cardW / 2 - 18, state.x - cx)) : 0
+  const below = !!state && state.top < 210
   return (
     <>
       <AnimatePresence>
@@ -44,17 +51,19 @@ export function WordTooltip({ state, status, onStatus, onExplain, onNote, onImag
             key={state.idx}
             className="word-tooltip fixed z-[60]"
             // Acima da palavra; o padding inferior transparente faz a "ponte" até o cartão.
-            style={{ left: state.x, top: state.top, x: '-50%', y: '-100%', paddingBottom: 10, transformOrigin: 'bottom center' }}
-            initial={{ opacity: 0, y: '-96%', scale: 0.97 }}
-            animate={{ opacity: 1, y: '-100%', scale: 1 }}
-            exit={{ opacity: 0, y: '-96%', scale: 0.97 }}
+            style={below
+              ? { left: cx, top: state.y, x: '-50%', y: 0, paddingTop: 10, transformOrigin: 'top center' }
+              : { left: cx, top: state.top, x: '-50%', y: '-100%', paddingBottom: 10, transformOrigin: 'bottom center' }}
+            initial={{ opacity: 0, y: below ? '4%' : '-96%', scale: 0.97 }}
+            animate={{ opacity: 1, y: below ? '0%' : '-100%', scale: 1 }}
+            exit={{ opacity: 0, y: below ? '4%' : '-96%', scale: 0.97 }}
             transition={{ duration: 0.14, ease: [0.2, 0.8, 0.2, 1] }}
             role="dialog"
             aria-label={state.text}
           >
             <div className="elevated relative w-[336px] max-w-[92vw] rounded-2xl px-3.5 pt-3.5 pb-2.5" style={{ color: 'var(--theme-text)' }}>
-              <span aria-hidden className="absolute left-1/2 -bottom-[6px] w-3 h-3 -translate-x-1/2 rotate-45 border-r border-b"
-                style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-border)' }} />
+              <span aria-hidden className={`absolute w-3 h-3 -translate-x-1/2 rotate-45 ${below ? '-top-[6px] border-l border-t' : '-bottom-[6px] border-r border-b'}`}
+                style={{ left: `calc(50% + ${arrow}px)`, backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-border)' }} />
 
               <div className="flex items-center gap-2 pl-1 pr-0.5">
                 <span className="font-display min-w-0 flex-1 truncate text-[22px] leading-none tracking-tight" title={state.text}>{state.text}</span>

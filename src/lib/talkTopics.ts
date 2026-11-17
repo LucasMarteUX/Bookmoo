@@ -1,4 +1,4 @@
-// Assuntos sugeridos para a conversa livre: a pessoa escolhe um (ou troca as sugestões) e a Bea começa por ele.
+// Assuntos sugeridos para a conversa livre: a pessoa escolhe um (ou troca as sugestões) e o tutor começa por ele.
 export type TalkTopic = { id: string; pt: string; en: string; opening: string }
 
 export const TALK_TOPICS: TalkTopic[] = [

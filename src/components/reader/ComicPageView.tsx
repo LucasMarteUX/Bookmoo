@@ -1,3 +1,4 @@
+import type React from 'react'
 import { forwardRef, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { ChevronLeft, ChevronRight, Columns2, Loader2, X, MessageSquareQuote, Move, MoreVertical, Maximize2, Minimize2, MoreHorizontal, RectangleVertical, RefreshCw, Trash2, Wand2, ZoomIn, ZoomOut } from 'lucide-react'
@@ -13,6 +14,7 @@ import type { LetteringTheme, LetteringThemeId } from '@/lib/comicThemes'
 import { LetteringThemePicker } from './LetteringThemePicker'
 import { MenuItem, MenuSection, ToolButton, ToolGroup } from '@/components/ui/toolbar'
 import { createPortal } from 'react-dom'
+import { useReaderChrome } from '@/store/useReaderChrome'
 import { fullComicText } from '../../../supabase/functions/_shared/comicText'
 import type { Character, EditorialLayout, Rect } from '../../../supabase/functions/_shared/comicEditorial'
 
@@ -58,6 +60,12 @@ interface Props {
   fullscreenTarget: () => HTMLElement | null
   /** Onde fica o menu ⋮ (fim da barra do livro). Sem slot, fica junto das ferramentas. */
   menuSlot?: HTMLElement | null
+  /** Celular: leitura imersiva (toque mostra os controles; zoom guiado quadro a quadro). */
+  immersive?: boolean
+  /** Chegou voltando de página: o zoom guiado começa pelo último quadro. */
+  enterFromEnd?: boolean
+  /** Opções do livro (tutorial, ajustes…) no fim do mesmo ⋮: um menu só, sempre o último da barra. */
+  bookMenuItems?: React.ReactNode
   labels: {
     generate: string; regenerate: string; delete: string; preparingArt: string; generatingImage: string
     generatingLayout: string; empty: string; fitWidth: string; fitPage: string
@@ -158,6 +166,7 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
   }, [])
   useEffect(() => { if (zoomOpen) bumpZoom(); return () => window.clearTimeout(zoomTimer.current) }, [zoomOpen, bumpZoom])
   const [box, setBox] = useState({ w: 800, h: 800 })
+  const [vpH, setVpH] = useState(0)
   const prevPage = useRef(pageIndex)
   const direction = pageIndex >= prevPage.current ? 1 : -1
   useEffect(() => { prevPage.current = pageIndex }, [pageIndex])
@@ -215,6 +224,7 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
       // Tela cheia: respiro de 24px no topo e a faixa da barra de play embaixo.
       const next = { w: el.clientWidth, h: window.innerHeight - (isFullscreen ? 84 + 24 : 230) }
       setBox(prev => (prev.w === next.w && prev.h === next.h ? prev : next))
+      setVpH(el.clientHeight)
     }
     measure()
     const ro = new ResizeObserver(measure)
@@ -241,6 +251,54 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
   const pageH = Math.round(pageW / displayAspect)
   const editor = useComicBalloonEditor(editorial, `${pageIndex}|${imageUrl}`, pageW, pageH, props.onSaveLettering, props.letteringTheme.font)
   const [moveMode, setMoveMode] = useState(false)
+
+  // ---- Zoom guiado (celular): abre em 100%; com pinça ou nos botões a pessoa aproxima, e a tela
+  // acompanha o trecho que está sendo lido (o quadro narrado, ou o escolhido tocando nas bordas). ----
+  // Cada quadro: a área dele e, quando existe, a do texto (balões) com o tamanho da letra.
+  const guidePanels = useMemo(() => {
+    type Guide = { x: number; y: number; w: number; h: number; text: Rect | null; font: number | null; start: number; end: number }
+    if (editorial) {
+      const frames = editorial.reflow?.panels ?? editorial.panels
+      return frames.filter(p => p.bounds && p.bounds.w > 0.05 && p.bounds.h > 0.05).map<Guide>(p => {
+        const lines = editorial.balloons.filter(l => l.panelId === p.panelId && l.box)
+        const rects = lines.map(l => pageRect(p.bounds, l.box!))
+        const text = rects.length ? (() => {
+          const x0 = Math.min(...rects.map(r => r.x)), y0 = Math.min(...rects.map(r => r.y))
+          const x1 = Math.max(...rects.map(r => r.x + r.w)), y1 = Math.max(...rects.map(r => r.y + r.h))
+          return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 }
+        })() : null
+        const font = lines.length ? Math.min(...lines.map(l => l.font ?? 0.021)) : null
+        const all = editorial.balloons.filter(l => l.panelId === p.panelId)
+        const parts = all.flatMap(l => l.sourceParts?.length ? l.sourceParts : [{ start: l.charStart, end: l.charEnd }])
+        return { ...p.bounds, text, font, start: parts.length ? Math.min(...parts.map(x => x.start)) : -1, end: parts.length ? Math.max(...parts.map(x => x.end)) : -1 }
+      })
+    }
+    return panels.filter(p => p.w > 0.05 && p.h > 0.05).map<Guide>(p => ({ x: p.x, y: p.y, w: p.w, h: p.h, text: null, font: null, start: p.charStart, end: p.charEnd }))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editorial, layout])
+  const [guideScale, setGuideScale] = useState(1)
+  const setGuideScaleClamped = useCallback((z: number) => setGuideScale(Math.max(1, Math.min(4, Math.round(z * 100) / 100))), [])
+  const guideOn = !!props.immersive && !isFullscreen && guidePanels.length >= 1 && guideScale > 1.01
+  const [panelIdx, setPanelIdx] = useState(0)
+  // Página nova: começa no primeiro quadro; voltando, no último (também quando chega de uma página só de texto).
+  const entry = useRef({ page: pageIndex, fromEnd: !!props.enterFromEnd })
+  if (entry.current.page !== pageIndex) entry.current = { page: pageIndex, fromEnd: direction < 0 }
+  useEffect(() => { setPanelIdx(entry.current.fromEnd ? Math.max(0, guidePanels.length - 1) : 0) }, [pageIndex, guidePanels.length])
+  // Com a narração tocando, a câmera segue o quadro que está sendo lido.
+  const readingPanel = (() => {
+    const c = props.currentChar
+    if (c == null || !guidePanels.length) return -1
+    const inside = guidePanels.findIndex(g => g.start >= 0 && c >= g.start && c < g.end)
+    if (inside >= 0) return inside
+    return guidePanels.reduce((last, g, i) => (g.start >= 0 && g.start <= c ? i : last), -1)
+  })()
+  useEffect(() => { if (readingPanel >= 0) setPanelIdx(readingPanel) }, [readingPanel])
+  const stepPanel = (d: 1 | -1) => {
+    const next = panelIdx + d
+    if (next < 0) onPrev()
+    else if (next >= guidePanels.length) onNext()
+    else setPanelIdx(next)
+  }
   // Mapa de pele da arte: o selo de quem fala não pode cair sobre um rosto.
   const [skin, setSkin] = useState<SkinMap | null>(null)
   useEffect(() => {
@@ -333,11 +391,11 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
   const endDrag = () => { if (drag.current?.moved) suppressClick.current = true; drag.current = null }
 
   const onTouchStart = (e: React.TouchEvent) => {
-    if ((e.target as HTMLElement).closest?.('[data-balloon-handle], [data-balloon-toolbar]')) return
+    if ((e.target as HTMLElement).closest?.('[data-balloon-handle], [data-balloon-toolbar]')) { swipe.current = null; return }
     suppressClick.current = false
     if (e.touches.length === 2) {
       const [a, b] = [e.touches[0], e.touches[1]]
-      pinch.current = { d: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY), z: zoom }
+      pinch.current = { d: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY), z: props.immersive ? guideScale : zoom }
       swipe.current = null
     } else if (e.touches.length === 1) {
       swipe.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now() }
@@ -346,7 +404,8 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
   const onTouchMove = (e: React.TouchEvent) => {
     if (pinch.current && e.touches.length === 2) {
       const [a, b] = [e.touches[0], e.touches[1]]
-      setZoomClamped(pinch.current.z * (Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY) / pinch.current.d))
+      const z = pinch.current.z * (Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY) / pinch.current.d)
+      if (props.immersive) setGuideScaleClamped(z); else setZoomClamped(z)
     }
   }
   const onTouchEnd = (e: React.TouchEvent) => {
@@ -356,9 +415,24 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
     if (!s || zoom > 1) return
     const t = e.changedTouches[0]
     const dx = t.clientX - s.x, dy = t.clientY - s.y
-    if (Date.now() - s.t < 600 && Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+    const dt = Date.now() - s.t
+    if (dt < 600 && Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
       suppressClick.current = true
-      if (dx < 0) onNext(); else onPrev()
+      if (guideOn) stepPanel(dx < 0 ? 1 : -1)
+      else if (dx < 0) onNext(); else onPrev()
+      return
+    }
+    // Celular: toque fora das palavras. Centro mostra/esconde os controles; bordas avançam (quadro ou página).
+    if (props.immersive && Math.abs(dx) < 10 && Math.abs(dy) < 10 && dt < 450) {
+      if ((e.target as Element).closest('[data-word-index], [data-balloon-handle], [data-balloon-toolbar], [data-speaker-chip], [data-story-pin], button')) return
+      e.preventDefault()
+      suppressClick.current = true
+      const ratio = t.clientX / window.innerWidth
+      const zone = ratio < 0.3 ? -1 : ratio > 0.7 ? 1 : 0
+      const chrome = useReaderChrome.getState()
+      if (zone === 0 || chrome.visible) { chrome.toggle(); return }
+      if (guideOn) stepPanel(zone as 1 | -1)
+      else if (chrome.edgeTap) { if (zone > 0) onNext(); else onPrev() }
     }
   }
 
@@ -439,6 +513,26 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
   }, [isFullscreen])
   const showDock = () => { document.documentElement.classList.remove('dock-hidden'); setDockHidden(false) }
 
+  // Enquadra o quadro atual no centro da área visível (escala limitada para não pixelar).
+  // Zoom guiado: a escala é a que a pessoa escolheu; a câmera centra no texto do quadro em leitura
+  // (ou no próprio quadro) e não passa da borda da página.
+  const guideTransform = (() => {
+    if (!guideOn) return undefined
+    const g = guidePanels[Math.min(panelIdx, guidePanels.length - 1)]
+    const vw = box.w, vh = vpH || box.h
+    if (!g || !vw || !vh) return undefined
+    const scale = guideScale
+    const focus = g.text
+      ? { x: (g.text.x + g.text.w / 2) * pageW, y: (g.text.y + g.text.h / 2) * pageH }
+      : { x: (g.x + g.w / 2) * pageW, y: (g.y + g.h / 2) * pageH }
+    const halfW = vw / (2 * scale), halfH = vh / (2 * scale)
+    const clampAxis = (c: number, size: number, half: number) => size > 2 * half ? Math.max(half, Math.min(size - half, c)) : size / 2
+    const cx = clampAxis(focus.x, pageW, halfW)
+    const cy = clampAxis(focus.y, pageH, halfH)
+    const offL = Math.max(0, (vw - pageW) / 2)
+    return `translate(${(vw / 2 - offL - cx * scale).toFixed(1)}px, ${(vh / 2 - cy * scale).toFixed(1)}px) scale(${scale.toFixed(4)})`
+  })()
+
   const generating = stage !== null
   const stageLabel = stage === 'prepare' ? labels.preparingArt : stage === 'image' ? labels.generatingImage : labels.generatingLayout
   const btn = 'h-9 min-w-9 px-2 rounded-full flex items-center justify-center gap-1.5 text-xs font-semibold border transition-colors hover:bg-[var(--ui-hover)] disabled:opacity-40'
@@ -499,6 +593,10 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
             description={pt ? 'Volta a página para o modo só texto' : 'Returns this page to text only'}
             onClick={() => { setMenuOpen(false); onDelete() }} />
         </MenuSection>
+        {props.bookMenuItems && <>
+          <div className="h-px mx-2" style={{ backgroundColor: 'var(--theme-border-subtle)' }} />
+          <MenuSection title={pt ? 'Livro' : 'Book'}><div onClickCapture={() => setMenuOpen(false)}>{props.bookMenuItems}</div></MenuSection>
+        </>}
       </PopoverContent>
     </Popover>
   )
@@ -508,6 +606,17 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
         {editorial && moveMode && <ToolButton icon={<Move className="w-4 h-4" />} label={pt ? 'Concluir' : 'Done'} compact active
           hint={pt ? 'Sair do modo de mover caixas (Esc)' : 'Leave move mode (Esc)'}
           onClick={() => { setMoveMode(false); editor.select(null) }} />}
+        {props.immersive && guidePanels.length >= 1 && (
+          <div role="group" aria-label={pt ? 'Zoom' : 'Zoom'} className="flex items-center">
+            <ToolButton icon={<ZoomOut className="w-4 h-4" />} disabled={guideScale <= 1} aria-label={pt ? 'Diminuir zoom' : 'Zoom out'}
+              hint={pt ? 'Diminuir zoom' : 'Zoom out'} onClick={() => setGuideScaleClamped(guideScale - 0.5)} />
+            <button type="button" onClick={() => setGuideScaleClamped(guideScale > 1 ? 1 : 2)} aria-live="polite"
+              aria-label={pt ? `Zoom ${Math.round(guideScale * 100)}%` : `Zoom ${Math.round(guideScale * 100)}%`}
+              className="h-8 min-w-11 px-1 rounded-lg text-[12.5px] font-semibold tabular-nums" style={{ color: 'var(--theme-text)' }}>{Math.round(guideScale * 100)}%</button>
+            <ToolButton icon={<ZoomIn className="w-4 h-4" />} disabled={guideScale >= 4} aria-label={pt ? 'Aumentar zoom' : 'Zoom in'}
+              hint={pt ? 'Aumentar zoom: a tela acompanha o texto que está sendo lido' : 'Zoom in: the view follows the text being read'} onClick={() => setGuideScaleClamped(guideScale + 0.5)} />
+          </div>
+        )}
         <ToolButton icon={<Maximize2 className="w-4 h-4" />}
           hint={pt ? 'Leitura imersiva: só a página, ocupando a tela. Esc para sair.' : 'Immersive reading: just the page, filling the screen. Esc to exit.'}
           onClick={toggleFullscreen} />
@@ -547,7 +656,9 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
   // ---- Página de quadrinho ----------------------------------------------------------------
   return (
     <div ref={wordsRef} className={isFullscreen ? 'comic-reader comic-immersive-stage fixed inset-0 z-[80] flex flex-col justify-start' : 'comic-reader w-full flex flex-col gap-3'}
-      style={isFullscreen ? { backgroundColor: '#0d0c0b', paddingTop: zoom > 1 ? 'var(--safe-t, 0px)' : 'calc(var(--safe-t, 0px) + 24px)' } : undefined}>
+      style={isFullscreen ? { backgroundColor: '#0d0c0b', paddingTop: zoom > 1 ? 'var(--safe-t, 0px)' : 'calc(var(--safe-t, 0px) + 24px)' }
+        // Celular: a página vai de borda a borda (e as bordas recebem o toque).
+        : props.immersive ? { marginLeft: 'calc(-1.25rem - var(--safe-l))', marginRight: 'calc(-1.25rem - var(--safe-r))', width: 'auto' } : undefined}>
       {!isFullscreen && (toolbarSlot ? createPortal(toolbar, toolbarSlot) : <div className="sticky top-2 z-30 flex justify-end">{toolbar}</div>)}
       {!isFullscreen && menuSlot && createPortal(moreMenu, menuSlot)}
       {isFullscreen && <>
@@ -613,8 +724,10 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
       {/* Área da página: com zoom, a página cresce e esta área rola (nada é cortado). */}
       <div
         ref={viewportRef}
-        className="relative w-full overflow-auto rounded-xl select-none"
-        style={{ maxHeight: isFullscreen ? box.h + 84 : fit === 'page' || zoom > 1 ? box.h + 40 : undefined, perspective: 2000, touchAction: zoom > 1 ? 'pan-x pan-y' : 'pan-y', cursor: zoom > 1 ? 'grab' : 'default' }}
+        className={`relative w-full rounded-xl select-none ${guideOn ? 'overflow-hidden' : 'overflow-auto'}`}
+        style={guideOn
+          ? { height: 'calc(100dvh - var(--safe-t) - var(--safe-b) - 4.25rem)', touchAction: 'none', WebkitTouchCallout: 'none' }
+          : { maxHeight: isFullscreen ? box.h + 84 : fit === 'page' || zoom > 1 ? box.h + 40 : undefined, perspective: 2000, touchAction: zoom > 1 ? 'pan-x pan-y' : 'pan-y', cursor: zoom > 1 ? 'grab' : 'default' }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}
@@ -628,7 +741,10 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
       >
         {/* Troca de página em slideshow (ver flipVariants). */}
         <div className={`relative mx-auto overflow-hidden ${isFullscreen ? '' : 'rounded-sm shadow-2xl'}`}
-          style={crop ? { width: Math.round(pageW * crop.w), height: Math.round(pageH * crop.h) } : { width: pageW, height: pageH }}>
+          style={{
+            ...(crop ? { width: Math.round(pageW * crop.w), height: Math.round(pageH * crop.h) } : { width: pageW, height: pageH }),
+            ...(guideTransform ? { transform: guideTransform, transformOrigin: '0 0', transition: reduceMotion || pinch.current ? 'none' : 'transform 0.5s cubic-bezier(0.32, 0.72, 0, 1)', willChange: 'transform' } : null),
+          }}>
         <div className="absolute" style={{ width: pageW, height: pageH, left: crop ? -crop.x * pageW : 0, top: crop ? -crop.y * pageH : 0 }}>
         <AnimatePresence initial={false} custom={direction}>
           <motion.div
@@ -694,6 +810,12 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
         </AnimatePresence>
         </div>
         </div>
+        {guideOn && (
+          <p className="absolute bottom-2 left-1/2 -translate-x-1/2 z-40 px-2.5 h-6 grid place-items-center rounded-full text-[11px] font-medium tabular-nums pointer-events-none"
+            aria-live="polite" style={{ backgroundColor: 'color-mix(in srgb, var(--theme-card-bg) 85%, transparent)', color: 'var(--theme-text-secondary)' }}>
+            {pt ? `Quadro ${panelIdx + 1} de ${guidePanels.length}` : `Panel ${panelIdx + 1} of ${guidePanels.length}`}
+          </p>
+        )}
       </div>
 
     </div>

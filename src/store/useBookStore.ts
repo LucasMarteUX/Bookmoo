@@ -53,6 +53,8 @@ export interface Book {
 interface BookState {
   books: Book[]
   currentBookId: string | null
+  /** A lista do servidor já chegou nesta sessão (não é salvo no aparelho). Evita mostrar a Home "vazia" antes da hora. */
+  booksLoaded: boolean
   /** 
    * `content` here is optional initial full text used para IA (quadrinhos),
    * não gera páginas automaticamente. Páginas são criadas depois no Editor.
@@ -70,6 +72,7 @@ export const useBookStore = create<BookState>()(
     (set) => ({
       books: [],
       currentBookId: null,
+      booksLoaded: false,
       addBook: (title, content, opts = {}) => {
         const { languageCode = 'en', coverData, description, totalPages, author, cefrLevel } = opts
         const fullText = (content || '').trim()
@@ -124,6 +127,7 @@ export const useBookStore = create<BookState>()(
       })),
       setCurrentBook: (id) => set({ currentBookId: id }),
       setBooks: (books) => set((state) => ({
+        booksLoaded: true,
         books: books.map(book => {
           const prev = state.books.find(item => item.id === book.id)
           if (!prev?.catalogId && !prev?.imageMode) return book
@@ -141,7 +145,7 @@ export const useBookStore = create<BookState>()(
         setItem: (k, v) => { try { localStorage.setItem(k, v) } catch (e) { console.warn('[books] cache local cheio; seguindo só com o Supabase', e) } },
         removeItem: (k) => { try { localStorage.removeItem(k) } catch { /* ignore */ } },
       })),
-      partialize: (state) => ({
+      partialize: ({ booksLoaded: _loaded, ...state }) => ({
         ...state,
         books: state.books.map((b) => ({
           ...b,

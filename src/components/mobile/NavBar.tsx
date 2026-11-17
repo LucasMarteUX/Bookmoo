@@ -41,7 +41,7 @@ export function NavBar() {
   const btn = 'pressable min-w-[var(--hit)] h-[var(--hit)] grid place-items-center rounded-full'
 
   return (
-    <header className="ios-bar fixed top-0 inset-x-0 z-40 transition-[border-color] duration-200"
+    <header data-chrome="top" className="ios-bar fixed top-0 inset-x-0 z-40 transition-[border-color] duration-200"
       style={{ paddingTop: 'var(--safe-t)', paddingLeft: 'var(--safe-l)', paddingRight: 'var(--safe-r)', borderBottom: `1px solid ${scrolled || !root ? 'var(--theme-border)' : 'transparent'}` }}>
       <div className="grid grid-cols-[1fr_auto_1fr] items-center px-1.5" style={{ height: 'var(--navbar-h)' }}>
         <div className="flex items-center">

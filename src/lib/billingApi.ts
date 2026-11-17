@@ -65,10 +65,10 @@ export type Feedback = {
 }
 
 export const conversation = {
-  start: (body: { kind: 'scene' | 'tutor' | 'reader'; sceneKey?: string; sceneId?: string; minutes?: number; bookId?: string; level?: string; opening?: string }) =>
+  start: (body: { kind: 'scene' | 'tutor' | 'reader'; sceneKey?: string; sceneId?: string; minutes?: number; bookId?: string; level?: string; opening?: string; characterId?: string }) =>
     callFn<{ sessionId: string; plannedSeconds?: number; opening?: string; secondsAvailable?: number; scene?: { persona: { name: string; emoji: string; gender: 'female' | 'male'; pace: string }; goals: string[]; usefulPhrases: string[]; fillers: string[]; ambient?: string } }>('conversation', { action: 'start', ...body }).finally(refreshEntitlements),
-  turn: (body: { sessionId: string; text: string; confidence?: number; filler?: string | null; page?: number; level?: string; langMode?: TutorLangMode }) =>
-    callFn<{ reply: string; mood?: string; segments?: SpeechSegment[] | null; actions?: TutorAction[]; goalsMet?: number[]; wrapUp?: boolean; highlight?: string | null; offerSave?: boolean; remaining?: number | null }>('conversation', { action: 'turn', ...body }),
+  turn: (body: { sessionId: string; text: string; confidence?: number; filler?: string | null; page?: number; level?: string; langMode?: TutorLangMode; tutorName?: string; characterId?: string }) =>
+    callFn<{ reply: string; mood?: string; suggestTutor?: string | null; segments?: SpeechSegment[] | null; actions?: TutorAction[]; goalsMet?: number[]; wrapUp?: boolean; highlight?: string | null; offerSave?: boolean; remaining?: number | null }>('conversation', { action: 'turn', ...body }),
   assist: (sessionId: string, mode: 'hint' | 'translate') =>
     callFn<{ suggestions?: { en: string; pt: string }[]; translation?: string }>('conversation', { action: 'assist', sessionId, mode }),
   end: (sessionId: string, metrics?: { wpm?: number; avgResponseMs?: number; unclear?: number }) =>

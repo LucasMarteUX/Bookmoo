@@ -44,6 +44,8 @@ export function BookPage() {
   const [setupOpen, setSetupOpen] = useState(false)
   const [headerSlot, setHeaderSlot] = useState<HTMLDivElement | null>(null)
   const [headerEndSlot, setHeaderEndSlot] = useState<HTMLDivElement | null>(null)
+  // Celular: segunda linha do topo com as ferramentas do leitor (Texto | Ilustrado, som, estudo…).
+  const [headerMobileSlot, setHeaderMobileSlot] = useState<HTMLDivElement | null>(null)
   const [pageSizeOpen, setPageSizeOpen] = useState(false)
   const [castOpen, setCastOpen] = useState(false)
   const [writeMode, setWriteMode] = useState<'dictation' | 'edit'>('dictation')
@@ -129,7 +131,7 @@ export function BookPage() {
     <div className="relative min-h-full flex flex-col" style={{ '--reader-sticky-top': `${headerH}px` } as CSSProperties}>
       {/* Topo fixo numa faixa só, como um editor: atividades, ferramentas da atividade e ajustes.
           O título do livro fica no conteúdo, sem disputar espaço com as barras. */}
-      <div ref={headerRef} className="sticky top-[calc(var(--safe-t,0px)+var(--navbar-h,0px))] md:top-0 z-40 -mx-4 md:-mx-10 mb-4 md:mb-6"
+      <div ref={headerRef} data-chrome="top" className={`sticky top-[calc(var(--safe-t,0px)+var(--navbar-h,0px))] md:top-0 z-40 -mx-4 md:-mx-10 mb-4 md:mb-6 ${mode === 'read' || mode === 'listen' ? 'book-header-chrome' : ''}`}
         style={{ backgroundColor: 'var(--theme-bg)' }}>
         <div className="book-headerbar h-12 px-2 md:px-6 flex items-stretch gap-1 border-b" style={{ borderColor: 'var(--theme-border)' }}>
           <nav role="tablist" aria-label={pt ? 'Atividade' : 'Activity'} className="flex items-stretch gap-0.5 min-w-0 overflow-x-auto overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -183,6 +185,10 @@ export function BookPage() {
             <div ref={setHeaderEndSlot} className="flex items-center empty:hidden" />
           </div>
         </div>
+        {(mode === 'read' || mode === 'listen') && (
+          <div ref={setHeaderMobileSlot} className="md:hidden h-12 px-2 flex items-center border-b overflow-x-auto overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden empty:hidden"
+            style={{ borderColor: 'var(--theme-border)' }} />
+        )}
       </div>
 
       <div className="flex-1">
@@ -196,7 +202,7 @@ export function BookPage() {
           <SpeakPractice book={book} />
         ) : (
           <>
-            <Reader book={book} autoPlay={mode === 'listen'} headerSlot={headerSlot} headerEndSlot={headerEndSlot} />
+            <Reader book={book} autoPlay={mode === 'listen'} headerSlot={headerSlot} headerEndSlot={headerEndSlot} headerMobileSlot={headerMobileSlot} />
             <ReaderTutor book={book} />
           </>
         )}

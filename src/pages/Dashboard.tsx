@@ -20,6 +20,7 @@ import { Card } from '@/components/ui/card'
 import { FilterSearch, FilterSelect, SegmentedTabs } from '@/components/ui/filter-controls'
 import { BookCardSkeleton } from '@/components/BookCardSkeleton'
 import { GalleryBanner } from '@/components/GalleryBanner'
+import { CoverSpecHint } from '@/components/book/CoverSpecHint'
 import { XpBadge } from '@/components/stats/XpBadge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -51,7 +52,7 @@ export function Dashboard() {
   const { locale } = useLanguage()
   const { t } = useTranslations(locale)
   const { session, hasSupabase } = useAuth()
-  const { books, addBook, updateBook, deleteBook, setCurrentBook, setBooks } = useBookStore()
+  const { books, addBook, updateBook, deleteBook, setCurrentBook, setBooks, booksLoaded } = useBookStore()
   const { totalStudyTime, dailyStudyTime } = useStudyStore()
   const { vocabularies } = useVocabularyStore()
   const userId = session?.user?.id
@@ -281,6 +282,10 @@ export function Dashboard() {
   const startedOf = (b: (typeof books)[number]) => (b.currentPage || 0) >= 1
   const finishedOf = (b: (typeof books)[number]) => startedOf(b) && progressOf(b) >= 100
   const hero = sortedByRecent.find(b => !finishedOf(b)) ?? sortedByRecent[0]
+  // Só decide o que mostrar depois que a lista do servidor chegou: antes disso a Home ficava "vazia"
+  // por um instante (banner da galeria) e depois trocava para o livro em leitura.
+  const libraryReady = booksLoaded || !hasSupabase || !userId
+  const startedAny = books.some(startedOf)
   const today = new Date().toISOString().split('T')[0]
   const minutesToday = Math.floor((dailyStudyTime[today] ?? 0) / 60)
   const goal = dailyGoalMinutes
@@ -367,11 +372,20 @@ export function Dashboard() {
       </header>
       <PlanBanner pt={pt} />
 
-      {books.length === 0 && <GalleryBanner />}
+      {libraryReady && !startedAny && <GalleryBanner />}
 
       {/* Continuar lendo + hoje */}
       <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-        {hero ? (
+        {!libraryReady && !hero ? (
+          <div className="rounded-2xl border p-4 md:p-6 flex gap-4 md:gap-7 items-center animate-pulse" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-card-bg)' }} aria-hidden>
+            <div className="shrink-0 w-[84px] md:w-[124px] aspect-[2/3] rounded-md" style={{ backgroundColor: 'var(--theme-bg-secondary)' }} />
+            <div className="flex-1 space-y-3">
+              <div className="h-3 w-24 rounded" style={{ backgroundColor: 'var(--theme-bg-secondary)' }} />
+              <div className="h-6 w-2/3 rounded" style={{ backgroundColor: 'var(--theme-bg-secondary)' }} />
+              <div className="h-1.5 w-1/2 rounded-full" style={{ backgroundColor: 'var(--theme-bg-secondary)' }} />
+            </div>
+          </div>
+        ) : hero ? (
           <div className="rounded-2xl border p-4 md:p-6 flex gap-4 md:gap-7 items-start sm:items-center" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-card-bg)' }}>
             <button type="button" onClick={() => handleOpenBook(hero.id)} aria-label={pt ? `Abrir ${hero.title}` : `Open ${hero.title}`}
               className="book-cover shrink-0 w-[84px] md:w-[124px] aspect-[2/3] rounded-md overflow-hidden transition-transform hover:-translate-y-1" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
@@ -593,6 +607,7 @@ export function Dashboard() {
                     : <span className="flex flex-col items-center gap-1.5 px-2 text-center text-[12px]" style={{ color: 'var(--theme-text-secondary)' }}><ImagePlus className="w-5 h-5" />{t('uploadCover')}</span>}
                 </button>
                 {newCoverData && <button type="button" onClick={() => setNewCoverData(null)} className="text-[12px] underline-offset-2 hover:underline" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? 'Remover capa' : 'Remove cover'}</button>}
+                <div className="max-w-[12rem]"><CoverSpecHint src={newCoverData} pt={pt} /></div>
               </div>
             </div>
 
@@ -672,8 +687,9 @@ export function Dashboard() {
                   <ImagePlus className="w-4 h-4" />
                   {t('uploadCover')}
                 </Button>
-                {editCoverData && <img src={editCoverData} alt="" className="w-16 h-16 rounded-lg object-cover border" style={{ borderColor: 'var(--theme-border)' }} />}
+                {editCoverData && <img src={editCoverData} alt="" className="w-12 aspect-[2/3] rounded-md object-cover border" style={{ borderColor: 'var(--theme-border)' }} />}
               </div>
+              <CoverSpecHint src={editCoverData} pt={pt} />
             </div>
             <div className="space-y-2">
               <Label style={{ color: 'var(--theme-text)' }}>{t('editBookContext')}</Label>

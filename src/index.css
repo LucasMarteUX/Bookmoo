@@ -851,3 +851,60 @@ select:not([multiple]):not([size]):disabled { opacity: 0.6; }
 
 /* Trecho que a tutora está explicando */
 ::highlight(tutor) { background-color: color-mix(in srgb, #F4D35E 55%, transparent); color: inherit; }
+
+/* ───────── Leitura imersiva no celular (useReaderChrome) ─────────
+   As barras flutuam por cima do texto e somem com um toque, como no Kindle e no Apple Books.
+   O texto não se mexe quando elas aparecem ou somem. */
+html.reader-immersive [data-chrome] {
+  transition: transform 0.36s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.24s ease;
+  will-change: transform, opacity;
+}
+html.reader-immersive .book-header-chrome {
+  position: fixed !important;
+  top: calc(var(--safe-t) + var(--navbar-h)) !important;
+  left: 0; right: 0;
+  margin: 0 !important;
+  z-index: 39;
+}
+html.reader-immersive.reader-chrome-hidden [data-chrome="top"] {
+  transform: translateY(calc(-100% - var(--safe-t) - var(--navbar-h) - 8px));
+  opacity: 0;
+  pointer-events: none;
+}
+html.reader-immersive.reader-chrome-hidden [data-chrome="bottom"] {
+  transform: translateY(calc(100% + var(--safe-b) + 24px));
+  opacity: 0;
+  pointer-events: none;
+}
+html.reader-immersive.reader-chrome-hidden [data-chrome="fade"] { opacity: 0; pointer-events: none; }
+/* Rodapé discreto (página e progresso): só aparece com os controles escondidos. */
+html.reader-immersive:not(.reader-chrome-hidden) [data-chrome="footer"] { opacity: 0; }
+html.reader-immersive.reader-chrome-hidden [data-chrome="top"] * { pointer-events: none; }
+/* Superfície de leitura: o sistema não abre a lupa nem o menu de copiar; os gestos são nossos. */
+.reader-touch-surface, .reader-touch-surface * {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.reader-touch-surface { touch-action: pan-y; }
+@media (prefers-reduced-motion: reduce) {
+  html.reader-immersive [data-chrome] { transition: opacity 0.15s ease; }
+  html.reader-immersive.reader-chrome-hidden [data-chrome="top"],
+  html.reader-immersive.reader-chrome-hidden [data-chrome="bottom"] { transform: none; }
+}
+
+/* Controle deslizante da folha de aparência (tamanho da letra). */
+.reader-range { -webkit-appearance: none; appearance: none; height: 28px; background: transparent; }
+.reader-range::-webkit-slider-runnable-track { height: 4px; border-radius: 999px; background: color-mix(in srgb, var(--theme-text) 18%, transparent); }
+.reader-range::-moz-range-track { height: 4px; border-radius: 999px; background: color-mix(in srgb, var(--theme-text) 18%, transparent); }
+.reader-range::-webkit-slider-thumb { -webkit-appearance: none; width: 26px; height: 26px; margin-top: -11px; border-radius: 999px; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.3), 0 0 0 0.5px rgba(0,0,0,0.08); }
+.reader-range::-moz-range-thumb { width: 26px; height: 26px; border: 0; border-radius: 999px; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
+.reader-range:focus-visible { outline: 2px solid var(--theme-accent); outline-offset: 4px; border-radius: 999px; }
+/* Barra de baixo no celular: alvos de 44 pt. */
+html.reader-immersive [data-reader-bar] button { min-height: 44px; min-width: 44px; }
+/* Linhas do topo no celular: botões com área de toque confortável. */
+html.reader-immersive .book-header-chrome button { min-height: 40px; min-width: 40px; }
+/* Seleção feita com o dedo (segurar e arrastar), pintada enquanto o gesto dura. */
+.touch-sel { background-color: color-mix(in srgb, var(--theme-accent, #b08a4a) 26%, transparent) !important; box-shadow: 0 2px 0 var(--theme-accent, #b08a4a); border-radius: 3px; }
+html.reader-immersive:not(.reader-chrome-hidden) [data-chrome="footer"] { pointer-events: none; }

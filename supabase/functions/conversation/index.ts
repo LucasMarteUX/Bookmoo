@@ -13,8 +13,70 @@ type Body = {
   sessionId?: string; text?: string; confidence?: number; filler?: string; bookId?: string; page?: number
   mode?: 'hint' | 'translate'; metrics?: { wpm?: number; avgResponseMs?: number; unclear?: number }
   langMode?: 'auto' | 'hybrid' | 'pt' | 'en'
-  opening?: string
+  opening?: string; characterId?: string; tutorName?: string
   setting?: string; level?: string; personaName?: string; personaRole?: string; personaTraits?: string; goal?: string; level?: string; title?: string
+}
+
+// Os tutores do app (mesmos ids do cliente). Cada um tem a própria memória de cada pessoa (tabela tutor_memory).
+const TUTORS: Record<string, string> = { 'bookmoo-mulher': 'Bia', 'bookmoo-homem': 'Luck', 'bookmoo-yuno': 'Yuno', 'bookmoo-yuri': 'Yuri' }
+const tutorId = (v: unknown) => (typeof v === 'string' && v in TUTORS ? v : null)
+
+type Memory = { character_id: string; summary: string; strengths: string[]; weaknesses: string[]; topics: string[]; sessions: number; last_at: string }
+const daysAgo = (iso: string) => Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 86400000))
+const ago = (iso: string) => { const d = daysAgo(iso); return d === 0 ? 'today' : d === 1 ? 'yesterday' : `${d} days ago` }
+
+/** O que este tutor lembra da pessoa e o que sabe das conversas dela com os outros. Sem a tabela (ainda) ou sem histórico: vazio. */
+async function memoryBlock(db: ReturnType<typeof adminClient>, userId: string, characterId: string | null): Promise<{ text: string; others: string[]; welcome: string }> {
+  if (!characterId) return { text: '', others: [], welcome: '' }
+  try {
+    const { data } = await db.from('tutor_memory').select('*').eq('user_id', userId)
+    const rows = (data ?? []) as Memory[]
+    const mine = rows.find((r) => r.character_id === characterId)
+    const others = rows.filter((r) => r.character_id !== characterId && r.summary)
+    const lines: string[] = []
+    if (mine?.summary) {
+      lines.push(`YOUR MEMORY of this learner (you are ${TUTORS[characterId]}; you have talked ${mine.sessions} time(s), last ${ago(mine.last_at)}): ${mine.summary}`)
+      if (mine.topics.length) lines.push(`Topics you discussed: ${mine.topics.join('; ')}.`)
+      if (mine.strengths.length) lines.push(`What they do well: ${mine.strengths.join('; ')}.`)
+      if (mine.weaknesses.length) lines.push(`Where they need to improve: ${mine.weaknesses.join('; ')}.`)
+    } else {
+      lines.push(`You (${TUTORS[characterId]}) have not talked with this learner before.`)
+    }
+    for (const o of others) lines.push(`The learner also talked with ${TUTORS[o.character_id]} (${ago(o.last_at)}): ${o.summary.slice(0, 260)}`)
+    lines.push(`Use your memory naturally and sparingly (a short callback, a mistake to practise again, a topic to continue); never recite it. Never claim to remember something that is not above.`)
+    if (others.length) lines.push(`If the learner mentions something they discussed with another tutor, or a topic that fits another tutor's history better, you may say so warmly ("you talked about this with ${TUTORS[others[0].character_id]}; want me to call ${others[0].character_id === 'bookmoo-mulher' ? 'her' : 'them'}?") and set "suggest_tutor" to that tutor's name. Otherwise suggest_tutor is null.`)
+    const me = TUTORS[characterId]
+    const welcome = mine?.topics[0]
+      ? `Welcome back! I'm ${me}. Last time we talked about ${mine.topics[0]}. Want to keep going, or try something new?`
+      : others.length && !mine?.summary ? `Hi! I'm ${me}. I hear you have been practising with ${TUTORS[others[0].character_id]}. What would you like to talk about today?` : ''
+    return { text: lines.join('\n'), others: others.map((o) => TUTORS[o.character_id]), welcome }
+  } catch { return { text: '', others: [], welcome: '' } }
+}
+
+/** Depois da conversa: o tutor atualiza o que lembra da pessoa (resumo, acertos, pontos a melhorar, assuntos). Nunca quebra o fim da sessão. */
+async function updateMemory(db: ReturnType<typeof adminClient>, userId: string, characterId: string | null, turns: { role: string; text: string }[], plan?: string) {
+  if (!characterId || turns.filter((t) => t.role === 'user').length < 2) return
+  try {
+    const { data: prev } = await db.from('tutor_memory').select('*').eq('user_id', userId).eq('character_id', characterId).maybeSingle()
+    const mem = await measured(userId, 'tutor-memory', async () => {
+      const { provider, key } = await pickProvider(userId, ['openai', 'gemini'])
+      return await llmJson<{ summary?: string; strengths?: string[]; weaknesses?: string[]; topics?: string[] }>(provider, key, {
+        prompt: `You keep the private notes of ${TUTORS[characterId]}, an English tutor, about one Brazilian learner. Merge the previous notes with the conversation below into updated notes (keep what is still true, drop what is outdated, stay factual, never invent).
+Previous notes: ${prev?.summary ? `${prev.summary} | strengths: ${(prev.strengths ?? []).join('; ')} | to improve: ${(prev.weaknesses ?? []).join('; ')} | topics: ${(prev.topics ?? []).join('; ')}` : 'none'}
+Conversation:
+${turns.slice(-40).map((t) => `${t.role === 'ai' ? 'Tutor' : 'Learner'}: ${clean(t.text, 300)}`).join('\n')}
+Return JSON only: {"summary": "max 420 characters, English, what the two talked about, how the learner did, anything personal they shared (interests, family, job) and what to follow up next time", "strengths": ["up to 4 short items: what they got right or do well"], "weaknesses": ["up to 4 short items: specific mistakes or skills to improve"], "topics": ["up to 5 short topics discussed, newest first"]}`,
+      })
+    }, plan)
+    const list = (v: unknown, n: number, len: number) => (Array.isArray(v) ? v : []).map((x) => clean(x, len)).filter(Boolean).slice(0, n)
+    const summary = clean(mem.summary, 480)
+    if (!summary) return
+    await db.from('tutor_memory').upsert({
+      user_id: userId, character_id: characterId, summary,
+      strengths: list(mem.strengths, 4, 120), weaknesses: list(mem.weaknesses, 4, 120), topics: list(mem.topics, 5, 80),
+      sessions: Number(prev?.sessions ?? 0) + 1, last_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+    })
+  } catch (e) { console.warn('tutor memory not updated', e) }
 }
 
 const LEVEL_GUIDE: Record<string, string> = {
@@ -112,8 +174,9 @@ async function loadScene(db: ReturnType<typeof adminClient>, userId: string, ent
   return scene
 }
 
-function scenePrompt(scene: Scene, level: string, age: number | null, twist: string, progress: number, remaining: number, filler?: string) {
-  return `You are ${scene.persona.name}, a ${scene.persona.role}. Setting: ${scene.setting}
+function scenePrompt(scene: Scene, level: string, age: number | null, twist: string, progress: number, remaining: number, filler?: string, name?: string) {
+  // O personagem na tela é o tutor escolhido pela pessoa: ele assume o papel da cena com o próprio nome.
+  return `You are ${name || scene.persona.name}, a ${scene.persona.role}. Setting: ${scene.setting}
 Personality: ${scene.persona.traits}. Pace: ${scene.persona.pace}.
 You are role-playing with an English learner (level ${level}). ${LEVEL_GUIDE[level] ?? LEVEL_GUIDE.B1}
 Rules:
@@ -130,8 +193,8 @@ ${STYLE_RULE}
 Return JSON only: {"reply": "what you say next", ${MOOD_SPEC}, "goals_met": [indexes of goals the learner has achieved so far], "wrap_up": true|false}`
 }
 
-function tutorPrompt(level: string, profile: string, mode: LangMode, filler?: string) {
-  return `You are Bea, a warm, encouraging English conversation tutor talking by voice with a Brazilian learner (level ${level}). ${LEVEL_GUIDE[level] ?? LEVEL_GUIDE.B1}
+function tutorPrompt(level: string, profile: string, mode: LangMode, filler?: string, name = 'Bia') {
+  return `You are ${name}, a warm, encouraging English conversation tutor talking by voice with a Brazilian learner (level ${level}). ${LEVEL_GUIDE[level] ?? LEVEL_GUIDE.B1}
 What you know about the learner: ${profile || 'nothing yet'}.
 Have a natural conversation about their interests, and naturally bring in their difficult words and grammar so they practise them. When they make an important mistake, recast it naturally in your reply (say it correctly), without lecturing.
 ${langRule(mode, level)}
@@ -142,8 +205,8 @@ ${STYLE_RULE}
 Return JSON only: {"reply": "...", ${MOOD_SPEC}, ${SEGMENTS_SPEC}, "actions": [] or [{"type": "show_examples", "title": "...", "items": [{"en": "...", "pt": "..."}]}]}`
 }
 
-function readerPrompt(level: string, book: { title: string; author?: string | null; description?: string | null }, read: string, page: string, pageNo: number, mode: LangMode, filler?: string) {
-  return `You are Bea, a friendly reading tutor inside a reading app. The learner (level ${level}) is reading "${book.title}"${book.author ? ` by ${book.author}` : ''} and talks to you by voice.
+function readerPrompt(level: string, book: { title: string; author?: string | null; description?: string | null }, read: string, page: string, pageNo: number, mode: LangMode, filler?: string, name = 'Bia') {
+  return `You are ${name}, a friendly reading tutor inside a reading app. The learner (level ${level}) is reading "${book.title}"${book.author ? ` by ${book.author}` : ''} and talks to you by voice.
 ${LEVEL_GUIDE[level] ?? LEVEL_GUIDE.B1}
 You may talk about: the story so far, characters, the learner's opinions and predictions, words and expressions on the current page, grammar in the text, pronunciation, and quick quizzes about what was read.
 NO SPOILERS: you only know the text below (everything up to the current page). If asked about what happens later, playfully refuse ("No spoilers! Keep reading.").
@@ -199,12 +262,14 @@ async function handle(userId: string, b: Body) {
           if (!book) throw new ConvError('book_not_found', 404)
           title = book.title
         }
-        const { data: s, error } = await db.from('conversation_sessions').insert({ user_id: userId, kind, book_id: kind === 'reader' ? b.bookId : null, title }).select('id').single()
+        const { data: s, error } = await db.from('conversation_sessions').insert({ user_id: userId, kind, book_id: kind === 'reader' ? b.bookId : null, title, context: { characterId: tutorId(b.characterId) } }).select('id').single()
         if (error) throw new ConvError('session_failed', 500)
         // Assunto escolhido na tela: vira a primeira fala da tutora (ela continua a partir dele).
-        const opening = kind === 'tutor' ? clean(b.opening, 300) : ''
+        let opening = kind === 'tutor' ? clean(b.opening, 300) : ''
+        // Conversa livre sem assunto escolhido: quem já conversou com este tutor é recebido lembrando da última vez.
+        if (kind === 'tutor' && !opening) opening = (await memoryBlock(db, userId, tutorId(b.characterId))).welcome
         if (opening) await db.from('conversation_turns').insert({ session_id: s.id, role: 'ai', text: opening })
-        return { sessionId: s.id, creditsAvailable: ent.credits_available }
+        return { sessionId: s.id, creditsAvailable: ent.credits_available, opening: kind === 'tutor' && opening && !b.opening ? opening : undefined }
       }
       const scene = await loadScene(db, userId, ent, b)
       const max = ent.is_admin ? 10 : ent.limits.max_scene_minutes
@@ -217,7 +282,7 @@ async function handle(userId: string, b: Body) {
       }
       const { data: s, error } = await db.from('conversation_sessions').insert({
         user_id: userId, kind: 'scene', scene_key: scene.key, title: scene.title.pt, planned_seconds: minutes * 60,
-        context: { twist: scene.twists[Math.floor(Math.random() * scene.twists.length)] ?? '', level: sceneLevel(scene, b.level), sceneId: scene.id ?? null },
+        context: { twist: scene.twists[Math.floor(Math.random() * scene.twists.length)] ?? '', level: sceneLevel(scene, b.level), sceneId: scene.id ?? null, characterId: tutorId(b.characterId) },
       }).select('id').single()
       if (error) throw new ConvError('session_failed', 500)
       let reservation: string
@@ -238,6 +303,8 @@ async function handle(userId: string, b: Body) {
       const { data: session } = await db.from('conversation_sessions').select('*').eq('id', String(b.sessionId ?? '')).eq('user_id', userId).maybeSingle()
       if (!session || session.status !== 'active') throw new ConvError('session_over', 409)
       const filler = clean(b.filler, 80) || undefined
+      // Nome do personagem que a pessoa escolheu (Bia, Luck...): só letras, até 20 caracteres.
+      const tutorName = clean(b.tutorName, 20).replace(/[^\p{L}' -]/gu, '').trim() || 'Bia'
       const { data: history } = await db.from('conversation_turns').select('role, text').eq('session_id', session.id).order('id', { ascending: false }).limit(16)
       const messages = [...(history ?? [])].reverse().map((t) => ({ role: t.role === 'ai' ? 'assistant' as const : 'user' as const, content: t.text }))
       messages.push({ role: 'user', content: text })
@@ -251,10 +318,10 @@ async function handle(userId: string, b: Body) {
         const scene = session.context?.sceneId
           ? await loadScene(db, userId, ent, { sceneId: session.context.sceneId })
           : findScene(String(session.scene_key))!
-        system = scenePrompt(scene, String(session.context?.level ?? 'B1'), ageOf(ent.birth_date), String(session.context?.twist ?? ''), elapsed / session.planned_seconds, session.planned_seconds - elapsed, filler)
+        system = scenePrompt(scene, String(session.context?.level ?? 'B1'), ageOf(ent.birth_date), String(session.context?.twist ?? ''), elapsed / session.planned_seconds, session.planned_seconds - elapsed, filler, b.tutorName ? tutorName : undefined)
       } else if (session.kind === 'tutor') {
         const prof = await learnerProfile(db, userId, b.level)
-        system = tutorPrompt(prof.level, prof.text, langModeFor(b.langMode, prof.level), filler)
+        system = tutorPrompt(prof.level, prof.text, langModeFor(b.langMode, prof.level), filler, tutorName)
       } else {
         const { data: book } = await db.from('books').select('title, author, description, pages').eq('id', session.book_id).eq('user_id', userId).maybeSingle()
         if (!book) throw new ConvError('book_not_found', 404)
@@ -265,8 +332,12 @@ async function handle(userId: string, b: Body) {
         const earlier = Array.from({ length: Math.min(at, 6) }, (_, k) => at - 6 + k).filter((i) => i >= 0).map((i) => `[p.${i + 1}] ${pageText(i).slice(0, 700)}`).join(' … ')
         const prof = await learnerProfile(db, userId, b.level)
         readerPage = at
-        system = readerPrompt(prof.level, book, earlier, pageText(at), at + 1, langModeFor(b.langMode, prof.level), filler)
+        system = readerPrompt(prof.level, book, earlier, pageText(at), at + 1, langModeFor(b.langMode, prof.level), filler, tutorName)
       }
+
+      // Memória deste tutor sobre a pessoa (e o que sabe das conversas dela com os outros tutores).
+      const mem = await memoryBlock(db, userId, tutorId(session.context?.characterId))
+      if (mem.text) system += `\n\n${mem.text}\nIn your JSON also include "suggest_tutor": the name of another tutor to call, or null.`
 
       // Tutores: 1 crédito por minuto de fala (do aluno + da IA), cobrado a cada minuto completado.
       let reservation: string | null = null
@@ -286,13 +357,14 @@ async function handle(userId: string, b: Body) {
           const { provider, key } = await pickProvider(userId, ['openai', 'gemini'])
           return await llmChat(provider, key, { system, messages, json: true, maxTokens: session.kind === 'scene' ? 200 : 520 })
         }, plan)
-        const parsed = parseJson<{ reply?: string; mood?: string; segments?: unknown; actions?: unknown; goals_met?: number[]; wrap_up?: boolean; highlight?: string | null; offer_save?: boolean }>(raw)
+        const parsed = parseJson<{ reply?: string; mood?: string; segments?: unknown; actions?: unknown; goals_met?: number[]; wrap_up?: boolean; highlight?: string | null; offer_save?: boolean; suggest_tutor?: string | null }>(raw)
         const segs = session.kind === 'scene' ? null : segmentsFrom(parsed.segments, clean(parsed.reply, 700))
         reply = clean(parsed.reply, 700) || (segs ? segs.map(x => x.text).join(' ') : '') || "Sorry, could you say that again?"
         extra = {
           goalsMet: Array.isArray(parsed.goals_met) ? parsed.goals_met.filter(Number.isInteger) : [], wrapUp: !!parsed.wrap_up,
           highlight: parsed.highlight ? clean(parsed.highlight, 60) : null, offerSave: !!parsed.offer_save,
           mood: MOODS.includes(String(parsed.mood)) ? String(parsed.mood) : 'neutral',
+          suggestTutor: parsed.suggest_tutor && mem.others.includes(String(parsed.suggest_tutor)) ? String(parsed.suggest_tutor) : null,
           segments: segs, actions: session.kind === 'scene' ? [] : actionsFrom(parsed.actions, readerPage).filter(a => session.kind === 'reader' || a.type === 'show_examples'),
         }
       } catch (e) {
@@ -346,6 +418,12 @@ Return JSON {"suggestions": [{"en": "...", "pt": "..."}]}`,
         const used = session.kind === 'scene' ? Math.min(session.planned_seconds, Math.max(0, elapsed)) : 0
         if (session.reservation_id) await commitCredits(session.reservation_id, creditsForSeconds(used))
         await db.from('conversation_sessions').update({ status: 'ended', ended_at: now.toISOString(), used_seconds: used }).eq('id', session.id)
+      }
+      // Cada tutor atualiza o que lembra da pessoa (em qualquer tipo de conversa; só com conversa de verdade).
+      if (!session.context?.memoryDone) {
+        const { data: mt } = await db.from('conversation_turns').select('role, text').eq('session_id', session.id).order('id')
+        await updateMemory(db, userId, tutorId(session.context?.characterId), mt ?? [], plan)
+        await db.from('conversation_sessions').update({ context: { ...(session.context ?? {}), memoryDone: true } }).eq('id', session.id)
       }
       if (session.kind !== 'scene') return { ok: true }
       const { data: existing } = await db.from('conversation_feedback').select('*').eq('session_id', session.id).maybeSingle()

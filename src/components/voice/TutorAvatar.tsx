@@ -182,8 +182,8 @@ function Body({ kind, p }: { kind: AvatarKind; p: Palette }) {
 // ---------------------------------------------------------------------------
 // Reações (humor do rosto)
 // ---------------------------------------------------------------------------
-export type Mood = 'neutral' | 'happy' | 'laughing' | 'excited' | 'sad' | 'angry' | 'surprised' | 'confused' | 'wink'
-export const MOODS: Mood[] = ['neutral', 'happy', 'laughing', 'excited', 'sad', 'angry', 'surprised', 'confused', 'wink']
+export type Mood = 'neutral' | 'happy' | 'laughing' | 'excited' | 'sad' | 'angry' | 'surprised' | 'confused' | 'wink' | 'shy'
+export const MOODS: Mood[] = ['neutral', 'happy', 'laughing', 'excited', 'sad', 'angry', 'surprised', 'confused', 'wink', 'shy']
 
 type MoodFace = {
   brow: number; browIn: number; browL?: number   // altura · inclinação (positivo = parte de dentro sobe) · só a esquerda
@@ -201,6 +201,7 @@ const FACE: Record<Mood, MoodFace> = {
   surprised: { brow: -6, browIn: 0, eyes: 'wide', mouth: { w: 5.2, up: -5.2, down: 6.4 }, blush: 0.45 },
   confused: { brow: 0, browIn: -4, browL: -5, eyes: 'open', mouth: { w: 7.5, up: 0.4, down: 1.6, dy: 1 }, blush: 0.35, gazeX: 2.5, gazeY: -1.5 },
   wink: { brow: -1, browIn: 1, eyes: 'wink', mouth: { w: 11.5, up: 0.6, down: 5.4 }, blush: 0.6 },
+  shy: { brow: -1, browIn: 4, eyes: 'open', mouth: { w: 6.5, up: 0.2, down: 2.2, dy: 1 }, blush: 0.95, gazeX: -2.5, gazeY: 1.5 },
 }
 function moodMouth(m: Mood, my: number) {
   const f = FACE[m].mouth

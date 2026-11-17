@@ -14,6 +14,7 @@ import { useCatalogCoverSync } from '@/hooks/useCatalogCoverSync'
 import { useAutoInstallVoices } from '@/hooks/useAutoInstallVoices'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { SIDEBAR_WIDTH, useUiStore } from '@/store/useUiStore'
+import { useReaderChrome } from '@/store/useReaderChrome'
 import { TabBar } from '@/components/mobile/TabBar'
 import { NavBar } from '@/components/mobile/NavBar'
 import { InstallPrompt } from '@/components/mobile/InstallPrompt'
@@ -37,6 +38,7 @@ export function Layout() {
   useCatalogCoverSync()
   useAutoInstallVoices(true)
   const collapsed = useUiStore(state => state.sidebarCollapsed)
+  const immersive = useReaderChrome(state => state.immersive)
 
   const isBookPage = /^\/book\/[^/]+$/.test(location.pathname)
   useScreenTransitions(screenRef)
@@ -58,9 +60,10 @@ export function Layout() {
         <main id="main" tabIndex={-1}
           className={`flex-1 min-w-0 overflow-x-clip md:ml-[var(--sidebar-w)] transition-[margin] duration-300 md:px-10 outline-none ${isBookPage ? 'md:pt-0 md:pb-8' : 'md:pt-8 md:pb-12'}`}
           style={isMobile ? {
-            paddingTop: 'calc(var(--safe-t) + var(--navbar-h) + 0.75rem)',
+            // Leitura imersiva: as barras flutuam por cima; o texto começa logo abaixo da área segura.
+            paddingTop: immersive ? 'calc(var(--safe-t) + 0.75rem)' : 'calc(var(--safe-t) + var(--navbar-h) + 0.75rem)',
             // No leitor a barra de ferramentas própria fica embaixo; nas outras telas, a tab bar.
-            paddingBottom: isBookPage ? 'calc(var(--safe-b) + 6.5rem)' : 'calc(var(--safe-b) + var(--tabbar-h) + 1.5rem)',
+            paddingBottom: immersive ? 'calc(var(--safe-b) + 3.5rem)' : isBookPage ? 'calc(var(--safe-b) + 6.5rem)' : 'calc(var(--safe-b) + var(--tabbar-h) + 1.5rem)',
             paddingLeft: 'calc(1rem + var(--safe-l))',
             paddingRight: 'calc(1rem + var(--safe-r))',
           } : undefined}>

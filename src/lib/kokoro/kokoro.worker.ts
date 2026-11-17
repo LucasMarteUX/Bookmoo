@@ -179,6 +179,20 @@ function wordTimings(tts: KokoroTTS, c: Captured): { f: number; n: number }[] | 
 // O ONNX Runtime (principalmente em WebGPU) não suporta inferências simultâneas na mesma sessão:
 // chamadas concorrentes travam ou corrompem o áudio. Geramos uma frase por vez, com prioridade
 // para a frase que vai tocar agora ('high') sobre os pré-carregamentos ('low').
+const LEAD_SILENCE_S = 0.12
+
+/** WAV mono de 16 bits. */
+function wavBlob(samples: Float32Array, rate: number): Blob {
+  const buf = new ArrayBuffer(44 + samples.length * 2)
+  const v = new DataView(buf)
+  const str = (o: number, s: string) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)) }
+  str(0, 'RIFF'); v.setUint32(4, 36 + samples.length * 2, true); str(8, 'WAVE'); str(12, 'fmt ')
+  v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, rate, true)
+  v.setUint32(28, rate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); str(36, 'data'); v.setUint32(40, samples.length * 2, true)
+  for (let i = 0; i < samples.length; i++) { const s = Math.max(-1, Math.min(1, samples[i])); v.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7fff, true) }
+  return new Blob([buf], { type: 'audio/wav' })
+}
+
 const queue: GenMsg[] = []
 let busy = false
 
@@ -193,8 +207,18 @@ async function pump() {
     captured = null
     const t0 = performance.now()
     const audio = await tts.generate(next.text, { voice: next.voice as never, speed: next.speed })
-    const blob: Blob = audio.toBlob()
-    const words = captured ? wordTimings(tts, captured) : null
+    // Um respiro de silêncio antes da primeira palavra: sem ele o começo da fala era comido (principalmente quando o áudio toca
+    // mais devagar ou mais agudo, porque o navegador estica/encurta o som e perde os primeiros milissegundos).
+    const raw = audio as unknown as { audio?: Float32Array; sampling_rate?: number }
+    let blob: Blob
+    let words = captured ? wordTimings(tts, captured) : null
+    if (raw.audio && raw.sampling_rate) {
+      const pad = Math.round(raw.sampling_rate * LEAD_SILENCE_S)
+      const samples = new Float32Array(pad + raw.audio.length)
+      samples.set(raw.audio, pad)
+      blob = wavBlob(samples, raw.sampling_rate)
+      if (words) { const k = raw.audio.length / samples.length; const o = pad / samples.length; words = words.map((w) => ({ ...w, f: o + w.f * k })) }
+    } else blob = audio.toBlob()
     self.postMessage({ type: 'audio', reqId: next.reqId, blob, words, ms: Math.round(performance.now() - t0) })
   } catch (e) {
     self.postMessage({ type: 'error', reqId: next.reqId, error: String((e as Error)?.message ?? e) })
