@@ -412,7 +412,7 @@ function GalleryBook({ id }: { id: string }) {
           {band && (
             <Reveal className="rounded-2xl p-5" style={{ backgroundColor: 'var(--theme-pastel-4)', color: 'var(--theme-pastel-text)' }}>
               <p className="text-[11.5px] font-semibold uppercase tracking-[0.12em]" style={{ opacity: 0.65 }}>{pt ? 'Para quem é' : 'Who it is for'}</p>
-              <p className="mt-1.5 font-display text-[24px] leading-tight">{band.id} · {pt ? band.pt : band.en}</p>
+              <p className="mt-1.5 font-display text-[24px] leading-tight">{band.id} · {pt ? band.book.pt : band.book.en}</p>
               <p className="mt-1.5 text-[14px] leading-relaxed" style={{ opacity: 0.85 }}>{pt ? band.can.pt : band.can.en}</p>
               <div className="mt-4 grid grid-cols-6 gap-1" aria-hidden>
                 {CEFR.map(item => {
@@ -645,7 +645,7 @@ export function AdminGalleryForm({ pt, onPublished }: { pt: boolean; onPublished
                 className="rounded-xl border px-3 py-2 text-left"
                 style={{ borderColor: 'var(--theme-border)', backgroundColor: on ? 'var(--theme-pastel-2)' : 'transparent', color: on ? 'var(--theme-pastel-text)' : 'var(--theme-text)' }}>
                 <span className="block text-[14px] font-semibold">{band.id}</span>
-                <span className="block text-[12px]" style={{ color: on ? 'var(--theme-pastel-text)' : 'var(--theme-text-secondary)' }}>{pt ? band.pt : band.en}</span>
+                <span className="block text-[12px]" style={{ color: on ? 'var(--theme-pastel-text)' : 'var(--theme-text-secondary)' }}>{pt ? band.book.pt : band.book.en}</span>
               </button>
             )
           })}

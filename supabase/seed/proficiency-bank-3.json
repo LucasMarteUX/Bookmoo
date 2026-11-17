@@ -1,0 +1,266 @@
+{
+  "build_sentence|any": [
+    {
+      "topic": "weekend",
+      "a_says": "What did you do last weekend?",
+      "reply": "I went hiking with some friends from work",
+      "punctuation": ".",
+      "fragments": [
+        "I went",
+        "hiking",
+        "with some friends",
+        "from work"
+      ]
+    },
+    {
+      "topic": "library",
+      "a_says": "Where can I return these books?",
+      "reply": "You can leave them at the front desk",
+      "punctuation": ".",
+      "fragments": [
+        "You can",
+        "leave them",
+        "at the",
+        "front desk"
+      ]
+    },
+    {
+      "topic": "class",
+      "a_says": "Why weren't you in class this morning?",
+      "reply": "I had a doctor's appointment that I could not change",
+      "punctuation": ".",
+      "fragments": [
+        "I had",
+        "a doctor's appointment",
+        "that I",
+        "could not",
+        "change"
+      ]
+    },
+    {
+      "topic": "project",
+      "a_says": "Have you finished the group project yet?",
+      "reply": "We still need to add the conclusion and the references",
+      "punctuation": ".",
+      "fragments": [
+        "We still need",
+        "to add",
+        "the conclusion",
+        "and the references"
+      ]
+    },
+    {
+      "topic": "restaurant",
+      "a_says": "The new restaurant downtown is really popular.",
+      "reply": "Do you know if we need to make a reservation",
+      "punctuation": "?",
+      "fragments": [
+        "Do you know",
+        "if we need",
+        "to make",
+        "a reservation"
+      ]
+    },
+    {
+      "topic": "moving",
+      "a_says": "I heard you're moving to a new apartment.",
+      "reply": "Yes, it is much closer to the university than my old one",
+      "punctuation": ".",
+      "fragments": [
+        "Yes, it is",
+        "much closer",
+        "to the university",
+        "than my",
+        "old one"
+      ]
+    },
+    {
+      "topic": "meeting",
+      "a_says": "Can we meet tomorrow to discuss the report?",
+      "reply": "I would prefer to meet in the afternoon if possible",
+      "punctuation": ".",
+      "fragments": [
+        "I would prefer",
+        "to meet",
+        "in the afternoon",
+        "if possible"
+      ]
+    },
+    {
+      "topic": "lost phone",
+      "a_says": "I can't find my phone anywhere.",
+      "reply": "Have you checked the pocket of the jacket you wore yesterday",
+      "punctuation": "?",
+      "fragments": [
+        "Have you checked",
+        "the pocket",
+        "of the jacket",
+        "you wore",
+        "yesterday"
+      ]
+    },
+    {
+      "topic": "exam",
+      "a_says": "How did the chemistry exam go?",
+      "reply": "It was harder than I expected but I think I passed",
+      "punctuation": ".",
+      "fragments": [
+        "It was harder",
+        "than I expected",
+        "but I think",
+        "I passed"
+      ]
+    },
+    {
+      "topic": "volunteering",
+      "a_says": "Why did you decide to volunteer at the shelter?",
+      "reply": "I wanted to do something useful in my free time",
+      "punctuation": ".",
+      "fragments": [
+        "I wanted",
+        "to do something",
+        "useful",
+        "in my",
+        "free time"
+      ]
+    },
+    {
+      "topic": "course",
+      "a_says": "Is the photography course worth taking?",
+      "reply": "Definitely, the instructor explains everything very clearly",
+      "punctuation": ".",
+      "fragments": [
+        "Definitely, the instructor",
+        "explains",
+        "everything",
+        "very clearly"
+      ]
+    }
+  ],
+  "write_email|any": [
+    {
+      "topic": "missed exam",
+      "scenario": "You missed an important exam in your economics course because you were sick, and you have a note from a doctor. The course syllabus says that make-up exams are possible only in special situations. Write an email to your professor.",
+      "to": "Professor Martin",
+      "subject": "Missed exam on Tuesday",
+      "tasks": [
+        "Explain why you missed the exam",
+        "Ask whether you can take a make-up exam",
+        "Suggest when you would be available"
+      ]
+    },
+    {
+      "topic": "noisy neighbors",
+      "scenario": "You recently moved into an apartment building. For the past two weeks, the neighbors above you have been making loud noise late at night, and you have trouble sleeping before your morning job. Write an email to the building manager.",
+      "to": "Ms. Rivera, Building Manager",
+      "subject": "Noise during the night",
+      "tasks": [
+        "Describe the problem and how it affects you",
+        "Mention what you have already tried",
+        "Suggest a possible solution"
+      ]
+    }
+  ],
+  "academic_discussion|any": [
+    {
+      "topic": "online vs in-person learning",
+      "course": "Education",
+      "professor": {
+        "name": "Dr. Okafor",
+        "post": "Many universities now offer the same courses both online and in person. Some people believe online courses are just as effective as traditional classes, while others think students learn better when they are physically present. Which format do you think is better for learning, and why?"
+      },
+      "students": [
+        {
+          "name": "Lena",
+          "post": "I prefer online courses. I can watch the lectures again when I don't understand something, and I can study at the times when I am most focused. It also saves me two hours of travel every day."
+        },
+        {
+          "name": "Marcus",
+          "post": "For me, in-person classes are much better. When I'm in a classroom, I can ask questions immediately and discuss ideas with classmates. At home I get distracted easily and it's hard to stay motivated."
+        }
+      ]
+    },
+    {
+      "topic": "public transport",
+      "course": "Urban Planning",
+      "professor": {
+        "name": "Dr. Chen",
+        "post": "Some cities have made public transportation free for all residents, paying for it with taxes. Supporters say it reduces traffic and pollution; critics say the money could be used better elsewhere. Should cities make public transportation free? Explain your view."
+      },
+      "students": [
+        {
+          "name": "Sofia",
+          "post": "Yes. If buses and trains were free, many more people would leave their cars at home. That would mean less traffic, cleaner air and fewer accidents, which also saves the city money."
+        },
+        {
+          "name": "Daniel",
+          "post": "I'm not convinced. Making transport free does not fix the real problem, which is that buses are often slow and unreliable. The city should invest in better service first, not in free tickets."
+        }
+      ]
+    }
+  ],
+  "listen_repeat|any": [
+    {
+      "topic": "museum guide",
+      "context": "You are learning to welcome visitors to a science museum. Listen and repeat.",
+      "text": "Welcome to our science museum."
+    },
+    {
+      "topic": "museum guide",
+      "context": "You are learning to welcome visitors to a science museum. Listen and repeat.",
+      "text": "The gift shop is next to the main entrance."
+    },
+    {
+      "topic": "museum guide",
+      "context": "You are learning to welcome visitors to a science museum. Listen and repeat.",
+      "text": "Please do not touch the objects in this room."
+    },
+    {
+      "topic": "museum guide",
+      "context": "You are learning to welcome visitors to a science museum. Listen and repeat.",
+      "text": "Our guided tours begin every hour on the second floor."
+    },
+    {
+      "topic": "museum guide",
+      "context": "You are learning to welcome visitors to a science museum. Listen and repeat.",
+      "text": "If you have any questions, our staff will be happy to help."
+    },
+    {
+      "topic": "museum guide",
+      "context": "You are learning to welcome visitors to a science museum. Listen and repeat.",
+      "text": "This exhibit shows how the climate has changed over the past century."
+    },
+    {
+      "topic": "museum guide",
+      "context": "You are learning to welcome visitors to a science museum. Listen and repeat.",
+      "text": "Visitors who arrive after four should go directly to the planetarium entrance."
+    },
+    {
+      "topic": "museum guide",
+      "context": "You are learning to welcome visitors to a science museum. Listen and repeat.",
+      "text": "Before leaving, please remember to return your audio guide at the information desk."
+    }
+  ],
+  "interview|any": [
+    {
+      "topic": "study habits",
+      "context": "You agreed to take part in a research study about how university students organize their study time.",
+      "questions": [
+        "To begin, could you tell me where you usually prefer to study, and why?",
+        "Can you describe a time when you had to prepare for an important test? How did you organize your time?",
+        "Some people say studying in groups is more effective than studying alone. What do you think, and why?",
+        "Many students now use artificial intelligence tools to study. Do you think this is good for learning in the long term? Please explain."
+      ]
+    },
+    {
+      "topic": "city life",
+      "context": "You agreed to take part in a research study about how people use public spaces in cities.",
+      "questions": [
+        "First, could you tell me about a park or public place you like to visit?",
+        "Can you describe a time when you spent a day enjoying your city? What did you do?",
+        "Do you think cities should create more spaces without cars? Why or why not?",
+        "Imagine your city had money for only one new public project. What should it be, and how would it change people's lives?"
+      ]
+    }
+  ]
+}

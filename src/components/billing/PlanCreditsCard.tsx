@@ -10,14 +10,15 @@ export function PlanCreditsCard({ pt }: { pt: boolean }) {
   return (
     <SettingsSection id="plan" icon={Sparkles} title={pt ? 'Plano e créditos' : 'Plan and credits'}
       description={pt ? 'Ilustrações, explicações e conversas já vêm inclusas no seu plano.' : 'Illustrations, explanations and conversations are included in your plan.'}>
-      <div className="px-5 py-4">
+      {/* Medidor e botões num bloco só, sem divisória. */}
+      <div className="px-5 py-4 space-y-4">
         <UsageMeters />
-      </div>
-      <div className="px-5 py-3.5 flex flex-wrap items-center justify-end gap-2" style={{ borderColor: 'var(--theme-border)' }}>
+      <div className="flex flex-wrap items-center justify-end gap-2">
         <Link to="/assinatura" className="ui-hover h-9 px-3.5 rounded-lg inline-flex items-center text-[13.5px] font-medium border" style={{ borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }}>{pt ? 'Minha assinatura' : 'My subscription'}</Link>
         {ent?.plan !== 'pro' && (
           <Link to="/planos" className="h-9 px-3.5 rounded-lg inline-flex items-center text-[13.5px] font-medium hover:opacity-90" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>{pt ? 'Ver planos' : 'See plans'}</Link>
         )}
+      </div>
       </div>
     </SettingsSection>
   )

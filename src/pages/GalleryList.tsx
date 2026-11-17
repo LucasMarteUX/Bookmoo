@@ -18,6 +18,10 @@ import { FilterChip, FilterClear, FilterSelect, SegmentedTabs } from '@/componen
 import { CategoryTile } from '@/components/book/CategoryTiles'
 import { COLLECTION_RAIL_ITEM, useFeaturedCollections } from '@/components/book/FeaturedCollections'
 import { loadCatalogSocial, type CatalogSocial } from '@/lib/social'
+import { tasteBooks, useSurveyTopics } from '@/lib/tastes'
+import { useStudyLevel } from '@/hooks/useStudyLevel'
+import { useBookStore } from '@/store/useBookStore'
+import { useAuth } from '@/contexts/AuthContext'
 
 const muted = { color: 'var(--theme-text-secondary)' }
 /** Média ponderada (nota média 4 com peso de 3 avaliações) para ordenar por avaliação. */
@@ -93,7 +97,7 @@ function useGalleryFilters() {
 function levelTip(id: CefrId | 'all', pt: boolean): string {
   if (id === 'all') return pt ? 'Mostrar livros de todos os níveis' : 'Show books of every level'
   const band = CEFR.find(item => item.id === id)!
-  return `${id} · ${pt ? band.pt : band.en}. ${pt ? band.can.pt : band.can.en}`
+  return `${id} · ${pt ? band.book.pt : band.book.en}. ${pt ? band.can.pt : band.can.en}`
 }
 
 export function GalleryList() {
@@ -169,10 +173,21 @@ export function GalleryList() {
     .map(item => ({ ...item, count: (books ?? []).filter(book => bookCategories(book).includes(item.id)).length }))
     .filter(item => item.count > 0), [books, pt])
 
+  // "De acordo com seu gosto": gostos do questionário + o que a pessoa já lê, no nível dela (ou um abaixo) e para a idade.
+  const { user } = useAuth()
+  const topics = useSurveyTopics(user?.id)
+  const myLevel = useStudyLevel().id
+  const myBooks = useBookStore(s => s.books)
+  const taste = useMemo(() => tasteBooks({
+    catalog: books ?? [], topics, level: myLevel, birthDate: user?.user_metadata?.birth_date as string | undefined,
+    ownedCatalogIds: new Set(myBooks.map(b => b.catalogId).filter((x): x is string => !!x)),
+  }), [books, topics, myLevel, myBooks, user?.user_metadata?.birth_date])
+
   const shelves = useMemo(() => {
     const list = books ?? []
     if (list.length < SHELVES_FROM) return []
     const rows: { id: string; title: string; hint: string; books: CatalogBook[]; onAll?: () => void }[] = []
+    if (taste.length >= 3) rows.push({ id: 'taste', title: pt ? 'De acordo com seu gosto' : 'Picked for your taste', hint: pt ? `Pelo que você gosta de ler, no nível ${myLevel}` : `From what you like to read, at level ${myLevel}`, books: taste })
     const popular = list.filter(book => readers(book) > 0).sort((a, b) => readers(b) - readers(a)).slice(0, 12)
     if (popular.length >= 3) rows.push({ id: 'popular', title: pt ? 'Mais lidos' : 'Most read', hint: pt ? 'O que mais gente tem na estante' : 'On the most shelves', books: popular, onAll: () => setFilter('sort', 'popular') })
     const top = list.filter(book => (social[book.id]?.ratings ?? 0) > 0).sort((a, b) => bayes(social[b.id]) - bayes(social[a.id])).slice(0, 12)
@@ -188,7 +203,7 @@ export function GalleryList() {
       rows.push({ id: item.id, title: pt ? item.pt : item.en, hint: `${item.count} ${pt ? 'livros' : 'books'}`, books: list.filter(book => bookCategories(book).includes(item.id)), onAll: () => setFilter('cat', item.id) })
     }
     return rows
-  }, [books, social, categories, pt])
+  }, [books, social, categories, pt, taste, myLevel])
 
   // Capas em sequência, sem depender do scroll: destaque, depois cada prateleira na ordem da tela, depois o resto.
   const prefetching = useRef(false)

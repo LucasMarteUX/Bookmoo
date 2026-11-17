@@ -31,6 +31,12 @@ import { CheckoutReturn } from '@/pages/billing/CheckoutReturn'
 import { SubscriptionPage } from '@/pages/billing/SubscriptionPage'
 import { ConversePage } from '@/pages/ConversePage'
 import { InsightsPage } from '@/pages/InsightsPage'
+import { PlacementPage } from '@/pages/PlacementPage'
+import { ProficiencyHome } from '@/pages/proficiency/ProficiencyHome'
+import { ProficiencyExam } from '@/pages/proficiency/ProficiencyExam'
+import { ProficiencyReport } from '@/pages/proficiency/ProficiencyReport'
+import { AdminProficiency } from '@/pages/AdminProficiency'
+import { ProficiencyReadyWatcher } from '@/pages/proficiency/ScoringWait'
 import { AdminFinance } from '@/pages/AdminFinance'
 import { CompleteProfilePage, ForgotPasswordPage, NewPasswordPage } from '@/pages/auth/AccountPages'
 
@@ -62,6 +68,7 @@ export default function App() {
       <BrowserRouter>
         <ThemeToBody />
         <PaywallHost />
+        <ProficiencyReadyWatcher />
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<SignUp />} />
@@ -73,6 +80,8 @@ export default function App() {
           <Route path="/planos" element={<ProtectedRoute><PlansPage /></ProtectedRoute>} />
           <Route path="/presente" element={<ProtectedRoute><GiftPage /></ProtectedRoute>} />
           <Route path="/checkout/retorno" element={<ProtectedRoute><CheckoutReturn /></ProtectedRoute>} />
+          {/* Prova de proficiência: ambiente imersivo em tela cheia. */}
+          <Route path="/prova/sessao" element={<ProtectedRoute><ProficiencyExam /></ProtectedRoute>} />
           <Route path="/terms" element={<LegalPage doc="terms" />} />
           <Route path="/privacy" element={<LegalPage doc="privacy" />} />
           <Route path="/faq" element={<LegalPage doc="faq" />} />
@@ -106,6 +115,10 @@ export default function App() {
             <Route path="assinatura" element={<SubscriptionPage />} />
             <Route path="conversar" element={<ConversePage />} />
             <Route path="raio-x" element={<InsightsPage />} />
+            <Route path="teste-de-nivel" element={<PlacementPage />} />
+            <Route path="prova" element={<ProficiencyHome />} />
+            <Route path="prova/resultado/:id" element={<ProficiencyReport />} />
+            <Route path="admin/prova" element={<AdminProficiency />} />
             <Route path="admin/financeiro" element={<AdminFinance />} />
             <Route path="admin/usuarios" element={<AdminUsers />} />
             <Route path="admin/avisos" element={<AdminBroadcasts />} />

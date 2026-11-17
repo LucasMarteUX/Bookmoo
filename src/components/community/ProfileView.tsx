@@ -1,4 +1,7 @@
 import { askConfirm } from '@/components/ui/confirm'
+import { LevelStatusBadge } from '@/components/level/LevelStatusBadge'
+import { CefrSeal } from '@/components/level/CefrSeal'
+import { Emblem } from '@/components/level/Emblem'
 // Perfil social: cabeçalho (capa, foto, identidade, relação, estatísticas) e as seções
 // reaproveitadas pelas abas do perfil (estante, meta, resultados, estudando).
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
@@ -109,7 +112,11 @@ export function ProfileHeader({ view, pt, asVisitor = false, onTab, onRelationCh
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5">
           <h1 className="font-display text-[30px] sm:text-[40px] leading-[1.05] break-words">{view.name || view.handle || (pt ? 'Leitor' : 'Reader')}</h1>
-          <LevelBadge id={view.level} pt={pt} />
+          {view.level && (view.isOwner && !asVisitor
+            ? <Link to="/teste-de-nivel" aria-label={pt ? 'Teste de nível' : 'Level test'} className="inline-flex rounded-full hover:opacity-85 transition-opacity"><LevelStatusBadge level={view.level} state={view.leveled ? 'verified' : 'pending'} pt={pt} showName /></Link>
+            : <LevelStatusBadge level={view.level} state={view.leveled ? 'verified' : 'pending'} pt={pt} showName />)}
+          {view.proficiency && <CefrSeal cefr={view.proficiency} pt={pt} to={view.isOwner && !asVisitor ? '/prova' : undefined} />}
+          {view.emblems?.length > 1 && <span className="inline-flex gap-1">{view.emblems.map(e => <Emblem key={e} level={e} size={26} pt={pt} />)}</span>}
         </div>
         <p className="mt-1 text-[14px] flex flex-wrap items-center gap-x-3 gap-y-1" style={muted}>
           {view.handle && <span>@{view.handle}</span>}

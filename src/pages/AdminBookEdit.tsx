@@ -201,7 +201,7 @@ export function AdminBookEdit() {
               <span className="text-[13px] font-medium">{pt ? 'Nível' : 'Level'}</span>
               <select value={draft.level} onChange={e => set('level', e.target.value as CefrId | '')} className={`${field} h-10 mt-1`} style={{ ...border, backgroundColor: 'var(--theme-bg)' }}>
                 <option value="">{pt ? 'Sem nível' : 'No level'}</option>
-                {CEFR.map(band => <option key={band.id} value={band.id}>{band.id} · {pt ? band.pt : band.en}</option>)}
+                {CEFR.map(band => <option key={band.id} value={band.id}>{band.id} · {pt ? band.book.pt : band.book.en}</option>)}
               </select>
             </label>
             <label className="block">

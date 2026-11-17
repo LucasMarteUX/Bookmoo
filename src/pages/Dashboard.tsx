@@ -19,6 +19,8 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { FilterSearch, FilterSelect, SegmentedTabs } from '@/components/ui/filter-controls'
 import { BookCardSkeleton } from '@/components/BookCardSkeleton'
+import { TasteShelf } from '@/components/book/TasteShelf'
+import { EmptyState } from '@/components/ui/empty-state'
 import { GalleryBanner } from '@/components/GalleryBanner'
 import { CoverSpecHint } from '@/components/book/CoverSpecHint'
 import { XpBadge } from '@/components/stats/XpBadge'
@@ -506,15 +508,29 @@ export function Dashboard() {
             {Array.from({ length: 10 }).map((_, i) => <BookCardSkeleton key={i} />)}
           </div>
         ) : shelf.length === 0 ? (
-          <p className="py-10 text-center text-[14px]" style={{ color: 'var(--theme-text-secondary)' }}>
-            {books.length === 0 ? (pt ? 'Sua estante está vazia. Escolha um livro na galeria para começar.' : 'Your shelf is empty. Pick a book from the gallery to start.') : (pt ? 'Nenhum livro aqui.' : 'No books here.')}
-          </p>
+          books.length === 0 ? (
+            // Biblioteca vazia: caixa com ilustração, explicação e as duas saídas (galeria ou importar um livro).
+            <div className="rounded-2xl border px-6 py-10 flex flex-col items-center text-center" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-card-bg)' }}>
+              <img src="/illustrations/reading.svg" alt="" className="illo w-36" />
+              <h3 className="mt-5 font-display text-[22px] leading-tight" style={{ color: 'var(--theme-text)' }}>{pt ? 'Sua estante ainda está vazia' : 'Your shelf is still empty'}</h3>
+              <p className="mt-2 max-w-sm text-[14px]" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? 'Escolha um clássico na galeria, no seu nível, ou importe um livro seu em EPUB ou PDF.' : 'Pick a classic from the gallery at your level, or import your own book as EPUB or PDF.'}</p>
+              <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
+                <Button onClick={() => navigate('/gallery')}>{pt ? 'Explorar a galeria' : 'Explore the gallery'}</Button>
+                <Button variant="outline" onClick={() => setIsAddModalOpen(true)}><Plus className="w-4 h-4" />{pt ? 'Adicionar livro' : 'Add a book'}</Button>
+              </div>
+            </div>
+          ) : (
+            <EmptyState illustration="reading" title={pt ? 'Nenhum livro aqui.' : 'No books here.'} />
+          )
         ) : (
           <div className="grid gap-x-5 gap-y-8 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {shelf.map(renderBook)}
           </div>
         )}
       </section>
+
+      {/* Por último: livros da galeria de acordo com o gosto */}
+      {libraryReady && <TasteShelf pt={pt} />}
  
       <Dialog open={!!pendingDelete} onOpenChange={open => { if (!open && !savingBook) setPendingDelete(null) }}>
         <DialogContent>

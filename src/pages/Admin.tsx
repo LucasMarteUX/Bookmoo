@@ -41,7 +41,7 @@ export function AdminPage() {
       <header>
         <h1 className="font-display text-[34px] leading-none">{pt ? 'Área admin' : 'Admin'}</h1>
         <div className="mt-3 flex flex-wrap gap-2">
-          {([['/admin/financeiro', pt ? 'Financeiro' : 'Finance'], ['/admin/usuarios', pt ? 'Usuários' : 'Users'], ['/admin/avisos', pt ? 'Avisos' : 'Announcements']] as const).map(([to, label]) => (
+          {([['/admin/financeiro', pt ? 'Financeiro' : 'Finance'], ['/admin/usuarios', pt ? 'Usuários' : 'Users'], ['/admin/avisos', pt ? 'Avisos' : 'Announcements'], ['/admin/prova', pt ? 'Prova de proficiência' : 'Proficiency test']] as const).map(([to, label]) => (
             <Link key={to} to={to} className="inline-flex h-9 px-3 rounded-lg items-center text-[13.5px] font-medium border" style={{ borderColor: 'var(--theme-border)' }}>{label}</Link>
           ))}
         </div>
@@ -214,7 +214,7 @@ function PublishedBook({ book, pt, onSaved }: { book: CatalogBook; pt: boolean; 
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <select aria-label={pt ? 'Nível' : 'Level'} className={field} style={style} value={level} onChange={e => setLevel(e.target.value as CefrId | '')}>
             <option value="">{pt ? 'Sem nível' : 'No level'}</option>
-            {CEFR.map(band => <option key={band.id} value={band.id}>{band.id} · {pt ? band.pt : band.en}</option>)}
+            {CEFR.map(band => <option key={band.id} value={band.id}>{band.id} · {pt ? band.book.pt : band.book.en}</option>)}
           </select>
           <select aria-label={pt ? 'Categoria' : 'Category'} className={field} style={style} value={category} onChange={e => setCategory(e.target.value as BookCategory | '')}>
             <option value="">{pt ? 'Sem categoria' : 'No category'}</option>

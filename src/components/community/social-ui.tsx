@@ -162,7 +162,7 @@ export function UserListItem({ person, pt, subtitle, action }: { person: Author;
       <Link to={`/u/${person.handle}`} className="min-w-0 flex-1 leading-tight">
         <span className="flex items-center gap-2">
           <span className="font-medium truncate">{person.name || person.handle}</span>
-          <LevelBadge id={person.level} pt={pt} variant="compact" className="border" />
+          {person.level && <LevelBadge id={person.level} pt={pt} kind="person" variant="compact" className="border" />}
         </span>
         <span className="block text-[12.5px] truncate" style={muted}>@{person.handle}</span>
         {subtitle && <span className="block mt-0.5 text-[12.5px] truncate" style={muted}>{subtitle}</span>}

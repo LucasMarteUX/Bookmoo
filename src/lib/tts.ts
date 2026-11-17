@@ -156,6 +156,15 @@ export function kokoroSpeed(rate: number): number {
   return Math.round(Math.min(1.5, Math.max(0.5, rate)) * 100) / 100
 }
 
+/**
+ * Toca um áudio pronto (URL) pelo mesmo player das falas do app: o avatar que estiver com a voz mexe a boca junto.
+ * Usado na entrevista da prova de proficiência, cujos áudios são gerados antes da prova.
+ */
+export async function playClip(url: string): Promise<{ done: Promise<void> }> {
+  haltPlayback()
+  return await playUrl(url, 1)
+}
+
 /** Pré-carrega (gera/aquece cache) sem tocar. Erros são ignorados. */
 export function prefetch(text: string, opts: SpeakOptions = {}) {
   if (!text.trim()) return

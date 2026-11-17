@@ -3,7 +3,7 @@
 import { create } from 'zustand'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
-import { AudioLines, BookOpen, BookText, Brain, Check, Crown, Image as ImageIcon, Images, MessageCircle, MessagesSquare, Mic, Palette, PenLine, Sparkles, Upload, type LucideIcon } from 'lucide-react'
+import { AudioLines, BookOpen, BookText, Brain, Check, Crown, GraduationCap, Image as ImageIcon, Images, MessageCircle, MessagesSquare, Mic, Palette, PenLine, Sparkles, Upload, type LucideIcon } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { useLanguage } from '@/store/useLanguage'
 import { useEntitlements } from '@/store/useEntitlements'
@@ -11,7 +11,7 @@ import { formatBRL, nextPlan, PLANS, type PlanId } from '@/lib/plans'
 
 export type PaywallTrigger =
   | 'book' | 'import' | 'credits' | 'minutes' | 'style' | 'tutor' | 'scenes' | 'scenes_create' | 'free_talk'
-  | 'insights' | 'stories' | 'pages_cap' | 'mosaic_cap' | 'generic'
+  | 'insights' | 'stories' | 'pages_cap' | 'mosaic_cap' | 'proficiency' | 'generic'
 
 const usePaywall = create<{ trigger: PaywallTrigger | null; open: (t: PaywallTrigger) => void; close: () => void }>(set => ({
   trigger: null,
@@ -33,7 +33,7 @@ export function paywallForError(code: string | undefined, detail?: string): bool
     const d = detail ?? ''
     const t: PaywallTrigger = /import|text_books/.test(d) ? 'import' : /custom_style|panel/.test(d) ? 'style' : /tutor/.test(d) ? 'tutor'
       : /scenes_create/.test(d) ? 'scenes_create' : /scenes/.test(d) ? 'scenes' : /free_talk/.test(d) ? 'free_talk'
-      : /insights/.test(d) ? 'insights' : /stories/.test(d) ? 'stories' : 'book'
+      : /insights/.test(d) ? 'insights' : /stories/.test(d) ? 'stories' : /proficiency/.test(d) ? 'proficiency' : 'book'
     openPaywall(t)
     return true
   }
@@ -54,11 +54,12 @@ const COPY: Record<PaywallTrigger, { icon: LucideIcon; pt: [string, string]; en:
   stories: { icon: BookText, pt: ['Histórias feitas para você', 'Histórias curtas com as palavras e a gramática que você mais erra.'], en: ['Stories made for you', 'Short stories with the words and grammar you miss most.'] },
   pages_cap: { icon: ImageIcon, pt: ['Gostou das ilustrações?', 'Você usou as 3 páginas ilustradas do mês. Nos planos pagos você ilustra muito mais.'], en: ['Enjoying the illustrations?', "You've used this month's 3 illustrated pages. Paid plans illustrate much more."] },
   mosaic_cap: { icon: Images, pt: ['Mais imagens para lembrar', 'Você usou os mosaicos do mês. Assine e gere quantos precisar.'], en: ['More images to remember', "You've used this month's mosaics. Subscribe to make more."] },
+  proficiency: { icon: GraduationCap, pt: ['Descubra o seu nível de verdade', 'A prova completa de proficiência avalia leitura, compreensão auditiva, escrita e fala, com relatório detalhado por habilidade.'], en: ['Find your real level', 'The full proficiency test assesses reading, listening, writing and speaking, with a detailed report for each skill.'] },
   generic: { icon: Crown, pt: ['Libere tudo', 'Biblioteca completa, mais IA, conversas por voz e um tutor que conhece você.'], en: ['Unlock everything', 'Full library, more AI, voice conversations and a tutor who knows you.'] },
 }
 
 const PREFERRED: Partial<Record<PaywallTrigger, PlanId>> = {
-  tutor: 'plus', scenes_create: 'plus', free_talk: 'plus', insights: 'plus', stories: 'plus',
+  proficiency: 'pro', tutor: 'plus', scenes_create: 'plus', free_talk: 'plus', insights: 'plus', stories: 'plus',
 }
 
 export function PaywallHost() {

@@ -4,7 +4,7 @@ export type SurveyQuestion = {
   multi: boolean
   title: { pt: string; en: string }
   hint?: { pt: string; en: string }
-  options: { value: string; pt: string; en: string }[]
+  options: { value: string; pt: string; en: string; desc?: { pt: string; en: string }; example?: string }[]
 }
 
 export const SURVEY: SurveyQuestion[] = [
@@ -22,14 +22,19 @@ export const SURVEY: SurveyQuestion[] = [
     ],
   },
   {
+    // Nível declarado (A1 a C2), com o que a pessoa já consegue fazer em cada um. Grava profiles.declared_level e vale no app
+    // até o teste de nível confirmar (docs/TESTE-DE-NIVEL.md). "unsure" abre 3 perguntas rápidas que sugerem um nível.
     key: 'self_level', multi: false,
-    title: { pt: 'Como está o seu inglês hoje?', en: 'How is your English today?' },
+    title: { pt: 'Qual é o seu nível de inglês hoje?', en: 'What is your English level today?' },
+    hint: { pt: 'Escolha o que mais parece com você. Depois um teste curto confirma.', en: 'Pick what sounds most like you. A short test confirms it later.' },
     options: [
-      { value: 'zero', pt: 'Estou começando do zero', en: 'Starting from zero' },
-      { value: 'basic', pt: 'Entendo o básico', en: 'I understand the basics' },
-      { value: 'survive', pt: 'Me viro em situações simples', en: 'I manage simple situations' },
-      { value: 'intermediate', pt: 'Converso, mas com dificuldade', en: 'I talk, but with difficulty' },
-      { value: 'advanced', pt: 'Me sinto confortável', en: 'I feel comfortable' },
+      { value: 'A1', pt: 'Iniciante', en: 'Beginner', desc: { pt: 'Entendo e uso palavras e frases muito simples: me apresentar, números, cores.', en: 'I understand and use very simple words and phrases.' }, example: 'Hi, my name is Ana. I am from Brazil.' },
+      { value: 'A2', pt: 'Aprendiz', en: 'Apprentice', desc: { pt: 'Falo de rotina, família e compras em frases curtas.', en: 'I talk about routine, family and shopping in short sentences.' }, example: 'I usually take the bus to work.' },
+      { value: 'B1', pt: 'Praticante', en: 'Practitioner', desc: { pt: 'Me viro numa viagem, conto experiências e dou opiniões simples.', en: 'I manage on a trip, tell experiences and give simple opinions.' }, example: 'Last year I went to Chile and loved the food.' },
+      { value: 'B2', pt: 'Experiente', en: 'Seasoned', desc: { pt: 'Converso com fluidez, defendo um ponto de vista e entendo séries com algum esforço.', en: 'I talk fluently, argue a point and follow series with some effort.' }, example: 'I see your point, but I would argue that…' },
+      { value: 'C1', pt: 'Expert', en: 'Expert', desc: { pt: 'Uso inglês no trabalho e nos estudos com flexibilidade e entendo textos longos.', en: 'I use English at work and in studies flexibly.' }, example: 'It is not so much the cost as the hidden trade-offs.' },
+      { value: 'C2', pt: 'Lenda', en: 'Legend', desc: { pt: 'Entendo praticamente tudo e me expresso com precisão e nuance.', en: 'I understand almost everything and speak with nuance.' }, example: 'Her remark was tongue-in-cheek, yet it struck a nerve.' },
+      { value: 'unsure', pt: 'Não sei, me ajude a escolher', en: 'Not sure, help me choose', desc: { pt: '3 perguntas rápidas e sugerimos um nível.', en: '3 quick questions and we suggest a level.' } },
     ],
   },
   {
@@ -93,3 +98,12 @@ export const SURVEY: SurveyQuestion[] = [
     ],
   },
 ]
+
+/** Ajuda para escolher o nível: 3 perguntas rápidas, cada acerto sobe um degrau. */
+export const LEVEL_HELP: { q: { pt: string; en: string }; text: string; options: string[]; answer: number }[] = [
+  { q: { pt: 'O que esta frase quer dizer?', en: 'What does this sentence mean?' }, text: 'I have two sisters and one brother.', options: ['Tenho duas irmãs e um irmão.', 'Tenho dois irmãos e uma irmã.', 'Minhas irmãs têm um irmão.'], answer: 0 },
+  { q: { pt: 'Qual continuação faz mais sentido?', en: 'Which continuation makes most sense?' }, text: 'I was going to call you, but…', options: ['…my phone died.', '…I am calling you yesterday.', '…you are phone.'], answer: 0 },
+  { q: { pt: 'O que significa a expressão destacada?', en: 'What does the expression mean?' }, text: 'Let us call it a day.', options: ['Vamos encerrar por hoje.', 'Vamos ligar durante o dia.', 'Vamos dar um nome ao dia.'], answer: 0 },
+]
+/** Nível sugerido pela ajuda e pela resposta "como está seu inglês" quando a pessoa não sabe: 0 acertos A1 … 3 acertos B2. */
+export const levelFromHelp = (hits: number) => (['A1', 'A2', 'B1', 'B2'] as const)[Math.max(0, Math.min(3, hits))]

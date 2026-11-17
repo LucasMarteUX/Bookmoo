@@ -266,10 +266,10 @@ async function learnerProfile(db: ReturnType<typeof adminClient>, userId: string
   const [{ data: vocab }, { data: errs }, { data: prof }] = await Promise.all([
     db.from('vocabulary').select('text, status').eq('user_id', userId).eq('status', 'review').order('created_at', { ascending: false }).limit(12),
     db.from('learner_errors').select('kind, example, correction').eq('user_id', userId).order('created_at', { ascending: false }).limit(8),
-    db.from('profiles').select('english_level, placement_level, goal').eq('user_id', userId).maybeSingle(),
+    db.from('profiles').select('english_level, placement_level, declared_level, goal').eq('user_id', userId).maybeSingle(),
   ])
-  // Nível oficial do app (palavras + pontos), enviado pelo aparelho; o do perfil é só reserva.
-  const level = String(official || prof?.placement_level || prof?.english_level || 'A1').toUpperCase().slice(0, 2)
+  // Nível que vale no app (o do teste, senão o declarado no primeiro acesso), enviado pelo aparelho; o do perfil é reserva.
+  const level = String(official || prof?.placement_level || prof?.declared_level || prof?.english_level || 'A1').toUpperCase().slice(0, 2)
   const parts = [
     vocab?.length ? `words they are reviewing: ${vocab.map((v) => v.text).join(', ')}` : '',
     errs?.length ? `recent mistakes: ${errs.map((e) => `${e.kind} ("${e.example}" → "${e.correction}")`).join('; ')}` : '',

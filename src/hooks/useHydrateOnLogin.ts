@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase'
 import { isComicPageUrl, uploadComicPage } from '@/lib/comicStorage'
 import { useAuth } from '@/contexts/AuthContext'
 import { useBookStore } from '@/store/useBookStore'
+import { useLevelStore } from '@/store/useLevelStore'
 import { useVocabularyStore } from '@/store/useVocabularyStore'
 import { useStudyStore } from '@/store/useStudyStore'
 import { useReaderSettings } from '@/store/useReaderSettings'
@@ -50,6 +51,8 @@ export function useHydrateOnLogin() {
     ;(async () => {
       try {
         // Os livros entram assim que chegam (a Home espera por eles); o resto vem em paralelo.
+        if (useLevelStore.getState().userId !== userId) useLevelStore.getState().clear()
+        void useLevelStore.getState().load(userId).catch(() => {})
         const booksP = fetchBooks(supabase, userId)
         void booksP.then(b => { if (currentUserRef.current === forUser) setBooks(b) }).catch(() => {})
         const [books, vocab, study, settings] = await Promise.all([

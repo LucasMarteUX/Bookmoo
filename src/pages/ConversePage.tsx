@@ -23,7 +23,7 @@ import { useTutorLang } from '@/lib/tutorLang'
 import { greetingFor } from '@/lib/greetings'
 import { useBookStore } from '@/store/useBookStore'
 import { EFFORT_NAMES, useEffort, type Effort } from '@/lib/effort'
-import type { CefrId } from '@/lib/cefr'
+import { levelName, type CefrId } from '@/lib/cefr'
 import { bookLines, makeWaitingPicker, personalLines } from '@/lib/waitingLines'
 import { holdMs, lineText, MIC_SCARE, type ReactionLine } from '@/lib/tutorReactions'
 import { pickTopics, type TalkTopic } from '@/lib/talkTopics'
@@ -44,6 +44,14 @@ function readPref<T>(key: string, fallback: T): T {
 function writePref(key: string, v: unknown) { try { localStorage.setItem(key, JSON.stringify(v)) } catch { /* ignore */ } }
 
 export function ConversePage() {
+  // Ao entrar: aparece o último tutor com quem a pessoa conversou (uma vez por visita, antes do palco montar, sem "ligação").
+  // Antes isso era feito ao sair da tela de sessão, e qualquer remontagem desfazia a troca pelas setas (no celular voltava
+  // sempre para o mesmo tutor).
+  useState(() => {
+    const { lastTalked, characterId } = useAvatarSettings.getState()
+    if (lastTalked && lastTalked !== characterId) useAvatarSettings.setState({ characterId: lastTalked })
+    return null
+  })
   const pt = useLanguage().locale === 'pt-BR'
   const ent = useEntitlements(s => s.data)
   const level = useStudyLevel()
@@ -125,7 +133,7 @@ export function ConversePage() {
             {custom.length > 0 && (
               <Group title={pt ? CATEGORY_LABEL.custom.pt : CATEGORY_LABEL.custom.en}>
                 {custom.map(c => (
-                  <Row key={c.id} title={c.title} sub={c.level} active={choice.kind === 'scene' && choice.customId === c.id}
+                  <Row key={c.id} title={c.title} sub={levelName(c.level, pt)} active={choice.kind === 'scene' && choice.customId === c.id}
                     onClick={() => pick({ kind: 'scene', customId: c.id, scene: { key: `custom:${c.id}`, category: 'custom', title: { pt: c.title, en: c.title }, setting: c.setting, persona: c.persona, goals: c.goals, twists: [], opening: '', usefulPhrases: [], level: [c.level as Scene['level'][0], c.level as Scene['level'][0]] } })} />
                 ))}
               </Group>
@@ -199,7 +207,7 @@ function EffortPicker({ pt, level }: { pt: boolean; level: CefrId }) {
   const names = EFFORT_NAMES[level] ?? EFFORT_NAMES.A1
   return (
     <div>
-      <Seg label={pt ? `Esforço no ${level}` : `Effort at ${level}`} options={([1, 2, 3] as Effort[]).map(e => ({ value: e, label: pt ? names[e].pt : names[e].en }))} value={effort} onChange={v => setEffortValue(v as Effort)} />
+      <Seg label={pt ? `Esforço no nível ${levelName(level, true)}` : `Effort at ${levelName(level, false)}`} options={([1, 2, 3] as Effort[]).map(e => ({ value: e, label: pt ? names[e].pt : names[e].en }))} value={effort} onChange={v => setEffortValue(v as Effort)} />
       <p className="mt-1.5 text-[12px]" style={muted}>{pt ? names[effort].hint.pt : names[effort].hint.en} {pt ? 'Vale para todas as conversas.' : 'Applies to every conversation.'}</p>
     </div>
   )
@@ -279,7 +287,7 @@ function Session({ choice, pt, level, rate, captions, minutes, title, subtitle, 
     setHead(null)
   }
   // Espera (conversa livre, ainda não começou e a pessoa não mexeu em nada): depois de 1 min chama outro tutor, e assim por
-  // diante. Qualquer toque, tecla ou rolagem reinicia a contagem. Ao sair da tela, volta o último com quem ela conversou.
+  // diante. Qualquer toque, tecla ou rolagem reinicia a contagem. Ao entrar de novo, volta o último com quem ela conversou.
   const setLastTalked = useAvatarSettings(st => st.setLastTalked)
   useEffect(() => {
     if (!tutorMode || phase !== 'ready') return
@@ -290,10 +298,6 @@ function Session({ choice, pt, level, rate, captions, minutes, title, subtitle, 
     arm()
     return () => { window.clearTimeout(t); EV.forEach(e => window.removeEventListener(e, arm)) }
   }, [tutorMode, phase, chosenCharacter]) // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => () => {
-    const { lastTalked, setCharacter: set } = useAvatarSettings.getState()
-    if (lastTalked) set(lastTalked)
-  }, [])
   const greet = () => {
     // Entra de olhos abertos (o sorriso desses modelos fecha os olhos): só um aceno.
     setWave(true); setMood('neutral')
@@ -713,7 +717,7 @@ function CreateScene({ pt, level, onDone }: { pt: boolean; level: string; onDone
       <label className="block text-[13px] font-medium">{pt ? 'Jeito do personagem' : 'Personality'}<input value={form.personaTraits} onChange={set('personaTraits')} placeholder={pt ? 'divertido, fala rápido, usa gírias locais' : 'funny, talks fast, local slang'} className={field} style={{ borderColor: 'var(--theme-border)' }} /></label>
       <label className="block text-[13px] font-medium">{pt ? 'Seu objetivo' : 'Your goal'}<input value={form.goal} onChange={set('goal')} placeholder={pt ? 'Pedir uma bebida e saber se vai ter música ao vivo' : 'Order a drink and ask about live music'} className={field} style={{ borderColor: 'var(--theme-border)' }} /></label>
       <div className="grid grid-cols-2 gap-3">
-        <label className="block text-[13px] font-medium">{pt ? 'Nível' : 'Level'}<select value={form.level} onChange={set('level')} className={field} style={{ borderColor: 'var(--theme-border)' }}>{['A1', 'A2', 'B1', 'B2', 'C1'].map(l => <option key={l}>{l}</option>)}</select></label>
+        <label className="block text-[13px] font-medium">{pt ? 'Nível' : 'Level'}<select value={form.level} onChange={set('level')} className={field} style={{ borderColor: 'var(--theme-border)' }}>{['A1', 'A2', 'B1', 'B2', 'C1'].map(l => <option key={l} value={l}>{levelName(l, pt)}</option>)}</select></label>
         <label className="block text-[13px] font-medium">{pt ? 'Título (opcional)' : 'Title (optional)'}<input value={form.title} onChange={set('title')} className={field} style={{ borderColor: 'var(--theme-border)' }} /></label>
       </div>
       {msg && <p role="alert" className="text-[14px]" style={{ color: '#b42318' }}>{msg}</p>}

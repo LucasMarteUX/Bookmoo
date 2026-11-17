@@ -154,6 +154,8 @@ export function ProfileSection({ pt }: { pt: boolean }) {
     coverUrl: profile.coverUrl,
     level: server?.level ?? 'A1',
     leveled: server?.leveled ?? false,
+    emblems: server?.emblems ?? [],
+    proficiency: server?.proficiency ?? null,
     isPublic: profile.isPublic,
     isOwner: true,
     restricted: false,
@@ -313,6 +315,8 @@ export function ProfileSection({ pt }: { pt: boolean }) {
               title={pt ? 'Estante' : 'Shelf'} hint={pt ? 'O que você está lendo e já leu. Livros que você enviou mostram só título e autor.' : 'What you read and are reading. Books you uploaded show only title and author.'} />
             <Toggle checked={profile.showStudying} onChange={showStudying => set({ showStudying })}
               title={pt ? 'Palavras que estou estudando' : 'Words I am studying'} hint={pt ? 'As últimas palavras em revisão.' : 'Your latest words in review.'} />
+            <Toggle checked={profile.showLevel} onChange={showLevel => set({ showLevel })}
+              title={pt ? 'Meu nível de inglês' : 'My English level'} hint={pt ? 'O selo do seu nível e os emblemas. Desligado, só você vê.' : 'Your level badge and emblems. Off: only you see them.'} />
             <Toggle checked={profile.showSocials} onChange={showSocials => set({ showSocials })}
               title={pt ? 'Redes sociais' : 'Social links'} hint={pt ? 'Instagram, X e site.' : 'Instagram, X and website.'} />
           </div>
@@ -332,7 +336,7 @@ export function ProfileSection({ pt }: { pt: boolean }) {
           </div>
         </div>
         <p className="text-[12.5px]" style={{ color: 'var(--theme-text-secondary)' }}>
-          {pt ? 'Seu nível de inglês aparece como A1 até você fazer o teste de nivelamento, que vem em breve. O e-mail nunca aparece.' : 'Your English level shows as A1 until you take the placement test, coming soon. Your email never shows.'}
+          {pt ? 'Seu nível aparece como "pendente" até você fazer o teste em Você › Teste seu inglês. O e-mail nunca aparece.' : 'Your level shows as "pending" until you take the test in Me › Test your English. Your email never shows.'}
         </p>
 
         <div className="flex flex-wrap items-center gap-3">

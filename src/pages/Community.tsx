@@ -235,7 +235,7 @@ function MeCard({ me, pt }: { me: View | null | undefined; pt: boolean }) {
         </span>
         <p className="mt-1 font-display text-[21px] leading-tight truncate">{me.name || me.handle || (pt ? 'Você' : 'You')}</p>
         {me.handle && <p className="text-[12.5px] truncate" style={muted}>@{me.handle}</p>}
-        <LevelBadge id={me.level} pt={pt} className="mt-2" />
+        <LevelBadge id={me.level} pt={pt} kind="person" className="mt-2" />
         <div className="mt-4 grid grid-cols-3 gap-1 text-center">
           {counts.map(([value, label, to]) => (
             <Link key={label} to={me.handle ? to : '/settings#profile'} className="rounded-xl py-2 transition-colors hover:bg-[var(--ui-hover)]" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
@@ -318,7 +318,7 @@ function PersonTile({ person, pt }: { person: PersonCard; pt: boolean }) {
         <Link to={`/u/${person.handle}`} className="mt-1 block">
           <span className="flex items-center gap-2">
             <span className="font-medium truncate">{person.name || person.handle}</span>
-            <LevelBadge id={person.level} pt={pt} variant="compact" className="border" />
+            <LevelBadge id={person.level} pt={pt} kind="person" variant="compact" className="border" />
             {!person.isPublic && <Lock className="w-3.5 h-3.5 shrink-0" style={muted} aria-label={pt ? 'Perfil fechado' : 'Closed profile'} />}
           </span>
           <span className="block text-[12.5px]" style={muted}>@{person.handle} · {followers} {pt ? (followers === 1 ? 'seguidor' : 'seguidores') : (followers === 1 ? 'follower' : 'followers')}</span>
@@ -466,12 +466,13 @@ function LatestActivity({ userId, covers, pt, canPost }: { userId: string; cover
   const [items, setItems] = useState<FeedItem[] | null>(null)
   useEffect(() => {
     let alive = true
-    void loadFeed('user', { userId, limit: 3 }).then(next => { if (alive) setItems(next) })
+    void loadFeed('user', { userId, limit: 4 }).then(next => { if (alive) setItems(next) })
     return () => { alive = false }
   }, [userId])
   if (items === null) return <div className="h-24 rounded-2xl animate-pulse" style={{ backgroundColor: 'var(--theme-bg-secondary)' }} />
   if (!items.length) return <p className="text-[13.5px]" style={muted}>{pt ? 'Nenhuma atividade ainda.' : 'No activity yet.'}</p>
-  return <div className="space-y-3">{items.map(item => <PostCard key={item.id} item={item} covers={covers} pt={pt} canPost={canPost} onDeleted={() => setItems(current => (current ?? []).filter(other => other.id !== item.id))} />)}</div>
+  // Em duas colunas no desktop: os cartões ficavam largos demais com muito espaço vazio.
+  return <div className="grid gap-3 md:grid-cols-2 items-start">{items.map(item => <PostCard key={item.id} item={item} covers={covers} pt={pt} canPost={canPost} onDeleted={() => setItems(current => (current ?? []).filter(other => other.id !== item.id))} />)}</div>
 }
 
 /** /post/:id — uma publicação com os comentários abertos. É o endereço do link compartilhado. */

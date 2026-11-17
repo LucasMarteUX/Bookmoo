@@ -1,0 +1,980 @@
+{
+  "conversation|router": [
+    {
+      "topic": "study group room",
+      "context": "Listen to a conversation between two students.",
+      "lines": [
+        {
+          "speaker": "W",
+          "text": "Hey, did you manage to book a study room for Thursday?"
+        },
+        {
+          "speaker": "M",
+          "text": "I tried, but everything in the main library was taken until Friday."
+        },
+        {
+          "speaker": "W",
+          "text": "Oh no. Our group really needs a quiet place before the presentation."
+        },
+        {
+          "speaker": "M",
+          "text": "I know. But the engineering building has a few rooms that hardly anyone uses."
+        },
+        {
+          "speaker": "W",
+          "text": "Can anyone book those, or are they only for engineering students?"
+        },
+        {
+          "speaker": "M",
+          "text": "Anyone can, as long as you reserve them at the front desk in person."
+        },
+        {
+          "speaker": "W",
+          "text": "Great. I have a class near there this afternoon, so I can stop by."
+        },
+        {
+          "speaker": "M",
+          "text": "Perfect. Try to get one with a big screen so we can practice the slides."
+        },
+        {
+          "speaker": "W",
+          "text": "Good idea. I'll text everyone once it's confirmed."
+        }
+      ],
+      "questions": [
+        {
+          "prompt": "What problem do the students have?",
+          "options": [
+            "They could not find an available room in the main library",
+            "Their presentation was canceled",
+            "They lost their presentation slides",
+            "Their group has too many members"
+          ],
+          "answer": 0
+        },
+        {
+          "prompt": "What will the woman probably do this afternoon?",
+          "options": [
+            "Reserve a room at the engineering building's front desk",
+            "Practice the slides at home",
+            "Email the library staff",
+            "Change the date of the presentation"
+          ],
+          "answer": 0
+        }
+      ]
+    },
+    {
+      "topic": "part-time job",
+      "context": "Listen to a conversation between two friends.",
+      "lines": [
+        {
+          "speaker": "M",
+          "text": "You seem busy lately. Is it the new job at the bookstore?"
+        },
+        {
+          "speaker": "W",
+          "text": "Partly. I'm working twelve hours a week now, mostly in the evenings."
+        },
+        {
+          "speaker": "M",
+          "text": "Isn't that hard with all your classes?"
+        },
+        {
+          "speaker": "W",
+          "text": "It was at first. But my manager lets me study when the store is quiet."
+        },
+        {
+          "speaker": "M",
+          "text": "That's lucky. My last job never allowed anything like that."
+        },
+        {
+          "speaker": "W",
+          "text": "The only issue is the weekends. They want me on Saturdays during the holiday season."
+        },
+        {
+          "speaker": "M",
+          "text": "Are you going to accept?"
+        },
+        {
+          "speaker": "W",
+          "text": "Probably, as long as it's only until January. The extra money will help me pay for my trip."
+        }
+      ],
+      "questions": [
+        {
+          "prompt": "What does the woman like about her job?",
+          "options": [
+            "She can study when the store is not busy",
+            "She works only on weekends",
+            "She gets free books",
+            "Her manager pays for her trip"
+          ],
+          "answer": 0
+        },
+        {
+          "prompt": "Why will the woman probably accept the Saturday shifts?",
+          "options": [
+            "She wants extra money for a trip",
+            "She has no classes on Saturdays",
+            "Her friend asked her to",
+            "She wants to become the manager"
+          ],
+          "answer": 0
+        }
+      ]
+    },
+    {
+      "topic": "dorm repair",
+      "context": "Listen to a conversation between a student and a housing office employee.",
+      "lines": [
+        {
+          "speaker": "W",
+          "text": "Hi, I'm in room 214 in Baker Hall, and the heater hasn't worked for two days."
+        },
+        {
+          "speaker": "M",
+          "text": "I'm sorry about that. Did you submit a repair request online?"
+        },
+        {
+          "speaker": "W",
+          "text": "I did, on Monday, but nobody has come yet."
+        },
+        {
+          "speaker": "M",
+          "text": "Let me check. It looks like your request was marked as low priority by mistake."
+        },
+        {
+          "speaker": "W",
+          "text": "Low priority? It's been really cold at night."
+        },
+        {
+          "speaker": "M",
+          "text": "I understand. I've changed it to urgent, so a technician should come this afternoon."
+        },
+        {
+          "speaker": "W",
+          "text": "Thank you. Do I need to be in the room?"
+        },
+        {
+          "speaker": "M",
+          "text": "No, they can enter with a master key, but please leave a clear path to the heater."
+        }
+      ],
+      "questions": [
+        {
+          "prompt": "Why has the heater not been repaired yet?",
+          "options": [
+            "The request was given the wrong priority",
+            "The student never submitted a request",
+            "The technician was sick",
+            "The heater needs a part that is not available"
+          ],
+          "answer": 0
+        },
+        {
+          "prompt": "What does the man ask the student to do?",
+          "options": [
+            "Make sure the heater is easy to reach",
+            "Wait in her room all afternoon",
+            "Submit a new online request",
+            "Bring her key to the office"
+          ],
+          "answer": 0
+        }
+      ]
+    }
+  ],
+  "conversation|easy": [
+    {
+      "topic": "buying a gift",
+      "context": "Listen to a conversation between two friends.",
+      "lines": [
+        {
+          "speaker": "W",
+          "text": "It's my sister's birthday on Saturday, and I don't have a gift yet."
+        },
+        {
+          "speaker": "M",
+          "text": "What does she like?"
+        },
+        {
+          "speaker": "W",
+          "text": "She loves music and she plays the guitar."
+        },
+        {
+          "speaker": "M",
+          "text": "Why don't you buy her some new guitar strings and a songbook?"
+        },
+        {
+          "speaker": "W",
+          "text": "That's a nice idea. Is there a music store near here?"
+        },
+        {
+          "speaker": "M",
+          "text": "Yes, there's one next to the post office. It's small, but it has a lot of things."
+        },
+        {
+          "speaker": "W",
+          "text": "Great. I'll go there after class today."
+        },
+        {
+          "speaker": "M",
+          "text": "I can come with you if you want. I need to buy a card anyway."
+        }
+      ],
+      "questions": [
+        {
+          "prompt": "What are the speakers mainly talking about?",
+          "options": [
+            "A birthday gift for the woman's sister",
+            "Guitar lessons",
+            "A new post office",
+            "The man's birthday party"
+          ],
+          "answer": 0
+        },
+        {
+          "prompt": "Where is the music store?",
+          "options": [
+            "Next to the post office",
+            "Inside the school",
+            "Near the woman's house",
+            "Across from the bank"
+          ],
+          "answer": 0
+        }
+      ]
+    },
+    {
+      "topic": "dinner plans",
+      "context": "Listen to a conversation between two roommates.",
+      "lines": [
+        {
+          "speaker": "M",
+          "text": "What do you want for dinner tonight?"
+        },
+        {
+          "speaker": "W",
+          "text": "I'm not sure. We have some rice and vegetables in the kitchen."
+        },
+        {
+          "speaker": "M",
+          "text": "We could make a stir-fry. I can cook the vegetables."
+        },
+        {
+          "speaker": "W",
+          "text": "Okay. Do we have any chicken?"
+        },
+        {
+          "speaker": "M",
+          "text": "No, I think we finished it on Sunday."
+        },
+        {
+          "speaker": "W",
+          "text": "Then I'll go to the supermarket and buy some. It closes at eight."
+        },
+        {
+          "speaker": "M",
+          "text": "It's already seven thirty. You should go now."
+        },
+        {
+          "speaker": "W",
+          "text": "You're right. I'll be back in twenty minutes."
+        },
+        {
+          "speaker": "M",
+          "text": "Okay. While you're there, can you also buy some eggs and a bottle of milk for breakfast?"
+        }
+      ],
+      "questions": [
+        {
+          "prompt": "What will the speakers make for dinner?",
+          "options": [
+            "A stir-fry with rice and vegetables",
+            "Pizza",
+            "Soup with chicken",
+            "Sandwiches"
+          ],
+          "answer": 0
+        },
+        {
+          "prompt": "Why does the woman need to go now?",
+          "options": [
+            "The supermarket closes soon",
+            "She is very hungry",
+            "The man is leaving",
+            "Her class starts at eight"
+          ],
+          "answer": 0
+        }
+      ]
+    },
+    {
+      "topic": "gym schedule",
+      "context": "Listen to a conversation between a student and a gym worker.",
+      "lines": [
+        {
+          "speaker": "W",
+          "text": "Hello. I'd like to join a swimming class."
+        },
+        {
+          "speaker": "M",
+          "text": "Sure. We have classes on Monday and Wednesday mornings."
+        },
+        {
+          "speaker": "W",
+          "text": "Oh, I have work in the mornings. Do you have any in the evening?"
+        },
+        {
+          "speaker": "M",
+          "text": "Yes, there's one on Thursday at six thirty."
+        },
+        {
+          "speaker": "W",
+          "text": "That's perfect. How much is it?"
+        },
+        {
+          "speaker": "M",
+          "text": "It's free for students. You just need to show your student card."
+        },
+        {
+          "speaker": "W",
+          "text": "Great! I have it here."
+        },
+        {
+          "speaker": "M",
+          "text": "Thank you. Don't forget to bring a swimming cap to the first class."
+        },
+        {
+          "speaker": "W",
+          "text": "Okay, I will. Is there a place where I can leave my bag and my clothes during the class?"
+        }
+      ],
+      "questions": [
+        {
+          "prompt": "Why can't the woman take the morning classes?",
+          "options": [
+            "She works in the mornings",
+            "She doesn't like swimming early",
+            "The classes are full",
+            "She has a doctor's appointment"
+          ],
+          "answer": 0
+        },
+        {
+          "prompt": "What does the woman need to bring to the first class?",
+          "options": [
+            "A swimming cap",
+            "Some money",
+            "A towel",
+            "A friend"
+          ],
+          "answer": 0
+        }
+      ]
+    }
+  ],
+  "conversation|hard": [
+    {
+      "topic": "research methodology",
+      "context": "Listen to a conversation between a student and her professor.",
+      "lines": [
+        {
+          "speaker": "W",
+          "text": "Professor Hayes, I wanted to ask about the survey for my research project."
+        },
+        {
+          "speaker": "M",
+          "text": "Of course. How many responses have you collected so far?"
+        },
+        {
+          "speaker": "W",
+          "text": "About ninety, but almost all of them are from students in my own department."
+        },
+        {
+          "speaker": "M",
+          "text": "That's a concern. If your sample comes mostly from one group, your conclusions about the whole university won't be very convincing."
+        },
+        {
+          "speaker": "W",
+          "text": "That's what I was afraid of. I posted the link in our department's online forum, and that's where most people saw it."
+        },
+        {
+          "speaker": "M",
+          "text": "You might ask the student council to share it in their weekly newsletter. It reaches nearly everyone."
+        },
+        {
+          "speaker": "W",
+          "text": "Would it be a problem to keep the responses I already have?"
+        },
+        {
+          "speaker": "M",
+          "text": "Not at all, but you should report how each response was collected, so readers can judge whether it affected the results."
+        }
+      ],
+      "questions": [
+        {
+          "prompt": "What is the professor's main concern about the survey?",
+          "options": [
+            "The responses do not represent the whole university",
+            "The student has not collected enough responses",
+            "The survey questions are too long",
+            "The student posted the survey too late"
+          ],
+          "answer": 0
+        },
+        {
+          "prompt": "What does the professor imply about the existing responses?",
+          "options": [
+            "They can be used if the collection method is clearly reported",
+            "They should be deleted and collected again",
+            "They are more reliable than the new ones will be",
+            "They must be approved by the student council"
+          ],
+          "answer": 0
+        }
+      ]
+    },
+    {
+      "topic": "internship decision",
+      "context": "Listen to a conversation between two students.",
+      "lines": [
+        {
+          "speaker": "M",
+          "text": "So, did you accept the internship at the design firm?"
+        },
+        {
+          "speaker": "W",
+          "text": "Not yet. They offered me the position, but it's unpaid, and it's in another city."
+        },
+        {
+          "speaker": "M",
+          "text": "That does make it harder. Is there any support for housing?"
+        },
+        {
+          "speaker": "W",
+          "text": "They said they could help me find a shared apartment, but they wouldn't cover the rent."
+        },
+        {
+          "speaker": "M",
+          "text": "Have you checked whether the university offers grants for unpaid internships? I know someone who got one last year."
+        },
+        {
+          "speaker": "W",
+          "text": "Really? I had no idea. Do you know who handles that?"
+        },
+        {
+          "speaker": "M",
+          "text": "I think it's the career center, but the application deadline might be coming up soon."
+        },
+        {
+          "speaker": "W",
+          "text": "Then I'd better go over there today, before I give the firm an answer."
+        }
+      ],
+      "questions": [
+        {
+          "prompt": "Why hasn't the woman accepted the internship?",
+          "options": [
+            "It is unpaid and would require moving",
+            "She received a better offer",
+            "The firm has not confirmed the position",
+            "She does not like design work"
+          ],
+          "answer": 0
+        },
+        {
+          "prompt": "What will the woman most likely do next?",
+          "options": [
+            "Ask the career center about grants",
+            "Accept the internship immediately",
+            "Look for an apartment online",
+            "Call the friend who received a grant"
+          ],
+          "answer": 0
+        }
+      ]
+    },
+    {
+      "topic": "lab partner conflict",
+      "context": "Listen to a conversation between a student and a teaching assistant.",
+      "lines": [
+        {
+          "speaker": "M",
+          "text": "Thanks for meeting with me. I'm having some trouble with my lab partner."
+        },
+        {
+          "speaker": "W",
+          "text": "What kind of trouble?"
+        },
+        {
+          "speaker": "M",
+          "text": "He's missed the last three sessions, so I've been doing all the measurements myself, but our report is graded as a pair."
+        },
+        {
+          "speaker": "W",
+          "text": "I see. Have you talked to him directly about it?"
+        },
+        {
+          "speaker": "M",
+          "text": "I sent a message, and he said he had family issues, which I understand. I just don't want my grade to suffer."
+        },
+        {
+          "speaker": "W",
+          "text": "That's reasonable. We actually have a policy for this. Each partner can submit a short statement describing their own contribution."
+        },
+        {
+          "speaker": "M",
+          "text": "Would that really change how the report is graded?"
+        },
+        {
+          "speaker": "W",
+          "text": "It can. If the statements show an uneven workload, the professor may grade each of you separately."
+        }
+      ],
+      "questions": [
+        {
+          "prompt": "Why does the student go to see the teaching assistant?",
+          "options": [
+            "He is worried his grade will be affected by his partner's absence",
+            "He wants to change to a different lab section",
+            "He made a mistake in his measurements",
+            "He needs help with family issues"
+          ],
+          "answer": 0
+        },
+        {
+          "prompt": "What does the teaching assistant suggest?",
+          "options": [
+            "Each partner can describe their own contribution in writing",
+            "The student should find a new partner",
+            "The student should repeat the missed sessions",
+            "The partner should be reported to the professor"
+          ],
+          "answer": 0
+        }
+      ]
+    }
+  ],
+  "announcement|router": [
+    {
+      "topic": "library renovation",
+      "speaker": "female",
+      "context": "Listen to an announcement in a university library.",
+      "text": "Good afternoon, everyone. Please note that starting next Monday, the second floor of the library will be closed for renovation for approximately three weeks. During this period, the reference collection will be moved temporarily to the ground floor, near the main entrance. Group study rooms on the second floor will not be available, but additional rooms have been opened in the student center, and they can be booked through the usual online system. We apologize for the inconvenience and thank you for your patience.",
+      "questions": [
+        {
+          "prompt": "What is the main purpose of the announcement?",
+          "options": [
+            "To inform students about a temporary closure",
+            "To announce new library opening hours",
+            "To introduce a new online booking system",
+            "To ask students to return borrowed books"
+          ],
+          "answer": 0
+        },
+        {
+          "prompt": "Where can students find group study rooms during the renovation?",
+          "options": [
+            "In the student center",
+            "On the second floor",
+            "Near the reference collection",
+            "In the main entrance hall"
+          ],
+          "answer": 0
+        }
+      ]
+    },
+    {
+      "topic": "train delay",
+      "speaker": "male",
+      "context": "Listen to an announcement at a train station.",
+      "text": "Attention, passengers traveling to Riverside. The ten fifteen train has been delayed by approximately forty minutes because of a signal problem near the bridge. Passengers who need to arrive before eleven are advised to take the express bus, which leaves from stop C outside the main exit every twenty minutes. Train tickets for this route will be accepted on the bus at no extra cost. We will provide another update as soon as we have more information. Thank you for your understanding.",
+      "questions": [
+        {
+          "prompt": "Why is the train delayed?",
+          "options": [
+            "There is a signal problem",
+            "The bridge is closed for repairs",
+            "The driver arrived late",
+            "There is bad weather"
+          ],
+          "answer": 0
+        },
+        {
+          "prompt": "What are passengers told about the express bus?",
+          "options": [
+            "They can use their train tickets on it",
+            "It leaves only once an hour",
+            "It costs extra for train passengers",
+            "It departs from platform C"
+          ],
+          "answer": 0
+        }
+      ]
+    }
+  ],
+  "announcement|easy": [
+    {
+      "topic": "school trip",
+      "speaker": "female",
+      "context": "Listen to an announcement in a language school.",
+      "text": "Hello, students. This Friday we are going on a trip to the city museum. The bus will leave from the front of the school at nine o'clock, so please arrive by eight forty-five. The trip is free, but please bring money for lunch. We will come back to school at about three in the afternoon. If you want to join, write your name on the list at the reception desk before Wednesday. See you there!",
+      "questions": [
+        {
+          "prompt": "Where are the students going on Friday?",
+          "options": [
+            "To the city museum",
+            "To the beach",
+            "To a restaurant",
+            "To another school"
+          ],
+          "answer": 0
+        },
+        {
+          "prompt": "What should students do before Wednesday?",
+          "options": [
+            "Write their name on the list at reception",
+            "Pay for the bus",
+            "Buy their lunch",
+            "Call the museum"
+          ],
+          "answer": 0
+        }
+      ]
+    },
+    {
+      "topic": "supermarket",
+      "speaker": "male",
+      "context": "Listen to an announcement in a supermarket.",
+      "text": "Good morning, shoppers. Today only, all fresh fruit is twenty percent off. You can find our special offers at the front of the store, next to the bakery. Also, please remember that the store will close early today, at six o'clock, because of a staff meeting. Our café on the second floor is open until five. Thank you for shopping with us, and have a great day.",
+      "questions": [
+        {
+          "prompt": "What is cheaper today?",
+          "options": [
+            "Fresh fruit",
+            "Bread from the bakery",
+            "Coffee at the café",
+            "Everything in the store"
+          ],
+          "answer": 0
+        },
+        {
+          "prompt": "Why will the store close early?",
+          "options": [
+            "Because of a staff meeting",
+            "Because it is a holiday",
+            "Because of a delivery",
+            "Because the café is closed"
+          ],
+          "answer": 0
+        }
+      ]
+    }
+  ],
+  "announcement|hard": [
+    {
+      "topic": "research participants",
+      "speaker": "female",
+      "context": "Listen to an announcement at the beginning of a lecture.",
+      "text": "Before we begin, I'd like to mention an opportunity. The psychology department is recruiting volunteers for a study on how background noise affects concentration. Sessions last about forty-five minutes and take place in the cognition lab. Participants will receive course credit or a small payment, but not both, so please indicate your preference when you register. Note that, because the study involves listening tasks, anyone with a diagnosed hearing condition is unfortunately not eligible. Registration closes on Friday, and spaces tend to fill quickly.",
+      "questions": [
+        {
+          "prompt": "What is the purpose of the announcement?",
+          "options": [
+            "To invite students to take part in a study",
+            "To explain the results of a study on noise",
+            "To change the location of the lecture",
+            "To describe a new psychology course"
+          ],
+          "answer": 0
+        },
+        {
+          "prompt": "What can be inferred about participants?",
+          "options": [
+            "They must choose between credit and payment",
+            "They can receive both credit and payment",
+            "They must have studied psychology before",
+            "They need to attend several sessions"
+          ],
+          "answer": 0
+        }
+      ]
+    },
+    {
+      "topic": "policy change",
+      "speaker": "male",
+      "context": "Listen to an announcement from a company manager.",
+      "text": "Thank you all for joining this brief meeting. As some of you may have heard, we are changing our remote work policy. Beginning next month, each team will decide which two days per week its members will work from the office, rather than following a single company-wide schedule. Team leaders will submit their choices by the twentieth. We expect this flexibility to make collaboration easier, but we will review the arrangement after three months, and adjust it if productivity or communication appears to suffer.",
+      "questions": [
+        {
+          "prompt": "What is changing about the remote work policy?",
+          "options": [
+            "Teams will choose their own office days",
+            "Employees will work from home every day",
+            "The office will be open only two days a month",
+            "Team leaders will work remotely"
+          ],
+          "answer": 0
+        },
+        {
+          "prompt": "Why does the speaker mention a review after three months?",
+          "options": [
+            "The policy may be changed if problems appear",
+            "Employees will receive a bonus",
+            "Team leaders will be replaced",
+            "The company plans to close the office"
+          ],
+          "answer": 0
+        }
+      ]
+    }
+  ],
+  "academic_talk|router": [
+    {
+      "topic": "coral reefs",
+      "speaker": "female",
+      "context": "Listen to part of a talk in a marine biology class.",
+      "text": "Today I want to talk about coral reefs and why they are sometimes called the rainforests of the sea. Although reefs cover less than one percent of the ocean floor, they support roughly a quarter of all marine species. Now, many people think corals are plants or rocks, but corals are actually animals. Each coral is a colony of tiny creatures called polyps. What makes reefs so productive is a partnership between these polyps and microscopic algae that live inside their tissues. The algae use sunlight to make food, and they share much of it with the coral. In return, the coral gives the algae shelter and nutrients. This relationship is also why reefs are so sensitive to temperature. When the water becomes too warm, even by one or two degrees for several weeks, the corals expel the algae. Without them, the corals lose their color, which is called bleaching, and they begin to starve. Bleached corals can recover if temperatures return to normal fairly quickly, but repeated heat waves leave them little time to do so. So when we talk about protecting reefs, we are really talking about protecting this delicate partnership.",
+      "questions": [
+        {
+          "prompt": "What is the talk mainly about?",
+          "options": [
+            "Why coral reefs are productive and why they are fragile",
+            "How to tell coral reefs apart from rainforests",
+            "Where the largest coral reefs are located",
+            "How fish use coral reefs to find food"
+          ],
+          "answer": 0
+        },
+        {
+          "prompt": "According to the professor, what do the algae provide to the coral?",
+          "options": [
+            "Food produced from sunlight",
+            "Shelter from predators",
+            "Protection from warm water",
+            "Calcium for building reefs"
+          ],
+          "answer": 0
+        },
+        {
+          "prompt": "What happens during coral bleaching?",
+          "options": [
+            "Corals expel the algae and lose their color",
+            "Corals grow too quickly and break",
+            "Algae cover the coral completely",
+            "The coral turns into rock"
+          ],
+          "answer": 0
+        },
+        {
+          "prompt": "Why does the professor mention repeated heat waves?",
+          "options": [
+            "To explain why corals may not have time to recover",
+            "To show that reefs are moving to colder areas",
+            "To argue that bleaching is not dangerous",
+            "To compare reefs with rainforests"
+          ],
+          "answer": 0
+        }
+      ]
+    }
+  ],
+  "academic_talk|easy": [
+    {
+      "topic": "recycling paper",
+      "speaker": "male",
+      "context": "Listen to part of a talk in an environmental science class.",
+      "text": "Okay, everyone, today we are going to look at how paper is recycled. First, people put used paper in recycling bins. A truck takes the paper to a recycling center. There, workers and machines separate the paper into different types, like newspapers, office paper and cardboard. This is important, because each type is recycled in a slightly different way. Next, the paper is mixed with water in a very large machine. The machine turns the paper into a soft, wet material called pulp. Then the pulp is cleaned. Small things like plastic, staples and ink are removed. After that, the clean pulp is spread out into thin sheets, pressed, and dried with hot rollers. Finally, the new paper is rolled up and sent to factories. There, it becomes new products, such as notebooks, boxes or newspapers. But paper cannot be recycled forever. Each time it is recycled, the small fibers inside it become shorter and weaker. After about five to seven times, the fibers are too short to make good paper. So recycling helps a lot, but using less paper is also important.",
+      "questions": [
+        {
+          "prompt": "What is the talk mainly about?",
+          "options": [
+            "The steps in recycling paper",
+            "How trees are cut down",
+            "Why newspapers are expensive",
+            "How to make notebooks at home"
+          ],
+          "answer": 0
+        },
+        {
+          "prompt": "Why is paper separated into different types?",
+          "options": [
+            "Each type is recycled in a different way",
+            "Some types are thrown away",
+            "Machines can only lift small amounts",
+            "Workers need to count the paper"
+          ],
+          "answer": 0
+        },
+        {
+          "prompt": "What is pulp?",
+          "options": [
+            "A soft, wet material made from paper and water",
+            "A kind of plastic",
+            "The ink removed from paper",
+            "A machine that dries paper"
+          ],
+          "answer": 0
+        },
+        {
+          "prompt": "Why can't paper be recycled forever?",
+          "options": [
+            "Its fibers become too short and weak",
+            "It changes color every time",
+            "It becomes too heavy",
+            "Factories do not want it"
+          ],
+          "answer": 0
+        }
+      ]
+    },
+    {
+      "topic": "camels",
+      "speaker": "female",
+      "context": "Listen to part of a talk in a biology class.",
+      "text": "Today let's talk about an animal that lives in very hard conditions: the camel. Deserts are hot during the day, cold at night, and there is very little water. So how do camels survive? Many people think a camel's hump is full of water. In fact, the hump stores fat. When food is hard to find, the camel's body can use this fat for energy. Camels also save water in clever ways. They do not sweat very much, even when the temperature is high, and their bodies lose very little water when they breathe. When a camel finds water, it can drink a huge amount very quickly, more than one hundred liters in about ten minutes. Camels are also protected from sand. They have two rows of long eyelashes, and they can close their noses during sandstorms. Their wide feet help them walk on soft sand without sinking. Because of all these features, people in desert regions have used camels for thousands of years to carry goods and travel long distances. They really are amazing animals.",
+      "questions": [
+        {
+          "prompt": "What is the talk mainly about?",
+          "options": [
+            "How camels survive in the desert",
+            "How deserts are formed",
+            "Why camels are used in zoos",
+            "How to travel across a desert"
+          ],
+          "answer": 0
+        },
+        {
+          "prompt": "What does a camel's hump store?",
+          "options": [
+            "Fat",
+            "Water",
+            "Sand",
+            "Air"
+          ],
+          "answer": 0
+        },
+        {
+          "prompt": "How do camels protect themselves from sand?",
+          "options": [
+            "They have long eyelashes and can close their noses",
+            "They hide underground",
+            "They travel only at night",
+            "They sweat a lot"
+          ],
+          "answer": 0
+        },
+        {
+          "prompt": "Why does the professor mention a camel's wide feet?",
+          "options": [
+            "To explain how camels walk on soft sand",
+            "To show how fast camels run",
+            "To describe how camels find water",
+            "To compare camels with horses"
+          ],
+          "answer": 0
+        }
+      ]
+    }
+  ],
+  "academic_talk|hard": [
+    {
+      "topic": "placebo effect",
+      "speaker": "male",
+      "context": "Listen to part of a talk in a psychology class.",
+      "text": "Let's turn to the placebo effect, which is often misunderstood. A placebo is a treatment with no active ingredient, such as a sugar pill, and the placebo effect refers to the genuine improvements patients sometimes report after receiving one. Now, a common assumption is that the effect is purely imaginary, that patients simply believe they feel better. But brain imaging studies suggest otherwise. In studies of pain, for instance, people who received a placebo showed reduced activity in brain regions associated with pain processing, and some of this response could be blocked by drugs that interfere with the body's natural painkillers. So expectation appears to trigger real physiological changes. That said, we shouldn't overstate it. Placebos tend to affect subjective symptoms, like pain or nausea, far more than measurable conditions; a placebo won't shrink a tumor. And interestingly, the context matters enormously. Larger pills, injections rather than tablets, or a warm, confident doctor can all strengthen the effect. Perhaps the most surprising finding is that placebos can work even when patients are told openly that the pill contains nothing. Researchers are still debating why, but one possibility is that the ritual of treatment itself, taking a pill at a set time, activates learned associations with getting better.",
+      "questions": [
+        {
+          "prompt": "What is the main point of the talk?",
+          "options": [
+            "The placebo effect involves real physical responses but has limits",
+            "Placebos are as effective as most medicines",
+            "The placebo effect is entirely imaginary",
+            "Doctors should prescribe placebos more often"
+          ],
+          "answer": 0
+        },
+        {
+          "prompt": "Why does the professor mention brain imaging studies?",
+          "options": [
+            "To challenge the idea that the effect is only in patients' minds",
+            "To show that placebos can cure serious diseases",
+            "To explain how sugar affects the brain",
+            "To describe a new method for measuring pain"
+          ],
+          "answer": 0
+        },
+        {
+          "prompt": "According to the professor, which factor can strengthen the placebo effect?",
+          "options": [
+            "An injection rather than a tablet",
+            "A smaller pill",
+            "A doctor who seems uncertain",
+            "Telling patients the treatment is new"
+          ],
+          "answer": 0
+        },
+        {
+          "prompt": "What does the professor imply about open-label placebos?",
+          "options": [
+            "Their effectiveness is not yet fully explained",
+            "They do not work at all",
+            "They are more effective than hidden placebos",
+            "They are only used in pain studies"
+          ],
+          "answer": 0
+        }
+      ]
+    },
+    {
+      "topic": "printing press impact",
+      "speaker": "female",
+      "context": "Listen to part of a talk in a history class.",
+      "text": "When we discuss the printing press, it's tempting to describe it as an invention that instantly spread knowledge to everyone. The reality was more gradual and, in some ways, more interesting. Gutenberg's press, developed in the mid fifteenth century, dramatically reduced the cost of producing books, but literacy rates didn't change overnight. Most people still couldn't read, and books remained relatively expensive for decades. What changed first was the world of scholars. Before printing, copies made by hand frequently contained errors, and each copy differed slightly from the others. Printing produced identical copies, so scholars in different cities could refer to the same page and the same wording. This standardization made it far easier to compare, criticize and build on one another's work, which many historians link to the scientific developments of the following centuries. Printing also affected languages. Printers wanted to sell to as many readers as possible, so they tended to favor one regional form of a language over others, and over time these printed forms helped shape the standard national languages we recognize today. So the press's most lasting effects may have come less from reaching ordinary readers immediately and more from changing how knowledge was stored and shared.",
+      "questions": [
+        {
+          "prompt": "What is the main idea of the talk?",
+          "options": [
+            "The printing press changed knowledge in gradual and indirect ways",
+            "The printing press immediately made most people literate",
+            "Gutenberg invented the first written language",
+            "Books became cheap for everyone within a few years"
+          ],
+          "answer": 0
+        },
+        {
+          "prompt": "According to the professor, why were identical copies important to scholars?",
+          "options": [
+            "They made it easier to compare and build on others' work",
+            "They allowed scholars to sell more books",
+            "They prevented scholars from criticizing each other",
+            "They replaced the need for libraries"
+          ],
+          "answer": 0
+        },
+        {
+          "prompt": "How did printers influence languages?",
+          "options": [
+            "They favored one regional form to reach more readers",
+            "They invented new alphabets",
+            "They translated books into many languages",
+            "They printed only in Latin"
+          ],
+          "answer": 0
+        },
+        {
+          "prompt": "What is the professor's attitude toward the common view of the printing press?",
+          "options": [
+            "She thinks it oversimplifies what happened",
+            "She thinks it is completely correct",
+            "She believes the press had little effect",
+            "She is unsure whether the press existed"
+          ],
+          "answer": 0
+        }
+      ]
+    }
+  ]
+}

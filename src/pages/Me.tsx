@@ -1,4 +1,8 @@
 import { useMemo, useState, type ReactNode } from 'react'
+import { LevelStatusBadge } from '@/components/level/LevelStatusBadge'
+import { CefrSeal } from '@/components/level/CefrSeal'
+import { useLevelStore } from '@/store/useLevelStore'
+import { useStudyLevel } from '@/hooks/useStudyLevel'
 import { Link } from 'react-router-dom'
 import {
   ChartNoAxesColumn, ChevronRight, Coffee, FileText, Flame, HelpCircle, LogOut, Moon, Settings2, Shield, ShieldCheck, Star, Sun, Users,
@@ -9,7 +13,6 @@ import { useLanguage } from '@/store/useLanguage'
 import { useReaderSettings, type Theme } from '@/store/useReaderSettings'
 import { useVocabularyStore } from '@/store/useVocabularyStore'
 import { useXpStore, xpSummary } from '@/store/useXpStore'
-import { studyLevel } from '@/lib/cefr'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import { ActionSheet } from '@/components/ui/action-sheet'
 import { VoiceSelect } from '@/components/layout/VoiceSelect'
@@ -58,7 +61,9 @@ export function MePage() {
   const events = useXpStore(s => s.events)
   const { total, streak, studiedToday } = useMemo(() => xpSummary(events), [events])
   const saved = useMemo(() => new Set(vocab.map(v => v.text.trim().toLowerCase()).filter(Boolean)).size, [vocab])
-  const level = useMemo(() => studyLevel(saved, total), [saved, total])
+  const level = useStudyLevel()
+  const levelState = useLevelStore(s => s.state)
+  const profSeal = useLevelStore(s => s.proficiency)
   const fmt = new Intl.NumberFormat(pt ? 'pt-BR' : 'en-US')
   const [confirmOut, setConfirmOut] = useState(false)
   const name = user?.email?.split('@')[0] ?? 'Bookmoo'
@@ -75,13 +80,18 @@ export function MePage() {
         <Avatar src={myAvatar} name={name} size={64} />
         <div className="min-w-0">
           <h1 className="font-display text-[28px] md:text-[34px] leading-[1.05] truncate" style={{ color: 'var(--theme-text)' }}>{name}</h1>
-          <p className="text-[15px] mt-1" style={{ color: 'var(--theme-text-secondary)' }}>
-            {pt ? `Nível ${level.id} · ${level.pt}` : `Level ${level.id} · ${level.en}`}
-          </p>
+          <Link to="/teste-de-nivel" className="mt-1.5 inline-flex items-center gap-2" aria-label={pt ? 'Teste de nível' : 'Level test'}>
+            <LevelStatusBadge level={level.id} state={levelState} pt={pt} showName />
+          </Link>
+          {profSeal && <CefrSeal cefr={profSeal} pt={pt} to="/prova" className="ml-2" />}
         </div>
       </header>
       <div className="grid gap-2">
         <UsageMeters compact />
+        <Link to="/teste-de-nivel" className="h-11 rounded-xl px-3 flex items-center justify-between text-[14px] border" style={{ borderColor: 'var(--theme-border)' }}>
+          <span className="inline-flex items-center gap-2">{pt ? 'Teste de nível' : 'Level test'}{levelState !== 'verified' && <span className="text-[11.5px] rounded-full px-2 py-0.5" style={{ border: '1.5px dashed var(--theme-text-secondary)' }}>{pt ? 'Pendente' : 'Pending'}</span>}</span>
+          <ChevronRight className="w-4 h-4" style={{ color: 'var(--theme-text-secondary)' }} />
+        </Link>
         <Link to="/raio-x" className="h-11 rounded-xl px-3 flex items-center justify-between text-[14px] border" style={{ borderColor: 'var(--theme-border)' }}>{pt ? 'Raio-X do meu inglês' : 'My English report'}<ChevronRight className="w-4 h-4" style={{ color: 'var(--theme-text-secondary)' }} /></Link>
       </div>
 

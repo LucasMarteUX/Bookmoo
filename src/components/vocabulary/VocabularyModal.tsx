@@ -1,6 +1,7 @@
 // Cartão de estudo de uma palavra/expressão: o termo em destaque com áudio e status, e abas para
 // significado, exemplos (com áudio e tradução), uma história curta e exemplos em imagem da comunidade.
 import { CommunityMosaic } from './CommunityMosaic'
+import { useStudyLevel } from '@/hooks/useStudyLevel'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { BookOpenText, Check, Eye, EyeOff, Images, Info, Loader2, MessageSquareQuote, RotateCcw, Sparkles, Star, StickyNote, Trash2, Volume2, WandSparkles } from 'lucide-react'
 import { InfoHint } from '@/components/ui/info-hint'
@@ -8,7 +9,7 @@ import { useVocabularyStore, type VocabStatus, type VocabType, type GrammarExamp
 import { useBookStore } from '@/store/useBookStore'
 import { generateExplanation, generateVariantStory, aiErrorMessage } from '@/lib/ai'
 import { glossPt } from '@/lib/glossPt'
-import { showsGloss, studyLevel } from '@/lib/cefr'
+import { showsGloss } from '@/lib/cefr'
 import { useXpStore, xpSummary } from '@/store/useXpStore'
 import { NotesEditor } from './NotesEditor'
 import { useAuth } from '@/contexts/AuthContext'
@@ -36,7 +37,7 @@ const TEXTS = {
     glossEmpty: 'Você não tem pontos para revelar.',
     peek: 'Espiar',
     peekInfo: 'Sobre a espiada',
-    peekHelp: 'A espiada só existe no A1. São 3 por dia, e cada uma tira 1 ponto. Quando acabam, siga pelos exemplos e pelas imagens. Ao subir de nível, ela some.',
+    peekHelp: 'A espiada só existe no nível Iniciante. São 3 por dia, e cada uma tira 1 ponto. Quando acabam, siga pelos exemplos e pelas imagens. Ao subir de nível, ela some.',
     peekLimit: 'As 3 espiadas de hoje acabaram. Siga pelos exemplos e pelas imagens.',
   },
   en: {
@@ -55,7 +56,7 @@ const TEXTS = {
     glossEmpty: 'You don’t have points to reveal it.',
     peek: 'Peek',
     peekInfo: 'About the peek',
-    peekHelp: 'The peek only exists at A1. You get 3 a day, and each one costs 1 point. When they run out, continue with the examples and the images. It goes away once you level up.',
+    peekHelp: 'The peek only exists at the Beginner level. You get 3 a day, and each one costs 1 point. When they run out, continue with the examples and the images. It goes away once you level up.',
     peekLimit: 'Today’s 3 peeks are used up. Continue with the examples and the images.',
   },
 } as const
@@ -208,7 +209,7 @@ export function VocabularyModal({ isOpen, onClose, initialText, bookId, vocabId,
   const lang = (bookLanguageCode || 'en').slice(0, 2).toLowerCase()
   const localGloss = useMemo(() => glossPt(text), [text])
   const savedWords = useMemo(() => new Set(vocabularies.map(v => v.text.trim().toLowerCase()).filter(Boolean)).size, [vocabularies])
-  const level = studyLevel(savedWords, points)
+  const level = useStudyLevel()
   const glossReady = showsGloss(level.id) && !!localGloss
   const glossKey = `gloss:${text.trim().toLowerCase()}`
   const glossPaid = xpEvents.some(e => e.key === glossKey)

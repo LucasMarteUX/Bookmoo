@@ -28,7 +28,7 @@ export function SettingsSection({ id, icon: Icon, title, description, action, ch
 
 export function SettingsCard({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <div className={cn('rounded-2xl border overflow-hidden divide-y', className)} style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-card-bg)' }}>
+    <div className={cn('rounded-2xl border overflow-hidden divide-y divide-[var(--theme-border)]', className)} style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-card-bg)' }}>
       {children}
     </div>
   )

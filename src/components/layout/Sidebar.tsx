@@ -1,7 +1,11 @@
-import { useMemo, type ComponentType, type ReactNode } from 'react'
+import { useMemo, useState, type ComponentType, type ReactNode } from 'react'
+import { LevelStatusBadge } from '@/components/level/LevelStatusBadge'
+import { CefrSeal } from '@/components/level/CefrSeal'
+import { useLevelStore } from '@/store/useLevelStore'
+import { useStudyLevel } from '@/hooks/useStudyLevel'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
-  AudioLines, BookMarked, ChartNoAxesColumn, ChevronsUpDown, Coffee, Flame, House, Layers, Library, LogOut, Moon,
+  AudioLines, Award, BookMarked, ChartNoAxesColumn, GraduationCap, ChevronsUpDown, Coffee, Flame, House, Layers, Library, LogOut, Moon,
   Bell, PanelLeftClose, PanelLeftOpen, PenLine, Plus, Search, Settings2, Shield, Star, Sun, Users,
 } from 'lucide-react'
 import { useUiStore } from '@/store/useUiStore'
@@ -10,7 +14,6 @@ import { useLanguage, type Locale } from '@/store/useLanguage'
 import { useBookStore } from '@/store/useBookStore'
 import { useVocabularyStore } from '@/store/useVocabularyStore'
 import { useXpStore, xpSummary } from '@/store/useXpStore'
-import { studyLevel } from '@/lib/cefr'
 import { useTranslations } from '@/lib/i18n'
 import { readingProgress } from '@/lib/utils'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -47,11 +50,14 @@ export function Sidebar({ isMobileDrawer, onClose }: SidebarProps) {
   const events = useXpStore(s => s.events)
   const { total, streak, studiedToday } = useMemo(() => xpSummary(events), [events])
   const savedWords = useMemo(() => new Set(vocab.map(v => v.text.trim().toLowerCase()).filter(Boolean)).size, [vocab])
-  const level = useMemo(() => studyLevel(savedWords, total), [savedWords, total])
+  const level = useStudyLevel()
+  const levelState = useLevelStore(s => s.state)
+  const profSeal = useLevelStore(s => s.proficiency)
+  const [menuOpen, setMenuOpen] = useState(false)
   const reviewCount = useMemo(() => vocab.filter(v => v.status === 'review').length, [vocab])
   const recent = useMemo(() => [...books].sort((a, b) => +new Date(b.lastRead) - +new Date(a.lastRead)).slice(0, 4), [books])
 
-  const sections: { title?: string; items: { to: string; icon: Icon; label: string; badge?: number }[] }[] = [
+  const sections: { title?: string; items: { to: string; icon: Icon; label: string; badge?: number; tag?: string }[] }[] = [
     { items: [{ to: '/', icon: House, label: pt ? 'Início' : 'Home' }] },
     { title: pt ? 'Aprender' : 'Learn', items: [{ to: '/vocabulary', icon: BookMarked, label: t('vocabulary'), badge: reviewCount || undefined }] },
     { title: pt ? 'Praticar' : 'Practice', items: [
@@ -62,6 +68,8 @@ export function Sidebar({ isMobileDrawer, onClose }: SidebarProps) {
     { title: pt ? 'Progresso' : 'Progress', items: [
       { to: '/stats', icon: ChartNoAxesColumn, label: t('stats') },
       { to: '/raio-x', icon: Brain, label: pt ? 'Raio-X' : 'Insights' },
+      { to: '/teste-de-nivel', icon: GraduationCap, label: pt ? 'Teste de nível' : 'Level test' },
+      { to: '/prova', icon: Award, label: pt ? 'Prova de proficiência' : 'Proficiency test' },
     ] },
     { title: pt ? 'Juntos' : 'Together', items: [
       { to: '/gallery', icon: Library, label: pt ? 'Galeria' : 'Gallery' },
@@ -91,18 +99,21 @@ export function Sidebar({ isMobileDrawer, onClose }: SidebarProps) {
   })
 
   const userMenu = (trigger: ReactNode) => (
-    <Popover>
+    <Popover open={menuOpen} onOpenChange={setMenuOpen}>
       <PopoverTrigger asChild>{trigger}</PopoverTrigger>
       <PopoverContent side={isMobileDrawer ? 'top' : 'right'} align="end" sideOffset={10} className="w-72 p-1.5 z-[65]">
-        <div className="flex items-center gap-2.5 px-2 py-2">
+        {/* Foto e nome levam ao próprio perfil. */}
+        <Link to={user ? `/profile/${user.id}` : '/me'} onClick={() => { setMenuOpen(false); go?.() }} aria-label={pt ? 'Meu perfil' : 'My profile'}
+          className="flex items-center gap-2.5 px-2 py-2 rounded-lg transition-colors hover:bg-[var(--ui-hover)]">
           {me(32)}
           <div className="min-w-0">
             <p className="text-[13px] font-medium truncate">{user?.email ?? 'Bookmoo'}</p>
             <p className="text-[12px]" style={{ color: 'var(--theme-text-secondary)' }}>
               {fmt.format(total)} {pt ? 'pontos' : 'points'} · {streak} {pt ? (streak === 1 ? 'dia seguido' : 'dias seguidos') : 'day streak'}
             </p>
+            <p className="text-[12px] font-medium mt-0.5" style={{ color: 'var(--theme-text)' }}>{pt ? 'Ver meu perfil →' : 'View my profile →'}</p>
           </div>
-        </div>
+        </Link>
         <div className="my-1 h-px" style={{ backgroundColor: 'var(--theme-border)' }} />
         <div className="px-2 py-1.5">
           <p className="text-[11.5px] font-medium mb-1.5" style={{ color: 'var(--theme-text-secondary)' }}>{t('appearance')}</p>
@@ -203,7 +214,7 @@ export function Sidebar({ isMobileDrawer, onClose }: SidebarProps) {
         {sections.map((section, i) => (
           <nav key={i} className="flex flex-col gap-0.5" aria-label={section.title}>
             {section.title && <p className="px-2 pb-1 text-[11.5px] font-medium" style={{ color: 'var(--theme-nav-text-muted)' }}>{section.title}</p>}
-            {section.items.map(({ to, icon: ItemIcon, label, badge }) => {
+            {section.items.map(({ to, icon: ItemIcon, label, badge, tag }) => {
               const active = isActive(to)
               return (
                 <Link key={to} to={to} onClick={go} aria-current={active ? 'page' : undefined}
@@ -211,6 +222,7 @@ export function Sidebar({ isMobileDrawer, onClose }: SidebarProps) {
                   style={{ backgroundColor: active ? 'var(--theme-nav-active)' : undefined, color: active ? 'var(--theme-nav-text)' : 'var(--theme-nav-text-muted)', fontWeight: active ? 500 : 400 }}>
                   <ItemIcon className="w-4 h-4 shrink-0" strokeWidth={active ? 2.2 : 1.8} />
                   <span className="flex-1 truncate">{label}</span>
+                  {tag && <span className="shrink-0 rounded-full px-1.5 py-[1px] text-[10px] font-medium" style={{ border: '1px dashed var(--theme-nav-text-muted)' }}>{tag}</span>}
                   {badge ? <span className="min-w-5 h-5 px-1.5 rounded-full grid place-items-center text-[11px] font-semibold tabular-nums"
                     style={{ backgroundColor: 'color-mix(in srgb, var(--theme-accent) 14%, transparent)', color: 'var(--theme-accent)' }}
                     title={pt ? `${badge} para revisar` : `${badge} to review`}>{badge}</span> : null}
@@ -253,7 +265,8 @@ export function Sidebar({ isMobileDrawer, onClose }: SidebarProps) {
           <span className="inline-flex items-center gap-1"><Star className="w-3.5 h-3.5" />{fmt.format(total)}</span>
           <span className="ml-auto inline-flex items-center gap-2">
             {!studiedToday && streak > 0 && <span className="text-[11px]">{pt ? 'estude hoje' : 'study today'}</span>}
-            <span className="text-[11px] font-semibold tracking-wide" title={pt ? `${level.pt}. ${level.can.pt}` : `${level.en}. ${level.can.en}`}>{level.id}</span>
+            <LevelStatusBadge level={level.id} state={levelState} pt={pt} size="sm" />
+            {profSeal && <CefrSeal cefr={profSeal} pt={pt} size="sm" />}
           </span>
         </Link>
         {userMenu(

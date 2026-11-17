@@ -908,3 +908,32 @@ html.reader-immersive .book-header-chrome button { min-height: 40px; min-width: 
 /* Seleção feita com o dedo (segurar e arrastar), pintada enquanto o gesto dura. */
 .touch-sel { background-color: color-mix(in srgb, var(--theme-accent, #b08a4a) 26%, transparent) !important; box-shadow: 0 2px 0 var(--theme-accent, #b08a4a); border-radius: 3px; }
 html.reader-immersive:not(.reader-chrome-hidden) [data-chrome="footer"] { pointer-events: none; }
+
+/* Prova de proficiência: equalizador do áudio e pulso do entrevistador. */
+@keyframes prof-eq { 0%, 100% { height: 4px; } 50% { height: 18px; } }
+.prof-eq { animation: prof-eq 0.9s ease-in-out infinite; }
+@keyframes prof-pulse { 0% { transform: scale(1); opacity: 0.6; } 100% { transform: scale(1.35); opacity: 0; } }
+.prof-pulse { animation: prof-pulse 1.4s ease-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .prof-eq { animation: none; height: 10px; }
+  .prof-pulse { animation: none; opacity: 0.4; }
+}
+
+/* Relatório da prova de proficiência em PDF: A4, tema claro, sem menus nem barras do app. */
+@media print {
+  @page { size: A4; margin: 14mm 12mm; }
+  html, body { background: #fff !important; }
+  body:has(.prof-report) {
+    --theme-bg: #ffffff; --theme-card-bg: #ffffff; --theme-bg-secondary: #f3f1ec; --theme-text: #1f1a14;
+    --theme-text-secondary: #5f574d; --theme-border: #dcd6cc; --theme-primary: #1f1a14; --theme-primary-text: #ffffff;
+    --pastel-amber-bg: #fbf1dc; --pastel-amber-fg: #6b4a12;
+    color: #1f1a14 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  body:has(.prof-report) aside, body:has(.prof-report) nav, body:has(.prof-report) [data-tabbar],
+  body:has(.prof-report) [role="status"], body:has(.prof-report) .print\:hidden { display: none !important; }
+  body:has(.prof-report) #main { margin: 0 !important; padding: 0 !important; }
+  .prof-report { max-width: none !important; padding: 0 !important; }
+  .prof-report a { text-decoration: none; color: inherit; }
+  .prof-report .prof-skill { break-before: page; }
+  .prof-report .break-inside-avoid, .prof-report .rounded-2xl { break-inside: avoid; }
+}

@@ -1,7 +1,7 @@
 // Menu do celular (hambúrguer): folha que sobe de baixo, como no iOS, com todos os destinos do app em grade.
 import { useMemo } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { AudioLines, Plus, Bell, Brain, BookMarked, ChartNoAxesColumn, House, Layers, Library, MessagesSquare, PenLine, Settings, Shield, Sparkles, Users, type LucideIcon } from 'lucide-react'
+import { AudioLines, Award, GraduationCap, Plus, Bell, Brain, BookMarked, ChartNoAxesColumn, House, Layers, Library, MessagesSquare, PenLine, Settings, Shield, Sparkles, Users, type LucideIcon } from 'lucide-react'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { useLanguage } from '@/store/useLanguage'
 import { useAuth } from '@/contexts/AuthContext'
@@ -10,7 +10,7 @@ import { useUnreadNotifications } from '@/components/community/NotificationBell'
 import { haptics } from '@/lib/haptics'
 import { useUiStore } from '@/store/useUiStore'
 
-type Item = { to: string; icon: LucideIcon; pt: string; en: string; badge?: number }
+type Item = { to: string; icon: LucideIcon; pt: string; en: string; badge?: number; tag?: [string, string] }
 
 export function MenuSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const pt = useLanguage().locale === 'pt-BR'
@@ -32,6 +32,8 @@ export function MenuSheet({ open, onOpenChange }: { open: boolean; onOpenChange:
     { title: ['Progresso', 'Progress'], items: [
       { to: '/stats', icon: ChartNoAxesColumn, pt: 'Estatísticas', en: 'Statistics' },
       { to: '/raio-x', icon: Brain, pt: 'Raio-X', en: 'Insights' },
+      { to: '/teste-de-nivel', icon: GraduationCap, pt: 'Teste de nível', en: 'Level test' },
+      { to: '/prova', icon: Award, pt: 'Prova de proficiência', en: 'Proficiency test' },
       { to: '/planos', icon: Sparkles, pt: 'Planos', en: 'Plans' },
     ] },
     { title: ['Explorar', 'Explore'], items: [
@@ -67,6 +69,7 @@ export function MenuSheet({ open, onOpenChange }: { open: boolean; onOpenChange:
                         {it.badge ? <span aria-hidden className="absolute -top-1.5 -right-2.5 min-w-[17px] h-[17px] px-1 rounded-full grid place-items-center text-[10.5px] font-semibold text-white" style={{ backgroundColor: 'var(--color-destructive)' }}>{it.badge > 99 ? '99+' : it.badge}</span> : null}
                       </span>
                       <span className="max-w-full text-[11.5px] tracking-tight">{pt ? it.pt : it.en}</span>
+                      {it.tag && <span className="absolute top-1.5 right-1.5 rounded-full px-1 text-[8.5px] font-semibold uppercase" style={{ border: '1px dashed var(--theme-text-secondary)', color: 'var(--theme-text-secondary)' }}>{pt ? 'beta' : 'beta'}</span>}
                     </Link>
                   </li>
                 )

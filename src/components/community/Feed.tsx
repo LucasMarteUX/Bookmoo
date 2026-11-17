@@ -409,7 +409,7 @@ export function PostCard({ item, covers, pt, canPost, onDeleted, standalone = fa
       <header className="flex items-center gap-3">
         <Link to={`/u/${item.author.handle}`} className="shrink-0"><Avatar src={item.author.avatarUrl} name={item.author.name || item.author.handle} size={42} /></Link>
         <AuthorLine author={item.author} at={item.at} pt={pt} postId={item.id} edited={shown.edited} audience={shown.audience} action={activity} />
-        <LevelBadge id={item.author.level} pt={pt} variant="compact" className="border hidden sm:inline-block shrink-0" />
+        {item.author.level && <LevelBadge id={item.author.level} pt={pt} kind="person" variant="compact" className="border hidden sm:inline-block shrink-0" />}
         {item.kind === 'goal' ? <Target className="w-5 h-5 shrink-0" /> : item.kind === 'finished' ? <PartyPopper className="w-5 h-5 shrink-0" /> : null}
         <MoreMenu label={pt ? 'Mais opções' : 'More options'}>
           <MenuItem onClick={() => { void share() }} icon={<Link2 className="w-4 h-4" />}>{pt ? 'Copiar link' : 'Copy link'}</MenuItem>

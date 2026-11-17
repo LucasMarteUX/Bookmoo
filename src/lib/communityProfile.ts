@@ -19,6 +19,8 @@ export type OwnProfile = {
   showStats: boolean
   showSocials: boolean
   showStudying: boolean
+  /** Mostrar o nível de inglês na comunidade (padrão: sim). */
+  showLevel: boolean
   shareReading: boolean
   shareProgress: boolean
   shareGoals: boolean
@@ -75,7 +77,8 @@ export type Author = {
   handle: string
   name: string
   avatarUrl?: string
-  level: CefrId
+  /** null: a pessoa escolheu não mostrar o nível. */
+  level: CefrId | null
   banner?: string
 }
 
@@ -87,6 +90,10 @@ export type ProfileView = Author & {
   bio: string
   goal: string
   leveled: boolean
+  /** Emblemas de nível conquistados nos testes. */
+  emblems: CefrId[]
+  /** Selo CEFR da prova de proficiência (null sem prova ou com o nível escondido). */
+  proficiency: CefrId | null
   isPublic: boolean
   isOwner: boolean
   restricted: boolean
@@ -138,7 +145,7 @@ export function cleanHandle(value: string) {
 export function emptyOwnProfile(userId: string): OwnProfile {
   return {
     userId, handle: '', name: '', bio: '', goal: '', banner: '', isPublic: false,
-    showShelf: true, showStats: true, showSocials: true, showStudying: false,
+    showShelf: true, showStats: true, showSocials: true, showStudying: false, showLevel: true,
     shareReading: false, shareProgress: false, shareGoals: false,
     socials: { instagram: '', x: '', website: '' },
   }
@@ -147,7 +154,7 @@ export function emptyOwnProfile(userId: string): OwnProfile {
 export const text = (value: unknown) => typeof value === 'string' ? value : ''
 export const num = (value: unknown) => typeof value === 'number' && Number.isFinite(value) ? value : Number(value) || 0
 const bool = (value: unknown, fallback: boolean) => typeof value === 'boolean' ? value : fallback
-const levelOf = (value: unknown): CefrId => LEVELS.includes(value as CefrId) ? value as CefrId : 'A1'
+const levelOf = (value: unknown): CefrId | null => LEVELS.includes(value as CefrId) ? value as CefrId : null
 
 function socialsOf(value: unknown): Socials {
   const raw = value && typeof value === 'object' ? value as Record<string, unknown> : {}
@@ -203,6 +210,7 @@ export async function loadOwnProfile(userId: string): Promise<OwnProfile> {
     showStats: bool(data.show_stats, true),
     showSocials: bool(data.show_socials, true),
     showStudying: bool(data.show_studying, false),
+    showLevel: bool(data.show_level, true),
     shareReading: bool(data.share_reading, false),
     shareProgress: bool(data.share_progress, false),
     shareGoals: bool(data.share_goals, false),
@@ -229,6 +237,7 @@ export async function saveOwnProfile(profile: OwnProfile): Promise<void> {
     show_stats: profile.showStats,
     show_socials: profile.showSocials,
     show_studying: profile.showStudying,
+    show_level: profile.showLevel,
     share_reading: profile.shareReading,
     share_progress: profile.shareProgress,
     share_goals: profile.shareGoals,
@@ -339,6 +348,8 @@ export async function loadProfileView(target: { handle: string } | { userId: str
     bio: text(row.bio),
     goal: text(row.goal),
     leveled: row.leveled === true,
+    proficiency: LEVELS.includes(row.proficiency as CefrId) ? (row.proficiency as CefrId) : null,
+    emblems: Array.isArray(row.emblems) ? (row.emblems as unknown[]).filter((x): x is CefrId => LEVELS.includes(x as CefrId)) : [],
     isPublic: row.is_public === true,
     isOwner: row.is_owner === true,
     restricted: row.restricted === true,
