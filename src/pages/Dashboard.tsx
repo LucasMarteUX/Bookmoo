@@ -51,7 +51,7 @@ export function Dashboard() {
   const navigate = useNavigate()
   const { locale } = useLanguage()
   const { t } = useTranslations(locale)
-  const { session, hasSupabase } = useAuth()
+  const { session, hasSupabase, loading: authLoading } = useAuth()
   const { books, addBook, updateBook, deleteBook, setCurrentBook, setBooks, booksLoaded } = useBookStore()
   const { totalStudyTime, dailyStudyTime } = useStudyStore()
   const { vocabularies } = useVocabularyStore()
@@ -284,7 +284,9 @@ export function Dashboard() {
   const hero = sortedByRecent.find(b => !finishedOf(b)) ?? sortedByRecent[0]
   // Só decide o que mostrar depois que a lista do servidor chegou: antes disso a Home ficava "vazia"
   // por um instante (banner da galeria) e depois trocava para o livro em leitura.
-  const libraryReady = booksLoaded || !hasSupabase || !userId
+  // Enquanto a sessão ainda está sendo restaurada, "sem usuário" não quer dizer "sem livros": antes isso mostrava o banner
+  // da galeria por uns segundos para quem já estava lendo. Agora fica o esqueleto até saber.
+  const libraryReady = booksLoaded || !hasSupabase || (!authLoading && !userId)
   const startedAny = books.some(startedOf)
   const today = new Date().toISOString().split('T')[0]
   const minutesToday = Math.floor((dailyStudyTime[today] ?? 0) / 60)

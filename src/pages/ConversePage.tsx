@@ -21,7 +21,11 @@ import { useAvatarSettings } from '@/store/useAvatarSettings'
 import { CHARACTERS, characterById, effectiveCharacterId, YOUNG_CHARACTER } from '@/lib/livliv/characters'
 import { useTutorLang } from '@/lib/tutorLang'
 import { greetingFor } from '@/lib/greetings'
-import { holdMs, INVITES_FREE, INVITES_SCENE, lineText, MIC_SCARE, pickNext, type ReactionLine } from '@/lib/tutorReactions'
+import { useBookStore } from '@/store/useBookStore'
+import { EFFORT_NAMES, useEffort, type Effort } from '@/lib/effort'
+import type { CefrId } from '@/lib/cefr'
+import { bookLines, makeWaitingPicker, personalLines } from '@/lib/waitingLines'
+import { holdMs, lineText, MIC_SCARE, type ReactionLine } from '@/lib/tutorReactions'
 import { pickTopics, type TalkTopic } from '@/lib/talkTopics'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { toast } from '@/components/ui/toast'
@@ -145,6 +149,7 @@ export function ConversePage() {
           <DialogHeader><DialogTitle>{pt ? 'Ajustes da conversa' : 'Conversation settings'}</DialogTitle></DialogHeader>
           <div className="space-y-5">
             <Seg label={pt ? 'Velocidade da voz' : 'Voice speed'} options={SPEEDS.map(s => ({ value: s.v, label: pt ? s.pt : s.en }))} value={rate} onChange={setRate} />
+            <EffortPicker pt={pt} level={level.id} />
             <Seg label={pt ? 'Duração das Cenas' : 'Scene length'} options={[3, 5, 10].map(m => ({ value: m, label: `${m} min`, locked: m > maxMin }))} value={minutes}
               onChange={m => (m > maxMin ? openPaywall('scenes') : setMinutes(m))} />
             <label className="flex items-center justify-between text-[14px]">
@@ -188,6 +193,18 @@ function ArrowBtn({ dir, onClick, label }: { dir: 1 | -1; onClick: () => void; l
   )
 }
 
+/** Esforço dentro do nível atual: três degraus com nomes próprios de cada nível (ver lib/effort). */
+function EffortPicker({ pt, level }: { pt: boolean; level: CefrId }) {
+  const [effort, setEffortValue] = useEffort()
+  const names = EFFORT_NAMES[level] ?? EFFORT_NAMES.A1
+  return (
+    <div>
+      <Seg label={pt ? `Esforço no ${level}` : `Effort at ${level}`} options={([1, 2, 3] as Effort[]).map(e => ({ value: e, label: pt ? names[e].pt : names[e].en }))} value={effort} onChange={v => setEffortValue(v as Effort)} />
+      <p className="mt-1.5 text-[12px]" style={muted}>{pt ? names[effort].hint.pt : names[effort].hint.en} {pt ? 'Vale para todas as conversas.' : 'Applies to every conversation.'}</p>
+    </div>
+  )
+}
+
 function Seg<T extends number>({ label, options, value, onChange }: { label: string; options: { value: T; label: string; locked?: boolean }[]; value: T; onChange: (v: T) => void }) {
   return (
     <div>
@@ -195,7 +212,7 @@ function Seg<T extends number>({ label, options, value, onChange }: { label: str
       <div className="grid gap-1 p-0.5 rounded-xl" style={{ gridTemplateColumns: `repeat(${options.length}, 1fr)`, backgroundColor: 'var(--theme-bg-secondary)' }}>
         {options.map(o => (
           <button key={o.value} type="button" onClick={() => onChange(o.value)} aria-pressed={value === o.value}
-            className="h-9 rounded-lg text-[13px] font-medium inline-flex items-center justify-center gap-1 transition-colors"
+            className="min-h-9 px-1.5 py-1 rounded-lg text-[13px] leading-tight text-center font-medium inline-flex items-center justify-center gap-1 transition-colors"
             style={{ backgroundColor: value === o.value ? 'var(--theme-card-bg)' : 'transparent', color: value === o.value ? 'var(--theme-text)' : 'var(--theme-text-secondary)', boxShadow: value === o.value ? '0 1px 2px rgba(0,0,0,0.12)' : undefined }}>
             {o.label}{o.locked && <Lock className="w-3 h-3" />}
           </button>
@@ -261,6 +278,22 @@ function Session({ choice, pt, level, rate, captions, minutes, title, subtitle, 
     setCharacter(CHARACTERS[(i + dir + CHARACTERS.length) % CHARACTERS.length].id)
     setHead(null)
   }
+  // Espera (conversa livre, ainda não começou e a pessoa não mexeu em nada): depois de 1 min chama outro tutor, e assim por
+  // diante. Qualquer toque, tecla ou rolagem reinicia a contagem. Ao sair da tela, volta o último com quem ela conversou.
+  const setLastTalked = useAvatarSettings(st => st.setLastTalked)
+  useEffect(() => {
+    if (!tutorMode || phase !== 'ready') return
+    let t = 0
+    const arm = () => { window.clearTimeout(t); t = window.setTimeout(() => stepTutor(1), 60000) }
+    const EV = ['pointerdown', 'keydown', 'wheel', 'touchstart'] as const
+    EV.forEach(e => window.addEventListener(e, arm, { passive: true }))
+    arm()
+    return () => { window.clearTimeout(t); EV.forEach(e => window.removeEventListener(e, arm)) }
+  }, [tutorMode, phase, chosenCharacter]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => () => {
+    const { lastTalked, setCharacter: set } = useAvatarSettings.getState()
+    if (lastTalked) set(lastTalked)
+  }, [])
   const greet = () => {
     // Entra de olhos abertos (o sorriso desses modelos fecha os olhos): só um aceno.
     setWave(true); setMood('neutral')
@@ -279,16 +312,20 @@ function Session({ choice, pt, level, rate, captions, minutes, title, subtitle, 
 
   // Até a pessoa começar: um convite novo a cada poucos segundos, cada um com a reação que combina com a frase
   // (inglês e português misturados). Nada de gestos repetidos: a reação é só o rosto.
-  const lastInvite = useRef<ReactionLine | null>(null)
+  // Banco grande sem repetir entre sessões, com as frases pessoais (memória deste tutor sobre a pessoa) primeiro.
   useEffect(() => {
     if (phase !== 'ready') return
-    const list = scene ? INVITES_SCENE : INVITES_FREE
-    const iv = window.setInterval(() => {
-      const line = pickNext(list, lastInvite.current)
-      lastInvite.current = line
-      showLine(line)
-    }, 10500)
-    return () => window.clearInterval(iv)
+    const picker = makeWaitingPicker(scene ? 'scene' : 'free', tutor.id)
+    let alive = true
+    // Uma da última conversa, uma do livro e o resto misturado: assim a espera fala da vida real da pessoa.
+    if (!scene) void Promise.all([personalLines(tutor.id), bookLines(useBookStore.getState().books, tutor.id)]).then(([mem, book]) => {
+      if (!alive) return
+      const mix: ReactionLine[] = []
+      for (let i = 0; i < Math.max(mem.length, book.length); i++) { if (book[i]) mix.push(book[i]); if (mem[i]) mix.push(mem[i]) }
+      picker.setPersonal(mix)
+    })
+    const iv = window.setInterval(() => showLine(picker.next()), 10500)
+    return () => { alive = false; window.clearInterval(iv) }
   }, [phase, choice, tutor.name]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Cada personagem se apresenta com o próprio nome (também ao trocar pelas setas).
@@ -332,6 +369,7 @@ function Session({ choice, pt, level, rate, captions, minutes, title, subtitle, 
       setGoals(r.scene?.goals ?? [])
       if (r.scene) voice.preload([...(r.scene.fillers ?? []), 'Good question…', 'Oh, I see…', 'Alright…'])
       setPhase('live')
+      setLastTalked(tutor.id)
       setBubble('')
       setWave(true); window.setTimeout(() => setWave(false), 2000)
       // A abertura do servidor apresenta a tutora pelo nome padrão: com um personagem, ele fala o próprio nome.

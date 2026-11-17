@@ -3,6 +3,8 @@ import { Volume2, Loader2, Check, Download, Trash2, ChevronDown } from 'lucide-r
 import { useLanguage } from '@/store/useLanguage'
 import { SettingsSection } from './SettingsUI'
 import { KOKORO_VOICES, type KokoroVoice } from '@/lib/kokoro/voices'
+import { DeviceVoicePicker } from '@/components/layout/VoiceSelect'
+import { hasDeviceVoice } from '@/lib/deviceVoice'
 import {
   downloadKokoroVoice, getKokoroState, isKokoroSupported, removeKokoroVoice, selectKokoroVoice, subscribeKokoro,
 } from '@/lib/kokoro/engine'
@@ -67,6 +69,16 @@ export function VoiceSettings() {
     } finally {
       setPreviewing(null)
     }
+  }
+
+  // Celular: a voz do próprio aparelho (a baixável derrubava a página). Só a escolha feminina/masculina.
+  if (!supported && hasDeviceVoice()) {
+    return (
+      <SettingsSection id="voices" icon={Volume2} title={pt ? 'Voz de leitura' : 'Reading voice'}
+        description={pt ? 'A voz em inglês que lê seus livros e fala nas conversas. Neste aparelho é a voz dele mesmo, pronta, sem download.' : 'The English voice for your books and conversations. On this device it is its own built-in voice, no download.'}>
+        <div className="px-5 py-4"><DeviceVoicePicker hideLabel pt={pt} label={pt ? 'Voz de leitura' : 'Reading voice'} /></div>
+      </SettingsSection>
+    )
   }
 
   return (

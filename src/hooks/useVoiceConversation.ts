@@ -5,6 +5,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createRecognizer, defaultEngine, MicPermissionError, type Recognizer } from '@/lib/speech/recognizers'
 import { speak, stopSpeaking } from '@/lib/tts'
+import { isMobileDevice } from '@/lib/deviceVoice'
+
+// Celular: o microfone fica fechado enquanto o tutor fala. Com ele aberto, o iPhone silencia ou abafa a voz do aparelho
+// (sessão de áudio de gravação) e o som da própria voz no alto-falante disparava a interrupção. Volta a abrir para ouvir.
+const MOBILE = isMobileDevice()
 import { activeKokoroVoice, getKokoroState, kokoroAudioUrl } from '@/lib/kokoro/engine'
 import { getKokoroVoice } from '@/lib/kokoro/voices'
 import { pickFiller } from '../../supabase/functions/_shared/scenes'
@@ -203,7 +208,7 @@ export function useVoiceConversation(opts: {
       else if (st === 'speaking') { t++; setLevel(0.35 + 0.28 * Math.abs(Math.sin(t / 7)) + Math.random() * 0.12) }
       else setLevel(l => l * 0.85)
       // Interrupção: a pessoa falou alto o bastante, por tempo suficiente, enquanto a IA falava.
-      if (st === 'speaking' && !resumable.current && optsRef.current.bargeIn !== false) {
+      if (st === 'speaking' && !resumable.current && optsRef.current.bargeIn !== false && !MOBILE) {
         if (rms.current > BARGE_RMS) {
           if (!bargeSince.current) bargeSince.current = performance.now()
           else if (performance.now() - bargeSince.current > BARGE_MS) {
@@ -238,6 +243,7 @@ export function useVoiceConversation(opts: {
       .flatMap(seg => splitSentences(seg.text).map(text => ({ lang: seg.lang, text })))
     parts.slice(1).filter(p => p.lang === 'en').forEach(p => warm(p.text))
     resumable.current = null
+    if (MOBILE) closeMic()
     set('speaking')
     for (const p of parts) {
       if (!alive()) return false
@@ -263,6 +269,7 @@ export function useVoiceConversation(opts: {
     set(filler ? 'speaking' : 'thinking')
     if (filler) setSpeakingText(filler)
     const fsp = speakerFor(o.gender)
+    if (MOBILE) { resumable.current = null; closeMic() }
     const fillerDone = filler ? say(filler, o.rate ?? 0.95, alive, fsp.voice, 'en', fsp.gender, fsp.pitch) : Promise.resolve()
     const turn = o.onTurn(text, filler)
     try {

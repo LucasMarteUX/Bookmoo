@@ -49,8 +49,11 @@ export function useHydrateOnLogin() {
     const forUser = userId
     ;(async () => {
       try {
+        // Os livros entram assim que chegam (a Home espera por eles); o resto vem em paralelo.
+        const booksP = fetchBooks(supabase, userId)
+        void booksP.then(b => { if (currentUserRef.current === forUser) setBooks(b) }).catch(() => {})
         const [books, vocab, study, settings] = await Promise.all([
-          fetchBooks(supabase, userId),
+          booksP,
           fetchVocabulary(supabase, userId),
           fetchStudyDays(supabase, userId),
           fetchReaderSettings(supabase, userId)

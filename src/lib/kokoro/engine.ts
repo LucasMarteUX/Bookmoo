@@ -1,5 +1,6 @@
 // Cliente do worker Kokoro: download do pacote, geração e estado local.
 import { DEFAULT_KOKORO_VOICE, getKokoroVoice } from './voices'
+import { isMobileDevice } from '@/lib/deviceVoice'
 
 const LS_KEY = 'bookmoo.kokoro.v1'
 
@@ -28,8 +29,11 @@ export function subscribeKokoro(fn: (s: LocalState) => void) {
 }
 export function getKokoroState() { return readState() }
 
+// No celular a Kokoro fica DESLIGADA: o motor (ONNX/WASM, centenas de MB de memória) somado ao personagem animado derrubava
+// a página (iPhone e Android), e uma voz "instalada" que não conseguia gerar deixava o app mudo. No celular a fala usa
+// sempre a voz do próprio aparelho (lib/deviceVoice), que não baixa nada e funciona em qualquer navegador.
 export function isKokoroSupported() {
-  return typeof window !== 'undefined' && typeof Worker !== 'undefined' && typeof WebAssembly !== 'undefined'
+  return typeof window !== 'undefined' && typeof Worker !== 'undefined' && typeof WebAssembly !== 'undefined' && !isMobileDevice()
 }
 
 /** Início de cada palavra falada, como fração (0–1) da duração do áudio; n = nº de fonemas. */
@@ -148,6 +152,7 @@ export function selectKokoroVoice(voiceId: string) {
 
 /** Voz pronta para uso (selecionada e baixada) ou null. */
 export function activeKokoroVoice(): string | null {
+  if (!isKokoroSupported()) return null
   const s = readState()
   if (!s.modelReady || s.voices.length === 0) return null
   if (s.selected && s.voices.includes(s.selected)) return s.selected

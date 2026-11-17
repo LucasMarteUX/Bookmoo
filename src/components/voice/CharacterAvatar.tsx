@@ -4,7 +4,8 @@ import { useEffect, useState, type ComponentProps } from 'react'
 import { TutorAvatar } from '@/components/voice/TutorAvatar'
 import { LivLivAvatar, type HeadBox } from '@/components/voice/LivLivAvatar'
 import { useAvatarSettings } from '@/store/useAvatarSettings'
-import { effectiveCharacterId } from '@/lib/livliv/characters'
+import { characterAvatarUrl, effectiveCharacterId } from '@/lib/livliv/characters'
+import { isMobileDevice } from '@/lib/deviceVoice'
 import { pickNext, POKES, type ReactionLine } from '@/lib/tutorReactions'
 
 type Props = Omit<ComponentProps<typeof TutorAvatar>, 'onPoke'> & {
@@ -33,6 +34,12 @@ export function CharacterAvatar({ voice = false, stage = false, onHead, onPoke, 
   if (vector) {
     const vectorProps = { ...props, onPoke: () => onPoke?.(pickNext(POKES, null)) }
     return stage ? <div className="absolute inset-0 grid place-items-center"><TutorAvatar {...vectorProps} /></div> : <TutorAvatar {...vectorProps} />
+  }
+  // Celular: um avatar pequeno e mudo (botão da tutora, ícones) vira a foto do personagem. Cada personagem animado carrega
+  // ~130 MB de texturas na placa de vídeo; no celular isso, somado ao resto da página, derrubava o navegador.
+  const size = props.size ?? 220
+  if (!stage && !voice && size <= 72 && isMobileDevice()) {
+    return <img src={characterAvatarUrl(characterId)} alt="" width={size} height={size} className="rounded-full object-cover select-none" style={{ width: size, height: size }} draggable={false} />
   }
   return (
     <LivLivAvatar characterId={characterId} state={props.state} speakingText={props.speakingText} size={props.size} mood={props.mood} wave={props.wave}

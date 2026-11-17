@@ -8,6 +8,9 @@ interface AvatarSettings {
   characterId: string
   setEngine: (engine: 'livliv' | 'svg') => void
   setCharacter: (id: string) => void
+  /** Último tutor com quem a pessoa conversou: é ele que aparece ao entrar em Conversar. */
+  lastTalked: string | null
+  setLastTalked: (id: string) => void
 }
 
 export const useAvatarSettings = create<AvatarSettings>()(persist((set) => ({
@@ -15,4 +18,6 @@ export const useAvatarSettings = create<AvatarSettings>()(persist((set) => ({
   characterId: DEFAULT_CHARACTER,
   setEngine: (engine) => set({ engine }),
   setCharacter: (characterId) => set({ characterId, engine: 'livliv' }),
+  lastTalked: null,
+  setLastTalked: (lastTalked) => set({ lastTalked }),
 }), { name: 'bookmoo-avatar' }))

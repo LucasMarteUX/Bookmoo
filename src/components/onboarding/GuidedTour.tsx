@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, X } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
+import { markTourSeen, tourSeen } from '@/lib/tourSeen'
 import { useLanguage } from '@/store/useLanguage'
 
 /** enter/leave: eventos disparados ao entrar e sair do passo (ex.: abrir o painel da tutora). */
@@ -24,7 +25,6 @@ const STEPS: Step[] = [
   { route: '/', pt: ['Tudo pronto', 'Comece abrindo um livro da galeria. Você pode rever este tutorial em Configurações, a qualquer momento.'], en: ['All set', 'Start by opening a book from the gallery. You can replay this tutorial any time in Settings.'] },
 ]
 
-const keyFor = (id?: string) => `bookmoo.tour.v1.${id ?? 'anon'}`
 export const restartTour = () => window.dispatchEvent(new Event('bookmoo:tour'))
 
 /** Elemento do passo, só se estiver de fato visível na tela (não escondido, fora da tela ou coberto por outro). */
@@ -161,8 +161,8 @@ export function GuidedTour() {
   // Primeira visita: abre sozinho na Home.
   useEffect(() => {
     if (!user?.id || location.pathname !== '/') return
-    try { if (localStorage.getItem(keyFor(user.id))) return } catch { return }
-    const t = window.setTimeout(() => setStep(0), 1200)
+    if (tourSeen('welcome', user)) return
+    const t = window.setTimeout(() => { markTourSeen('welcome', user); setStep(0) }, 1200)
     return () => window.clearTimeout(t)
   }, [user?.id, location.pathname])
   useEffect(() => {
@@ -172,9 +172,9 @@ export function GuidedTour() {
   }, [location.pathname, navigate])
 
   const close = useCallback(() => {
-    try { localStorage.setItem(keyFor(user?.id), String(Date.now())) } catch { /* sem armazenamento */ }
+    markTourSeen('welcome', user)
     setStep(null)
-  }, [user?.id])
+  }, [user])
 
   useEffect(() => {
     if (step === null) return

@@ -9,6 +9,44 @@ import {
 } from '@/lib/kokoro/engine'
 import { useTranslations } from '@/lib/i18n'
 import { useLanguage } from '@/store/useLanguage'
+import { deviceSpeak, deviceVoiceName, getDeviceVoiceGender, hasDeviceVoice, setDeviceVoiceGender, subscribeDeviceVoice, type Gender } from '@/lib/deviceVoice'
+
+/** Celular (ou navegador sem a voz baixável): escolhe entre a voz feminina e a masculina do próprio aparelho. Sem menu
+ *  suspenso (que abria para fora da tela no celular) e sem download. */
+export function DeviceVoicePicker({ hideLabel, pt, label }: { hideLabel: boolean; pt: boolean; label: string }) {
+  const [gender, setGender] = useState<Gender>(getDeviceVoiceGender())
+  const [names, setNames] = useState<Record<Gender, string | null>>({ female: null, male: null })
+  useEffect(() => subscribeDeviceVoice(() => setGender(getDeviceVoiceGender())), [])
+  useEffect(() => { void Promise.all([deviceVoiceName('female'), deviceVoiceName('male')]).then(([f, m]) => setNames({ female: f, male: m })) }, [])
+  const choose = (g: Gender) => {
+    setDeviceVoiceGender(g)
+    void deviceSpeak(g === 'female' ? 'Hi! I will read with you.' : 'Hello! I will read with you.', { gender: g })
+  }
+  return (
+    <div>
+      {!hideLabel && <p className="text-[12px] font-medium mb-1.5 px-1" style={{ color: 'var(--theme-nav-text-muted)' }}>{label}</p>}
+      <div role="radiogroup" aria-label={label} className="grid grid-cols-2 gap-1 p-0.5 rounded-xl" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
+        {(['female', 'male'] as Gender[]).map(g => {
+          const on = gender === g
+          return (
+            <button key={g} type="button" role="radio" aria-checked={on} onClick={() => choose(g)}
+              className="min-h-11 px-2 py-1.5 rounded-lg text-left transition-colors"
+              style={{ backgroundColor: on ? 'var(--theme-card-bg)' : 'transparent', boxShadow: on ? '0 1px 2px rgba(0,0,0,0.12)' : undefined }}>
+              <span className="flex items-center gap-1.5 text-[13px] font-medium" style={{ color: 'var(--theme-text)' }}>
+                {on ? <Check className="w-3.5 h-3.5 shrink-0" /> : <Volume2 className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--theme-text-secondary)' }} />}
+                {g === 'female' ? (pt ? 'Feminina' : 'Female') : (pt ? 'Masculina' : 'Male')}
+              </span>
+              {names[g] && <span className="block text-[11px] truncate" style={{ color: 'var(--theme-text-secondary)' }}>{names[g]}</span>}
+            </button>
+          )
+        })}
+      </div>
+      <p className="mt-1.5 px-1 text-[11.5px] leading-snug" style={{ color: 'var(--theme-text-secondary)' }}>
+        {pt ? 'Voz do próprio aparelho: funciona na hora, sem baixar nada. Toque para ouvir.' : 'Your device voice: works right away, nothing to download. Tap to hear it.'}
+      </p>
+    </div>
+  )
+}
 
 /** Lista suspensa de vozes no sidebar. Escolher uma voz ainda não baixada inicia o download. */
 export function VoiceSelect({ hideLabel = false }: { hideLabel?: boolean } = {}) {
@@ -20,7 +58,9 @@ export function VoiceSelect({ hideLabel = false }: { hideLabel?: boolean } = {})
   const [error, setError] = useState(false)
 
   useEffect(() => subscribeKokoro(setState), [])
-  if (!isKokoroSupported()) return null
+  if (!isKokoroSupported()) return hasDeviceVoice() ? <DeviceVoicePicker hideLabel={hideLabel} pt={locale === 'pt-BR'} label={t('readingVoice')} /> : null
+  // Tela estreita (janela pequena no computador): o menu abre para baixo, dentro da tela.
+  const narrow = typeof window !== 'undefined' && window.innerWidth < 640
 
   const current = getKokoroVoice(activeKokoroVoice())
 
@@ -76,10 +116,11 @@ export function VoiceSelect({ hideLabel = false }: { hideLabel?: boolean } = {})
           </button>
         </PopoverTrigger>
         <PopoverContent
-          side="right"
+          side={narrow ? 'bottom' : 'right'}
           align="start"
-          sideOffset={12}
-          className="w-72 p-1.5 z-[70] max-h-[70vh] overflow-y-auto custom-scrollbar"
+          sideOffset={narrow ? 6 : 12}
+          collisionPadding={12}
+          className="w-72 max-w-[calc(100vw-24px)] p-1.5 z-[70] max-h-[70vh] overflow-y-auto custom-scrollbar"
         >
           {error && (
             <p className="px-3 py-2 text-xs text-[var(--pastel-rose-fg)]">

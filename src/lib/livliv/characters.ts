@@ -58,9 +58,11 @@ export function effectiveCharacterId(id: string | null | undefined) { return id 
 const BASE = '/characters/bookmoo'
 // Versão dos arquivos dos personagens: muda sempre que uma textura é trocada. A query vai junto com cada arquivo que o
 // player busca, então o navegador não reaproveita a imagem antiga do cache.
-const ASSET_REV = '20261122-corpo-body'
+const ASSET_REV = '20261124-webp'
 export function characterModelUrl(id: string) {
   const c = characterById(effectiveCharacterId(id))!
-  return `${BASE}/${c.folder}/${c.appModel ? 'model.app.json' : 'model.json'}?v=${ASSET_REV}`
+  // Pacote WebP (web/): as mesmas texturas em resolução total, sem perda, ~30% menores para baixar. Gerado por
+  // scripts/characters/webp-pack.sh a partir de model.app.json (Bia, Yuno, Yuri) ou model.json (Luck).
+  return `${BASE}/${c.folder}/web/model.json?v=${ASSET_REV}`
 }
 export function characterAvatarUrl(id: string) { return `${BASE}/${characterById(effectiveCharacterId(id))!.folder}/avatar.webp` }

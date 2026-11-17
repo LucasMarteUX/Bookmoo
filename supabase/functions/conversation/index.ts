@@ -13,8 +13,8 @@ type Body = {
   sessionId?: string; text?: string; confidence?: number; filler?: string; bookId?: string; page?: number
   mode?: 'hint' | 'translate'; metrics?: { wpm?: number; avgResponseMs?: number; unclear?: number }
   langMode?: 'auto' | 'hybrid' | 'pt' | 'en'
-  opening?: string; characterId?: string; tutorName?: string
-  setting?: string; level?: string; personaName?: string; personaRole?: string; personaTraits?: string; goal?: string; level?: string; title?: string
+  opening?: string; characterId?: string; tutorName?: string; effort?: number
+  setting?: string; level?: string; personaName?: string; personaRole?: string; personaTraits?: string; goal?: string; title?: string
 }
 
 // Os tutores do app (mesmos ids do cliente). Cada um tem a própria memória de cada pessoa (tabela tutor_memory).
@@ -86,6 +86,40 @@ const LEVEL_GUIDE: Record<string, string> = {
   B2: 'Speak naturally at normal speed, with common idioms and phrasal verbs.',
   C1: 'Speak fully naturally, like with a native speaker, including idioms.',
 }
+// Esforço dentro do nível (escolhido nos Ajustes da conversa): 1 = mais leve, 2 = no ponto, 3 = desafio. Os nomes são os
+// mesmos do app (src/lib/effort.ts).
+type Effort = 1 | 2 | 3
+const effortOf = (v: unknown): Effort => (Number(v) === 1 ? 1 : Number(v) === 3 ? 3 : 2)
+const EFFORT_NAME: Record<string, [string, string, string]> = {
+  A1: ['Super iniciante', 'Iniciante', 'Praticante'], A2: ['Primeiros passos', 'Básico', 'Básico confiante'],
+  B1: ['Intermediário inicial', 'Intermediário', 'Intermediário fluente'], B2: ['Independente', 'Desenvolto', 'Quase avançado'],
+  C1: ['Avançado', 'Avançado fluente', 'Quase nativo'], C2: ['Proficiente', 'Refinado', 'Especialista'],
+}
+function effortRule(level: string, e: Effort) {
+  const name = (EFFORT_NAME[level] ?? EFFORT_NAME.B1)[e - 1]
+  if (e === 1) return `EFFORT inside level ${level}: "${name}" (the easiest setting of this level). Make it lighter than usual for ${level}: at most 1-2 very short sentences, the simplest words, one idea at a time, offer two options the learner can pick from ("Do you like tea or coffee?"), repeat key words, celebrate every attempt, recast mistakes very gently.`
+  if (e === 3) return `EFFORT inside level ${level}: "${name}" (the most challenging setting of this level). Stretch the learner a bit beyond comfort: slightly longer and richer replies, introduce one new useful word or expression per turn (and use it again later), ask open "why/how" follow-ups, ask for longer answers, correct important mistakes more explicitly (briefly say the better form).`
+  return `EFFORT inside level ${level}: "${name}" (the standard setting of this level). Keep the usual pace and vocabulary for ${level}.`
+}
+
+/** As 2 últimas conversas da pessoa (com qualquer tutor ou cena), resumidas: entram no contexto da próxima. */
+async function recentConversations(db: ReturnType<typeof adminClient>, userId: string): Promise<string> {
+  try {
+    const { data: sessions } = await db.from('conversation_sessions').select('id, kind, title, context, ended_at, started_at')
+      .eq('user_id', userId).eq('status', 'ended').order('started_at', { ascending: false }).limit(2)
+    const parts: string[] = []
+    for (const s of sessions ?? []) {
+      const { data: turns } = await db.from('conversation_turns').select('role, text').eq('session_id', s.id).order('id', { ascending: false }).limit(8)
+      if (!turns?.length) continue
+      const who = TUTORS[String(s.context?.characterId ?? '')] ?? 'a tutor'
+      const what = s.kind === 'scene' ? `role-play scene "${clean(s.title, 60)}"` : s.kind === 'reader' ? `reading tutor about the book "${clean(s.title, 60)}"` : 'free talk'
+      const lines = [...turns].reverse().map((t) => `${t.role === 'ai' ? 'Tutor' : 'Learner'}: ${clean(t.text, 110)}`).join(' / ')
+      parts.push(`- ${ago(String(s.ended_at ?? s.started_at))}, ${what} with ${who}: ${lines}`)
+    }
+    return parts.length ? `The learner's last ${parts.length} conversation(s) in the app (for continuity; refer to them only if natural, never recite):\n${parts.join('\n')}`.slice(0, 1800) : ''
+  } catch { return '' }
+}
+
 const SPEECH_WPS = 2.5 // palavras por segundo para estimar tempo de fala
 
 type LangMode = 'hybrid' | 'pt' | 'en'
@@ -262,7 +296,8 @@ async function handle(userId: string, b: Body) {
           if (!book) throw new ConvError('book_not_found', 404)
           title = book.title
         }
-        const { data: s, error } = await db.from('conversation_sessions').insert({ user_id: userId, kind, book_id: kind === 'reader' ? b.bookId : null, title, context: { characterId: tutorId(b.characterId) } }).select('id').single()
+        const recent = await recentConversations(db, userId)
+        const { data: s, error } = await db.from('conversation_sessions').insert({ user_id: userId, kind, book_id: kind === 'reader' ? b.bookId : null, title, context: { characterId: tutorId(b.characterId), effort: effortOf(b.effort), recent } }).select('id').single()
         if (error) throw new ConvError('session_failed', 500)
         // Assunto escolhido na tela: vira a primeira fala da tutora (ela continua a partir dele).
         let opening = kind === 'tutor' ? clean(b.opening, 300) : ''
@@ -282,7 +317,7 @@ async function handle(userId: string, b: Body) {
       }
       const { data: s, error } = await db.from('conversation_sessions').insert({
         user_id: userId, kind: 'scene', scene_key: scene.key, title: scene.title.pt, planned_seconds: minutes * 60,
-        context: { twist: scene.twists[Math.floor(Math.random() * scene.twists.length)] ?? '', level: sceneLevel(scene, b.level), sceneId: scene.id ?? null, characterId: tutorId(b.characterId) },
+        context: { twist: scene.twists[Math.floor(Math.random() * scene.twists.length)] ?? '', level: sceneLevel(scene, b.level), sceneId: scene.id ?? null, characterId: tutorId(b.characterId), effort: effortOf(b.effort), recent: await recentConversations(db, userId) },
       }).select('id').single()
       if (error) throw new ConvError('session_failed', 500)
       let reservation: string
@@ -313,6 +348,7 @@ async function handle(userId: string, b: Body) {
 
       let system: string
       let readerPage = 0
+      let levelNow = String(session.context?.level ?? 'B1')
       if (session.kind === 'scene') {
         if (elapsed > session.planned_seconds + 30) throw new ConvError('session_over', 409)
         const scene = session.context?.sceneId
@@ -321,6 +357,7 @@ async function handle(userId: string, b: Body) {
         system = scenePrompt(scene, String(session.context?.level ?? 'B1'), ageOf(ent.birth_date), String(session.context?.twist ?? ''), elapsed / session.planned_seconds, session.planned_seconds - elapsed, filler, b.tutorName ? tutorName : undefined)
       } else if (session.kind === 'tutor') {
         const prof = await learnerProfile(db, userId, b.level)
+        levelNow = prof.level
         system = tutorPrompt(prof.level, prof.text, langModeFor(b.langMode, prof.level), filler, tutorName)
       } else {
         const { data: book } = await db.from('books').select('title, author, description, pages').eq('id', session.book_id).eq('user_id', userId).maybeSingle()
@@ -331,10 +368,14 @@ async function handle(userId: string, b: Body) {
         // Só o que já foi lido: as páginas anteriores entram resumidas (cortadas), a atual inteira.
         const earlier = Array.from({ length: Math.min(at, 6) }, (_, k) => at - 6 + k).filter((i) => i >= 0).map((i) => `[p.${i + 1}] ${pageText(i).slice(0, 700)}`).join(' … ')
         const prof = await learnerProfile(db, userId, b.level)
+        levelNow = prof.level
         readerPage = at
         system = readerPrompt(prof.level, book, earlier, pageText(at), at + 1, langModeFor(b.langMode, prof.level), filler, tutorName)
       }
 
+      // Esforço escolhido dentro do nível, e as 2 últimas conversas (calculadas no início da sessão).
+      system += `\n\n${effortRule(levelNow, effortOf(b.effort ?? session.context?.effort))}`
+      if (typeof session.context?.recent === 'string' && session.context.recent) system += `\n\n${session.context.recent}`
       // Memória deste tutor sobre a pessoa (e o que sabe das conversas dela com os outros tutores).
       const mem = await memoryBlock(db, userId, tutorId(session.context?.characterId))
       if (mem.text) system += `\n\n${mem.text}\nIn your JSON also include "suggest_tutor": the name of another tutor to call, or null.`

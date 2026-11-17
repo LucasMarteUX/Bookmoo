@@ -418,6 +418,8 @@ export async function speak(text: string, opts: SpeakOptions = {}): Promise<Spea
       if (token !== currentToken) return { done: Promise.resolve(), source: 'kokoro' }
       console.warn('[tts] A voz baixada não respondeu:', e)
       opts.onFallback?.(String((e as Error)?.message ?? e))
+      // Nunca fica mudo: a voz do aparelho fala no lugar.
+      if (hasDeviceVoice()) return { ...(await speakOnDevice(trimmed, opts, token)), source: 'browser' }
       return { done: Promise.resolve(), source: 'kokoro' }
     }
   }
@@ -446,7 +448,7 @@ async function speakOnDevice(text: string, opts: SpeakOptions, token: number) {
   const h = await deviceSpeak(text, {
     rate: opts.rate ?? 1,
     pitch: opts.pitch ?? sp?.pitch ?? 1,
-    gender: opts.gender ?? sp?.gender ?? 'female',
+    gender: opts.gender ?? sp?.gender,
     onWord: opts.onWord,
     isStale: () => token !== currentToken,
   })

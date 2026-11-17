@@ -53,7 +53,7 @@ export type HeadBox = { x: number; top: number; width: number }
 // Enquadramento do palco por personagem e formato de tela: medido uma vez e guardado, para as próximas vezes já abrirem
 // no lugar certo (sem a personagem "pular" do meio para a base quando a página carrega).
 type Framing = { y: number; top: number }
-const FRAMING_KEY = 'bookmoo:stage-framing:v2'
+const FRAMING_KEY = 'bookmoo:stage-framing:v3'
 const framingCache: Record<string, Framing> = (() => { try { return JSON.parse(localStorage.getItem(FRAMING_KEY) || '{}') } catch { return {} } })()
 function saveFraming(key: string, f: Framing) {
   framingCache[key] = f
@@ -387,7 +387,17 @@ export function LivLivAvatar({ characterId, state, speakingText = '', onHead, si
     topFactor.current = (a.y * h - hairTop) / Math.max(1, a.scale * w)
     // Topo do cabelo logo abaixo da área do balão (o balão fica perto do cabeçalho).
     const target = Math.min(130, Math.max(100, h * 0.16))
-    q.view.y = baseY + (hairTop - target) / h
+    // O personagem está em pé: a base tem que encostar embaixo. Com o enquadramento mais aberto (Bia e Luck mostram mais do
+    // corpo) sobrava um vão embaixo no celular. Calcula pelo mesmo quadro já desenhado (sem depender de outro quadro, que
+    // numa aba em segundo plano não vem): onde a borda de baixo do quadro cai no desenho do modelo, e quanto subir o
+    // personagem para o cabelo ficar abaixo do balão abre de vão. Se abrir, desce o que faltar; o balão segue a cabeça.
+    const candidate = baseY + (hairTop - target) / h
+    const top = q.canvasToModel(w / 2, 0), bottom = q.canvasToModel(w / 2, h)
+    const modelH = (q as unknown as { info?: { size?: [number, number] } }).info?.size?.[1] ?? 1536
+    const perPx = (bottom[1] - top[1]) / Math.max(1, h) // px do modelo por px do quadro
+    const gap0 = perPx > 0 ? Math.max(-h, (bottom[1] - modelH) / perPx) : 0 // >0: o desenho acaba antes da borda
+    const gapFinal = gap0 + (candidate - baseY) * h
+    q.view.y = gapFinal > 0 ? candidate - gapFinal / h : candidate
     saveFraming(key, { y: q.view.y, top: topFactor.current })
     await frames(1)
   }

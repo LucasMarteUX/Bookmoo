@@ -90,3 +90,27 @@ O player oficial desenha as expressões como patches estáticos. As camadas do r
 - **Espera:** convites a cada 10,5 s; mão no queixo só em confusa, triste, brava e tímida (`GestureDirector.wait`).
 - **Voz:** tom alterado gera o áudio em ritmo natural e toca mais rápido; todo áudio do Kokoro ganha 120 ms de silêncio no início (worker). Yuri: tom 1,2, vozes preferidas Puck, Fable, Michael.
 - Estudo de movimento (postura por emoção, gesto e momento; inclinação ao contrário do mouse; base fixa com `basePerDeg` medido por personagem): [MOVIMENTO-PERSONAGENS.md](MOVIMENTO-PERSONAGENS.md).
+- Voz e personagens no celular (por que caía, voz do aparelho, pacote leve): [VOZ-CELULAR.md](VOZ-CELULAR.md).
+
+## Espera, esforço e contexto da IA (17/11/2026)
+
+- **Frases de espera com personalidade** (`src/lib/tutorVoices.ts`): cada tutor tem o próprio banco (16 frases) e o próprio
+  jeito de falar dos livros e da última conversa. Bia é calorosa e calma; Luck descontraído e brincalhão; Yuno animada e
+  intensa; Yuri tranquilo, com linguagem de jogo. Mesmo assunto, estrutura diferente.
+- **Personalizadas** (`src/lib/waitingLines.ts`): primeiro até 4 frases sobre a vida real da pessoa: o livro que está lendo,
+  o último que terminou, um parado na estante, o gênero preferido (categorias da galeria) e a memória do tutor (assunto,
+  acerto, ponto a melhorar, conversa com outro tutor, dias sem conversar). Depois o banco do tutor, sorteado sem repetir
+  entre sessões (saco salvo no aparelho, separado por tutor).
+- **Entrada em Conversar:** aparece o último tutor com quem a pessoa conversou; parada (sem começar nem tocar), depois de
+  1 minuto chama outro tutor.
+- **Esforço dentro do nível** (`src/lib/effort.ts`, Ajustes da conversa): três degraus com nomes próprios por nível
+  (A1: Super iniciante, Iniciante, Praticante; A2: Primeiros passos, Básico, Básico confiante; B1: Intermediário inicial,
+  Intermediário, Intermediário fluente; B2: Independente, Desenvolto, Quase avançado; C1: Avançado, Avançado fluente, Quase
+  nativo; C2: Proficiente, Refinado, Especialista). Vai em toda chamada (`effort`) e vira regra no prompt de tutor, leitura e
+  cenas (mais leve: frases curtíssimas e escolhas; desafio: palavra nova por turno, perguntas abertas, correção explícita).
+- **Últimas 2 conversas:** calculadas ao iniciar a sessão (`recentConversations` na função `conversation`, guardadas em
+  `context.recent`) e enviadas no contexto de cada turno, junto com a memória do tutor e o assunto escolhido.
+- **Enquadramento:** a base do personagem sempre encosta embaixo (calculado pelo próprio quadro com `canvasToModel`, sem
+  depender de outro quadro); o balão acompanha a cabeça.
+- **App instalável:** as texturas dos personagens saíram do pré-download do service worker (eram ~41 MB); ficam em cache
+  só quando usadas. Pré-download caiu de 49 MB para 7,5 MB.

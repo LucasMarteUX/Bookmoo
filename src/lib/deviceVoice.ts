@@ -10,6 +10,23 @@ export type Gender = 'female' | 'male'
 
 const synth = () => (typeof window !== 'undefined' ? window.speechSynthesis : undefined)
 
+// Voz escolhida para a leitura (quando não há personagem na tela): feminina ou masculina. Fica salva no aparelho.
+const PREF_KEY = 'bookmoo.deviceVoice.v1'
+const prefListeners = new Set<() => void>()
+export function getDeviceVoiceGender(): Gender {
+  try { return localStorage.getItem(PREF_KEY) === 'male' ? 'male' : 'female' } catch { return 'female' }
+}
+export function setDeviceVoiceGender(g: Gender) {
+  try { localStorage.setItem(PREF_KEY, g) } catch { /* sem armazenamento */ }
+  prefListeners.forEach(f => f())
+}
+export function subscribeDeviceVoice(fn: () => void) { prefListeners.add(fn); return () => { prefListeners.delete(fn) } }
+/** Nome da voz do aparelho que fala para este gênero (para mostrar na tela), ou null. */
+export async function deviceVoiceName(g: Gender): Promise<string | null> { await voicesReady(); return pick(g).voice?.name ?? null }
+
+// O Chrome perde a referência da fala no meio (coletor de lixo) e o fim nunca chega: guardamos a fala atual aqui.
+let currentUtterance: SpeechSynthesisUtterance | null = null
+
 /** O aparelho fala por conta própria? */
 export function hasDeviceVoice(): boolean {
   return !!synth() && typeof window.SpeechSynthesisUtterance !== 'undefined'
@@ -74,13 +91,15 @@ export function installDeviceVoiceUnlock() {
   const unlock = () => {
     if (unlocked) return
     unlocked = true
-    try { const u = new SpeechSynthesisUtterance(' '); u.volume = 0; synth()!.speak(u) } catch { /* sem voz */ }
+    try { const u = new SpeechSynthesisUtterance('.'); u.volume = 0; u.rate = 2; synth()!.speak(u) } catch { /* sem voz */ }
     void voicesReady()
     window.removeEventListener('pointerdown', unlock, true)
     window.removeEventListener('keydown', unlock, true)
   }
   window.addEventListener('pointerdown', unlock, true)
   window.addEventListener('keydown', unlock, true)
+  // Alguns Androids pausam a voz quando a aba volta do segundo plano: retoma.
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) synth()?.resume() })
 }
 
 /** Fala com a voz do aparelho. Destaca palavra a palavra (onWord) e alimenta a boca do personagem (relógio da fala). */
@@ -89,7 +108,7 @@ export async function deviceSpeak(text: string, o: { rate?: number; pitch?: numb
   if (!s || !text.trim()) return { done: Promise.resolve() }
   await voicesReady()
   if (o.isStale?.()) return { done: Promise.resolve() }
-  const gender = o.gender ?? 'female'
+  const gender = o.gender ?? getDeviceVoiceGender()
   const { voice, matched } = pick(gender)
   const u = new SpeechSynthesisUtterance(text)
   u.lang = voice?.lang ?? 'en-US'
@@ -123,7 +142,12 @@ export async function deviceSpeak(text: string, o: { rate?: number; pitch?: numb
     u.onend = finish
     u.onerror = finish
   })
-  s.cancel()
+  currentUtterance = u
+  // Cancelar e falar no mesmo instante faz o Chrome do Android engolir a fala nova: só cancela se havia algo, e espera um pouco.
+  if (s.speaking || s.pending) { s.cancel(); await new Promise(r => setTimeout(r, 80)) }
+  if (o.isStale?.()) { currentUtterance = null; return { done: Promise.resolve() } }
+  s.resume() // iOS às vezes fica "pausado" depois de um cancel
   s.speak(u)
+  void done.then(() => { if (currentUtterance === u) currentUtterance = null })
   return { done }
 }

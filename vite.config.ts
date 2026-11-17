@@ -42,12 +42,21 @@ export default defineConfig(({mode}) => {
         },
         workbox: {
           globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
+          // Personagens fora do pré-download: eram ~41 MB de PNG baixados de uma vez na primeira visita (pesado no celular).
+          // O app carrega só o pacote WebP do personagem aberto, guardado no cache quando é usado (regra abaixo).
+          globIgnores: ['characters/**', 'content/**'],
           // Chunks gigantes (WASM do TTS) ficam fora do precache; vão para o cache em tempo de uso.
           maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
           navigateFallback: '/index.html',
           navigateFallbackDenylist: [/^\/api\//],
           cleanupOutdatedCaches: true,
           runtimeCaching: [
+            {
+              // Pacote do personagem (model.json e texturas WebP): imutável por versão (?v=), baixa uma vez.
+              urlPattern: ({url}) => url.origin === self.location.origin && url.pathname.startsWith('/characters/'),
+              handler: 'CacheFirst',
+              options: {cacheName: 'characters', expiration: {maxEntries: 400, maxAgeSeconds: 60 * 60 * 24 * 60}, cacheableResponse: {statuses: [0, 200]}},
+            },
             {
               urlPattern: ({url}) => url.origin === 'https://fonts.googleapis.com' || url.origin === 'https://fonts.gstatic.com',
               handler: 'CacheFirst',

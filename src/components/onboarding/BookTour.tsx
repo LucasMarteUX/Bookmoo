@@ -3,6 +3,7 @@
 // esconder marcações, música, vozes, estilo, tamanho). Aparece uma vez por pessoa e pode ser revisto em Configurações.
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
+import { markTourSeen, tourSeen } from '@/lib/tourSeen'
 import { useLanguage } from '@/store/useLanguage'
 import { TourOverlay, useTourRect, type TourStep } from './GuidedTour'
 
@@ -29,7 +30,6 @@ const STEPS: TourStep[] = [
   { pt: ['Tudo pronto', 'Comece tocando numa palavra. Você pode rever este tutorial em Configurações, a qualquer momento.'], en: ['All set', 'Start by tapping a word. You can replay this tutorial any time in Settings.'] },
 ]
 
-const keyFor = (id?: string) => `bookmoo.booktour.v1.${id ?? 'anon'}`
 export const restartBookTour = () => window.dispatchEvent(new Event('bookmoo:booktour'))
 
 export function BookTour({ ready }: { ready: boolean }) {
@@ -42,8 +42,8 @@ export function BookTour({ ready }: { ready: boolean }) {
 
   useEffect(() => {
     if (!user?.id || !ready) return
-    try { if (localStorage.getItem(keyFor(user.id))) return } catch { return }
-    const t = window.setTimeout(() => setStep(0), 1600)
+    if (tourSeen('book', user)) return
+    const t = window.setTimeout(() => { markTourSeen('book', user); setStep(0) }, 1600)
     return () => window.clearTimeout(t)
   }, [user?.id, ready])
   useEffect(() => {
@@ -53,9 +53,9 @@ export function BookTour({ ready }: { ready: boolean }) {
   }, [])
 
   const close = useCallback(() => {
-    try { localStorage.setItem(keyFor(user?.id), String(Date.now())) } catch { /* sem armazenamento */ }
+    markTourSeen('book', user)
     setStep(null)
-  }, [user?.id])
+  }, [user])
 
   // Passos que mostram algo aberto (ex.: painel da tutora): abre ao entrar e fecha ao sair.
   useEffect(() => {
