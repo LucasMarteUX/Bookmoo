@@ -43,6 +43,7 @@ export type ExamState = { session: SessionInfo; items: ExamItem[]; responses: Re
 export type HistoryRow = { id: string; status: 'final' | 'inconclusive'; overall: number | null; cefr: string | null; created_at: string; bands: Partial<Record<Section, number | null>> }
 export type Overview = {
   premium: boolean; available: boolean; nextAvailableAt: string | null; minPlanRank: number
+  monthUsed: number; monthLimit: number; monthBest: number | null
   active: { id: string; section: string; module: string; started_at: string; status: string } | null
   history: HistoryRow[]
   blueprint: { version: string; sections: { id: Section; seconds: number }[] }
@@ -169,7 +170,7 @@ export function profErrorText(e: unknown): string {
   const map: Record<string, string> = {
     plan_required: 'A prova de proficiência faz parte do plano Pro.',
     not_available: 'A prova está em preparação e ainda não está disponível. Tente de novo em breve.',
-    cooldown: `Você poderá fazer uma nova prova a partir de ${at}.`,
+    cooldown: `Você já usou as duas tentativas deste mês. A próxima fica disponível em ${at}.`,
     consent_required: 'É preciso concordar com a gravação da voz para fazer a prova.',
     checks_required: 'Teste o áudio e o microfone antes de começar.',
     time_up: 'O tempo desta parte acabou. Suas respostas salvas foram mantidas.',

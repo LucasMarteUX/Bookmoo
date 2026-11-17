@@ -92,7 +92,5 @@ export const totalPoints = (section: Section, path: Module[]) =>
 
 /** Planos que dão acesso (posição mínima na lista free → essencial → plus → pro). */
 export const DEFAULT_MIN_PLAN_RANK = 3
-/** Intervalo entre provas concluídas. */
-export const RETAKE_DAYS = 7
 /** Gravações de fala são apagadas depois deste prazo (LGPD: minimização). */
 export const RECORDING_RETENTION_DAYS = 30

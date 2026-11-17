@@ -8,7 +8,7 @@ import { AiError } from '../_shared/ai.ts'
 import { entitlements, measured, type Entitlements } from '../_shared/billing.ts'
 import {
   BLUEPRINT_VERSION, DEFAULT_MIN_PLAN_RANK, DIFFICULTY_MODEL, GRACE_MS, MAX_PLAYS, MODULES,
-  RETAKE_DAYS, ROUTER_TIME_SHARE, RUBRIC_VERSION, SCORING_VERSION, SECTION_SECONDS, SECTIONS, TASK_SECONDS, TASKS,
+  ROUTER_TIME_SHARE, RUBRIC_VERSION, SCORING_VERSION, SECTION_SECONDS, SECTIONS, TASK_SECONDS, TASKS,
   type Module, type Section, type Stage, type TaskType,
 } from '../_shared/proficiency/blueprint.ts'
 import {
@@ -26,6 +26,14 @@ type Body = Record<string, unknown> & { action?: string }
 
 const DAY = 86_400_000
 const INTRO_MS = 5 * 60_000
+const MONTHLY_ATTEMPTS = 2
+/** Início do mês atual e do próximo, no horário de Brasília (UTC-3). */
+function monthWindow(at = Date.now()) {
+  const br = new Date(at - 3 * 3_600_000)
+  const start = new Date(Date.UTC(br.getUTCFullYear(), br.getUTCMonth(), 1, 3))
+  const next = new Date(Date.UTC(br.getUTCFullYear(), br.getUTCMonth() + 1, 1, 3))
+  return { start, next }
+}
 const AUDIO_BUCKET = 'proficiency-audio'
 const REC_BUCKET = 'proficiency-recordings'
 const ADAPTIVE = (s: Section) => s === 'reading' || s === 'listening'
@@ -445,7 +453,11 @@ async function scoreInner(db: Db, s: SessionRow) {
   await db.from('prof_sessions').update({ status: complete ? 'scored' : 'inconclusive', scored_at: nowIso(), error: null }).eq('id', s.id)
   if (complete && overall) {
     // Selo CEFR no perfil (o nível da pessoa no app continua com os nomes próprios; o selo vem só da prova).
-    await db.from('profiles').update({ proficiency_cefr: cefrOf(overall), proficiency_band: overall, proficiency_at: nowIso() }).eq('user_id', s.user_id)
+    const { data: prof } = await db.from('profiles').select('proficiency_band, proficiency_at').eq('user_id', s.user_id).maybeSingle()
+    const sameMonth = prof?.proficiency_at && new Date(prof.proficiency_at) >= monthWindow().start
+    if (!sameMonth || Number(prof?.proficiency_band ?? 0) <= overall) {
+      await db.from('profiles').update({ proficiency_cefr: cefrOf(overall), proficiency_band: overall, proficiency_at: nowIso() }).eq('user_id', s.user_id)
+    }
   }
   await rememberProficiency(db, s, overall, sections, report)
 }
@@ -480,10 +492,13 @@ async function eligibility(db: Db, userId: string, ent: Entitlements) {
   const min = await minPlanRank(db)
   const premium = ent.is_admin || ent.plan_rank >= min
   const version = await publishedVersion(db)
-  const { data: last } = await db.from('prof_sessions').select('submitted_at').eq('user_id', userId).in('status', ['scoring', 'scored', 'inconclusive']).order('submitted_at', { ascending: false }).limit(1).maybeSingle()
-  const nextAt = last?.submitted_at ? new Date(new Date(last.submitted_at).getTime() + RETAKE_DAYS * DAY) : null
-  const coolingDown = !ent.is_admin && nextAt && nextAt.getTime() > Date.now()
-  return { premium, version, minRank: min, nextAvailableAt: coolingDown ? nextAt!.toISOString() : null }
+  // Duas tentativas por mês (mês do calendário, horário de Brasília). Toda prova iniciada conta, inclusive a abandonada:
+  // quem viu as questões já usou a tentativa. O selo fica com a maior nota do mês.
+  const { start, next } = monthWindow()
+  const { count } = await db.from('prof_sessions').select('id', { count: 'exact', head: true }).eq('user_id', userId).gte('started_at', start.toISOString())
+  const used = count ?? 0
+  const full = !ent.is_admin && used >= MONTHLY_ATTEMPTS
+  return { premium, version, minRank: min, monthUsed: used, monthLimit: MONTHLY_ATTEMPTS, nextAvailableAt: full ? next.toISOString() : null }
 }
 
 async function handle(userId: string, b: Body) {
@@ -500,6 +515,8 @@ async function handle(userId: string, b: Body) {
       const { data: results } = await db.from('prof_results').select('session_id, status, overall, cefr, sections, created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(20)
       return {
         premium: e.premium, available: !!e.version, nextAvailableAt: e.nextAvailableAt, minPlanRank: e.minRank,
+        monthUsed: e.monthUsed, monthLimit: e.monthLimit,
+        monthBest: (results ?? []).filter(r => r.status === 'final' && new Date(r.created_at) >= monthWindow().start).reduce<number | null>((m, r) => Math.max(m ?? 0, Number(r.overall) || 0), null),
         active: active ?? null,
         history: (results ?? []).map(r => ({ id: r.session_id, status: r.status, overall: r.overall, cefr: r.cefr, created_at: r.created_at, bands: Object.fromEntries(Object.entries((r.sections ?? {}) as Record<string, { band: number | null }>).map(([k, v]) => [k, v.band])) })),
         blueprint: { version: BLUEPRINT_VERSION, sections: SECTIONS.map(x => ({ id: x, seconds: SECTION_SECONDS[x] })) },

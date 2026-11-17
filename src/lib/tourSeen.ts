@@ -10,7 +10,13 @@ const localKey = (name: TourName, id?: string) => (name === 'welcome' ? `bookmoo
 
 export function tourSeen(name: TourName, user: User | null | undefined): boolean {
   if ((user?.user_metadata as Record<string, unknown> | undefined)?.[`tour_${name}`]) return true
-  try { return !!localStorage.getItem(localKey(name, user?.id)) } catch { return false }
+  let local = false
+  try { local = !!localStorage.getItem(localKey(name, user?.id)) } catch { /* sem armazenamento */ }
+  // Visto só neste aparelho (antes de a conta guardar): copia para a conta, para não voltar em outro navegador.
+  // Conta com mais de 2 dias de uso já passou pelos tutoriais (antes eles ficavam só no aparelho): não abre sozinho de novo.
+  const veteran = !!user?.created_at && Date.now() - new Date(user.created_at).getTime() > 2 * 86_400_000
+  if ((local || veteran) && user && supabase) void supabase.auth.updateUser({ data: { [`tour_${name}`]: Date.now() } }).catch(() => {})
+  return local || veteran
 }
 
 /** Marca como visto (já ao abrir: sair no meio, trocar de página ou fechar o app não faz ele voltar). */

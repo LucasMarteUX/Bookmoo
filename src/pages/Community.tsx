@@ -612,7 +612,7 @@ export function NotificationsPage() {
   const pending = requests ? requests.followIn.length + requests.friendIn.length + requests.friendOut.length : 0
 
   return (
-    <div className="max-w-2xl mx-auto space-y-5">
+    <div className="max-w-6xl mx-auto space-y-5">
       <header className="flex items-end justify-between gap-3">
         <h1 className="font-display text-[32px] md:text-[40px] leading-[1.05]">{pt ? 'Notificações' : 'Notifications'}</h1>
         {unread && <button type="button" onClick={() => { void markAll() }} className="h-9 px-3.5 inline-flex items-center gap-1.5 rounded-full border text-[13px]" style={{ borderColor: 'var(--theme-border)' }}><Check className="w-3.5 h-3.5" />{pt ? 'Marcar todas como lidas' : 'Mark all as read'}</button>}

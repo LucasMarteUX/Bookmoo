@@ -213,7 +213,8 @@ Tabelas (todas com RLS, sem escrita pelo cliente):
 - Admin opera pela função (service role) depois de `is_admin`.
 - Buckets privados `proficiency-audio` e `proficiency-recordings`, sem políticas para o cliente: só URLs assinadas e curtas.
 - O caminho de cada gravação é conferido (`{user}/{sessão}/{item}-{parte}.ext`).
-- Limite: 240 chamadas por hora por pessoa (`rateLimit`), uma sessão ativa por pessoa (índice único), uma prova a cada 7 dias
+- Limite: 240 chamadas por minuto por pessoa (`rateLimit`), uma sessão ativa por pessoa (índice único), duas tentativas por mês do calendário no horário de Brasília (toda prova iniciada conta, inclusive abandonada; o selo fica com
+  a maior nota do mês)
   (admin sem limite).
 - Acesso: `app_settings.proficiency_min_plan_rank` (padrão 3 = Pro), editável no admin.
 

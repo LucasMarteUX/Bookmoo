@@ -97,7 +97,7 @@ export function InsightsPage() {
   if (open) return <StoryReader story={open} pt={pt} onClose={() => setOpen(null)} />
 
   return (
-    <div className="max-w-3xl mx-auto space-y-8 pb-10">
+    <div className="max-w-6xl mx-auto space-y-8 pb-10">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="font-display text-[32px] md:text-[42px] leading-tight">Raio-X</h1>
@@ -241,7 +241,7 @@ function StoryReader({ story, pt, onClose }: { story: ReinforcementStory; pt: bo
   useEffect(() => () => stopSpeaking(), [])
   const score = story.quiz.filter((q, i) => answers[i] === q.answer).length
   return (
-    <div className="max-w-2xl mx-auto space-y-6 pb-10">
+    <div className="max-w-4xl mx-auto space-y-6 pb-10">
       <button type="button" onClick={onClose} className="text-[13.5px]" style={muted}>← Raio-X</button>
       <div className="flex items-start justify-between gap-3">
         <h1 className="font-display text-[32px] leading-tight">{story.title}</h1>

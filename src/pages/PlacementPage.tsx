@@ -56,7 +56,7 @@ export function PlacementPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-8">
+    <div className="max-w-6xl mx-auto space-y-8">
       <header className="space-y-3">
         <div className="flex items-center gap-2.5 text-[12.5px]" style={muted}>
           <GraduationCap className="w-4 h-4" />

@@ -73,7 +73,7 @@ function ReportView({ res, id }: { res: Result; id: string }) {
   const code = `EPT-${(res.session_id || id).replace(/-/g, '').slice(0, 8).toUpperCase()}`
 
   return (
-    <div className="prof-report max-w-5xl mx-auto pb-16">
+    <div className="prof-report max-w-6xl mx-auto pb-16">
       <div className="flex items-center justify-between gap-3 print:hidden">
         <Link to="/prova" className="inline-flex items-center gap-1.5 text-[13.5px] font-medium whitespace-nowrap" style={muted}><ArrowLeft className="w-4 h-4" />Voltar à prova</Link>
         <Button variant="outline" onClick={() => window.print()}><Printer className="w-4 h-4" /><span className="sm:hidden">PDF</span><span className="hidden sm:inline">Imprimir ou salvar PDF</span></Button>
@@ -172,7 +172,7 @@ function ReportView({ res, id }: { res: Result; id: string }) {
 
 function ReportSkeleton() {
   return (
-    <div className="max-w-5xl mx-auto space-y-4">
+    <div className="max-w-6xl mx-auto space-y-4">
       <div className="h-10 w-48 rounded-lg animate-pulse" style={{ backgroundColor: 'var(--theme-bg-secondary)' }} />
       <div className="h-72 rounded-[28px] animate-pulse" style={{ backgroundColor: 'var(--theme-bg-secondary)' }} />
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">{[0, 1, 2, 3].map(i => <div key={i} className="h-36 rounded-2xl animate-pulse" style={{ backgroundColor: 'var(--theme-bg-secondary)' }} />)}</div>
