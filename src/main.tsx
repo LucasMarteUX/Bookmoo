@@ -5,9 +5,13 @@ import './index.css';
 import {setupPwa} from './lib/pwa';
 import {setupNative} from './lib/native';
 import {installDeviceVoiceUnlock} from './lib/deviceVoice';
+import {ensureKokoroReady} from './lib/kokoro/engine';
 
 // iPhone: a voz do aparelho só fala depois do primeiro toque; este toque libera.
 installDeviceVoiceUnlock();
+
+// Voz dos personagens já vem instalada no computador: baixa em segundo plano depois que a página abre.
+window.setTimeout(() => { void ensureKokoroReady(); }, 4000);
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

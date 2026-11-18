@@ -36,10 +36,10 @@ const WOMAN: SpeakerVoice = { gender: 'female', pitch: 1 }
 const MAN: SpeakerVoice = { gender: 'male', pitch: 1 }
 // Yuno: voz feminina um pouco mais fina e jovem que a da Bia.
 // Yuno: menina adolescente. Voz feminina mais leve (Bella/Nicole) e tom bem mais alto: com 1,14 soava como mulher adulta.
-const TEEN: SpeakerVoice = { gender: 'female', pitch: 1.05, prefer: ['af_sky', 'af_nova', 'af_kore', 'af_bella'] }
+const TEEN: SpeakerVoice = { gender: 'female', pitch: 1.12, prefer: ['af_sky', 'af_nova', 'af_kore', 'af_bella'] }
 // Yuri: voz masculina jovem e mais fina: as vozes mais leves primeiro (se estiverem instaladas), com mais tom que a Yuno.
 // Yuri: menino adolescente. Com 1,2 a voz masculina ainda soava grossa; vai ao máximo do Kokoro (1,35) com a voz mais leve.
-const TEEN_BOY: SpeakerVoice = { gender: 'male', pitch: 1.06, prefer: ['am_liam', 'am_puck', 'am_echo'] }
+const TEEN_BOY: SpeakerVoice = { gender: 'male', pitch: 1.18, prefer: ['am_liam', 'am_puck', 'am_echo'] }
 
 export const CHARACTERS: Character[] = [
   { id: 'bookmoo-mulher', name: 'Bia', pt: 'Mulher', en: 'Woman', voice: WOMAN, folder: 'mulher', zoomK: 0.9, gestures: true, appModel: true, baseAngleZ: 0 },

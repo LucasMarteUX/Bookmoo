@@ -3,7 +3,7 @@
 // 2) Toca com HTMLAudioElement (um único player global: nunca dois áudios ao mesmo tempo)
 // 3) Se o serviço TTS falhar, cai para a voz nativa do navegador (fallback temporário).
 import { supabase } from '@/lib/supabase'
-import { activeKokoroVoice, kokoroAudioUrl, type WordTiming } from '@/lib/kokoro/engine'
+import { activeKokoroVoice, ensureKokoroReady, kokoroAudioUrl, type WordTiming } from '@/lib/kokoro/engine'
 import { askVoiceOnce } from '@/lib/voiceGate'
 import { deviceSpeak, hasDeviceVoice, isMobileDevice } from '@/lib/deviceVoice'
 import { getSpeakerVoice, resolveSpeakerVoice } from '@/lib/speakerVoice'
@@ -407,6 +407,13 @@ export async function speak(text: string, opts: SpeakOptions = {}): Promise<Spea
   // chamou não passou (antes só a conversa passava, e no resto a Yuno e o Yuri falavam com a voz adulta).
   const sp = getSpeakerVoice()
   if (sp && opts.pitch == null) opts = { ...opts, pitch: sp.pitch, gender: opts.gender ?? sp.gender }
+  // Personagem no computador: instala a voz na hora se ainda não estiver (nunca cai na voz do navegador).
+  if (sp && !activeKokoroVoice() && !isMobileDevice()) {
+    opts.onLoading?.(true)
+    await ensureKokoroReady()
+    opts.onLoading?.(false)
+    if (token !== currentToken) return { done: Promise.resolve(), source: 'kokoro' }
+  }
   const spVoice = sp && !opts.kokoroVoice ? resolveSpeakerVoice(sp) : undefined
   const kokoroVoice = activeKokoroVoice() ? (opts.kokoroVoice ?? spVoice ?? activeKokoroVoice()) : null
   if (lang.startsWith('en') && !kokoroVoice && !isTtsConfigured()) {
@@ -435,7 +442,14 @@ export async function speak(text: string, opts: SpeakOptions = {}): Promise<Spea
       if (token !== currentToken) return { done: Promise.resolve(), source: 'kokoro' }
       console.warn('[tts] A voz baixada não respondeu:', e)
       opts.onFallback?.(String((e as Error)?.message ?? e))
-      // Nunca fica mudo: a voz do aparelho fala no lugar.
+      // Nunca fica mudo: a voz do aparelho fala no lugar (menos para personagem no computador, que tenta de novo).
+      if (sp && !isMobileDevice()) {
+        try {
+          const again = await kokoroAudioUrl(trimmed, kokoroVoice, 1, 'high')
+          if (token === currentToken) return { ...(await playUrl(again.url, opts.rate ?? 1, trimmed, opts.onWord)), source: 'kokoro' }
+        } catch { /* sem voz: fica em silêncio */ }
+        return { done: Promise.resolve(), source: 'kokoro' }
+      }
       if (hasDeviceVoice()) return { ...(await speakOnDevice(trimmed, opts, token)), source: 'browser' }
       return { done: Promise.resolve(), source: 'kokoro' }
     }

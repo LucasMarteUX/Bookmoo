@@ -111,6 +111,15 @@ export function warmUpKokoro() {
   send({ type: 'load' }).then(() => {}, () => {})
 }
 
+let installing: Promise<unknown> | null = null
+/** Deixa a voz pronta sem pedir nada (os personagens nunca falam com a voz do navegador). */
+export function ensureKokoroReady(): Promise<boolean> {
+  if (!isKokoroSupported()) return Promise.resolve(false)
+  if (activeKokoroVoice()) return Promise.resolve(true)
+  installing ??= downloadKokoroVoice(DEFAULT_KOKORO_VOICE).finally(() => { installing = null })
+  return installing.then(() => !!activeKokoroVoice(), () => false)
+}
+
 /** Descarta pré-carregamentos pendentes (ex.: ao parar ou trocar a velocidade). */
 export function cancelKokoroPrefetch() {
   worker?.postMessage({ type: 'cancelLow' })
