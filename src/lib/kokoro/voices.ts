@@ -15,6 +15,8 @@ export const KOKORO_VOICES: KokoroVoice[] = [
   { id: 'af_bella', name: 'Bella', accent: 'US', gender: 'female', grade: 'A-' },
   { id: 'af_nicole', name: 'Nicole', accent: 'US', gender: 'female', grade: 'B-' },
   { id: 'af_aoede', name: 'Aoede', accent: 'US', gender: 'female', grade: 'C+' },
+  { id: 'af_sky', name: 'Sky', accent: 'US', gender: 'female', grade: 'C-' },
+  { id: 'af_nova', name: 'Nova', accent: 'US', gender: 'female', grade: 'C' },
   { id: 'af_kore', name: 'Kore', accent: 'US', gender: 'female', grade: 'C+' },
   { id: 'af_sarah', name: 'Sarah', accent: 'US', gender: 'female', grade: 'C+' },
   { id: 'am_michael', name: 'Michael', accent: 'US', gender: 'male', grade: 'C+' },

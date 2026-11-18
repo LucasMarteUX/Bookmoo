@@ -18,6 +18,8 @@ export function getSpeakerVoice() { return current }
 
 /** Voz Kokoro instalada para o personagem: a preferida, senão a primeira do gênero, senão nenhuma (usa a ativa). */
 export function resolveSpeakerVoice(v: SpeakerVoice): string | undefined {
-  const installed = getKokoroState().voices
-  return v.prefer?.find(id => installed.includes(id)) ?? installed.find(id => getKokoroVoice(id)?.gender === v.gender)
+  const st = getKokoroState()
+  const installed = st.voices
+  // O pacote do modelo já traz todas as vozes: com ele no aparelho, a voz do personagem não depende de download.
+  return v.prefer?.find(id => installed.includes(id) || (st.modelReady && !!getKokoroVoice(id))) ?? installed.find(id => getKokoroVoice(id)?.gender === v.gender)
 }
