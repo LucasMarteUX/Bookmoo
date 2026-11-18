@@ -105,8 +105,8 @@ export function ScoringWait({ sessionId, onReady, compact = false }: { sessionId
             {/* O palco do personagem reserva espaço em cima para o balão dele; aqui o balão é nosso, então a Bia é ampliada
                 a partir da base para preencher a área. */}
             <div className="absolute inset-0">
-              <div className="absolute inset-0 origin-bottom" style={{ transform: 'scale(1.35)' }}>
-                <CharacterAvatar stage voice characterId={tutorId} kind="woman" state={talking ? 'speaking' : 'thinking'} followPointer />
+              <div className="absolute inset-0 origin-bottom" style={{ transform: 'scale(1.22)' }}>
+                <CharacterAvatar stage voice characterId={tutorId} kind="woman" state={talking ? 'speaking' : 'idle'} followPointer />
               </div>
             </div>
             <div className="absolute z-10 left-4 right-4 bottom-4 rounded-2xl px-4 py-3 border shadow-[0_2px_12px_rgba(0,0,0,0.06)]" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-card-bg)' }}>
