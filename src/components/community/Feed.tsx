@@ -28,8 +28,8 @@ const AUDIENCES: Audience[] = ['public', 'followers', 'friends']
 function AuthorLine({ author, at, pt, postId, edited, audience, action }: { author: Author; at: string; pt: boolean; postId?: string; edited?: boolean; audience?: Audience; action?: ReactNode }) {
   return (
     <div className="min-w-0 flex-1 leading-tight">
-      <p className="text-[14.5px]">
-        <Link to={`/u/${author.handle}`} className="font-medium hover:underline">{author.name || author.handle}</Link>
+      <p className="text-[15px] truncate">
+        <Link to={`/u/${author.handle}`} className="font-semibold hover:underline">{author.name || author.handle}</Link>
         {action && <span style={muted}> {action}</span>}
       </p>
       <p className="mt-0.5 text-[12.5px] truncate flex items-center gap-1" style={muted}>
@@ -61,15 +61,15 @@ function BookChip({ item, covers, pt }: { item: FeedItem; covers: Covers; pt: bo
   if (!item.book) return null
   const body = (
     <>
-      <BookCover title={item.book.title} coverData={cover} className="w-11 shrink-0 rounded-md [&_span]:text-[8px] [&_span]:px-1" />
+      <BookCover title={item.book.title} coverData={cover} className="w-14 shrink-0 rounded-md shadow-sm [&_span]:text-[8px] [&_span]:px-1" />
       <span className="min-w-0">
-        <span className="block text-[13.5px] font-medium leading-snug line-clamp-2">{item.book.title}</span>
-        {item.book.author && <span className="block text-[12px] truncate" style={muted}>{item.book.author}</span>}
-        {item.catalogId && <span className="mt-0.5 inline-flex items-center gap-1 text-[12px] font-medium"><BookOpen className="w-3 h-3" />{pt ? 'Ver na galeria' : 'See in gallery'}</span>}
+        <span className="block text-[15px] font-semibold leading-snug line-clamp-2">{item.book.title}</span>
+        {item.book.author && <span className="block text-[13px] truncate" style={muted}>{item.book.author}</span>}
+        {item.catalogId && <span className="mt-1.5 inline-flex items-center gap-1 text-[12.5px] font-medium"><BookOpen className="w-3 h-3" />{pt ? 'Ver na galeria' : 'See in gallery'}</span>}
       </span>
     </>
   )
-  const className = 'mt-3 flex items-center gap-3 rounded-2xl border p-2.5 pr-4 max-w-sm'
+  const className = 'mt-3.5 flex items-center gap-4 rounded-2xl border p-3 pr-5'
   return item.catalogId
     ? <Link to={`/gallery/${item.catalogId}`} className={`${className} transition-colors hover:bg-[var(--ui-hover)]`} style={{ borderColor: 'var(--theme-border)' }}>{body}</Link>
     : <div className={className} style={{ borderColor: 'var(--theme-border)' }}>{body}</div>
@@ -168,7 +168,7 @@ export function Composer({ me, books, pt, onPosted }: { me: ProfileView | null; 
             className="w-full resize-none bg-transparent outline-none text-[16px] leading-relaxed pt-2 placeholder:text-[var(--theme-text-secondary)]" />
           {image && (
             <div className="relative mt-2 rounded-2xl overflow-hidden border" style={{ borderColor: 'var(--theme-border)' }}>
-              <img src={image.url} alt="" className="block w-full max-h-[420px] object-cover" />
+              <img src={image.url} alt="" className="block mx-auto w-auto max-w-full h-auto max-h-[520px] object-contain" />
               <button type="button" onClick={() => setImage(null)} aria-label={pt ? 'Tirar foto' : 'Remove photo'}
                 className="absolute right-2.5 top-2.5 w-8 h-8 grid place-items-center rounded-full backdrop-blur-md" style={{ backgroundColor: 'color-mix(in srgb, var(--theme-card-bg) 80%, transparent)', color: 'var(--theme-text)' }}>
                 <X className="w-4 h-4" />
@@ -404,10 +404,10 @@ export function PostCard({ item, covers, pt, canPost, onDeleted, standalone = fa
   }
 
   return (
-    <article className="rounded-3xl border overflow-hidden" style={finished ? { ...card, backgroundColor: 'var(--pastel-green-bg)', color: 'var(--pastel-green-fg)' } : card}>
-      <div className="px-4 sm:px-5 pt-4 sm:pt-5">
+    <article className="rounded-3xl border overflow-hidden transition-shadow hover:shadow-[0_4px_18px_rgba(0,0,0,0.05)]" style={finished ? { ...card, backgroundColor: 'var(--pastel-green-bg)', color: 'var(--pastel-green-fg)' } : card}>
+      <div className="px-5 sm:px-6 pt-5">
       <header className="flex items-center gap-3">
-        <Link to={`/u/${item.author.handle}`} className="shrink-0"><Avatar src={item.author.avatarUrl} name={item.author.name || item.author.handle} size={42} /></Link>
+        <Link to={`/u/${item.author.handle}`} className="shrink-0"><Avatar src={item.author.avatarUrl} name={item.author.name || item.author.handle} size={44} /></Link>
         <AuthorLine author={item.author} at={item.at} pt={pt} postId={item.id} edited={shown.edited} audience={shown.audience} action={activity} />
         {item.author.level && <LevelBadge id={item.author.level} pt={pt} kind="person" variant="compact" className="border hidden sm:inline-block shrink-0" />}
         {item.kind === 'goal' ? <Target className="w-5 h-5 shrink-0" /> : item.kind === 'finished' ? <PartyPopper className="w-5 h-5 shrink-0" /> : null}
@@ -432,14 +432,14 @@ export function PostCard({ item, covers, pt, canPost, onDeleted, standalone = fa
                 style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>{pt ? 'Salvar' : 'Save'}</button>
             </div>
           </div>
-        : shown.body && <p className="mt-3 text-[15px] leading-relaxed whitespace-pre-line break-words"><RichText text={shown.body} /></p>}
+        : shown.body && <p className="mt-3.5 text-[15.5px] leading-[1.65] whitespace-pre-line break-words"><RichText text={shown.body} /></p>}
 
       {item.kind === 'review' && <ReviewBody item={item} pt={pt} />}
 
       {item.imageUrl && (
         <div className="relative mt-3 rounded-2xl overflow-hidden select-none" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}
           onDoubleClick={() => { setBurst(n => n + 1); void applyLike(true) }}>
-          <img src={item.imageUrl} alt="" loading="lazy" decoding="async" draggable={false} className="block w-full max-h-[560px] object-cover" />
+          <img src={item.imageUrl} alt="" loading="lazy" decoding="async" draggable={false} className="block mx-auto w-auto max-w-full h-auto max-h-[640px] object-contain" />
           {burst > 0 && (
             <Heart key={burst} className="absolute left-1/2 top-1/2 w-20 h-20 -ml-10 -mt-10 pointer-events-none animate-[ping_0.7s_ease-out_1_forwards] motion-reduce:hidden"
               style={{ color: 'var(--theme-card-bg)' }} fill="currentColor" />
@@ -451,7 +451,7 @@ export function PostCard({ item, covers, pt, canPost, onDeleted, standalone = fa
 
       </div>
       {/* Ações: três botões iguais, separados do conteúdo por uma linha. */}
-      <footer className="mt-3 mx-2 sm:mx-3 grid grid-cols-3 border-t py-1" style={{ borderColor: finished ? 'color-mix(in srgb, currentColor 18%, transparent)' : 'var(--theme-border)' }}>
+      <footer className="mt-4 mx-3 sm:mx-4 grid grid-cols-3 border-t py-1.5" style={{ borderColor: finished ? 'color-mix(in srgb, currentColor 18%, transparent)' : 'var(--theme-border)' }}>
         <button type="button" onClick={() => { void applyLike(!liked) }} aria-pressed={liked} aria-label={pt ? 'Curtir' : 'Like'}
           className="h-10 inline-flex items-center justify-center gap-2 rounded-xl text-[13.5px] font-medium transition-colors hover:bg-[var(--ui-hover)]"
           style={{ color: liked ? 'var(--pastel-rose-fg)' : finished ? 'inherit' : 'var(--theme-text-secondary)' }}>

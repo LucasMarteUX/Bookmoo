@@ -69,7 +69,7 @@ export function Community() {
   }, [])
 
   const others = (people ?? []).filter(person => !person.isMe)
-  const suggestions = others.filter(person => !person.relation.following && !person.relation.followPending)
+  const suggestions = others.filter(person => !person.relation.following && !person.relation.followPending && person.relation.friend !== 'friends' && !person.relation.blockedByMe)
     .sort((a, b) => b.commonBooks - a.commonBooks).slice(0, 5)
   const trending = useMemo(() => [...books].sort((a, b) => (social[b.id]?.readers ?? 0) - (social[a.id]?.readers ?? 0)).slice(0, 5), [books, social])
   const canPost = !!me?.handle
@@ -89,11 +89,10 @@ export function Community() {
         <main className="min-w-0 space-y-4">
           <header className="flex items-end justify-between gap-4">
             <div>
-              <h1 className="font-display text-[32px] md:text-[40px] leading-[1.05]">{pt ? 'Comunidade' : 'Community'}</h1>
-              <p className="mt-1.5 text-[14px]" style={muted}>{pt ? 'Gente aprendendo inglês com livros, lado a lado.' : 'People learning English with books, side by side.'}</p>
+              <h1 className="font-display text-[36px] md:text-[46px] leading-[1.02] tracking-[-0.01em]">{pt ? 'Comunidade' : 'Community'}</h1>
+              <p className="mt-2 text-[15px]" style={muted}>{pt ? 'Gente aprendendo inglês com livros, lado a lado.' : 'People learning English with books, side by side.'}</p>
             </div>
             <div className="flex items-center gap-2 lg:hidden">
-              <Link to="/notifications" aria-label={pt ? 'Notificações' : 'Notifications'} className="grid place-items-center w-10 h-10 rounded-full border" style={{ borderColor: 'var(--theme-border)' }}><Bell className="w-4 h-4" /></Link>
               <Link to="/u/me" className="shrink-0 rounded-full" aria-label={pt ? 'Meu perfil' : 'My profile'}>
                 {me ? <Avatar src={me.avatarUrl} name={me.name || me.handle} size={40} /> : <span className="grid place-items-center w-10 h-10 rounded-full border" style={{ borderColor: 'var(--theme-border)' }}><UserRound className="w-4 h-4" /></span>}
               </Link>
@@ -119,7 +118,7 @@ export function Community() {
           <div className="sticky top-6 space-y-4">
             <section className="rounded-3xl border p-5" style={card}>
               <h2 className="text-[14.5px] font-semibold">{pt ? 'Quem seguir' : 'Who to follow'}</h2>
-              {people !== null && suggestions.length === 0 && <p className="mt-3 text-[13px]" style={muted}>{others.length ? (pt ? 'Você já segue todo mundo por aqui.' : 'You already follow everyone here.') : (pt ? 'Ainda não há outros perfis abertos.' : 'No other open profiles yet.')}</p>}
+              {people !== null && suggestions.length === 0 && <p className="mt-3 text-[13px]" style={muted}>{others.length ? (pt ? 'Você já está conectado com todo mundo por aqui. Convide amigos para ler junto.' : 'You are already connected with everyone here. Invite friends to read along.') : (pt ? 'Ainda não há outros perfis abertos.' : 'No other open profiles yet.')}</p>}
               <ul className="mt-3 space-y-3">
                 {suggestions.map(person => (
                   <li key={person.userId} className="flex items-center gap-2.5">
@@ -291,10 +290,10 @@ function DiscoverPeople({ initial, pt }: { initial: PersonCard[]; pt: boolean })
           className="w-full h-11 rounded-full border pl-10 pr-4 text-[14px] outline-none" style={card} />
       </label>
       {people === null
-        ? <div className="grid sm:grid-cols-2 gap-3" aria-hidden>{[0, 1, 2, 3].map(i => <div key={i} className="h-44 rounded-3xl animate-pulse" style={{ backgroundColor: 'var(--theme-bg-secondary)' }} />)}</div>
+        ? <div className="grid gap-3 2xl:grid-cols-2" aria-hidden>{[0, 1, 2, 3].map(i => <div key={i} className="h-44 rounded-3xl animate-pulse" style={{ backgroundColor: 'var(--theme-bg-secondary)' }} />)}</div>
         : people.length === 0
           ? <EmptyState illustration="teamworks" title={query ? (pt ? 'Ninguém com esse nome ou @.' : 'Nobody by that name or handle.') : (pt ? 'Ainda não há outros perfis abertos.' : 'No other open profiles yet.')} />
-          : <div className="grid sm:grid-cols-2 gap-3">{people.map(person => <PersonTile key={person.userId} person={person} pt={pt} />)}</div>}
+          : <div className="grid gap-3 2xl:grid-cols-2">{people.map(person => <PersonTile key={person.userId} person={person} pt={pt} />)}</div>}
       {more && people && people.length > 0 && (
         <button type="button" onClick={() => { void loadMore() }} className="w-full h-10 rounded-full border text-[13.5px]" style={{ borderColor: 'var(--theme-border)' }}>{pt ? 'Carregar mais' : 'Load more'}</button>
       )}
@@ -304,32 +303,33 @@ function DiscoverPeople({ initial, pt }: { initial: PersonCard[]; pt: boolean })
 
 function PersonTile({ person, pt }: { person: PersonCard; pt: boolean }) {
   const [followers, setFollowers] = useState(person.followers)
+  const friend = person.relation.friend === 'friends'
   return (
-    <article className="rounded-3xl border overflow-hidden" style={card}>
-      <ProfileBanner id={person.banner} compact className="h-16" />
-      <div className="px-4 pb-4">
-        <div className="relative z-10 flex items-end justify-between gap-2 -mt-7">
-          <Link to={`/u/${person.handle}`} className="rounded-full p-1" style={{ backgroundColor: 'var(--theme-card-bg)' }}>
-            <Avatar src={person.avatarUrl} name={person.name || person.handle} size={52} />
-          </Link>
-          <FollowButton userId={person.userId} following={person.relation.following} pending={person.relation.followPending} pt={pt} size="sm"
-            onChange={(next, previous) => setFollowers(count => count + (next === 'following' ? 1 : previous === 'following' ? -1 : 0))} />
-        </div>
-        <Link to={`/u/${person.handle}`} className="mt-1 block">
-          <span className="flex items-center gap-2">
-            <span className="font-medium truncate">{person.name || person.handle}</span>
-            <LevelBadge id={person.level} pt={pt} kind="person" variant="compact" className="border" />
+    <article className="group rounded-3xl border p-5 flex flex-col transition-shadow hover:shadow-[0_4px_18px_rgba(0,0,0,0.06)]" style={card}>
+      <div className="flex items-start gap-3.5">
+        <Link to={`/u/${person.handle}`} className="shrink-0"><Avatar src={person.avatarUrl} name={person.name || person.handle} size={56} /></Link>
+        <Link to={`/u/${person.handle}`} className="min-w-0 flex-1 pt-0.5">
+          <span className="flex items-center gap-1.5 min-w-0">
+            <span className="text-[15.5px] font-semibold truncate group-hover:underline">{person.name || person.handle}</span>
             {!person.isPublic && <Lock className="w-3.5 h-3.5 shrink-0" style={muted} aria-label={pt ? 'Perfil fechado' : 'Closed profile'} />}
           </span>
-          <span className="block text-[12.5px]" style={muted}>@{person.handle} · {followers} {pt ? (followers === 1 ? 'seguidor' : 'seguidores') : (followers === 1 ? 'follower' : 'followers')}</span>
+          <span className="block text-[12.5px] truncate" style={muted}>@{person.handle}</span>
+          <span className="mt-1.5 flex flex-wrap items-center gap-1.5">
+            {person.level && <LevelBadge id={person.level} pt={pt} kind="person" variant="compact" className="border" />}
+            {friend && <span className="rounded-md px-1.5 py-0.5 text-[11px] font-medium" style={{ backgroundColor: 'var(--pastel-green-bg)', color: 'var(--pastel-green-fg)' }}>{pt ? 'Amigos' : 'Friends'}</span>}
+            {person.relation.followsMe && !friend && <span className="rounded-md px-1.5 py-0.5 text-[11px] font-medium" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>{pt ? 'Segue você' : 'Follows you'}</span>}
+          </span>
         </Link>
-        {person.bio && <p className="mt-2 text-[13.5px] leading-snug line-clamp-2">{person.bio}</p>}
-        {person.reading && <p className="mt-2 text-[12.5px] truncate" style={muted}>{pt ? 'Lendo ' : 'Reading '}<span style={{ color: 'var(--theme-text)' }}>{person.reading}</span></p>}
-        {person.commonBooks > 0 && (
-          <p className="mt-1.5 inline-flex items-center gap-1 text-[12px]" style={muted}>
-            <BookOpen className="w-3 h-3" />{pt ? `${person.commonBooks} ${person.commonBooks === 1 ? 'livro' : 'livros'} em comum` : `${person.commonBooks} books in common`}
-          </p>
-        )}
+      </div>
+      {person.bio && <p className="mt-3 text-[13.5px] leading-relaxed line-clamp-2">{person.bio}</p>}
+      <div className="mt-3 space-y-1 text-[12.5px]" style={muted}>
+        {person.reading && <p className="flex items-center gap-1.5 truncate"><BookOpen className="w-3.5 h-3.5 shrink-0" />{pt ? 'Lendo ' : 'Reading '}<span className="truncate" style={{ color: 'var(--theme-text)' }}>{person.reading}</span></p>}
+        {person.commonBooks > 0 && <p className="flex items-center gap-1.5"><Users className="w-3.5 h-3.5 shrink-0" />{pt ? `${person.commonBooks} ${person.commonBooks === 1 ? 'livro' : 'livros'} em comum` : `${person.commonBooks} books in common`}</p>}
+      </div>
+      <div className="mt-auto pt-4 flex items-center justify-between gap-3">
+        <span className="text-[12.5px] tabular-nums" style={muted}><span className="font-semibold" style={{ color: 'var(--theme-text)' }}>{followers}</span> {pt ? (followers === 1 ? 'seguidor' : 'seguidores') : (followers === 1 ? 'follower' : 'followers')}</span>
+        <FollowButton userId={person.userId} following={person.relation.following} pending={person.relation.followPending} pt={pt} size="sm"
+          onChange={(next, previous) => setFollowers(count => count + (next === 'following' ? 1 : previous === 'following' ? -1 : 0))} />
       </div>
     </article>
   )
