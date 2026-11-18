@@ -3,7 +3,7 @@
 // 2) Toca com HTMLAudioElement (um único player global: nunca dois áudios ao mesmo tempo)
 // 3) Se o serviço TTS falhar, cai para a voz nativa do navegador (fallback temporário).
 import { supabase } from '@/lib/supabase'
-import { activeKokoroVoice, ensureKokoroReady, kokoroAudioUrl, type WordTiming } from '@/lib/kokoro/engine'
+import { activeKokoroVoice, ensureKokoroReady, isKokoroSupported, kokoroAudioUrl, type WordTiming } from '@/lib/kokoro/engine'
 import { askVoiceOnce } from '@/lib/voiceGate'
 import { deviceSpeak, hasDeviceVoice, isMobileDevice } from '@/lib/deviceVoice'
 import { getSpeakerVoice, resolveSpeakerVoice } from '@/lib/speakerVoice'
@@ -408,7 +408,8 @@ export async function speak(text: string, opts: SpeakOptions = {}): Promise<Spea
   const sp = getSpeakerVoice()
   if (sp && opts.pitch == null) opts = { ...opts, pitch: sp.pitch, gender: opts.gender ?? sp.gender }
   // Personagem no computador: instala a voz na hora se ainda não estiver (nunca cai na voz do navegador).
-  if (sp && !activeKokoroVoice() && !isMobileDevice()) {
+  // Voz própria em todo aparelho (celular incluso): se ainda não está pronta, instala e espera; nunca usa a voz do navegador.
+  if (lang.startsWith('en') && !activeKokoroVoice() && isKokoroSupported()) {
     opts.onLoading?.(true)
     await ensureKokoroReady()
     opts.onLoading?.(false)
@@ -431,7 +432,7 @@ export async function speak(text: string, opts: SpeakOptions = {}): Promise<Spea
       // Com tom de personagem, o player acelera só pelo tom (deixa a voz mais jovem) e o ritmo pedido vem da geração:
       // gera em velocidade/tom para o resultado final sair na velocidade escolhida com o tom do personagem igual em
       // qualquer velocidade (antes, tom × velocidade: no "devagar" o tom sumia e no "rápido" batia no limite).
-      const genSpeed = pitch !== 1 ? Math.round(Math.min(1.4, Math.max(0.6, (opts.rate ?? 1) / pitch)) * 100) / 100 : 1
+      const genSpeed = pitch !== 1 ? Math.round(Math.min(1.4, Math.max(0.92, (opts.rate ?? 1) / pitch)) * 100) / 100 : 1
       const clip = await kokoroAudioUrl(trimmed, kokoroVoice, genSpeed, 'high')
       opts.onLoading?.(false)
       if (token !== currentToken) return { done: Promise.resolve(), source: 'kokoro' }
@@ -443,7 +444,7 @@ export async function speak(text: string, opts: SpeakOptions = {}): Promise<Spea
       console.warn('[tts] A voz baixada não respondeu:', e)
       opts.onFallback?.(String((e as Error)?.message ?? e))
       // Nunca fica mudo: a voz do aparelho fala no lugar (menos para personagem no computador, que tenta de novo).
-      if (sp && !isMobileDevice()) {
+      if (isKokoroSupported()) {
         try {
           const again = await kokoroAudioUrl(trimmed, kokoroVoice, 1, 'high')
           if (token === currentToken) return { ...(await playUrl(again.url, opts.rate ?? 1, trimmed, opts.onWord)), source: 'kokoro' }

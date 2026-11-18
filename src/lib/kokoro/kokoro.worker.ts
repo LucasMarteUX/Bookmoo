@@ -86,6 +86,10 @@ if (typeof navigator !== 'undefined' && navigator.storage?.getDirectory) {
   env.customCache = opfsCache
 }
 
+// Celular: um único fio do WASM (menos memória) para caber junto com o personagem animado.
+if (typeof navigator !== 'undefined' && smallDeviceEarly() && env.backends?.onnx?.wasm) env.backends.onnx.wasm.numThreads = 1
+function smallDeviceEarly() { return /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) }
+
 type GenMsg = { type: 'generate'; reqId: number; text: string; voice: string; speed: number; priority?: 'high' | 'low' }
 type InMsg = { type: 'load'; reqId: number } | GenMsg | { type: 'cancelLow' }
 
@@ -254,6 +258,8 @@ self.onmessage = async (ev: MessageEvent<InMsg>) => {
     if (idx === -1) queue.push(msg)
     else queue.splice(idx, 0, msg)
   } else {
+    // Celular: sem pré-carregar frases futuras (poupa memória e bateria), só gera o que vai tocar.
+    if (smallDeviceEarly()) { self.postMessage({ type: 'error', reqId: msg.reqId, error: 'cancelled' }); return }
     queue.push(msg)
   }
   void pump()

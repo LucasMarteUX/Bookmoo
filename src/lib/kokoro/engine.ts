@@ -33,7 +33,7 @@ export function getKokoroState() { return readState() }
 // a página (iPhone e Android), e uma voz "instalada" que não conseguia gerar deixava o app mudo. No celular a fala usa
 // sempre a voz do próprio aparelho (lib/deviceVoice), que não baixa nada e funciona em qualquer navegador.
 export function isKokoroSupported() {
-  return typeof window !== 'undefined' && typeof Worker !== 'undefined' && typeof WebAssembly !== 'undefined' && !isMobileDevice()
+  return typeof window !== 'undefined' && typeof Worker !== 'undefined' && typeof WebAssembly !== 'undefined'
 }
 
 /** Início de cada palavra falada, como fração (0–1) da duração do áudio; n = nº de fonemas. */
