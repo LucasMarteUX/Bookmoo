@@ -428,6 +428,9 @@ function Session({ choice, pt, level, rate, captions, minutes, title, subtitle, 
   const listening = voice.state !== 'idle' && voice.state !== 'error'
   const lastAi = [...voice.bubbles].reverse().find(b => b.role === 'ai')
   const lastUser = [...voice.bubbles].reverse().find(b => b.role === 'user')
+  // Legenda do tutor no balão acima da cabeça (no lugar das reações rápidas enquanto há fala dele).
+  const aiCaption = captions && live && lastAi ? `${lastAi.text}${lastAi.pending ? '…' : ''}` : ''
+  const headText = live ? (aiCaption || flash) : bubble
   const status = voice.state === 'listening' ? (pt ? 'Ouvindo' : 'Listening') : voice.state === 'thinking' ? (pt ? 'Pensando' : 'Thinking')
     : voice.state === 'speaking' ? tutor.name : voice.error === 'mic_denied' ? (pt ? 'Libere o microfone no navegador' : 'Allow the microphone')
     : live ? (pt ? 'Pausado' : 'Paused') : ''
@@ -511,13 +514,13 @@ function Session({ choice, pt, level, rate, captions, minutes, title, subtitle, 
             </div>
           )
         })()}
-        {(live ? flash : bubble) && (
+        {headText && (
           head && head.top > 110
-            ? <div className="absolute z-10 pointer-events-none w-[min(300px,calc(100%-2rem))] transition-[left,top] duration-500"
-                style={{ left: `clamp(calc(min(300px, 100% - 2rem) / 2 + 1rem), ${head.x}px, calc(100% - min(300px, 100% - 2rem) / 2 - 1rem))`, top: Math.max(96, head.top - 14), transform: 'translate(-50%, -100%)' }}>
-                <AvatarBubble text={live ? flash : bubble} side="top" />
+            ? <div className="absolute z-10 pointer-events-none w-[min(var(--bw),calc(100%-2rem))] transition-[left,top] duration-500"
+                style={{ '--bw': aiCaption ? '420px' : '300px', left: `clamp(calc(min(var(--bw), 100% - 2rem) / 2 + 1rem), ${head.x}px, calc(100% - min(var(--bw), 100% - 2rem) / 2 - 1rem))`, top: Math.max(96, head.top - 14), transform: 'translate(-50%, -100%)' } as React.CSSProperties}>
+                <AvatarBubble text={headText} side="top" />
               </div>
-            : <div className="absolute top-2 inset-x-0 z-10 flex justify-center pointer-events-none px-6"><AvatarBubble text={live ? flash : bubble} side="top" /></div>
+            : <div className="absolute top-2 inset-x-0 z-10 flex justify-center pointer-events-none px-6"><div className="w-full max-w-[420px] flex justify-center"><AvatarBubble text={headText} side="top" /></div></div>
         )}
         {!live && (
           <>
@@ -538,13 +541,9 @@ function Session({ choice, pt, level, rate, captions, minutes, title, subtitle, 
               <button type="button" onClick={() => setAssist(null)} className="mt-2 text-[12.5px] underline" style={muted}>{pt ? 'Fechar' : 'Close'}</button>
             </motion.div>
           )}
-          {captions && live && (lastAi || voice.interim || lastUser) && (
-            <div className="w-full max-w-lg rounded-2xl px-4 py-3 text-center backdrop-blur-md" style={{ backgroundColor: 'color-mix(in srgb, var(--theme-bg) 84%, transparent)', border: '1px solid var(--theme-border)' }}>
-              <AnimatePresence mode="popLayout">
-                {lastAi && <motion.p key={`ai-${lastAi.id}`} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="text-[17px] leading-snug font-display">{lastAi.text}{lastAi.pending ? '…' : ''}</motion.p>}
-              </AnimatePresence>
-              {(voice.interim || lastUser?.text) && <p className="mt-1.5 text-[13.5px] leading-snug" style={muted}>{voice.interim || lastUser?.text}</p>}
-            </div>
+          {/* A fala do tutor vai no balão acima da cabeça; aqui embaixo fica só o que o aluno disse. */}
+          {captions && live && (voice.interim || lastUser?.text) && (
+            <p className="max-w-lg rounded-2xl px-4 py-2 text-center text-[13.5px] leading-snug backdrop-blur-md" style={{ backgroundColor: 'color-mix(in srgb, var(--theme-bg) 84%, transparent)', border: '1px solid var(--theme-border)', color: 'var(--theme-text-secondary)' }}>{voice.interim || lastUser?.text}</p>
           )}
           <AnimatePresence mode="wait">
             {status && (
