@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef, type CSSProperties } from 'react'
+import { VoiceFace, useBookCategories } from '@/components/book/VoiceFace'
+import { defaultNarratorFor } from '@/lib/tutorReadingVoices'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useBookStore } from '@/store/useBookStore'
 import { useBookSync } from '@/hooks/useBookSync'
@@ -65,7 +67,9 @@ export function BookPage() {
   const pt = locale === 'pt-BR'
   const bank = useStyleBank(pt)
   const placeholder = { id: '', comicPages: {} } as unknown as NonNullable<typeof book>
-  const narratorVoice = getKokoroVoice((book?.comicStyleDoc as { narratorVoice?: string } | undefined)?.narratorVoice ?? activeKokoroVoice())
+  // Rosto da voz do narrador na barra: o escolhido ou o tutor padrão do livro.
+  const bookCats = useBookCategories(book?.catalogId)
+  const narratorVoice = (book?.comicStyleDoc as { narratorVoice?: string } | undefined)?.narratorVoice ?? defaultNarratorFor(bookCats)
   const styleChange = useApplyBookStyle(book ?? placeholder, session?.user.id, pt, bank)
 
   useEffect(() => {
@@ -175,7 +179,7 @@ export function BookPage() {
             </button>
             <button type="button" onClick={() => setCastOpen(true)} title={pt ? 'Vozes da leitura' : 'Reading voices'}
               className="h-9 w-9 grid place-items-center rounded-lg transition-colors hover:bg-[var(--ui-hover)]">
-              {narratorVoice ? <VoiceAvatar voice={narratorVoice} size={26} square /> : <Users className="w-4 h-4" />}
+              <VoiceFace voice={narratorVoice} size={26} square />
             </button>
             <button type="button" onClick={() => setPageSizeOpen(true)} title={pt ? 'Tamanho da página' : 'Page length'} aria-label={pt ? 'Tamanho da página' : 'Page length'}
               className="h-9 w-9 grid place-items-center rounded-lg transition-colors hover:bg-[var(--ui-hover)]" style={{ color: 'var(--theme-text-secondary)' }}>

@@ -5,6 +5,7 @@
 import { supabase } from '@/lib/supabase'
 import { activeKokoroVoice, ensureKokoroReady, isKokoroSupported, kokoroAudioUrl, type WordTiming } from '@/lib/kokoro/engine'
 import { askVoiceOnce } from '@/lib/voiceGate'
+import { isTutorVoice, resolveReadingVoice } from '@/lib/tutorReadingVoices'
 import { deviceSpeak, hasDeviceVoice, isMobileDevice } from '@/lib/deviceVoice'
 import { getSpeakerVoice, resolveSpeakerVoice } from '@/lib/speakerVoice'
 import { audioClock, clearSpeechClock, setSpeechClock, type SpeechClock } from '@/lib/speechClock'
@@ -44,6 +45,8 @@ export interface SpeakOptions {
   onWord?: (wordIndex: number) => void
   /** Tom da voz (1 = natural; 1.1–1.25 = mais jovem/infantil). O ritmo da fala continua o mesmo. */
   pitch?: number
+  /** De-esser (dB máx. nas sibilantes), vindo do tutor escolhido como voz. */
+  deEssDb?: number
   /** Gênero da voz quando cai na voz do aparelho (padrão: o do personagem na tela, senão feminina). */
   gender?: 'female' | 'male'
 }
@@ -170,7 +173,11 @@ export function prefetch(text: string, opts: SpeakOptions = {}) {
   if (!text.trim()) return
   const kv = opts.kokoroVoice ?? activeKokoroVoice()
   if (kv && activeKokoroVoice() && (opts.language ?? 'en').toLowerCase().startsWith('en')) {
-    kokoroAudioUrl(text.replace(/\s+/g, ' ').trim(), kv, 1).catch(() => {})
+    // Tutor: mesmos parâmetros da fala (velocidade de geração e de-esser), para o cache servir na hora de tocar.
+    const r = resolveReadingVoice(kv)
+    const p = r.pitch && Math.abs(r.pitch - 1) > 0.01 ? Math.min(1.35, Math.max(0.8, r.pitch)) : 1
+    const gen = p !== 1 ? Math.round(Math.min(1.4, Math.max(0.92, (opts.rate ?? 1) / p)) * 100) / 100 : 1
+    kokoroAudioUrl(text.replace(/\s+/g, ' ').trim(), r.kokoroVoice, gen, 'low', r.deEssDb && p !== 1 ? { maxDb: r.deEssDb, hz: 4500 / p } : undefined).catch(() => {})
     return
   }
   if (!isTtsConfigured()) return
@@ -405,6 +412,11 @@ export async function speak(text: string, opts: SpeakOptions = {}): Promise<Spea
   const lang = (opts.language ?? 'en').toLowerCase()
   // Personagem na tela (Yuno, Yuri…): voz e tom dele valem em qualquer fala e em qualquer velocidade, mesmo quando quem
   // chamou não passou (antes só a conversa passava, e no resto a Yuno e o Yuri falavam com a voz adulta).
+  // Tutor escolhido como voz da leitura ("tutor:..."): vira a voz Kokoro dele, com tom e de-esser.
+  if (isTutorVoice(opts.kokoroVoice)) {
+    const r = resolveReadingVoice(opts.kokoroVoice)
+    opts = { ...opts, kokoroVoice: r.kokoroVoice, pitch: opts.pitch ?? r.pitch ?? 1, gender: opts.gender ?? r.gender, deEssDb: r.deEssDb }
+  }
   const sp = getSpeakerVoice()
   if (sp && opts.pitch == null) opts = { ...opts, pitch: sp.pitch, gender: opts.gender ?? sp.gender }
   // Personagem no computador: instala a voz na hora se ainda não estiver (nunca cai na voz do navegador).
@@ -434,7 +446,8 @@ export async function speak(text: string, opts: SpeakOptions = {}): Promise<Spea
       // qualquer velocidade (antes, tom × velocidade: no "devagar" o tom sumia e no "rápido" batia no limite).
       const genSpeed = pitch !== 1 ? Math.round(Math.min(1.4, Math.max(0.92, (opts.rate ?? 1) / pitch)) * 100) / 100 : 1
       // De-esser do personagem: corte em 4,5 kHz audíveis, convertido para o áudio gerado (que toca acelerado pelo tom).
-      const deEssOpt = sp?.deEssDb ? { maxDb: sp.deEssDb, hz: 4500 / pitch } : undefined
+      const deEssDb = opts.deEssDb ?? sp?.deEssDb
+      const deEssOpt = deEssDb && pitch !== 1 ? { maxDb: deEssDb, hz: 4500 / pitch } : undefined
       const clip = await kokoroAudioUrl(trimmed, kokoroVoice, genSpeed, 'high', deEssOpt)
       opts.onLoading?.(false)
       if (token !== currentToken) return { done: Promise.resolve(), source: 'kokoro' }

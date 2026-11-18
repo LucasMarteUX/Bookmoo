@@ -38,7 +38,8 @@ export function CharacterAvatar({ voice = false, stage = false, onHead, onPoke, 
   // Celular: um avatar pequeno e mudo (botão da tutora, ícones) vira a foto do personagem. Cada personagem animado carrega
   // ~130 MB de texturas na placa de vídeo; no celular isso, somado ao resto da página, derrubava o navegador.
   const size = props.size ?? 220
-  if (!stage && !voice && size <= 72 && isMobileDevice()) {
+  // Bolinha pequena e muda (ex.: botão da tutora na leitura): só o rosto, em qualquer aparelho.
+  if (!stage && !voice && size <= 72) {
     return <img src={characterAvatarUrl(characterId)} alt="" width={size} height={size} className="rounded-full object-cover select-none" style={{ width: size, height: size }} draggable={false} />
   }
   return (

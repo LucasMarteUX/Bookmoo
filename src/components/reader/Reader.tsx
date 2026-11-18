@@ -1,4 +1,6 @@
 import { toast } from '@/components/ui/toast'
+import { useBookCategories } from '@/components/book/VoiceFace'
+import { defaultNarratorFor } from '@/lib/tutorReadingVoices'
 import { mainText } from '@/lib/vocabText'
 import { askConfirm } from '@/components/ui/confirm'
 import React, { useRef, useMemo, useState, useEffect, useCallback } from 'react'
@@ -925,7 +927,9 @@ export function Reader({ book, autoPlay = false, headerSlot, headerEndSlot, head
   // Vozes por personagem nesta página: falas com falante resolvido (HQ ou pistas no texto).
   const castDoc = (book.comicStyleDoc ?? {}) as VoiceSettings & { characterVoices?: boolean; narratorVoice?: string }
   // Narrador: voz própria escolhida no elenco; senão, a voz da leitura.
-  const narratorVoice = castDoc.characterVoices !== false && castDoc.narratorVoice ? castDoc.narratorVoice : undefined
+  // Narrador: o escolhido nas Vozes da leitura, senão o tutor padrão do livro (Luck nos temas sérios, Bia nos leves).
+  const bookCats = useBookCategories(book.catalogId)
+  const narratorVoice = castDoc.narratorVoice ?? defaultNarratorFor(bookCats)
   const voiceCastMap = useMemo(() => buildVoiceCast(book.comicCharacters ?? [], narratorVoice ?? activeKokoroVoice(), castDoc),
     [book.comicCharacters, castDoc.femaleVoice, castDoc.maleVoice, castDoc.voiceRoles, narratorVoice])
   const voiceSpans = useMemo(() => {

@@ -4,11 +4,12 @@ import { useMemo, useState, type ReactNode } from 'react'
 import { Play, Users } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import type { Book } from '@/store/useBookStore'
-import { KOKORO_VOICES, getKokoroVoice } from '@/lib/kokoro/voices'
+import { KOKORO_VOICES } from '@/lib/kokoro/voices'
 import { activeKokoroVoice } from '@/lib/kokoro/engine'
 import { speak } from '@/lib/tts'
 import { GROUP_LABEL, buildVoiceCast, defaultFemaleVoice, defaultMaleVoice, type VoiceRole, type VoiceSettings } from '@/lib/voiceCast'
-import { VoiceAvatar } from '@/components/settings/VoiceAvatar'
+import { VoiceFace, useBookCategories } from '@/components/book/VoiceFace'
+import { TUTORS, defaultNarratorFor, tutorVoiceId } from '@/lib/tutorReadingVoices'
 
 type Doc = VoiceSettings & { characterVoices?: boolean; narratorVoice?: string }
 
@@ -20,7 +21,10 @@ export function VoiceCastDialog({ book, open, pt, onOpenChange, onSave }: {
   const doc = (book.comicStyleDoc ?? {}) as Doc
   const enabled = doc.characterVoices !== false
   const readingVoice = activeKokoroVoice()
-  const narrator = doc.narratorVoice ?? readingVoice
+  const cats = useBookCategories(book.catalogId)
+  // Padrão: Luck nos temas sérios (aventura, mistério/terror...), Bia nos infantis e leves.
+  const defaultNarrator = defaultNarratorFor(cats)
+  const narrator = doc.narratorVoice ?? defaultNarrator
   const female = doc.femaleVoice ?? defaultFemaleVoice(narrator)
   const male = doc.maleVoice ?? defaultMaleVoice(narrator)
   const characters = useMemo(() => (book.comicCharacters ?? []).filter(c => c.id && !/^group of /i.test(c.name)), [book.comicCharacters])
@@ -39,7 +43,12 @@ export function VoiceCastDialog({ book, open, pt, onOpenChange, onSave }: {
       className="h-9 w-[150px] shrink-0 rounded-full border px-3 text-sm"
       style={{ backgroundColor: 'var(--theme-bg)', borderColor: 'var(--theme-border-subtle)', color: 'var(--theme-text)' }}>
       {extra}
-      {KOKORO_VOICES.filter(v => gender === 'any' || v.gender === gender).map(v => <option key={v.id} value={v.id}>{v.name} · {v.accent}</option>)}
+      <optgroup label={pt ? 'Tutores' : 'Tutors'}>
+        {TUTORS.filter(t => gender === 'any' || t.voice.gender === gender).map(t => <option key={t.id} value={tutorVoiceId(t.id)}>{t.name}</option>)}
+      </optgroup>
+      <optgroup label={pt ? 'Outras vozes' : 'Other voices'}>
+        {KOKORO_VOICES.filter(v => gender === 'any' || v.gender === gender).map(v => <option key={v.id} value={v.id}>{v.name} · {v.accent}</option>)}
+      </optgroup>
     </select>
   )
 
@@ -47,7 +56,7 @@ export function VoiceCastDialog({ book, open, pt, onOpenChange, onSave }: {
     { key: 'narrator', title: pt ? 'Narrador' : 'Narrator', hint: pt ? 'Tudo o que não é fala' : 'Everything that is not dialogue', voice: narrator,
       sample: 'Once upon a time, in a quiet town, a story began.',
       select: voiceSelect(doc.narratorVoice ?? '', v => save({ narratorVoice: v || undefined }), 'any', pt ? 'Voz do narrador' : 'Narrator voice',
-        <option value="">{pt ? `Voz da leitura (${getKokoroVoice(readingVoice)?.name ?? '—'})` : `Reading voice (${getKokoroVoice(readingVoice)?.name ?? '—'})`}</option>) },
+        <option value="">{pt ? `Padrão do livro (${TUTORS.find(t => tutorVoiceId(t.id) === defaultNarrator)?.name})` : `Book default (${TUTORS.find(t => tutorVoiceId(t.id) === defaultNarrator)?.name})`}</option>) },
     { key: 'female', title: pt ? 'Voz feminina' : 'Female voice', hint: pt ? 'Mulheres e meninas' : 'Women and girls', voice: female,
       sample: 'Hello! It is lovely to meet you.', select: voiceSelect(female, v => save({ femaleVoice: v }), 'female', pt ? 'Voz feminina' : 'Female voice') },
     { key: 'male', title: pt ? 'Voz masculina' : 'Male voice', hint: pt ? 'Homens e meninos' : 'Men and boys', voice: male,
@@ -76,7 +85,7 @@ export function VoiceCastDialog({ book, open, pt, onOpenChange, onSave }: {
           {rows.map(row => (
             <div key={row.key} className={`flex min-w-0 items-center gap-3 rounded-2xl border p-2.5 ${row.key !== 'narrator' && !enabled ? 'opacity-50 pointer-events-none' : ''}`}
               style={{ borderColor: 'var(--theme-border-subtle)' }}>
-              {getKokoroVoice(row.voice) && <VoiceAvatar voice={getKokoroVoice(row.voice)!} size={36} />}
+              <VoiceFace voice={row.voice} size={36} />
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium" style={{ color: 'var(--theme-text)' }}>{row.title}</p>
                 <p className="text-[11px]" style={{ color: 'var(--theme-text-secondary)' }}>{row.hint}</p>
