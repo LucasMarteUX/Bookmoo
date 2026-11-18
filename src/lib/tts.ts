@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { activeKokoroVoice, kokoroAudioUrl, type WordTiming } from '@/lib/kokoro/engine'
 import { askVoiceOnce } from '@/lib/voiceGate'
 import { deviceSpeak, hasDeviceVoice, isMobileDevice } from '@/lib/deviceVoice'
-import { getSpeakerVoice } from '@/lib/speakerVoice'
+import { getSpeakerVoice, resolveSpeakerVoice } from '@/lib/speakerVoice'
 import { audioClock, clearSpeechClock, setSpeechClock, type SpeechClock } from '@/lib/speechClock'
 import { countWords, listWords, wordRegex } from '@/lib/wordTokens'
 
@@ -403,7 +403,12 @@ export async function speak(text: string, opts: SpeakOptions = {}): Promise<Spea
   if (!trimmed) return { done: Promise.resolve(), source: 'kokoro' }
 
   const lang = (opts.language ?? 'en').toLowerCase()
-  const kokoroVoice = activeKokoroVoice() ? (opts.kokoroVoice ?? activeKokoroVoice()) : null
+  // Personagem na tela (Yuno, Yuri…): voz e tom dele valem em qualquer fala e em qualquer velocidade, mesmo quando quem
+  // chamou não passou (antes só a conversa passava, e no resto a Yuno e o Yuri falavam com a voz adulta).
+  const sp = getSpeakerVoice()
+  if (sp && opts.pitch == null) opts = { ...opts, pitch: sp.pitch, gender: opts.gender ?? sp.gender }
+  const spVoice = sp && !opts.kokoroVoice ? resolveSpeakerVoice(sp) : undefined
+  const kokoroVoice = activeKokoroVoice() ? (opts.kokoroVoice ?? spVoice ?? activeKokoroVoice()) : null
   if (lang.startsWith('en') && !kokoroVoice && !isTtsConfigured()) {
     // Sem voz baixada: fala com a voz do próprio aparelho (no celular é o normal; no computador o aviso sugere baixar a melhor).
     if (!isMobileDevice()) askVoiceOnce()
@@ -416,12 +421,15 @@ export async function speak(text: string, opts: SpeakOptions = {}): Promise<Spea
       const pitch = opts.pitch && Math.abs(opts.pitch - 1) > 0.01 ? Math.min(1.35, Math.max(0.8, opts.pitch)) : 1
       // Com tom alterado, o Kokoro gera sempre no ritmo natural (gerar mais devagar estraga o começo das frases) e o player
       // toca mais rápido (tom * ritmo), o que deixa a voz mais fina.
-      const genSpeed = 1
+      // Com tom de personagem, o player acelera só pelo tom (deixa a voz mais jovem) e o ritmo pedido vem da geração:
+      // gera em velocidade/tom para o resultado final sair na velocidade escolhida com o tom do personagem igual em
+      // qualquer velocidade (antes, tom × velocidade: no "devagar" o tom sumia e no "rápido" batia no limite).
+      const genSpeed = pitch !== 1 ? Math.round(Math.min(1.4, Math.max(0.6, (opts.rate ?? 1) / pitch)) * 100) / 100 : 1
       const clip = await kokoroAudioUrl(trimmed, kokoroVoice, genSpeed, 'high')
       opts.onLoading?.(false)
       if (token !== currentToken) return { done: Promise.resolve(), source: 'kokoro' }
       const starts = clip.words ? startsFromTimings(trimmed, clip.words) : undefined
-      return { ...(await playUrl(clip.url, opts.rate ?? 1, trimmed, opts.onWord, starts, pitch)), source: 'kokoro' }
+      return { ...(await playUrl(clip.url, pitch !== 1 ? 1 : (opts.rate ?? 1), trimmed, opts.onWord, starts, pitch)), source: 'kokoro' }
     } catch (e) {
       opts.onLoading?.(false)
       if (token !== currentToken) return { done: Promise.resolve(), source: 'kokoro' }

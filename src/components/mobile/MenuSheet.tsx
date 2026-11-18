@@ -23,11 +23,18 @@ export function MenuSheet({ open, onOpenChange }: { open: boolean; onOpenChange:
   const review = useMemo(() => vocab.filter(v => v.status === 'review').length, [vocab])
 
   const groups: { title: [string, string]; items: Item[] }[] = [
+    { title: ['Explorar', 'Explore'], items: [
+      { to: '/', icon: House, pt: 'Início', en: 'Home' },
+      { to: '/gallery', icon: Library, pt: 'Galeria', en: 'Gallery' },
+      { to: '/collections', icon: Layers, pt: 'Coleções', en: 'Collections' },
+      { to: '/vocabulary', icon: BookMarked, pt: 'Palavras', en: 'Words', badge: review || undefined },
+      { to: '/community', icon: Users, pt: 'Comunidade', en: 'Community' },
+      { to: '/notifications', icon: Bell, pt: 'Notificações', en: 'Notifications', badge: unread || undefined },
+    ] },
     { title: ['Praticar', 'Practice'], items: [
       { to: '/conversar', icon: MessagesSquare, pt: 'Conversar', en: 'Conversation' },
       { to: '/practice/speak', icon: AudioLines, pt: 'Falar', en: 'Speak' },
       { to: '/practice/write', icon: PenLine, pt: 'Ditado', en: 'Dictation' },
-      { to: '/vocabulary', icon: BookMarked, pt: 'Palavras', en: 'Words', badge: review || undefined },
     ] },
     { title: ['Progresso', 'Progress'], items: [
       { to: '/stats', icon: ChartNoAxesColumn, pt: 'Estatísticas', en: 'Statistics' },
@@ -35,13 +42,6 @@ export function MenuSheet({ open, onOpenChange }: { open: boolean; onOpenChange:
       { to: '/teste-de-nivel', icon: GraduationCap, pt: 'Teste de nível', en: 'Level test' },
       { to: '/prova', icon: Award, pt: 'Prova de proficiência', en: 'Proficiency test' },
       { to: '/planos', icon: Sparkles, pt: 'Planos', en: 'Plans' },
-    ] },
-    { title: ['Explorar', 'Explore'], items: [
-      { to: '/', icon: House, pt: 'Início', en: 'Home' },
-      { to: '/gallery', icon: Library, pt: 'Galeria', en: 'Gallery' },
-      { to: '/collections', icon: Layers, pt: 'Coleções', en: 'Collections' },
-      { to: '/community', icon: Users, pt: 'Comunidade', en: 'Community' },
-      { to: '/notifications', icon: Bell, pt: 'Avisos', en: 'Notifications', badge: unread || undefined },
       { to: '/settings', icon: Settings, pt: 'Ajustes', en: 'Settings' },
       ...(isAdmin ? [{ to: '/admin', icon: Shield, pt: 'Admin', en: 'Admin' }] : []),
     ] },

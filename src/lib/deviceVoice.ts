@@ -77,10 +77,11 @@ function pick(gender: Gender): { voice: SpeechSynthesisVoice | null; matched: bo
   return { voice: neutral[0] ?? en.sort((a, b) => score(b) - score(a))[0], matched: false }
 }
 
-/** Tom final: o do personagem (1 = adulto; Yuno 1,14; Yuri 1,2), mais forte aqui porque a voz do aparelho muda pouco. */
+/** Tom final: o do personagem (1 = adulto; Yuno 1,3; Yuri 1,35), mais forte aqui porque a voz do aparelho muda pouco. */
 function devicePitch(gender: Gender, pitch: number, matched: boolean) {
-  let p = 1 + (pitch - 1) * 1.6
-  if (!matched) p *= gender === 'male' ? 0.78 : 1.08
+  let p = 1 + (pitch - 1) * 1.8
+  // Voz do gênero errado: adulto masculino desce o tom; jovem não (um menino com voz grave soava como homem adulto).
+  if (!matched) p *= gender === 'male' ? (pitch > 1.1 ? 0.92 : 0.78) : 1.08
   return Math.max(0.5, Math.min(1.8, p))
 }
 

@@ -360,6 +360,22 @@ export function PostCard({ item, covers, pt, canPost, onDeleted, standalone = fa
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState({ body: item.body ?? '', audience: item.audience })
   const [shown, setShown] = useState({ body: item.body, audience: item.audience, edited: !!item.editedAt })
+  // Livros e foto depois de uma edição (a publicação não recarrega).
+  const [over, setOver] = useState<Partial<FeedItem>>({})
+  const it: FeedItem = { ...item, ...over }
+  const [draftBooks, setDraftBooks] = useState<PickedBook[]>([])
+  const [dropImage, setDropImage] = useState(false)
+  const [booksOpen, setBooksOpen] = useState(false)
+  const isPost = item.kind === 'post'
+  const startEdit = () => {
+    setDraft({ body: shown.body ?? '', audience: shown.audience })
+    setDraftBooks([
+      ...(it.book ? [{ key: it.catalogId ? `cat:${it.catalogId}` : `own:${it.book.title}`, catalogId: it.catalogId, bookId: it.bookId, title: it.book.title, author: it.book.author, cover: it.catalogId ? covers[it.catalogId] : undefined }] : []),
+      ...(it.extraBooks ?? []).map((b, i) => ({ key: b.catalogId ? `cat:${b.catalogId}` : `x:${i}:${b.title}`, catalogId: b.catalogId, title: b.title, author: b.author, cover: b.catalogId ? covers[b.catalogId] : undefined })),
+    ])
+    setDropImage(false)
+    setEditing(true)
+  }
   const [reporting, setReporting] = useState(false)
   const activity = activityText(item, pt)
   const finished = item.kind === 'finished' || item.kind === 'goal'
@@ -379,9 +395,20 @@ export function PostCard({ item, covers, pt, canPost, onDeleted, standalone = fa
   }
   const saveEdit = async () => {
     try {
-      await updatePost(item.id, draft)
+      const books = isPost ? draftBooks.map(b => b.catalogId ? { catalogId: b.catalogId } : { title: b.title, author: b.author }) : undefined
+      await updatePost(item.id, { ...draft, books, removeImage: isPost && dropImage })
       setShown({ body: draft.body.trim(), audience: draft.audience, edited: true })
+      if (isPost) {
+        const [first, ...rest] = draftBooks
+        setOver({
+          imageUrl: dropImage ? undefined : it.imageUrl,
+          catalogId: first?.catalogId, bookId: first?.catalogId ? undefined : it.bookId,
+          book: first ? { title: first.title, author: first.author } : undefined,
+          extraBooks: rest.map(b => ({ catalogId: b.catalogId, title: b.title, author: b.author })),
+        })
+      }
       setEditing(false)
+      toast(pt ? 'Publicação atualizada.' : 'Post updated.', { tone: 'success' })
     } catch (err) { toast(errorText(err, pt), { tone: 'error' }) }
   }
   const remove = async () => {
@@ -400,6 +427,7 @@ export function PostCard({ item, covers, pt, canPost, onDeleted, standalone = fa
       onLike={() => { void applyLike(!liked) }} onToggleComments={() => setOpen(v => !v)} onShare={() => { void share() }} copied={copied}
       menu={<MoreMenu label={pt ? 'Mais opções' : 'More options'}>
         <MenuItem onClick={() => { void share() }} icon={<Link2 className="w-4 h-4" />}>{pt ? 'Copiar link' : 'Copy link'}</MenuItem>
+        {item.mine && <MenuItem onClick={startEdit} icon={<Pencil className="w-4 h-4" />}>{pt ? 'Editar' : 'Edit'}</MenuItem>}
         {item.mine && <MenuItem onClick={() => { void remove() }} icon={<Trash2 className="w-4 h-4" />} danger>{pt ? 'Apagar' : 'Delete'}</MenuItem>}
         {!item.mine && <MenuItem onClick={() => setReporting(true)} icon={<Flag className="w-4 h-4" />}>{pt ? 'Denunciar' : 'Report'}</MenuItem>}
       </MoreMenu>}
@@ -417,7 +445,8 @@ export function PostCard({ item, covers, pt, canPost, onDeleted, standalone = fa
         {item.kind === 'goal' ? <Target className="w-5 h-5 shrink-0" /> : item.kind === 'finished' ? <PartyPopper className="w-5 h-5 shrink-0" /> : null}
         <MoreMenu label={pt ? 'Mais opções' : 'More options'}>
           <MenuItem onClick={() => { void share() }} icon={<Link2 className="w-4 h-4" />}>{pt ? 'Copiar link' : 'Copy link'}</MenuItem>
-          {item.mine && item.kind === 'post' && <MenuItem onClick={() => { setDraft({ body: shown.body ?? '', audience: shown.audience }); setEditing(true) }} icon={<Pencil className="w-4 h-4" />}>{pt ? 'Editar' : 'Edit'}</MenuItem>}
+          {item.mine && item.kind !== 'review' && <MenuItem onClick={startEdit} icon={<Pencil className="w-4 h-4" />}>{pt ? 'Editar' : 'Edit'}</MenuItem>}
+          {item.mine && item.kind === 'review' && item.catalogId && <MenuItem to={`/gallery/${item.catalogId}#resenhas`} icon={<Pencil className="w-4 h-4" />}>{pt ? 'Editar resenha' : 'Edit review'}</MenuItem>}
           {item.mine && item.kind !== 'review' && <MenuItem onClick={() => { void remove() }} icon={<Trash2 className="w-4 h-4" />} danger>{pt ? 'Apagar' : 'Delete'}</MenuItem>}
           {!item.mine && <MenuItem onClick={() => setReporting(true)} icon={<Flag className="w-4 h-4" />}>{pt ? 'Denunciar' : 'Report'}</MenuItem>}
           {!item.mine && <MenuItem onClick={() => { void block() }} icon={<Ban className="w-4 h-4" />} danger>{pt ? `Bloquear @${item.author.handle}` : `Block @${item.author.handle}`}</MenuItem>}
@@ -428,11 +457,29 @@ export function PostCard({ item, covers, pt, canPost, onDeleted, standalone = fa
         ? <div className="mt-3 space-y-2">
             <MentionTextarea value={draft.body} onChange={body => setDraft({ ...draft, body })} pt={pt} maxLength={POST_MAX} rows={3} autoFocus
               className="w-full rounded-2xl border pl-3 pr-10 py-2 text-[15px] leading-relaxed bg-transparent outline-none resize-none" style={{ borderColor: 'var(--theme-border)' }} />
+            {isPost && (draftBooks.length > 0 || (it.imageUrl && !dropImage)) && (
+              <div className="flex flex-wrap gap-1.5">
+                {draftBooks.map(b => (
+                  <span key={b.key} className="inline-flex items-center gap-1 h-8 pl-2.5 pr-1 rounded-full text-[12.5px] max-w-[220px]" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
+                    <BookOpen className="w-3.5 h-3.5 shrink-0" style={muted} /><span className="truncate">{b.title}</span>
+                    <button type="button" onClick={() => setDraftBooks(cur => cur.filter(x => x.key !== b.key))} aria-label={pt ? 'Tirar livro' : 'Remove book'} className="w-6 h-6 grid place-items-center rounded-full hover:bg-[var(--ui-hover)]"><X className="w-3.5 h-3.5" /></button>
+                  </span>
+                ))}
+                {it.imageUrl && !dropImage && (
+                  <span className="inline-flex items-center gap-1 h-8 pl-2.5 pr-1 rounded-full text-[12.5px]" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
+                    <ImagePlus className="w-3.5 h-3.5" style={muted} />{pt ? 'Foto' : 'Photo'}
+                    <button type="button" onClick={() => setDropImage(true)} aria-label={pt ? 'Tirar foto' : 'Remove photo'} className="w-6 h-6 grid place-items-center rounded-full hover:bg-[var(--ui-hover)]"><X className="w-3.5 h-3.5" /></button>
+                  </span>
+                )}
+              </div>
+            )}
             <div className="flex flex-wrap items-center gap-2">
               <AudienceSelect<Audience> value={draft.audience} onChange={audience => setDraft({ ...draft, audience })} options={AUDIENCES} pt={pt} />
+              {isPost && <button type="button" onClick={() => setBooksOpen(true)} className="h-8 px-3 inline-flex items-center gap-1.5 rounded-full border text-[12.5px]" style={{ borderColor: 'var(--theme-border)' }}><BookOpen className="w-3.5 h-3.5" />{pt ? 'Livros' : 'Books'}</button>}
+              {isPost && <BookPicker open={booksOpen} onOpenChange={setBooksOpen} books={[]} value={draftBooks} onChange={setDraftBooks} pt={pt} />}
               <span className="flex-1" />
               <button type="button" onClick={() => setEditing(false)} className="h-8 px-3 rounded-full border text-[12.5px]" style={{ borderColor: 'var(--theme-border)' }}>{pt ? 'Cancelar' : 'Cancel'}</button>
-              <button type="button" disabled={!draft.body.trim() && !item.imageUrl} onClick={() => { void saveEdit() }} className="h-8 px-3.5 rounded-full text-[12.5px] font-medium disabled:opacity-50"
+              <button type="button" disabled={isPost && !draft.body.trim() && !(it.imageUrl && !dropImage)} onClick={() => { void saveEdit() }} className="h-8 px-3.5 rounded-full text-[12.5px] font-medium disabled:opacity-50"
                 style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>{pt ? 'Salvar' : 'Save'}</button>
             </div>
           </div>
@@ -440,10 +487,10 @@ export function PostCard({ item, covers, pt, canPost, onDeleted, standalone = fa
 
       {item.kind === 'review' && <ReviewBody item={item} pt={pt} />}
 
-      {item.imageUrl && (
+      {it.imageUrl && !editing && (
         <div className="relative mt-3 rounded-2xl overflow-hidden select-none" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}
           onDoubleClick={() => { setBurst(n => n + 1); void applyLike(true) }}>
-          <img src={item.imageUrl} alt="" loading="lazy" decoding="async" draggable={false} className="block mx-auto w-auto max-w-full h-auto max-h-[640px] object-contain" />
+          <img src={it.imageUrl} alt="" loading="lazy" decoding="async" draggable={false} className="block mx-auto w-auto max-w-full h-auto max-h-[640px] object-contain" />
           {burst > 0 && (
             <Heart key={burst} className="absolute left-1/2 top-1/2 w-20 h-20 -ml-10 -mt-10 pointer-events-none animate-[ping_0.7s_ease-out_1_forwards] motion-reduce:hidden"
               style={{ color: 'var(--theme-card-bg)' }} fill="currentColor" />
@@ -451,10 +498,10 @@ export function PostCard({ item, covers, pt, canPost, onDeleted, standalone = fa
         </div>
       )}
 
-      {item.book && item.kind !== 'goal' && <BookChip item={item} covers={covers} pt={pt} />}
-      {!!item.extraBooks?.length && (
+      {it.book && it.kind !== 'goal' && !editing && <BookChip item={it} covers={covers} pt={pt} />}
+      {!!it.extraBooks?.length && !editing && (
         <div className="mt-2 grid gap-2 sm:grid-cols-2">
-          {item.extraBooks.map((b, i) => {
+          {it.extraBooks!.map((b, i) => {
             const body = <><BookCover title={b.title} coverData={b.catalogId ? covers[b.catalogId] : undefined} className="w-10 shrink-0 rounded-md [&_span]:text-[7px] [&_span]:px-0.5" /><span className="min-w-0"><span className="block text-[13.5px] font-semibold leading-snug line-clamp-2">{b.title}</span>{b.author && <span className="block text-[12px] truncate" style={muted}>{b.author}</span>}</span></>
             return b.catalogId
               ? <Link key={i} to={`/gallery/${b.catalogId}`} className="flex items-center gap-3 rounded-2xl border p-2.5 transition-colors hover:bg-[var(--ui-hover)]" style={{ borderColor: 'var(--theme-border)' }}>{body}</Link>

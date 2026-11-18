@@ -212,8 +212,18 @@ export async function createPost(userId: string, input: { body: string; book?: P
 }
 
 /** Edita texto e audiência de uma publicação própria (o banco não deixa mudar o resto). */
-export async function updatePost(id: string, patch: { body: string; audience: Audience }): Promise<void> {
-  const { error } = await need().from('community_posts').update({ body: patch.body.trim().slice(0, POST_MAX), audience: patch.audience }).eq('id', id)
+export async function updatePost(id: string, patch: { body: string; audience: Audience; books?: PostBook[]; removeImage?: boolean }): Promise<void> {
+  const row: Record<string, unknown> = { body: patch.body.trim().slice(0, POST_MAX), audience: patch.audience }
+  // Livros marcados: o principal vai nas colunas do livro e os outros em extra_books (o banco trava só o book_id).
+  if (patch.books) {
+    const [first, ...rest] = patch.books
+    row.catalog_id = first?.catalogId ?? null
+    row.book_title = first && !first.catalogId ? (first.title ?? '').slice(0, 200) : null
+    row.book_author = first && !first.catalogId ? (first.author ?? '').slice(0, 120) || null : null
+    row.extra_books = rest.slice(0, 4).map(b => b.catalogId ? { catalog_id: b.catalogId } : { title: (b.title ?? '').slice(0, 200), author: (b.author ?? '').slice(0, 120) })
+  }
+  if (patch.removeImage) row.image_url = null
+  const { error } = await need().from('community_posts').update(row).eq('id', id)
   if (error) throw errorOf(error)
 }
 

@@ -303,7 +303,7 @@ export function ProfileSection({ pt }: { pt: boolean }) {
           ))}
         </div>
 
-        <p className="block text-[12.5px] font-medium -mb-3" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? 'Privacidade e o que mostrar' : 'Privacy and what to show'}</p>
+        <p className="block text-[12.5px] font-medium mt-2 mb-1" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? 'Privacidade e o que mostrar' : 'Privacy and what to show'}</p>
         <div className="rounded-xl overflow-hidden border" style={{ borderColor: 'var(--theme-border)' }}>
           <Toggle checked={profile.isPublic} onChange={isPublic => set({ isPublic })} strong
             title={pt ? 'Perfil aberto' : 'Open profile'}

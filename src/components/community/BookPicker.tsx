@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { BookOpen, Check, Search, X } from 'lucide-react'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { BookCover } from '@/components/book/BookCard'
-import { bookCategories, categoryName, loadCoverThumbs, sortedCategories, type BookCategory, type CatalogBook } from '@/lib/catalog'
+import { bookCategories, categoryName, listCatalogLite, loadCoverThumbs, sortedCategories, type BookCategory, type CatalogBook } from '@/lib/catalog'
 import { CEFR, type CefrId } from '@/lib/cefr'
 import { useBookStore } from '@/store/useBookStore'
 
@@ -15,10 +15,14 @@ type Item = PickedBook & { categories: BookCategory[]; level?: CefrId; source: '
 const muted = { color: 'var(--theme-text-secondary)' }
 const fold = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
 
-export function BookPicker({ open, onOpenChange, books, value, onChange, pt }: {
+export function BookPicker({ open, onOpenChange, books: given, value, onChange, pt }: {
   open: boolean; onOpenChange: (open: boolean) => void; books: CatalogBook[]; value: PickedBook[]; onChange: (books: PickedBook[]) => void; pt: boolean
 }) {
   const library = useBookStore(s => s.books)
+  // Sem a lista da galeria (ex.: editando uma publicação), busca a versão leve ao abrir.
+  const [own, setOwn] = useState<CatalogBook[]>([])
+  useEffect(() => { if (open && !given.length && !own.length) void listCatalogLite().then(setOwn).catch(() => {}) }, [open, given.length, own.length])
+  const books = given.length ? given : own
   const [query, setQuery] = useState('')
   const [source, setSource] = useState<'all' | 'shelf' | 'gallery'>('all')
   const [category, setCategory] = useState<BookCategory | null>(null)

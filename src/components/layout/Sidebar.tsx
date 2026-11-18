@@ -59,7 +59,14 @@ export function Sidebar({ isMobileDrawer, onClose }: SidebarProps) {
 
   const sections: { title?: string; items: { to: string; icon: Icon; label: string; badge?: number; tag?: string }[] }[] = [
     { items: [{ to: '/', icon: House, label: pt ? 'Início' : 'Home' }] },
-    { title: pt ? 'Aprender' : 'Learn', items: [{ to: '/vocabulary', icon: BookMarked, label: t('vocabulary'), badge: reviewCount || undefined }] },
+    // Explorar: livros, palavras e as pessoas (antes "Aprender" e "Juntos" separados).
+    { title: pt ? 'Explorar' : 'Explore', items: [
+      { to: '/gallery', icon: Library, label: pt ? 'Galeria' : 'Gallery' },
+      { to: '/collections', icon: Layers, label: pt ? 'Coleções' : 'Collections' },
+      { to: '/vocabulary', icon: BookMarked, label: t('vocabulary'), badge: reviewCount || undefined },
+      { to: '/community', icon: Users, label: pt ? 'Comunidade' : 'Community' },
+      { to: '/notifications', icon: Bell, label: pt ? 'Notificações' : 'Notifications', badge: unread || undefined },
+    ] },
     { title: pt ? 'Praticar' : 'Practice', items: [
       { to: '/conversar', icon: MessagesSquare, label: pt ? 'Conversar' : 'Conversation' },
       { to: '/practice/speak', icon: AudioLines, label: pt ? 'Falar' : 'Speak' },
@@ -70,12 +77,6 @@ export function Sidebar({ isMobileDrawer, onClose }: SidebarProps) {
       { to: '/raio-x', icon: Brain, label: pt ? 'Raio-X' : 'Insights' },
       { to: '/teste-de-nivel', icon: GraduationCap, label: pt ? 'Teste de nível' : 'Level test' },
       { to: '/prova', icon: Award, label: pt ? 'Prova de proficiência' : 'Proficiency test' },
-    ] },
-    { title: pt ? 'Juntos' : 'Together', items: [
-      { to: '/gallery', icon: Library, label: pt ? 'Galeria' : 'Gallery' },
-      { to: '/collections', icon: Layers, label: pt ? 'Coleções' : 'Collections' },
-      { to: '/community', icon: Users, label: pt ? 'Comunidade' : 'Community' },
-      { to: '/notifications', icon: Bell, label: pt ? 'Notificações' : 'Notifications', badge: unread || undefined },
       ...(isAdmin ? [{ to: '/admin', icon: Shield, label: pt ? 'Área admin' : 'Admin' }] : []),
     ] },
   ]
