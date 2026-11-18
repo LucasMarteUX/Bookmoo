@@ -2,7 +2,7 @@
 // Roda o Kokoro-82M (Apache-2.0) 100% no navegador do aluno, fora da thread da UI.
 // O modelo é baixado uma vez do Hugging Face e fica no Cache Storage do navegador.
 import { KokoroTTS } from 'kokoro-js'
-import { deEss, type DeEssOptions } from './deEsser'
+import { deEss, pitchUp, type DeEssOptions } from './deEsser'
 import { env } from '@huggingface/transformers'
 import { configureModelEnv, redirectHuggingFaceFetch } from '../modelHost'
 
@@ -92,7 +92,7 @@ if (typeof navigator !== 'undefined' && smallDeviceEarly() && env.backends?.onnx
 else if (typeof navigator !== 'undefined' && env.backends?.onnx?.wasm) env.backends.onnx.wasm.numThreads = Math.max(1, Math.min(4, (navigator.hardwareConcurrency || 4) - 2))
 function smallDeviceEarly() { return /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) }
 
-type GenMsg = { type: 'generate'; reqId: number; text: string; voice: string; speed: number; priority?: 'high' | 'low'; deEss?: DeEssOptions }
+type GenMsg = { type: 'generate'; reqId: number; text: string; voice: string; speed: number; priority?: 'high' | 'low'; deEss?: DeEssOptions; pitch?: number }
 type InMsg = { type: 'load'; reqId: number } | GenMsg | { type: 'cancelLow' }
 
 let ttsPromise: Promise<KokoroTTS> | null = null
@@ -227,12 +227,15 @@ async function pump() {
     let blob: Blob
     let words = captured ? wordTimings(tts, captured) : null
     if (raw.audio && raw.sampling_rate) {
+      // Personagem: de-esser nas sibilantes e o tom aplicado no próprio áudio (ver pitchUp).
+      let voice = next.deEss ? deEss(raw.audio, raw.sampling_rate, next.deEss) : raw.audio
+      if (next.pitch && next.pitch > 1.001) voice = pitchUp(voice, raw.sampling_rate, next.pitch)
       const pad = Math.round(raw.sampling_rate * LEAD_SILENCE_S)
-      const samples = new Float32Array(pad + raw.audio.length)
+      const samples = new Float32Array(pad + voice.length)
       // Yuno e Yuri: de-esser nas sibilantes (o tom mais agudo deixava S/SH/F/Z estridentes). Mesma duração, sem atraso.
-      samples.set(next.deEss ? deEss(raw.audio, raw.sampling_rate, next.deEss) : raw.audio, pad)
+      samples.set(voice, pad)
       blob = wavBlob(samples, raw.sampling_rate)
-      if (words) { const k = raw.audio.length / samples.length; const o = pad / samples.length; words = words.map((w) => ({ ...w, f: o + w.f * k })) }
+      if (words) { const k = voice.length / samples.length; const o = pad / samples.length; words = words.map((w) => ({ ...w, f: o + w.f * k })) }
     } else blob = audio.toBlob()
     self.postMessage({ type: 'audio', reqId: next.reqId, blob, words, ms: Math.round(performance.now() - t0) })
   } catch (e) {

@@ -155,6 +155,16 @@ export async function getAudioUrl(text: string, opts: SpeakOptions = {}): Promis
  * A voz é sempre gravada na velocidade natural. Pedir para o modelo falar a 0.6x
  * estica os sons e deixa a voz abafada. O devagar acontece só na hora de tocar.
  */
+/**
+ * Personagem com tom: o Kokoro gera em `gen` (nunca abaixo de 0,92, que estragava o começo das frases), o tom é aplicado no
+ * áudio (fica gen × tom mais rápido) e o player corrige o resto com o tom preservado (`play`) até a velocidade escolhida.
+ */
+export function characterGen(rate: number, pitch: number) {
+  const target = kokoroSpeed(rate)
+  const gen = Math.round(Math.min(1.4, Math.max(0.92, target / pitch)) * 100) / 100
+  return { gen, play: Math.round((target / (gen * pitch)) * 1000) / 1000 }
+}
+
 export function kokoroSpeed(rate: number): number {
   return Math.round(Math.min(1.5, Math.max(0.5, rate)) * 100) / 100
 }
@@ -176,8 +186,8 @@ export function prefetch(text: string, opts: SpeakOptions = {}) {
     // Tutor: mesmos parâmetros da fala (velocidade de geração e de-esser), para o cache servir na hora de tocar.
     const r = resolveReadingVoice(kv)
     const p = r.pitch && Math.abs(r.pitch - 1) > 0.01 ? Math.min(1.35, Math.max(0.8, r.pitch)) : 1
-    const gen = p !== 1 ? Math.round(Math.min(1.4, Math.max(0.92, (opts.rate ?? 1) / p)) * 100) / 100 : 1
-    kokoroAudioUrl(text.replace(/\s+/g, ' ').trim(), r.kokoroVoice, gen, 'low', r.deEssDb && p !== 1 ? { maxDb: r.deEssDb, hz: 4500 / p } : undefined).catch(() => {})
+    const gen = p !== 1 ? characterGen(opts.rate ?? 1, p).gen : 1
+    kokoroAudioUrl(text.replace(/\s+/g, ' ').trim(), r.kokoroVoice, gen, 'low', r.deEssDb && p !== 1 ? { maxDb: r.deEssDb, hz: 4500 / p } : undefined, p !== 1 ? p : undefined).catch(() => {})
     return
   }
   if (!isTtsConfigured()) return
@@ -444,15 +454,16 @@ export async function speak(text: string, opts: SpeakOptions = {}): Promise<Spea
       // Com tom de personagem, o player acelera só pelo tom (deixa a voz mais jovem) e o ritmo pedido vem da geração:
       // gera em velocidade/tom para o resultado final sair na velocidade escolhida com o tom do personagem igual em
       // qualquer velocidade (antes, tom × velocidade: no "devagar" o tom sumia e no "rápido" batia no limite).
-      const genSpeed = pitch !== 1 ? Math.round(Math.min(1.4, Math.max(0.92, (opts.rate ?? 1) / pitch)) * 100) / 100 : 1
-      // De-esser do personagem: corte em 4,5 kHz audíveis, convertido para o áudio gerado (que toca acelerado pelo tom).
+      // Tom do personagem aplicado no próprio áudio (worker) e a velocidade escolhida feita pelo player com o tom preservado:
+      // assim o "devagar" fica devagar de verdade e o tom é o mesmo em qualquer velocidade.
+      const g = characterGen(opts.rate ?? 1, pitch)
       const deEssDb = opts.deEssDb ?? sp?.deEssDb
       const deEssOpt = deEssDb && pitch !== 1 ? { maxDb: deEssDb, hz: 4500 / pitch } : undefined
-      const clip = await kokoroAudioUrl(trimmed, kokoroVoice, genSpeed, 'high', deEssOpt)
+      const clip = await kokoroAudioUrl(trimmed, kokoroVoice, g.gen, 'high', deEssOpt, pitch !== 1 ? pitch : undefined)
       opts.onLoading?.(false)
       if (token !== currentToken) return { done: Promise.resolve(), source: 'kokoro' }
       const starts = clip.words ? startsFromTimings(trimmed, clip.words) : undefined
-      return { ...(await playUrl(clip.url, pitch !== 1 ? 1 : (opts.rate ?? 1), trimmed, opts.onWord, starts, pitch)), source: 'kokoro' }
+      return { ...(await playUrl(clip.url, pitch !== 1 ? g.play : (opts.rate ?? 1), trimmed, opts.onWord, starts)), source: 'kokoro' }
     } catch (e) {
       opts.onLoading?.(false)
       if (token !== currentToken) return { done: Promise.resolve(), source: 'kokoro' }
