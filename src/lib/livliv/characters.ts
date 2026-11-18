@@ -25,9 +25,15 @@ export type Character = {
    *  de giro muda de um para outro (na Yuno fica acima da base, então o sinal é oposto). */
   basePerDeg?: number
   /** Quanto do corpo aparece no palco: abaixo de 1 afasta o enquadramento e mostra um pouco mais do corpo. */
+  /** Zoom do palco. Nos pintados a cabeça fica de tamanho parecido em todos (a altura topo do cabelo→queixo no model.json
+   *  vai de 407 no Yuri a 522 na Bia), com os adultos um pouco maiores e mais altos que os adolescentes. */
   zoomK?: number
   /** Inclinação inicial da cabeça em graus (o encaixe aprovado da Yuno pede -4). */
   baseAngleZ?: number
+  /** Bia pintada: rig com adaptadores próprios (queixo, boca contínua, cabeça por gesto, cabelo/roupa/brincos), PNGs direto em <pasta>/. */
+  painted?: 'bia' | 'luck' | 'yuno' | 'yuri'
+  /** Ganho da abertura da boca no lip sync por fonemas (1 = como vem dos fonemas). */
+  mouthGain?: number
   /** Mais jovem: indicada para assuntos infantis. */
   young?: boolean
 }
@@ -42,10 +48,14 @@ const TEEN: SpeakerVoice = { gender: 'female', pitch: 1.2, deEssDb: 4, prefer: [
 const TEEN_BOY: SpeakerVoice = { gender: 'male', pitch: 1.18, deEssDb: 3.5, prefer: ['am_liam', 'am_puck', 'am_echo'] }
 
 export const CHARACTERS: Character[] = [
-  { id: 'bookmoo-mulher', name: 'Bia', pt: 'Mulher', en: 'Woman', voice: WOMAN, folder: 'mulher', zoomK: 0.9, gestures: true, appModel: true, baseAngleZ: 0 },
-  { id: 'bookmoo-homem', name: 'Luck', pt: 'Homem', en: 'Man', voice: MAN, folder: 'homem', zoomK: 0.9, gestures: true, baseAngleZ: 0 },
-  { id: 'bookmoo-yuno', name: 'Yuno', pt: 'Jovem', en: 'Teen', voice: TEEN, folder: 'yuno', gestures: true, appModel: true, baseAngleZ: -4, young: true },
-  { id: 'bookmoo-yuri', name: 'Yuri', pt: 'Jovem', en: 'Teen', voice: TEEN_BOY, folder: 'yuri', gestures: true, appModel: true, baseAngleZ: 0, young: true },
+  { id: 'bookmoo-mulher', name: 'Bia', pt: 'Mulher', en: 'Woman', voice: WOMAN, folder: 'bia-pintura', zoomK: 0.86, gestures: true, painted: 'bia', baseAngleZ: 0 },
+  { id: 'bookmoo-homem', name: 'Luck', pt: 'Homem', en: 'Man', voice: MAN, folder: 'luck-pintura', zoomK: 0.89, gestures: true, painted: 'luck', baseAngleZ: 0 },
+  // Yuno pintada (gola-v4). A versão anterior continua em public/characters/bookmoo/yuno/: para voltar, troque por
+  // folder: 'yuno', appModel: true, baseAngleZ: -4 e tire painted.
+  { id: 'bookmoo-yuno', name: 'Yuno', pt: 'Jovem', en: 'Teen', voice: TEEN, folder: 'yuno-pintura', zoomK: 1.0, gestures: true, painted: 'yuno', mouthGain: 0.82, baseAngleZ: 0, young: true },
+  // Yuri pintado (yuri-v1). A versão anterior continua em public/characters/bookmoo/yuri/: para voltar, troque por
+  // folder: 'yuri', appModel: true e tire painted.
+  { id: 'bookmoo-yuri', name: 'Yuri', pt: 'Jovem', en: 'Teen', voice: TEEN_BOY, folder: 'yuri-pintura', zoomK: 1.04, gestures: true, painted: 'yuri', mouthGain: 0.82, baseAngleZ: 0, young: true },
 ]
 
 export const DEFAULT_CHARACTER = 'bookmoo-mulher'
@@ -60,11 +70,17 @@ export function effectiveCharacterId(id: string | null | undefined) { return id 
 const BASE = '/characters/bookmoo'
 // Versão dos arquivos dos personagens: muda sempre que uma textura é trocada. A query vai junto com cada arquivo que o
 // player busca, então o navegador não reaproveita a imagem antiga do cache.
-const ASSET_REV = '20261124-webp'
+const ASSET_REV = '20261128-yuri-v1'
 export function characterModelUrl(id: string) {
   const c = characterById(effectiveCharacterId(id))!
+  if (c.painted) return `${BASE}/${c.folder}/model.json?v=${ASSET_REV}`
   // Pacote WebP (web/): as mesmas texturas em resolução total, sem perda, ~30% menores para baixar. Gerado por
   // scripts/characters/webp-pack.sh a partir de model.app.json (Bia, Yuno, Yuri) ou model.json (Luck).
   return `${BASE}/${c.folder}/web/model.json?v=${ASSET_REV}`
+}
+/** Pasta do modelo (terminada em "/"), absoluta, para os adaptadores acharem texturas e quadros da boca. */
+export function characterBaseUrl(id: string) {
+  const c = characterById(effectiveCharacterId(id))!
+  return new URL(`${BASE}/${c.folder}/?v=${ASSET_REV}`, window.location.origin).href
 }
 export function characterAvatarUrl(id: string) { return `${BASE}/${characterById(effectiveCharacterId(id))!.folder}/avatar.webp` }

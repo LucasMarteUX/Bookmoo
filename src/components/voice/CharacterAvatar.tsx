@@ -19,9 +19,11 @@ type Props = Omit<ComponentProps<typeof TutorAvatar>, 'onPoke'> & {
   stage?: boolean
   /** Posição da cabeça do personagem LivLiv (para o balão de fala). O vetorial não informa. */
   onHead?: (head: HeadBox | null) => void
+  /** O personagem está na tela (o vetorial está sempre). */
+  onReady?: (ready: boolean) => void
 }
 
-export function CharacterAvatar({ voice = false, stage = false, onHead, onPoke, characterId: forced, ...props }: Props) {
+export function CharacterAvatar({ voice = false, stage = false, onHead, onReady, onPoke, characterId: forced, ...props }: Props) {
   const engine = useAvatarSettings(s => s.engine)
   const chosen = useAvatarSettings(s => s.characterId)
   const characterId = effectiveCharacterId(forced ?? chosen)
@@ -30,7 +32,7 @@ export function CharacterAvatar({ voice = false, stage = false, onHead, onPoke, 
   useEffect(() => { setFailed(null) }, [characterId])
 
   const vector = engine !== 'livliv' || failed === characterId
-  useEffect(() => { if (vector) onHead?.(null) }, [vector]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (vector) { onHead?.(null); onReady?.(true) } }, [vector]) // eslint-disable-line react-hooks/exhaustive-deps
   if (vector) {
     const vectorProps = { ...props, onPoke: () => onPoke?.(pickNext(POKES, null)) }
     return stage ? <div className="absolute inset-0 grid place-items-center"><TutorAvatar {...vectorProps} /></div> : <TutorAvatar {...vectorProps} />
@@ -44,6 +46,6 @@ export function CharacterAvatar({ voice = false, stage = false, onHead, onPoke, 
   }
   return (
     <LivLivAvatar characterId={characterId} state={props.state} speakingText={props.speakingText} size={props.size} mood={props.mood} wave={props.wave}
-      followPointer={props.followPointer} onPoke={onPoke} voice={voice} stage={stage} onHead={onHead} onFail={() => setFailed(characterId)} />
+      followPointer={props.followPointer} onPoke={onPoke} voice={voice} stage={stage} onHead={onHead} onReady={onReady} onFail={() => setFailed(characterId)} />
   )
 }

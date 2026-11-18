@@ -182,6 +182,83 @@ function wordTimings(tts: KokoroTTS, c: Captured): { f: number; n: number }[] | 
   return groups
 }
 
+/** Cada fonema com início e fim (fração do áudio): a boca dos personagens segue estes tempos. Pausas ficam de fora. */
+function phoneTimings(tts: KokoroTTS, c: Captured): { p: string; f: number; e: number }[] | null {
+  const tok = (tts as unknown as { tokenizer: { model?: { vocab?: string[] }; decode(ids: number[]): string } }).tokenizer
+  const vocab = Array.isArray(tok.model?.vocab) ? tok.model!.vocab! : null
+  const ids = Array.from(c.ids, Number)
+  const dur = Array.from(c.durations, Number)
+  if (ids.length !== dur.length) return null
+  const total = dur.reduce((a, b) => a + b, 0)
+  if (!total) return null
+  const out: { p: string; f: number; e: number }[] = []
+  let cum = 0
+  for (let i = 0; i < ids.length; i++) {
+    const start = cum
+    cum += dur[i]
+    if (ids[i] === 0) continue
+    const piece = vocab ? vocab[ids[i]] ?? '' : tok.decode([ids[i]])
+    if (!piece.trim() || PUNCT.test(piece)) continue
+    out.push({ p: piece, f: start / total, e: cum / total })
+  }
+  return out
+}
+
+/**
+ * Acerta os fonemas no som de verdade. Os tempos do Kokoro são a previsão do modelo e escorregam (fim de frase arrastado,
+ * fala rápida atrasando). Pelo áudio gerado acha os trechos com voz (silêncios de 80 ms ou mais separam) e encaixa cada grupo
+ * de fonemas (separados por pausa) no trecho de voz correspondente, esticando dentro dele. Se a contagem não bater, encaixa só
+ * o começo e o fim da frase inteira. Tudo em fração do áudio (sem o respiro inicial).
+ */
+function alignPhones(phones: { p: string; f: number; e: number }[], audio: Float32Array, rate: number) {
+  if (!phones.length) return phones
+  const hop = Math.round(rate * 0.01), N = Math.floor(audio.length / hop)
+  const env = new Float32Array(N)
+  let mx = 0
+  for (let i = 0; i < N; i++) { let s2 = 0; for (let k = i * hop; k < (i + 1) * hop; k++) s2 += audio[k] * audio[k]; env[i] = Math.sqrt(s2 / hop); if (env[i] > mx) mx = env[i] }
+  if (!mx) return phones
+  const segs: [number, number][] = []
+  let st = -1, quiet = 0
+  for (let i = 0; i < N; i++) {
+    const v = env[i] > mx * 0.05
+    if (v) { if (st < 0) st = i; quiet = 0 } else if (st >= 0 && ++quiet >= 8) { segs.push([st, i - quiet + 1]); st = -1; quiet = 0 }
+  }
+  if (st >= 0) segs.push([st, N - quiet])
+  if (!segs.length) return phones
+  const total = audio.length / rate
+  // Cada silêncio do áudio corta a fila de fonemas na fronteira mais próxima no tempo (de preferência onde havia pontuação
+  // ou espaço, que aparece como um vão entre fonemas). Assim há sempre um grupo de fonemas por trecho de voz.
+  const cuts: number[] = []
+  let from = 1
+  for (let k = 0; k + 1 < segs.length; k++) {
+    const c = ((segs[k][1] + segs[k + 1][0]) / 2) * hop / audio.length
+    let best = -1, bestCost = Infinity
+    for (let i = from; i < phones.length - (segs.length - 2 - k); i++) {
+      const t = (phones[i - 1].e + phones[i].f) / 2
+      const gap = (phones[i].f - phones[i - 1].e) * total
+      const cost = Math.abs(t - c) * total - (gap > 0.005 ? 0.12 : 0)
+      if (cost < bestCost) { bestCost = cost; best = i }
+    }
+    if (best < 0) break
+    cuts.push(best); from = best + 1
+  }
+  const runs: [number, number][] = []
+  let r0 = 0
+  for (const c of cuts) { runs.push([r0, c - 1]); r0 = c }
+  runs.push([r0, phones.length - 1])
+  const toF = (frame: number) => (frame * hop) / audio.length
+  const remap = (from: [number, number], a: number, b: number) => {
+    const f0 = phones[from[0]].f, e0 = phones[from[1]].e, span = Math.max(1e-6, e0 - f0)
+    for (let i = from[0]; i <= from[1]; i++) {
+      phones[i] = { ...phones[i], f: a + ((phones[i].f - f0) / span) * (b - a), e: a + ((phones[i].e - f0) / span) * (b - a) }
+    }
+  }
+  phones = phones.map(x => ({ ...x }))
+  if (runs.length === segs.length) runs.forEach((run, k) => remap(run, toF(segs[k][0]), toF(segs[k][1])))
+  else remap([0, phones.length - 1], toF(segs[0][0]), toF(segs[segs.length - 1][1]))
+  return phones
+}
+
 // O ONNX Runtime (principalmente em WebGPU) não suporta inferências simultâneas na mesma sessão:
 // chamadas concorrentes travam ou corrompem o áudio. Geramos uma frase por vez, com prioridade
 // para a frase que vai tocar agora ('high') sobre os pré-carregamentos ('low').
@@ -226,6 +303,7 @@ async function pump() {
     const raw = audio as unknown as { audio?: Float32Array; sampling_rate?: number }
     let blob: Blob
     let words = captured ? wordTimings(tts, captured) : null
+    let phones = captured ? phoneTimings(tts, captured) : null
     if (raw.audio && raw.sampling_rate) {
       // Personagem: de-esser nas sibilantes e o tom aplicado no próprio áudio (ver pitchUp).
       let voice = next.deEss ? deEss(raw.audio, raw.sampling_rate, next.deEss) : raw.audio
@@ -236,8 +314,10 @@ async function pump() {
       samples.set(voice, pad)
       blob = wavBlob(samples, raw.sampling_rate)
       if (words) { const k = voice.length / samples.length; const o = pad / samples.length; words = words.map((w) => ({ ...w, f: o + w.f * k })) }
+      if (phones) phones = alignPhones(phones, voice, raw.sampling_rate)
+      if (phones) { const k = voice.length / samples.length; const o = pad / samples.length; phones = phones.map((x) => ({ ...x, f: o + x.f * k, e: o + x.e * k })) }
     } else blob = audio.toBlob()
-    self.postMessage({ type: 'audio', reqId: next.reqId, blob, words, ms: Math.round(performance.now() - t0) })
+    self.postMessage({ type: 'audio', reqId: next.reqId, blob, words, phones, ms: Math.round(performance.now() - t0) })
   } catch (e) {
     self.postMessage({ type: 'error', reqId: next.reqId, error: String((e as Error)?.message ?? e) })
   } finally {

@@ -1,0 +1,541 @@
+{
+  "format": "livliv-model",
+  "version": 4,
+  "name": "Bookmoo — Bia, estudo pintado",
+  "meta": {
+    "generator": {
+      "name": "Bookmoo facial reconstruction"
+    },
+    "author": {
+      "name": "Bookmoo"
+    },
+    "license": {
+      "id": "LicenseRef-Bookmoo",
+      "text": "Personagem original Bookmoo. Sem concessão de licença a terceiros."
+    },
+    "watermark": {
+      "kind": "none"
+    }
+  },
+  "requires": [],
+  "canvas": [
+    1024,
+    1536
+  ],
+  "profile": {
+    "id": "anime_half",
+    "facing": "front"
+  },
+  "rig": {
+    "yaw": 0.12,
+    "pitch": 0.1,
+    "roll": 0.12,
+    "bulge": 0.6,
+    "drift": [
+      0,
+      0
+    ],
+    "wind": 0,
+    "breath": 0.35,
+    "sway": 0,
+    "brow": 0,
+    "body": {
+      "yaw": 0,
+      "roll": 0,
+      "breath": 0.2,
+      "bust": 0
+    },
+    "hair": {
+      "front": [
+        140,
+        11,
+        0.008,
+        70,
+        7
+      ],
+      "back": [
+        48,
+        5.5,
+        0.06,
+        24,
+        3.5
+      ],
+      "side": [
+        90,
+        9,
+        0.03,
+        50,
+        6
+      ]
+    },
+    "jaw": 0.0095
+  },
+  "anchors": {
+    "head": {
+      "cx": 521,
+      "cy": 347,
+      "rx": 175,
+      "ry": 208
+    },
+    "face": [
+      351,
+      169,
+      683,
+      536
+    ],
+    "neck_y": 532,
+    "top_y": 10,
+    "bottom_y": 1536,
+    "hair_root_y": 35,
+    "eyes": [
+      [
+        415,
+        314,
+        480,
+        343
+      ],
+      [
+        552,
+        301,
+        612,
+        334
+      ]
+    ],
+    "brows": [
+      [
+        406,
+        270,
+        488,
+        297
+      ],
+      [
+        533,
+        257,
+        608,
+        281
+      ]
+    ],
+    "jaw": {
+      "top": 475,
+      "chin": 535,
+      "half": 0.7,
+      "open": 3.5,
+      "round": 2.2,
+      "wide": 2.7
+    },
+    "chest": {
+      "cx": 530,
+      "cy": 1000,
+      "rx": 320,
+      "ry": 180
+    }
+  },
+  "expressions": [
+    {
+      "id": "smile",
+      "label": {
+        "pt": "Feliz",
+        "en": "smile"
+      }
+    },
+    {
+      "id": "surprised",
+      "label": {
+        "pt": "Surpresa",
+        "en": "surprised"
+      }
+    },
+    {
+      "id": "sad",
+      "label": {
+        "pt": "Triste",
+        "en": "sad"
+      }
+    },
+    {
+      "id": "angry",
+      "label": {
+        "pt": "Brava",
+        "en": "angry"
+      }
+    },
+    {
+      "id": "shy",
+      "label": {
+        "pt": "Tímida",
+        "en": "shy"
+      }
+    },
+    {
+      "id": "x_wink",
+      "label": {
+        "pt": "Piscadinha",
+        "en": "x_wink"
+      }
+    }
+  ],
+  "layers": [
+    {
+      "id": "body",
+      "texture": "textures/body.png",
+      "x": 0,
+      "y": 0,
+      "w": 1024,
+      "h": 1536,
+      "group": "body",
+      "depth": 0,
+      "hide": {
+        "gesto_enfase": 1,
+        "gesto_explicativo": 1,
+        "gesto_abertura": 1,
+        "gesto_reflexao": 1,
+        "gesto_conclusao": 1
+      }
+    },
+    {
+      "id": "gesto_pescoco_comum",
+      "texture": "textures/gesto_pescoco_comum.png",
+      "x": 0,
+      "y": 0,
+      "w": 1024,
+      "h": 1536,
+      "group": "body",
+      "depth": 0,
+      "show": {
+        "gesto_enfase": 1,
+        "gesto_explicativo": 1,
+        "gesto_abertura": 1,
+        "gesto_reflexao": 1,
+        "gesto_conclusao": 1
+      }
+    },
+    {
+      "id": "gesto_enfase",
+      "texture": "textures/gesto_enfase.png",
+      "x": 0,
+      "y": 0,
+      "w": 1024,
+      "h": 1536,
+      "group": "body",
+      "depth": 0,
+      "show": {
+        "gesto_enfase": 1
+      }
+    },
+    {
+      "id": "gesto_explicativo",
+      "texture": "textures/gesto_explicativo.png",
+      "x": 0,
+      "y": 0,
+      "w": 1024,
+      "h": 1536,
+      "group": "body",
+      "depth": 0,
+      "show": {
+        "gesto_explicativo": 1
+      }
+    },
+    {
+      "id": "gesto_abertura",
+      "texture": "textures/gesto_abertura.png",
+      "x": 0,
+      "y": 0,
+      "w": 1024,
+      "h": 1536,
+      "group": "body",
+      "depth": 0,
+      "show": {
+        "gesto_abertura": 1
+      }
+    },
+    {
+      "id": "gesto_reflexao",
+      "texture": "textures/gesto_reflexao.png",
+      "x": 0,
+      "y": 0,
+      "w": 1024,
+      "h": 1536,
+      "group": "body",
+      "depth": 0,
+      "show": {
+        "gesto_reflexao": 1
+      }
+    },
+    {
+      "id": "gesto_conclusao",
+      "texture": "textures/gesto_conclusao.png",
+      "x": 0,
+      "y": 0,
+      "w": 1024,
+      "h": 1536,
+      "group": "body",
+      "depth": 0,
+      "show": {
+        "gesto_conclusao": 1
+      }
+    },
+    {
+      "id": "face",
+      "texture": "textures/face.png",
+      "x": 0,
+      "y": 0,
+      "w": 1024,
+      "h": 1536,
+      "group": "head",
+      "depth": 0,
+      "frames": [
+        "textures/face.png",
+        "textures/reaction_smile_face.png",
+        "textures/reaction_surprised_face.png",
+        "textures/reaction_sad_face.png",
+        "textures/reaction_angry_face.png",
+        "textures/reaction_shy_face.png",
+        "textures/reaction_x_wink_face.png"
+      ]
+    },
+    {
+      "id": "eye_L",
+      "texture": "textures/eye_L.png",
+      "x": 398,
+      "y": 296,
+      "w": 97,
+      "h": 61,
+      "group": "head",
+      "depth": 0,
+      "role": "eye_L",
+      "pivot": [
+        447.0,
+        330.82
+      ],
+      "mask": "textures/mask_L.png",
+      "frames": [
+        "textures/eye_L.png",
+        "textures/reaction_smile_eye_L.png",
+        "textures/reaction_surprised_eye_L.png",
+        "textures/reaction_sad_eye_L.png",
+        "textures/reaction_angry_eye_L.png",
+        "textures/reaction_shy_eye_L.png",
+        "textures/reaction_x_wink_eye_L.png"
+      ]
+    },
+    {
+      "id": "iris_L",
+      "texture": "textures/iris_L.png",
+      "x": 424,
+      "y": 305,
+      "w": 45,
+      "h": 45,
+      "group": "head",
+      "depth": 0,
+      "role": "iris_L",
+      "pivot": [
+        447.0,
+        330.82
+      ],
+      "clip": "eye_L",
+      "range": [
+        3.76,
+        2.3499999999999996
+      ]
+    },
+    {
+      "id": "eye_L_closed",
+      "texture": "textures/eye_L_closed.png",
+      "x": 398,
+      "y": 296,
+      "w": 97,
+      "h": 61,
+      "group": "head",
+      "depth": 0,
+      "role": "lid_L",
+      "frames": [
+        "textures/eye_L_closed.png",
+        "textures/reaction_smile_lid_L.png",
+        "textures/reaction_surprised_lid_L.png",
+        "textures/reaction_sad_lid_L.png",
+        "textures/reaction_angry_lid_L.png",
+        "textures/reaction_shy_lid_L.png",
+        "textures/reaction_x_wink_lid_L.png"
+      ]
+    },
+    {
+      "id": "eye_R",
+      "texture": "textures/eye_R.png",
+      "x": 538,
+      "y": 284,
+      "w": 94,
+      "h": 63,
+      "group": "head",
+      "depth": 0,
+      "role": "eye_R",
+      "pivot": [
+        581.0,
+        319.82
+      ],
+      "mask": "textures/mask_R.png",
+      "frames": [
+        "textures/eye_R.png",
+        "textures/reaction_smile_eye_R.png",
+        "textures/reaction_surprised_eye_R.png",
+        "textures/reaction_sad_eye_R.png",
+        "textures/reaction_angry_eye_R.png",
+        "textures/reaction_shy_eye_R.png",
+        "textures/reaction_x_wink_eye_R.png"
+      ]
+    },
+    {
+      "id": "iris_R",
+      "texture": "textures/iris_R.png",
+      "x": 558,
+      "y": 294,
+      "w": 45,
+      "h": 45,
+      "group": "head",
+      "depth": 0,
+      "role": "iris_R",
+      "pivot": [
+        581.0,
+        319.82
+      ],
+      "clip": "eye_R",
+      "range": [
+        3.76,
+        2.3499999999999996
+      ]
+    },
+    {
+      "id": "eye_R_closed",
+      "texture": "textures/eye_R_closed.png",
+      "x": 538,
+      "y": 284,
+      "w": 94,
+      "h": 63,
+      "group": "head",
+      "depth": 0,
+      "role": "lid_R",
+      "frames": [
+        "textures/eye_R_closed.png",
+        "textures/reaction_smile_lid_R.png",
+        "textures/reaction_surprised_lid_R.png",
+        "textures/reaction_sad_lid_R.png",
+        "textures/reaction_angry_lid_R.png",
+        "textures/reaction_shy_lid_R.png",
+        "textures/reaction_x_wink_lid_R.png"
+      ]
+    },
+    {
+      "id": "mouth",
+      "texture": "textures/mouth.png",
+      "x": 452,
+      "y": 417,
+      "w": 157,
+      "h": 88,
+      "group": "head",
+      "depth": 0,
+      "role": "mouth",
+      "pivot": [
+        530,
+        448
+      ],
+      "frames": [
+        "textures/mouth_f0.png",
+        "textures/mouth_f1.png",
+        "textures/mouth_f2.png",
+        "textures/mouth_f3.png",
+        "textures/mouth_f4.png"
+      ],
+      "visemes": [
+        "closed",
+        "half",
+        "open",
+        "round",
+        "wide"
+      ]
+    },
+    {
+      "id": "gesto_reflexao_mao_frente",
+      "texture": "textures/gesto_reflexao_mao_frente.png",
+      "x": 0,
+      "y": 0,
+      "w": 1024,
+      "h": 1536,
+      "group": "body",
+      "depth": 0,
+      "show": {
+        "gesto_reflexao": 1
+      }
+    },
+    {
+      "id": "reaction_mask_bank_L",
+      "texture": "textures/mask_L.png",
+      "frames": [
+        "textures/mask_L.png",
+        "textures/reaction_smile_mask_L.png",
+        "textures/reaction_surprised_mask_L.png",
+        "textures/reaction_sad_mask_L.png",
+        "textures/reaction_angry_mask_L.png",
+        "textures/reaction_shy_mask_L.png",
+        "textures/reaction_x_wink_mask_L.png"
+      ],
+      "x": 398,
+      "y": 296,
+      "w": 97,
+      "h": 61,
+      "group": "head",
+      "depth": 0,
+      "role": "hole"
+    },
+    {
+      "id": "reaction_mask_bank_R",
+      "texture": "textures/mask_R.png",
+      "frames": [
+        "textures/mask_R.png",
+        "textures/reaction_smile_mask_R.png",
+        "textures/reaction_surprised_mask_R.png",
+        "textures/reaction_sad_mask_R.png",
+        "textures/reaction_angry_mask_R.png",
+        "textures/reaction_shy_mask_R.png",
+        "textures/reaction_x_wink_mask_R.png"
+      ],
+      "x": 538,
+      "y": 284,
+      "w": 94,
+      "h": 63,
+      "group": "head",
+      "depth": 0,
+      "role": "hole"
+    },
+    {
+      "id": "reaction_mouth_bank",
+      "texture": "textures/mouth_f0.png",
+      "frames": [
+        "textures/mouth_f0.png",
+        "textures/reaction_smile_mouth.png",
+        "textures/reaction_surprised_mouth.png",
+        "textures/reaction_sad_mouth.png",
+        "textures/reaction_angry_mouth.png",
+        "textures/reaction_shy_mouth.png",
+        "textures/reaction_x_wink_mouth.png"
+      ],
+      "x": 452,
+      "y": 417,
+      "w": 157,
+      "h": 88,
+      "group": "head",
+      "depth": 0,
+      "role": "hole"
+    }
+  ],
+  "x-validation-scope": "Bia pintada: seis reações, cinco gestos, boca contínua, queixo local e resposta breve por gesto.",
+  "tuning": {
+    "nod": 1.15
+  },
+  "x-bookmoo-jaw-field": {
+    "cx": 521,
+    "top": 475,
+    "chin": 535,
+    "end": 555,
+    "fullWidth": 60,
+    "outerWidth": 110
+  }
+}

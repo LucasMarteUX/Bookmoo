@@ -9,6 +9,8 @@ import { isTutorVoice, resolveReadingVoice } from '@/lib/tutorReadingVoices'
 import { deviceSpeak, hasDeviceVoice, isMobileDevice } from '@/lib/deviceVoice'
 import { getSpeakerVoice, resolveSpeakerVoice } from '@/lib/speakerVoice'
 import { audioClock, clearSpeechClock, setSpeechClock, type SpeechClock } from '@/lib/speechClock'
+import { clearVisemeTrack, setVisemeTrack, type VisemeTrack } from '@/lib/visemeTrack'
+import type { PhoneTiming } from '@/lib/kokoro/engine'
 import { countWords, listWords, wordRegex } from '@/lib/wordTokens'
 
 export type TtsContext = 'word' | 'phrase' | 'reader' | 'lesson' | 'preview'
@@ -287,7 +289,7 @@ export function startsFromTimings(text: string, timings: WordTiming[]): number[]
 
 const HIGHLIGHT_LEAD_S = 0.12
 
-async function playUrl(url: string, rate: number, text?: string, onWord?: (i: number) => void, realStarts?: number[], pitch = 1): Promise<{ done: Promise<void> }> {
+async function playUrl(url: string, rate: number, text?: string, onWord?: (i: number) => void, realStarts?: number[], pitch = 1, phones?: PhoneTiming[] | null): Promise<{ done: Promise<void> }> {
   const a = getPlayer()
   a.src = url
   const mySrc = a.src
@@ -300,6 +302,9 @@ async function playUrl(url: string, rate: number, text?: string, onWord?: (i: nu
   pitched.webkitPreservesPitch = !shifted
   let raf = 0
   let clock: SpeechClock | null = null
+  // Fonemas com tempo real (Kokoro): a boca segue o relógio deste <audio>; some quando a frase acaba ou é interrompida.
+  const track: VisemeTrack | null = phones?.length ? { el: a, src: a.src, phones } : null
+  if (track) setVisemeTrack(track)
   const done = new Promise<void>((resolve) => {
     let settled = false
     const finish = () => {
@@ -307,6 +312,7 @@ async function playUrl(url: string, rate: number, text?: string, onWord?: (i: nu
       settled = true
       cancelAnimationFrame(raf)
       if (clock) clearSpeechClock(clock)
+      if (track) clearVisemeTrack(track)
       a.removeEventListener('ended', onEnded)
       a.removeEventListener('error', onError)
       if (finishCurrent === finish) finishCurrent = null
@@ -463,7 +469,7 @@ export async function speak(text: string, opts: SpeakOptions = {}): Promise<Spea
       opts.onLoading?.(false)
       if (token !== currentToken) return { done: Promise.resolve(), source: 'kokoro' }
       const starts = clip.words ? startsFromTimings(trimmed, clip.words) : undefined
-      return { ...(await playUrl(clip.url, pitch !== 1 ? g.play : (opts.rate ?? 1), trimmed, opts.onWord, starts)), source: 'kokoro' }
+      return { ...(await playUrl(clip.url, pitch !== 1 ? g.play : (opts.rate ?? 1), trimmed, opts.onWord, starts, 1, clip.phones)), source: 'kokoro' }
     } catch (e) {
       opts.onLoading?.(false)
       if (token !== currentToken) return { done: Promise.resolve(), source: 'kokoro' }

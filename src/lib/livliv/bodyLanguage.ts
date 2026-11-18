@@ -76,6 +76,8 @@ type Hooks = {
   fixedBase: () => boolean
   /** Deslocamento por grau para a base ficar parada (medido por personagem). */
   basePerDeg: () => number
+  /** Desligado (ex.: Bia pintada, com a cabeça nos adaptadores dela). */
+  off?: () => boolean
 }
 
 export function installBodyLanguage(player: Player, h: Hooks): () => void {
@@ -97,6 +99,7 @@ export function installBodyLanguage(player: Player, h: Hooks): () => void {
   return player.use({
     order: 12, // depois do lip sync (10) e da voz do navegador (11): a boca deste quadro já está decidida
     update(frame) {
+      if (h.off?.()) return
       const dt = Math.min(0.05, frame.dt)
       const now = performance.now()
       const state = h.state()

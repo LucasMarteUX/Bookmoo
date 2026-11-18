@@ -38,7 +38,9 @@ export function isKokoroSupported() {
 
 /** Início de cada palavra falada, como fração (0–1) da duração do áudio; n = nº de fonemas. */
 export type WordTiming = { f: number; n: number }
-export type KokoroClip = { url: string; words: WordTiming[] | null }
+/** Fonema com início/fim em fração do áudio. */
+export type PhoneTiming = { p: string; f: number; e: number }
+export type KokoroClip = { url: string; words: WordTiming[] | null; phones?: PhoneTiming[] | null }
 
 let worker: Worker | null = null
 let lastBackend: { device: string; dtype: string } | null = null
@@ -47,7 +49,7 @@ let workerReady = false
 export function kokoroBackend() { return lastBackend }
 let reqSeq = 0
 const pending = new Map<number, {
-  resolve: (v: { blob?: Blob; ms?: number; words?: WordTiming[] | null }) => void
+  resolve: (v: { blob?: Blob; ms?: number; words?: WordTiming[] | null; phones?: PhoneTiming[] | null }) => void
   reject: (e: Error) => void
   onProgress?: (fraction: number) => void
   files: Map<string, { loaded: number; total: number }>
@@ -57,7 +59,7 @@ function getWorker(): Worker {
   if (worker) return worker
   worker = new Worker(new URL('./kokoro.worker.ts', import.meta.url), { type: 'module' })
   worker.onmessage = (ev) => {
-    const m = ev.data as { type: string; reqId: number; blob?: Blob; ms?: number; words?: WordTiming[] | null; error?: string; file?: string; loaded?: number; total?: number }
+    const m = ev.data as { type: string; reqId: number; blob?: Blob; ms?: number; words?: WordTiming[] | null; phones?: PhoneTiming[] | null; error?: string; file?: string; loaded?: number; total?: number }
     if (m.type === 'backend') {
       lastBackend = m as unknown as { device: string; dtype: string }
       return
@@ -74,7 +76,7 @@ function getWorker(): Worker {
     pending.delete(m.reqId)
     if (m.type === 'loaded' || m.type === 'audio') workerReady = true
     if (m.type === 'error') p.reject(new Error(m.error))
-    else p.resolve({ blob: m.blob, ms: m.ms, words: m.words })
+    else p.resolve({ blob: m.blob, ms: m.ms, words: m.words, phones: m.phones })
   }
   worker.onerror = (e) => {
     pending.forEach((p) => p.reject(new Error(e.message || 'kokoro_worker_error')))
@@ -95,7 +97,7 @@ function resetWorker(reason: string) {
 
 function send(msg: Record<string, unknown>, onProgress?: (f: number) => void, timeoutMs?: number) {
   const reqId = ++reqSeq
-  return new Promise<{ blob?: Blob; ms?: number; words?: WordTiming[] | null }>((resolve, reject) => {
+  return new Promise<{ blob?: Blob; ms?: number; words?: WordTiming[] | null; phones?: PhoneTiming[] | null }>((resolve, reject) => {
     let timer: ReturnType<typeof setTimeout> | undefined
     const done = <T,>(fn: (v: T) => void) => (v: T) => { if (timer) clearTimeout(timer); fn(v) }
     pending.set(reqId, { resolve: done(resolve), reject: done(reject), onProgress, files: new Map() })
@@ -186,9 +188,9 @@ export function kokoroAudioUrl(text: string, voice: string, speed: number, prior
   if (hit) return hit
   // Frase atual: se o motor não responder em 30s (após carregado), ele é reiniciado e o app cai para a voz do navegador.
   const p = send({ type: 'generate', text, voice, speed, priority, deEss, pitch }, undefined, priority === 'high' ? 30_000 : undefined)
-    .then(({ blob, ms, words }) => {
+    .then(({ blob, ms, words, phones }) => {
       if (import.meta.env.DEV) console.debug(`[kokoro] ${ms}ms "${text.slice(0, 40)}"`)
-      return { url: URL.createObjectURL(blob!), words: words ?? null }
+      return { url: URL.createObjectURL(blob!), words: words ?? null, phones: phones ?? null }
     })
   p.catch(() => audioCache.delete(key))
   audioCache.set(key, p)

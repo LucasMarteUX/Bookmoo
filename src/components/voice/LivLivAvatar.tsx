@@ -9,7 +9,9 @@ import type { VoiceState } from '@/hooks/useVoiceConversation'
 import type { Mood } from '@/components/voice/TutorAvatar'
 import { borrowPlaybackElement } from '@/lib/tts'
 import { getSpeechClock } from '@/lib/speechClock'
-import { characterAvatarUrl, characterById, characterModelUrl } from '@/lib/livliv/characters'
+import { activeVisemeTrack, shapeAt } from '@/lib/visemeTrack'
+import { characterAvatarUrl, characterBaseUrl, characterById, characterModelUrl } from '@/lib/livliv/characters'
+import { setupPainted, type PaintedControl } from '@/lib/livliv/painted'
 import { clearSpeakerVoice, setSpeakerVoice } from '@/lib/speakerVoice'
 import { installBodyGestures, type BodyGestureControl } from '@/lib/livliv/bodyGestures'
 import { installBodyLanguage } from '@/lib/livliv/bodyLanguage'
@@ -53,7 +55,7 @@ export type HeadBox = { x: number; top: number; width: number }
 // Enquadramento do palco por personagem e formato de tela: medido uma vez e guardado, para as próximas vezes já abrirem
 // no lugar certo (sem a personagem "pular" do meio para a base quando a página carrega).
 type Framing = { y: number; top: number }
-const FRAMING_KEY = 'bookmoo:stage-framing:v3'
+const FRAMING_KEY = 'bookmoo:stage-framing:v9' // v4: zoom padronizado pela altura da cabeça
 const framingCache: Record<string, Framing> = (() => { try { return JSON.parse(localStorage.getItem(FRAMING_KEY) || '{}') } catch { return {} } })()
 function saveFraming(key: string, f: Framing) {
   framingCache[key] = f
@@ -67,12 +69,14 @@ const frames = (n: number) => new Promise<void>(resolve => {
   requestAnimationFrame(tick)
 })
 
-export function LivLivAvatar({ characterId, state, speakingText = '', onHead, size = 220, mood = 'neutral', wave = false, followPointer = true, voice = false, stage = false, onPoke, onFail }: {
+export function LivLivAvatar({ characterId, state, speakingText = '', onHead, onReady, size = 220, mood = 'neutral', wave = false, followPointer = true, voice = false, stage = false, onPoke, onFail }: {
   characterId: string
   /** Frase sendo dita agora: pergunta inclina a cabeça, exclamação anima. */
   speakingText?: string
   /** Onde está a cabeça (em px do quadro), para posicionar o balão de fala junto dela. */
   onHead?: (head: HeadBox) => void
+  /** O personagem já está na tela (carregado e enquadrado); false enquanto troca de personagem. */
+  onReady?: (ready: boolean) => void
   /** Palco: ocupa todo o espaço do pai, sem círculo, cortado na cintura e apoiado na base (tela de conversa). */
   stage?: boolean
   state: VoiceState
@@ -91,8 +95,17 @@ export function LivLivAvatar({ characterId, state, speakingText = '', onHead, si
   const playerRef = useRef<Player | null>(null)
   const [player, setPlayer] = useState<Player | null>(null)
   const [ready, setReady] = useState(false)
+  const readyRef = useRef(false)
+  readyRef.current = ready
+  const onReadyRef = useRef(onReady)
+  onReadyRef.current = onReady
   // Troca de tutor no palco: uma "ligação" de uns 3 segundos ("Chamando Luck...") antes de ele aparecer.
   const [calling, setCalling] = useState(false)
+  // Visível de verdade: carregado, enquadrado e já passou o "chamando" (o balão de fala só aparece daí em diante).
+  const visible = ready && !calling
+  const visibleRef = useRef(false)
+  visibleRef.current = visible
+  useEffect(() => { onReadyRef.current?.(visible) }, [visible])
   const prevCharacter = useRef(characterId)
   useEffect(() => {
     if (!stage || prevCharacter.current === characterId) { prevCharacter.current = characterId; return }
@@ -104,6 +117,8 @@ export function LivLivAvatar({ characterId, state, speakingText = '', onHead, si
   const speakingRef = useRef(false)
   speakingRef.current = state === 'speaking'
   const stateRef = useRef<VoiceState>(state)
+  const characterIdRef = useRef(characterId)
+  characterIdRef.current = characterId
   stateRef.current = state
   const browRef = useRef(0)
   const gestureRef = useRef<BodyGestureControl | null>(null)
@@ -122,6 +137,10 @@ export function LivLivAvatar({ characterId, state, speakingText = '', onHead, si
   const topFactor = useRef(0.72)
   const headRef = useRef(onHead)
   headRef.current = onHead
+  // Bia pintada: a cabeça, a boca, o cabelo e a roupa são dos adaptadores dela; os controladores de cabeça abaixo ficam quietos.
+  const paintedRef = useRef(false)
+  const paintedCtl = useRef<PaintedControl | null>(null)
+  const loadToken = useRef(0)
   const failRef = useRef(onFail)
   failRef.current = onFail
 
@@ -167,6 +186,7 @@ export function LivLivAvatar({ characterId, state, speakingText = '', onHead, si
     const removeRecenter = p.use({
       order: 5,
       update(frame) {
+        if (paintedRef.current) return
         const k = Math.min(1, frame.dt / 3)
         // Às vezes o corpo inclina ao CONTRÁRIO do mouse e só os olhos acompanham (fica mais vivo que seguir sempre).
         // O modo troca sozinho a cada 8 a 16 s, e a passagem de um para o outro é suave (sem tranco).
@@ -210,6 +230,7 @@ export function LivLivAvatar({ characterId, state, speakingText = '', onHead, si
     const removeWink = p.use({
       order: 8,
       update(frame) {
+        if (paintedRef.current) return
         const shown = (p as unknown as { shownExpr?: Record<string, number> }).shownExpr
         const target = Math.min(1, shown?.x_wink ?? 0)
         wink += (target - wink) * Math.min(1, frame.dt * 8)
@@ -233,7 +254,7 @@ export function LivLivAvatar({ characterId, state, speakingText = '', onHead, si
     const removeActs = p.use({
       order: 9,
       update(frame) {
-        if (!acts.length) return
+        if (!acts.length || paintedRef.current) return
         const now = performance.now()
         const pr = frame.params as unknown as Record<string, number>
         let dz = 0
@@ -258,6 +279,7 @@ export function LivLivAvatar({ characterId, state, speakingText = '', onHead, si
       gesture: () => gestureRef.current?.get() ?? 'neutro',
       fixedBase: () => fixedBase.current,
       basePerDeg: () => basePerDeg.current,
+      off: () => paintedRef.current,
     })
     // Voz do navegador (português): a boca segue o relógio da fala, suavizada.
     let open = 0, vowel = 0
@@ -289,7 +311,8 @@ export function LivLivAvatar({ characterId, state, speakingText = '', onHead, si
     let prevKey = ''
     p.onFrame = () => {
       const now = performance.now()
-      if (!headRef.current || now - lastHead < 250) return
+      // Só depois de o personagem aparecer: antes disso a cabeça ainda não está no lugar (o balão esperaria no ar).
+      if (!headRef.current || !visibleRef.current || now - lastHead < 250) return
       lastHead = now
       const a = p.getAnchor('head')
       if (!a) return
@@ -310,6 +333,8 @@ export function LivLivAvatar({ characterId, state, speakingText = '', onHead, si
       removeBodyLanguage()
       removeActs()
       removeRecenter()
+      paintedCtl.current?.dispose()
+      paintedCtl.current = null
       gestureRef.current?.dispose()
       gestureRef.current = null
       removeBrowserVoice()
@@ -325,7 +350,12 @@ export function LivLivAvatar({ characterId, state, speakingText = '', onHead, si
   // Trocar de personagem só troca o modelo: o player, a voz e a conversa continuam.
   useEffect(() => {
     if (!player) return
+    const token = ++loadToken.current
     setReady(false)
+    paintedCtl.current?.dispose()
+    paintedCtl.current = null
+    const painted = !!characterById(characterId)?.painted
+    paintedRef.current = painted
     player.load(characterModelUrl(characterId), stage ? undefined : { poster: characterAvatarUrl(characterId) })
       .then(async info => {
         // Palco: da cabeça à cintura (corpo inteiro também corta na cintura). Avatar pequeno: só a cabeça.
@@ -334,7 +364,17 @@ export function LivLivAvatar({ characterId, state, speakingText = '', onHead, si
         player.params.angleZ = baseZRef.current
         fixedBase.current = !!characterById(characterId)?.bodyInHead
         basePerDeg.current = characterById(characterId)?.basePerDeg ?? 0.0013
-        player.bodyMotion = fixedBase.current ? 0 : 0.5
+        player.bodyMotion = fixedBase.current || painted ? 0 : 0.5
+        // Bia pintada: adaptadores aplicados uma vez por carregamento (queixo, boca contínua, cabeça por gesto, mechas, roupa, brincos).
+        // Só o carregamento mais recente instala (no StrictMode e em trocas rápidas o efeito roda mais de uma vez; um adaptador
+        // instalado no puppet de uma carga antiga deixava o atual sem reações, boca e cabeça natural).
+        if (token !== loadToken.current) return
+        if (painted) {
+          const puppet = (player as unknown as { puppet?: object }).puppet
+          const ctl = await setupPainted(characterById(characterId)?.painted ?? 'bia', player, characterBaseUrl(characterId))
+          if (token !== loadToken.current || playerRef.current !== player || (player as unknown as { puppet?: object }).puppet !== puppet) { ctl.dispose(); return }
+          paintedCtl.current = ctl
+        }
         gestureRef.current?.set('neutro')
         player.view.head = !stage && size < 120
         if (info.fullBody) player.view.fit = 'frame'
@@ -360,7 +400,10 @@ export function LivLivAvatar({ characterId, state, speakingText = '', onHead, si
     const key = `${characterId}|${tall.toFixed(2)}`
     const known = framingCache[key]
     if (known) { p.view.y = known.y; topFactor.current = known.top; return }
-    p.view.y = baseY
+    // Mede com o personagem mais abaixo: com zoom maior (Yuno, Yuri) o topo do cabelo saía da tela nessa medição e o
+    // topo era achado na linha 0 (o balão ficava em cima da cabeça). Depois sobe para o lugar certo.
+    const yMeasure = baseY - 0.25
+    p.view.y = yMeasure
     // Cada personagem tem uma altura de cabeça e um volume de cabelo: com o primeiro quadro desenhado, mede o topo real
     // do desenho (pixels da imagem) e acerta o enquadramento para esse topo ficar sempre na mesma faixa, e guarda a
     // proporção para o balão ficar acima do cabelo, não da cabeça estimada.
@@ -369,6 +412,9 @@ export function LivLivAvatar({ characterId, state, speakingText = '', onHead, si
     const a = q?.getAnchor('head')
     if (!q || !cv || !a) return
     const w = cv.clientWidth, h = cv.clientHeight
+    // Desenha o quadro atual antes da foto: com a aba em segundo plano ou logo após trocar de personagem, o último quadro
+    // ainda podia ser do personagem anterior (o topo do cabelo saía errado e o balão ficava em cima da cabeça).
+    ;(q as unknown as { draw?: (dt: number) => void }).draw?.(0)
     const img = new Image()
     img.src = q.snapshot()
     try { await img.decode() } catch { return }
@@ -386,17 +432,19 @@ export function LivLivAvatar({ characterId, state, speakingText = '', onHead, si
     const hairTop = (row / sh) * h
     topFactor.current = (a.y * h - hairTop) / Math.max(1, a.scale * w)
     // Topo do cabelo logo abaixo da área do balão (o balão fica perto do cabeçalho).
-    const target = Math.min(130, Math.max(100, h * 0.16))
+    // Mesma faixa para todos: a Bia (desenho mais curto embaixo) não sobe além disso sem abrir vão; os outros descem até ela.
+    // Topo do cabelo numa faixa comum; os adolescentes ficam um pouco mais baixos que os adultos (altura de verdade).
+    const target = Math.min(150, Math.max(100, h * 0.15)) + (characterById(characterId)?.young ? h * 0.035 : 0)
     // O personagem está em pé: a base tem que encostar embaixo. Com o enquadramento mais aberto (Bia e Luck mostram mais do
     // corpo) sobrava um vão embaixo no celular. Calcula pelo mesmo quadro já desenhado (sem depender de outro quadro, que
     // numa aba em segundo plano não vem): onde a borda de baixo do quadro cai no desenho do modelo, e quanto subir o
     // personagem para o cabelo ficar abaixo do balão abre de vão. Se abrir, desce o que faltar; o balão segue a cabeça.
-    const candidate = baseY + (hairTop - target) / h
+    const candidate = yMeasure + (hairTop - target) / h
     const top = q.canvasToModel(w / 2, 0), bottom = q.canvasToModel(w / 2, h)
     const modelH = (q as unknown as { info?: { size?: [number, number] } }).info?.size?.[1] ?? 1536
     const perPx = (bottom[1] - top[1]) / Math.max(1, h) // px do modelo por px do quadro
     const gap0 = perPx > 0 ? Math.max(-h, (bottom[1] - modelH) / perPx) : 0 // >0: o desenho acaba antes da borda
-    const gapFinal = gap0 + (candidate - baseY) * h
+    const gapFinal = gap0 + (candidate - yMeasure) * h
     q.view.y = gapFinal > 0 ? candidate - gapFinal / h : candidate
     saveFraming(key, { y: q.view.y, top: topFactor.current })
     await frames(1)
@@ -430,12 +478,39 @@ export function LivLivAvatar({ characterId, state, speakingText = '', onHead, si
         .then(s => { if (cancelled) s.stop(); else sync = s })
         .catch(e => console.warn('[livliv] lip sync indisponível:', e))
     }
+    // Fonemas reais (Kokoro): depois do lip sync por amplitude (order 10), a boca passa a seguir o fonema da vez, lido no
+    // relógio deste <audio>. Antecipa o que a suavização da boca atrasa (abertura ~50 ms, formato ~80 ms). Sem trilha
+    // (pausa, fim, interrupção, outra voz) não escreve nada e a boca fecha pelo próprio lip sync.
+    let lastVoiced = 0
+    const removePhones = player.use({
+      order: 10.5,
+      update(frame) {
+        const t = activeVisemeTrack(el)
+        if (!t) return
+        const d = t.el.duration, r = t.el.playbackRate || 1
+        const now = t.el.currentTime
+        const a = shapeAt(t, (now + 0.062 * r) / d)
+        const v = shapeAt(t, (now + 0.08 * r) / d)
+        // O som de verdade manda no silêncio: com o lip sync por amplitude ligado (Web Audio), se não há voz neste instante
+        // a boca não fica aberta só porque o fonema ainda "dura" (fim de frase arrastado, respiração).
+        // Só fecha depois de ~120 ms sem voz: o começo da sílaba continua adiantado pelos fonemas (a amplitude chega atrasada).
+        const amp = frame.params.mouthOpen ?? 0
+        const nowMs = performance.now()
+        if (amp > 0.06 || !sync) lastVoiced = nowMs
+        const quiet = nowMs - lastVoiced
+        const gate = quiet < 120 ? 1 : Math.max(0, 1 - (quiet - 120) / 80)
+        // ganho por personagem: nos adolescentes a abertura máxima do rig é grande demais para conversa comum
+        frame.params.mouthOpen = a.open * gate * (characterById(characterIdRef.current)?.mouthGain ?? 1)
+        frame.params.vowel = v.vowel
+      },
+    })
     const EVENTS = ['pointerdown', 'keydown', 'touchend'] as const
     const off = () => EVENTS.forEach(t => window.removeEventListener(t, attach, true))
     EVENTS.forEach(t => window.addEventListener(t, attach, true))
     return () => {
       cancelled = true
       off()
+      removePhones()
       sync?.stop()
       release()
     }
@@ -457,8 +532,7 @@ export function LivLivAvatar({ characterId, state, speakingText = '', onHead, si
     if (!player || !ready) return
     // Pensando: olha para cima, com bem pouco desvio lateral (olhar muito para o lado a deixava pendendo para a direita).
     if (state === 'thinking') player.lookAt(0.12, 0.45)
-    else if (state === 'listening' || state === 'speaking') player.lookAt(0, 0.05)
-    else player.lookAt(null)
+    else player.lookAt(null) // ouvindo e falando: o olhar continua seguindo o mouse, como antes da conversa
   }, [player, ready, state])
 
   // Expressão que existe neste modelo (ou nenhuma).
@@ -540,7 +614,7 @@ export function LivLivAvatar({ characterId, state, speakingText = '', onHead, si
     glanceTimer.current = window.setTimeout(() => {
       const q = playerRef.current
       if (!q) return
-      if (stateRef.current === 'speaking') q.lookAt(0, 0.05); else if (stateRef.current === 'idle') q.lookAt(null)
+      if (stateRef.current === 'speaking' || stateRef.current === 'idle') q.lookAt(null)
     }, 1100 + Math.random() * 900)
   }
   useEffect(() => {
@@ -555,7 +629,7 @@ export function LivLivAvatar({ characterId, state, speakingText = '', onHead, si
     const d = new GestureDirector({
       control: g,
       face: (m, ms) => react(MOOD_REACTION[m] ?? MOOD_REACTION.neutral, false, ms),
-      act: (a, n) => player.act(a, n),
+      act: (a, n) => { if (!paintedRef.current) player.act(a, n) }, // Bia pintada: a cabeça responde só à troca de gesto
       text: () => textRef.current,
       mood: () => moodRef.current,
       glance: () => glanceRef.current(),

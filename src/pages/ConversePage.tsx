@@ -272,6 +272,17 @@ function Session({ choice, pt, level, rate, captions, minutes, title, subtitle, 
   const liveRef = useRef(false)
   // Cabeça do personagem no palco: o balão de fala fica logo acima dela.
   const [head, setHead] = useState<HeadBox | null>(null)
+  // Balão no topo (fallback) só se a posição da cabeça faltar por um bom tempo (avatar vetorial); senão ele espera parado, sem passear.
+  const [headLost, setHeadLost] = useState(false)
+  // A fala (boas-vindas inclusive) só aparece com o personagem já na tela; na troca de personagem o balão some até o novo
+  // aparecer, em vez de ficar no ar na posição do anterior.
+  const [avatarReady, setAvatarReady] = useState(false)
+  const onAvatarReady = (r: boolean) => { setAvatarReady(r); if (!r) setHead(null) }
+  useEffect(() => {
+    if (head || !avatarReady) { setHeadLost(false); return }
+    const t = window.setTimeout(() => setHeadLost(true), 1500)
+    return () => window.clearTimeout(t)
+  }, [head, avatarReady])
   const [topicsOpen, setTopicsOpen] = useState(false)
   // Outro tutor sugerido pelo que está falando ("quer que eu chame a Bia?").
   const [suggest, setSuggest] = useState<string | null>(null)
@@ -284,7 +295,6 @@ function Session({ choice, pt, level, rate, captions, minutes, title, subtitle, 
   const stepTutor = (dir: 1 | -1) => {
     const i = Math.max(0, CHARACTERS.findIndex(c => c.id === effectiveCharacterId(chosenCharacter)))
     setCharacter(CHARACTERS[(i + dir + CHARACTERS.length) % CHARACTERS.length].id)
-    setHead(null)
   }
   // Espera (conversa livre, ainda não começou e a pessoa não mexeu em nada): depois de 1 min chama outro tutor, e assim por
   // diante. Qualquer toque, tecla ou rolagem reinicia a contagem. Ao entrar de novo, volta o último com quem ela conversou.
@@ -406,7 +416,6 @@ function Session({ choice, pt, level, rate, captions, minutes, title, subtitle, 
       setPhase('ready')
     }
     setCharacter(id)
-    setHead(null)
   }
 
   async function finish() {
@@ -497,7 +506,7 @@ function Session({ choice, pt, level, rate, captions, minutes, title, subtitle, 
 
       {/* Palco: o personagem grande vai até a borda de baixo; o botão e os controles ficam por cima dele. */}
       <div className="relative flex-1 min-h-[420px] -mx-4 md:-mx-10 -mb-6 md:-mb-12">
-        <CharacterAvatar stage voice onHead={next => setHead(prev => (
+        <CharacterAvatar stage voice onReady={onAvatarReady} onHead={next => setHead(prev => (
           // O balão fica parado: só muda com outro personagem ou outro tamanho de tela, não com o balanço do corpo.
           next && prev && Math.abs(prev.x - next.x) < 48 && Math.abs(prev.top - next.top) < 48 && Math.abs(prev.width - next.width) < 24 ? prev : next
         ))} kind={scene ? avatarKindFor(scene.persona, scene.category) : 'woman'} state={live ? voice.state : 'idle'} speakingText={voice.speakingText} rate={rate} size={190}
@@ -514,10 +523,10 @@ function Session({ choice, pt, level, rate, captions, minutes, title, subtitle, 
             </div>
           )
         })()}
-        {headText && (
+        {headText && avatarReady && (head || headLost) && (
           head && head.top > 110
-            ? <div className="absolute z-10 pointer-events-none w-[min(var(--bw),calc(100%-2rem))] transition-[left,top] duration-500"
-                style={{ '--bw': aiCaption ? '420px' : '300px', left: `clamp(calc(min(var(--bw), 100% - 2rem) / 2 + 1rem), ${head.x}px, calc(100% - min(var(--bw), 100% - 2rem) / 2 - 1rem))`, top: Math.max(96, head.top - 14), transform: 'translate(-50%, -100%)' } as React.CSSProperties}>
+            ? <div className="absolute z-10 pointer-events-none w-[min(var(--bw),calc(100%-2rem))]"
+                style={{ '--bw': aiCaption ? '420px' : '300px', left: `clamp(calc(min(var(--bw), 100% - 2rem) / 2 + 1rem), ${head.x}px, calc(100% - min(var(--bw), 100% - 2rem) / 2 - 1rem))`, top: Math.max(96, head.top - 36) /* folga acima do cabelo (o Yuri, de cabelo espetado, ficava com o balão encostado) */, transform: 'translate(-50%, -100%)' } as React.CSSProperties}>
                 <AvatarBubble text={headText} side="top" />
               </div>
             : <div className="absolute top-2 inset-x-0 z-10 flex justify-center pointer-events-none px-6"><div className="w-full max-w-[420px] flex justify-center"><AvatarBubble text={headText} side="top" /></div></div>

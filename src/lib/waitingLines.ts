@@ -96,7 +96,10 @@ async function favoriteCategory(books: Book[], pt: boolean): Promise<string | nu
   const count = new Map<string, number>()
   for (const r of (data ?? []) as { category: string | null }[]) if (r.category) count.set(r.category, (count.get(r.category) ?? 0) + 1)
   const top = [...count.entries()].sort((a, b) => b[1] - a[1])[0]?.[0]
-  return top ? categoryName(top, pt).toLowerCase() : null
+  if (!top) return null
+  // Nome da categoria vira gênero na frase ("você gosta de histórias infantis", não "de infantil").
+  if (top === 'children') return pt ? 'histórias infantis' : "children's stories"
+  return categoryName(top, pt).toLowerCase()
 }
 
 /** Frases sobre os livros: o que está lendo, o último que terminou, um não começado e o gênero preferido. */
