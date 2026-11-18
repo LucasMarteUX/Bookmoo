@@ -183,7 +183,10 @@ export function Block({ title, locked = false, pt, children, action }: { title: 
   )
 }
 
-export function StudyingWords({ words, pt }: { words: string[]; pt: boolean }) {
+export function StudyingWords({ words: raw, pt }: { words: string[]; pt: boolean }) {
+  // A mesma palavra salva em livros diferentes (ou com maiúscula) aparecia repetida.
+  const seen = new Set<string>()
+  const words = raw.map(w => w.trim()).filter(w => { const k = w.toLowerCase(); if (!w || seen.has(k)) return false; seen.add(k); return true })
   if (words.length === 0) return <p className="text-[13.5px]" style={muted}>{pt ? 'Nenhuma palavra em revisão.' : 'No words in review.'}</p>
   return (
     <div className="flex flex-wrap gap-1.5">

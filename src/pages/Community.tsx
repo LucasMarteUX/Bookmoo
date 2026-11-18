@@ -363,7 +363,7 @@ export function PublicProfile() {
 
   if (view === undefined) {
     return (
-      <div className="max-w-4xl mx-auto space-y-4" aria-hidden>
+      <div className="max-w-5xl mx-auto space-y-4" aria-hidden>
         <div className="h-80 rounded-3xl animate-pulse" style={{ backgroundColor: 'var(--theme-bg-secondary)' }} />
         <div className="h-48 rounded-3xl animate-pulse" style={{ backgroundColor: 'var(--theme-bg-secondary)' }} />
       </div>
@@ -396,7 +396,7 @@ export function PublicProfile() {
   const statsVisible = !!view.stats
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-5xl mx-auto">
       <Link to="/community" className="text-[13px]" style={muted}>{pt ? '← Comunidade' : '← Community'}</Link>
       {view.isOwner && !view.isPublic && (
         <p className="mt-4 rounded-2xl px-4 py-2.5 text-[13.5px]" style={{ backgroundColor: 'var(--pastel-amber-bg)', color: 'var(--pastel-amber-fg)' }}>
@@ -471,8 +471,7 @@ function LatestActivity({ userId, covers, pt, canPost }: { userId: string; cover
   }, [userId])
   if (items === null) return <div className="h-24 rounded-2xl animate-pulse" style={{ backgroundColor: 'var(--theme-bg-secondary)' }} />
   if (!items.length) return <p className="text-[13.5px]" style={muted}>{pt ? 'Nenhuma atividade ainda.' : 'No activity yet.'}</p>
-  // Em duas colunas no desktop: os cartões ficavam largos demais com muito espaço vazio.
-  return <div className="grid gap-3 md:grid-cols-2 items-start">{items.map(item => <PostCard key={item.id} item={item} covers={covers} pt={pt} canPost={canPost} onDeleted={() => setItems(current => (current ?? []).filter(other => other.id !== item.id))} />)}</div>
+  return <div className="grid gap-3">{items.map(item => <PostCard key={item.id} item={item} covers={covers} pt={pt} canPost={canPost} onDeleted={() => setItems(current => (current ?? []).filter(other => other.id !== item.id))} />)}</div>
 }
 
 /** /post/:id — uma publicação com os comentários abertos. É o endereço do link compartilhado. */
@@ -579,6 +578,7 @@ export function NotificationsPage() {
   const [items, setItems] = useState<AppNotification[] | null>(null)
   const [requests, setRequests] = useState<Requests | null>(null)
   const [more, setMore] = useState(false)
+  const [filter, setFilter] = useState<NoticeFilter>('all')
 
   useEffect(() => {
     if (!user) return
@@ -611,22 +611,52 @@ export function NotificationsPage() {
   const unread = (items ?? []).some(item => !item.read)
   const pending = requests ? requests.followIn.length + requests.friendIn.length + requests.friendOut.length : 0
 
+  const FILTERS: [NoticeFilter, string][] = [['all', pt ? 'Todas' : 'All'], ['social', pt ? 'Seguidores e amigos' : 'Follows and friends'], ['likes', pt ? 'Curtidas' : 'Likes'], ['comments', pt ? 'Comentários e menções' : 'Comments and mentions']]
+  const shown = (items ?? []).filter(item => filter === 'all' || noticeGroup(item.type) === filter)
+  const fresh = shown.filter(item => !item.read)
+  const older = shown.filter(item => item.read)
+  const unreadCount = (items ?? []).filter(item => !item.read).length
+
   return (
-    <div className="max-w-6xl mx-auto space-y-5">
-      <header className="flex items-end justify-between gap-3">
-        <h1 className="font-display text-[32px] md:text-[40px] leading-[1.05]">{pt ? 'Notificações' : 'Notifications'}</h1>
-        {unread && <button type="button" onClick={() => { void markAll() }} className="h-9 px-3.5 inline-flex items-center gap-1.5 rounded-full border text-[13px]" style={{ borderColor: 'var(--theme-border)' }}><Check className="w-3.5 h-3.5" />{pt ? 'Marcar todas como lidas' : 'Mark all as read'}</button>}
+    <div className="max-w-6xl mx-auto">
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="font-display text-[36px] md:text-[46px] leading-[1.02] tracking-[-0.01em]">{pt ? 'Notificações' : 'Notifications'}</h1>
+          <p className="mt-2 text-[15px]" style={muted}>{unreadCount ? (pt ? `${unreadCount} ${unreadCount === 1 ? 'nova' : 'novas'} desde a sua última visita.` : `${unreadCount} new since your last visit.`) : (pt ? 'Tudo em dia por aqui.' : 'You are all caught up.')}</p>
+        </div>
+        {unread && <button type="button" onClick={() => { void markAll() }} className="h-9 px-3.5 inline-flex items-center gap-1.5 rounded-full border text-[13px] font-medium hover:bg-[var(--ui-hover)]" style={{ borderColor: 'var(--theme-border)' }}><Check className="w-3.5 h-3.5" />{pt ? 'Marcar todas como lidas' : 'Mark all as read'}</button>}
       </header>
 
-      {notices.length > 0 && (
-        <section className="rounded-3xl border overflow-hidden" style={card}>
+      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] items-start">
+        <div className="min-w-0 space-y-5">
+          <div className="flex gap-1.5 overflow-x-auto no-scrollbar" role="tablist">
+            {FILTERS.map(([id, label]) => (
+              <button key={id} type="button" role="tab" aria-selected={filter === id} onClick={() => setFilter(id)}
+                className="shrink-0 h-9 px-3.5 rounded-full text-[13px] font-medium border transition-colors"
+                style={filter === id ? { backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)', borderColor: 'var(--theme-primary)' } : { borderColor: 'var(--theme-border)' }}>{label}</button>
+            ))}
+          </div>
+          {items === null
+            ? <div className="h-48 rounded-3xl animate-pulse" style={{ backgroundColor: 'var(--theme-bg-secondary)' }} />
+            : shown.length === 0
+              ? <EmptyState illustration="high-five" title={filter === 'all' ? (pt ? 'Nada novo por aqui. Quando alguém seguir você, curtir ou comentar, aparece aqui.' : 'Nothing new. Follows, likes and comments show up here.') : (pt ? 'Nenhuma notificação deste tipo.' : 'No notifications of this kind.')} />
+              : <>
+                  {fresh.length > 0 && <NoticeGroup title={pt ? 'Novas' : 'New'} items={fresh} pt={pt} onOpen={item => { void open(item) }} />}
+                  {older.length > 0 && <NoticeGroup title={pt ? 'Anteriores' : 'Earlier'} items={older} pt={pt} onOpen={item => { void open(item) }} />}
+                </>}
+          {more && <button type="button" onClick={() => { void loadMore() }} className="w-full h-10 rounded-full border text-[13.5px]" style={{ borderColor: 'var(--theme-border)' }}>{pt ? 'Carregar mais' : 'Load more'}</button>}
+        </div>
+
+        <aside className="space-y-4 lg:sticky lg:top-6">
+          {notices.length > 0 && (
+            <section className="rounded-3xl border overflow-hidden" style={card}>
           <h2 className="px-5 pt-4 pb-2 text-[14.5px] font-semibold">{pt ? 'Avisos do Bookmoo' : 'From Bookmoo'}</h2>
           <div className="divide-y" style={{ borderColor: 'var(--theme-border)' }}>
-            {notices.map(n => (
+                {notices.map(n => (
               <button key={n.id} type="button" onClick={() => { if (n.link) { if (n.link.startsWith('/')) navigate(n.link); else window.open(n.link, '_blank', 'noopener') } }}
                 className="w-full text-left px-5 py-3.5 transition-colors hover:bg-[var(--ui-hover)]" style={{ cursor: n.link ? 'pointer' : 'default' }}>
                 <span className="block text-[14.5px] font-medium">{n.title}</span>
-                {n.body && <span className="block mt-0.5 text-[13.5px] leading-snug" style={muted}>{n.body}</span>}
+                    {n.body && <span className="block mt-0.5 text-[13.5px] leading-snug" style={muted}>{n.body}</span>}
                 <span className="block mt-1 text-[12px]" style={muted}>{new Date(n.at).toLocaleDateString(pt ? 'pt-BR' : 'en-US', { day: 'numeric', month: 'short' })}</span>
               </button>
             ))}
@@ -634,11 +664,11 @@ export function NotificationsPage() {
         </section>
       )}
 
-      {requests && pending > 0 && user && (
-        <section className="rounded-3xl border overflow-hidden" style={card}>
+          {requests && pending > 0 && user && (
+            <section className="rounded-3xl border overflow-hidden" style={card}>
           <h2 className="px-5 pt-4 pb-2 text-[14.5px] font-semibold">{pt ? 'Pedidos' : 'Requests'}</h2>
           <div className="divide-y" style={{ borderColor: 'var(--theme-border)' }}>
-            {requests.followIn.map(person => (
+                {requests.followIn.map(person => (
               <UserListItem key={`f-${person.userId}`} person={person} pt={pt} subtitle={pt ? 'quer seguir você' : 'wants to follow you'}
                 action={<span className="flex gap-1.5">
                   <button type="button" onClick={() => { void act(() => approveFollower(user.id, person.userId), r => ({ ...r, followIn: r.followIn.filter(p => p.userId !== person.userId) })) }}
@@ -647,7 +677,7 @@ export function NotificationsPage() {
                     className="h-8 px-2 rounded-full border" style={{ borderColor: 'var(--theme-border)' }}><X className="w-4 h-4" /></button>
                 </span>} />
             ))}
-            {requests.friendIn.map(person => (
+                {requests.friendIn.map(person => (
               <UserListItem key={`i-${person.userId}`} person={person} pt={pt} subtitle={pt ? 'quer ser seu amigo' : 'sent you a friend request'}
                 action={<span className="flex gap-1.5">
                   <button type="button" onClick={() => { void act(() => acceptFriendRequest(user.id, person.userId), r => ({ ...r, friendIn: r.friendIn.filter(p => p.userId !== person.userId) })) }}
@@ -656,7 +686,7 @@ export function NotificationsPage() {
                     className="h-8 px-2 rounded-full border" style={{ borderColor: 'var(--theme-border)' }}><X className="w-4 h-4" /></button>
                 </span>} />
             ))}
-            {requests.friendOut.map(person => (
+                {requests.friendOut.map(person => (
               <UserListItem key={`o-${person.userId}`} person={person} pt={pt} subtitle={pt ? 'pedido de amizade enviado' : 'friend request sent'}
                 action={<button type="button" onClick={() => { void act(() => removeFriendship(user.id, person.userId), r => ({ ...r, friendOut: r.friendOut.filter(p => p.userId !== person.userId) })) }}
                   className="h-8 px-3 rounded-full border text-[12.5px]" style={{ borderColor: 'var(--theme-border)' }}>{pt ? 'Cancelar' : 'Cancel'}</button>} />
@@ -665,15 +695,31 @@ export function NotificationsPage() {
         </section>
       )}
 
-      {items === null
-        ? <div className="h-48 rounded-3xl animate-pulse" style={{ backgroundColor: 'var(--theme-bg-secondary)' }} />
-        : items.length === 0
-          ? <EmptyState illustration="high-five" title={pt ? 'Nada novo por aqui. Quando alguém seguir você, curtir ou comentar, aparece aqui.' : 'Nothing new. Follows, likes and comments show up here.'} />
-          : <div className="rounded-3xl border overflow-hidden divide-y" style={card}>
-              {items.map(item => <NotificationRow key={item.id} item={item} pt={pt} onOpen={() => { void open(item) }} />)}
-            </div>}
-      {more && <button type="button" onClick={() => { void loadMore() }} className="w-full h-10 rounded-full border text-[13.5px]" style={{ borderColor: 'var(--theme-border)' }}>{pt ? 'Carregar mais' : 'Load more'}</button>}
+          {!notices.length && !(requests && pending > 0) && (
+            <section className="rounded-3xl border p-5" style={card}>
+              <p className="text-[14.5px] font-semibold">{pt ? 'Pedidos' : 'Requests'}</p>
+              <p className="mt-1.5 text-[13.5px]" style={muted}>{pt ? 'Nenhum pedido de amizade ou para seguir você.' : 'No friend or follow requests.'}</p>
+              <Link to="/community" className="mt-3 inline-flex text-[13px] font-medium underline underline-offset-4">{pt ? 'Encontrar pessoas' : 'Find people'}</Link>
+            </section>
+          )}
+        </aside>
+      </div>
     </div>
+  )
+}
+
+type NoticeFilter = 'all' | 'social' | 'likes' | 'comments'
+const noticeGroup = (type: AppNotification['type']): Exclude<NoticeFilter, 'all'> =>
+  type === 'like' || type === 'review_like' ? 'likes' : type === 'comment' || type === 'reply' || type === 'mention' ? 'comments' : 'social'
+
+function NoticeGroup({ title, items, pt, onOpen }: { title: string; items: AppNotification[]; pt: boolean; onOpen: (item: AppNotification) => void }) {
+  return (
+    <section>
+      <h2 className="mb-2 text-[12px] font-semibold uppercase tracking-[0.1em]" style={muted}>{title}</h2>
+      <div className="rounded-3xl border overflow-hidden divide-y" style={{ ...card, borderColor: 'var(--theme-border)' }}>
+        {items.map(item => <NotificationRow key={item.id} item={item} pt={pt} onOpen={() => onOpen(item)} />)}
+      </div>
+    </section>
   )
 }
 
@@ -698,18 +744,19 @@ function NotificationRow({ item, pt, onOpen }: { item: AppNotification; pt: bool
     : item.type === 'mention' ? AtSign
     : item.type === 'comment' || item.type === 'reply' ? MessageCircle
       : item.type.startsWith('friend') ? UserCheck : UserPlus
+  const tone = { likes: 'rose', comments: 'blue', social: 'green' }[noticeGroup(item.type)]
   return (
-    <button type="button" onClick={onOpen} className="w-full px-4 sm:px-5 py-3.5 flex items-start gap-3 text-left transition-colors hover:bg-[var(--ui-hover)]"
+    <button type="button" onClick={onOpen} className="w-full px-4 sm:px-5 py-4 flex items-start gap-3.5 text-left transition-colors hover:bg-[var(--ui-hover)]"
       style={item.read ? undefined : { backgroundColor: 'color-mix(in srgb, var(--theme-bg-secondary) 70%, transparent)' }}>
       <span className="relative shrink-0">
-        <Avatar src={item.actor.avatarUrl} name={item.actor.name || item.actor.handle} size={42} />
-        <span className="absolute -right-1 -bottom-1 w-5 h-5 grid place-items-center rounded-full border" style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-border)' }}>
-          <Icon className="w-3 h-3" />
+        <Avatar src={item.actor.avatarUrl} name={item.actor.name || item.actor.handle} size={46} />
+        <span className="absolute -right-1 -bottom-1 w-6 h-6 grid place-items-center rounded-full" style={{ backgroundColor: `var(--pastel-${tone}-bg)`, color: `var(--pastel-${tone}-fg)`, boxShadow: '0 0 0 2px var(--theme-card-bg)' }}>
+          <Icon className="w-3.5 h-3.5" />
         </span>
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-[14px] leading-snug"><b className="font-medium">{item.actor.name || item.actor.handle}</b> <span style={muted}>{notificationText(item, pt)}</span></span>
-        {item.snippet && <span className="block mt-0.5 text-[13px] truncate" style={muted}>“{item.snippet}”</span>}
+        <span className="block text-[14.5px] leading-snug"><b className="font-semibold">{item.actor.name || item.actor.handle}</b> <span style={muted}>{notificationText(item, pt)}</span></span>
+        {item.snippet && <span className="block mt-1.5 text-[13.5px] line-clamp-2 rounded-xl px-3 py-2" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>“{item.snippet}”</span>}
         <span className="block mt-0.5 text-[12px]" style={muted}>{timeAgo(item.at, pt)}</span>
       </span>
       {!item.read && <span className="mt-2 w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: 'var(--theme-text)' }} aria-label={pt ? 'Não lida' : 'Unread'} />}
