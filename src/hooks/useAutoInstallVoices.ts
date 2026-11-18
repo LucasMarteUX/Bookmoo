@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { downloadKokoroVoice, getKokoroState, isKokoroSupported } from '@/lib/kokoro/engine'
+import { KOKORO_INSTALL_FAILED, downloadKokoroVoice, getKokoroState, isKokoroSupported } from '@/lib/kokoro/engine'
 
 /** Uma voz feminina e uma masculina já vêm instaladas: baixam sozinhas em segundo plano, sem clique. */
 export const DEFAULT_VOICES = ['af_heart', 'am_michael']
@@ -16,7 +16,7 @@ export function useAutoInstallVoices(enabled: boolean) {
         if (cancelled) return
         const st = getKokoroState()
         if (st.modelReady && st.voices.includes(id)) continue
-        try { await downloadKokoroVoice(id) } catch { return /* tenta de novo na próxima visita */ }
+        try { await downloadKokoroVoice(id) } catch { window.dispatchEvent(new Event(KOKORO_INSTALL_FAILED)); return /* tenta de novo na próxima visita */ }
       }
     }
     const idle = (window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number }).requestIdleCallback

@@ -12,6 +12,7 @@ import { useHydrateOnLogin } from '@/hooks/useHydrateOnLogin'
 import { useGamification } from '@/hooks/useGamification'
 import { useCatalogCoverSync } from '@/hooks/useCatalogCoverSync'
 import { useAutoInstallVoices } from '@/hooks/useAutoInstallVoices'
+import { MobileVoicePackPrompt } from '@/components/voice/MobileVoicePackPrompt'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { SIDEBAR_WIDTH, useUiStore } from '@/store/useUiStore'
 import { useReaderChrome } from '@/store/useReaderChrome'
@@ -53,6 +54,7 @@ export function Layout() {
         {pt ? 'Ir para o conteúdo' : 'Skip to content'}
       </a>
       {isMobile ? <NavBar /> : null}
+      {isMobile ? <MobileVoicePackPrompt pt={pt} /> : null}
 
       <div className="flex flex-1 relative">
         {isMobile ? null : <Sidebar />}

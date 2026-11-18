@@ -88,6 +88,7 @@ if (typeof navigator !== 'undefined' && navigator.storage?.getDirectory) {
 
 // Celular: um único fio do WASM (menos memória) para caber junto com o personagem animado.
 if (typeof navigator !== 'undefined' && smallDeviceEarly() && env.backends?.onnx?.wasm) env.backends.onnx.wasm.numThreads = 1
+else if (typeof navigator !== 'undefined' && env.backends?.onnx?.wasm) env.backends.onnx.wasm.numThreads = Math.max(1, Math.min(4, (navigator.hardwareConcurrency || 4) - 2))
 function smallDeviceEarly() { return /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) }
 
 type GenMsg = { type: 'generate'; reqId: number; text: string; voice: string; speed: number; priority?: 'high' | 'low' }
@@ -200,8 +201,16 @@ function wavBlob(samples: Float32Array, rate: number): Blob {
 const queue: GenMsg[] = []
 let busy = false
 
+let lastHighAt = 0
+let pumpTimer: ReturnType<typeof setTimeout> | null = null
 async function pump() {
   if (busy) return
+  // Pré-carregar a próxima frase disputava o processador com a frase que acabou de começar a tocar e o áudio picotava nos
+  // primeiros segundos: as frases futuras ('low') esperam a atual engrenar.
+  if (queue[0] && queue[0].priority !== 'high') {
+    const wait = 3500 - (performance.now() - lastHighAt)
+    if (wait > 0) { if (!pumpTimer) pumpTimer = setTimeout(() => { pumpTimer = null; void pump() }, wait); return }
+  }
   const next = queue.shift()
   if (!next) return
   busy = true
@@ -227,6 +236,7 @@ async function pump() {
   } catch (e) {
     self.postMessage({ type: 'error', reqId: next.reqId, error: String((e as Error)?.message ?? e) })
   } finally {
+    if (next.priority === 'high') lastHighAt = performance.now()
     busy = false
     void pump()
   }

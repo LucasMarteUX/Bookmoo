@@ -111,13 +111,20 @@ export function warmUpKokoro() {
   send({ type: 'load' }).then(() => {}, () => {})
 }
 
+export const KOKORO_INSTALL_FAILED = 'bookmoo:kokoro-install-failed'
+/** Tamanho aproximado do pacote de voz (modelo q8 + vozes), mostrado no aviso. */
+export const KOKORO_PACKAGE_MB = 90
 let installing: Promise<unknown> | null = null
 /** Deixa a voz pronta sem pedir nada (os personagens nunca falam com a voz do navegador). */
 export function ensureKokoroReady(): Promise<boolean> {
   if (!isKokoroSupported()) return Promise.resolve(false)
   if (activeKokoroVoice()) return Promise.resolve(true)
   installing ??= downloadKokoroVoice(DEFAULT_KOKORO_VOICE).finally(() => { installing = null })
-  return installing.then(() => !!activeKokoroVoice(), () => false)
+  return installing.then(() => !!activeKokoroVoice(), () => false).then((ok) => {
+    // Não instalou sozinha: o app avisa (no celular) e oferece baixar o pacote com um toque.
+    if (!ok && typeof window !== 'undefined') window.dispatchEvent(new Event(KOKORO_INSTALL_FAILED))
+    return ok
+  })
 }
 
 /** Descarta pré-carregamentos pendentes (ex.: ao parar ou trocar a velocidade). */
