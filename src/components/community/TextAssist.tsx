@@ -84,22 +84,30 @@ export const MentionTextarea = forwardRef<HTMLTextAreaElement, Props>(function M
 
   // Termo depois do @ logo antes do cursor (ex.: "olá @mar|" → "mar").
   const detect = (text: string, caret: number) => {
-    const match = /(?:^|[\s(])@([a-z0-9_.]{1,20})$/i.exec(text.slice(0, caret))
+    // Já sugere com o "@" sozinho (amigos e quem você segue primeiro) e filtra conforme digita.
+    const match = /(?:^|[\s(])@([a-z0-9_.]{0,20})$/i.exec(text.slice(0, caret))
     setQuery(match ? match[1] : null)
   }
+  const [searched, setSearched] = useState(false)
   useEffect(() => {
-    if (!query) { setPeople([]); return }
+    if (query === null) { setPeople([]); setSearched(false); return }
     let alive = true
     const id = setTimeout(() => {
-      void listPeople({ query, limit: 6 }).then(list => { if (alive) { setPeople(list.filter(p => p.handle && !p.isMe)); setActive(0) } })
-    }, 180)
+      void listPeople({ query, limit: 30 }).then(list => {
+        if (!alive) return
+        const rank = (p: PersonCard) => (p.relation.friend === 'friends' ? 0 : p.relation.following ? 1 : p.relation.followsMe ? 2 : 3)
+        const q = query.toLowerCase()
+        setPeople(list.filter(p => p.handle && !p.isMe).sort((a, b) => rank(a) - rank(b) || Number(b.handle.toLowerCase().startsWith(q)) - Number(a.handle.toLowerCase().startsWith(q))).slice(0, 8))
+        setActive(0); setSearched(true)
+      })
+    }, query ? 150 : 0)
     return () => { alive = false; clearTimeout(id) }
   }, [query])
 
   const pick = (person: PersonCard) => {
     const el = area.current
     const caret = el?.selectionStart ?? value.length
-    const before = value.slice(0, caret).replace(/@([a-z0-9_.]{1,20})$/i, `@${person.handle} `)
+    const before = value.slice(0, caret).replace(/@([a-z0-9_.]{0,20})$/i, `@${person.handle} `)
     const next = before + value.slice(caret)
     onChange(next)
     setQuery(null)
@@ -111,6 +119,7 @@ export const MentionTextarea = forwardRef<HTMLTextAreaElement, Props>(function M
     requestAnimationFrame(() => { area.current?.focus(); area.current?.setSelectionRange(caret, caret) })
   }
   const open = query !== null && people.length > 0
+  const none = query !== null && !!query && searched && people.length === 0
 
   return (
     <div className="relative">
@@ -129,8 +138,9 @@ export const MentionTextarea = forwardRef<HTMLTextAreaElement, Props>(function M
       {emoji && <div className="absolute right-1 bottom-1"><EmojiButton onPick={addEmoji} pt={pt} /></div>}
       {open && (
         <ul role="listbox" aria-label={pt ? 'Marcar pessoa' : 'Mention someone'}
-          className="absolute left-0 right-0 top-full mt-1 z-30 max-h-64 overflow-auto rounded-2xl border p-1 shadow-xl"
+          className="absolute left-0 right-0 top-full mt-1 z-30 max-h-72 overflow-auto rounded-2xl border p-1 shadow-xl"
           style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-border)' }}>
+          <li className="px-2.5 pt-1.5 pb-1 text-[11.5px] font-semibold uppercase tracking-[0.08em]" style={{ color: 'var(--theme-text-secondary)' }} aria-hidden>{query ? (pt ? `Pessoas com "${query}"` : `People matching "${query}"`) : (pt ? 'Marcar alguém' : 'Mention someone')}</li>
           {people.map((person, i) => (
             <li key={person.userId} role="option" aria-selected={i === active}>
               <button type="button" onMouseDown={e => { e.preventDefault(); pick(person) }}
@@ -139,12 +149,17 @@ export const MentionTextarea = forwardRef<HTMLTextAreaElement, Props>(function M
                 <Avatar src={person.avatarUrl} name={person.name || person.handle} size={30} />
                 <span className="min-w-0 leading-tight">
                   <span className="block text-[13.5px] font-medium truncate">{person.name || person.handle}</span>
-                  <span className="block text-[12px] truncate" style={{ color: 'var(--theme-text-secondary)' }}>@{person.handle}</span>
+                  <span className="block text-[12px] truncate" style={{ color: 'var(--theme-text-secondary)' }}>@{person.handle}{person.relation.friend === 'friends' ? (pt ? ' · amigo' : ' · friend') : person.relation.following ? (pt ? ' · você segue' : ' · following') : ''}</span>
                 </span>
               </button>
             </li>
           ))}
         </ul>
+      )}
+      {none && (
+        <p className="absolute left-0 right-0 top-full mt-1 z-30 rounded-2xl border px-3.5 py-3 text-[13px] shadow-xl" style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-border)', color: 'var(--theme-text-secondary)' }}>
+          {pt ? `Ninguém com "@${query}". Confira o nome de usuário.` : `Nobody matches "@${query}".`}
+        </p>
       )}
     </div>
   )

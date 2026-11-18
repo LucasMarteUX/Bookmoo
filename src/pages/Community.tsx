@@ -1,11 +1,11 @@
 import { SegmentedTabs } from '@/components/ui/filter-controls'
 import { askConfirm } from '@/components/ui/confirm'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { AtSign, Bell, BookOpen, Check, Compass, Flame, Heart, Lock, MessageCircle, Search, UserCheck, UserPlus, UserRound, Users, X } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useLanguage } from '@/store/useLanguage'
-import { listCatalog, type CatalogBook } from '@/lib/catalog'
+import { cachedThumbs, listCatalogLite, loadCoverThumbs, type CatalogBook } from '@/lib/catalog'
 import { listPeople, loadProfileView, type PersonCard, type ProfileView as View } from '@/lib/communityProfile'
 import {
   acceptFriendRequest, approveFollower, errorText, loadCatalogSocial, loadConnections, loadFeed, loadNotifications, loadPost, loadRequests,
@@ -30,12 +30,17 @@ import { toast } from '@/components/ui/toast'
 const card = cardStyle
 type Tab = 'all' | 'following' | 'friends' | 'people'
 
+/** Galeria sem capas (rápida) + capas já baixadas nesta visita; as que faltam vêm sob demanda. */
 function useCovers() {
   const [books, setBooks] = useState<CatalogBook[]>([])
-  useEffect(() => { void listCatalog().then(setBooks).catch(() => {}) }, [])
-  const covers = useMemo<Covers>(() => Object.fromEntries(books.map(book => [book.id, book.coverData])), [books])
-  return { books, covers }
+  const [covers, setCovers] = useState<Covers>(() => cachedThumbs())
+  useEffect(() => { void listCatalogLite().then(setBooks).catch(() => {}) }, [])
+  const want = useCallback((ids: string[]) => { void loadCoverThumbs(ids).then(map => setCovers(cur => ({ ...cur, ...map }))) }, [])
+  return { books, covers, want }
 }
+
+const SOCIAL_KEY = 'bookmoo-catalog-social'
+function cachedSocial(): CatalogSocial { try { return JSON.parse(localStorage.getItem(SOCIAL_KEY) || '{}') } catch { return {} } }
 
 function useMe() {
   const [me, setMe] = useState<View | null | undefined>(undefined)
@@ -43,12 +48,23 @@ function useMe() {
   return me
 }
 
-/** Abas da comunidade: mesmo visual das abas segmentadas dos filtros, presas no topo da coluna. */
-function PillTabs<T extends string>({ value, onChange, items, sticky = false, hideOn }: { value: T; onChange: (value: T) => void; items: [T, string, typeof Compass][]; sticky?: boolean; hideOn?: Partial<Record<T, string>> }) {
+/** Abas da comunidade: texto com sublinhado, presas no topo da coluna ao rolar. */
+function PillTabs<T extends string>({ value, onChange, items, sticky = false }: { value: T; onChange: (value: T) => void; items: [T, string, typeof Compass][]; sticky?: boolean; hideOn?: Partial<Record<T, string>> }) {
   return (
-    <div className={sticky ? 'sticky top-0 z-10 -mx-1 px-1 py-2' : ''} style={sticky ? { backgroundColor: 'var(--theme-bg)' } : undefined}>
-      <SegmentedTabs stretch value={value} onChange={onChange}
-        options={items.map(([id, label, Icon]) => ({ id, label, icon: <Icon className="w-3.5 h-3.5" />, className: `min-w-fit ${hideOn?.[id] ?? ''}` }))} />
+    <div className={sticky ? 'sticky top-0 z-10 -mx-1 px-1 pt-1' : ''} style={sticky ? { backgroundColor: 'var(--theme-bg)' } : undefined}>
+      <div role="tablist" className="flex gap-1 overflow-x-auto no-scrollbar border-b" style={{ borderColor: 'var(--theme-border)' }}>
+        {items.map(([id, label, Icon]) => {
+          const on = id === value
+          return (
+            <button key={id} type="button" role="tab" aria-selected={on} onClick={() => onChange(id)}
+              className="relative shrink-0 h-11 px-3.5 inline-flex items-center gap-2 text-[14px] font-medium transition-colors"
+              style={{ color: on ? 'var(--theme-text)' : 'var(--theme-text-secondary)' }}>
+              <Icon className="w-4 h-4" />{label}
+              <span className="absolute left-2 right-2 -bottom-px h-[2.5px] rounded-full transition-opacity" style={{ backgroundColor: 'var(--theme-text)', opacity: on ? 1 : 0 }} />
+            </button>
+          )
+        })}
+      </div>
     </div>
   )
 }
@@ -57,21 +73,24 @@ export function Community() {
   const { locale } = useLanguage()
   const pt = locale === 'pt-BR'
   const me = useMe()
-  const { books, covers } = useCovers()
+  const { books, covers, want } = useCovers()
   const [people, setPeople] = useState<PersonCard[] | null>(null)
-  const [social, setSocial] = useState<CatalogSocial>({})
+  // "Em alta" aparece na hora com o último resultado guardado e se atualiza em segundo plano.
+  const [social, setSocial] = useState<CatalogSocial>(cachedSocial)
   const [tab, setTab] = useState<Tab>('all')
   const [refresh, setRefresh] = useState(0)
 
   useEffect(() => {
     void listPeople({ limit: 30 }).then(setPeople)
-    void loadCatalogSocial().then(setSocial)
+    void loadCatalogSocial().then(next => { setSocial(next); try { localStorage.setItem(SOCIAL_KEY, JSON.stringify(next)) } catch { /* sem espaço */ } })
   }, [])
 
   const others = (people ?? []).filter(person => !person.isMe)
   const suggestions = others.filter(person => !person.relation.following && !person.relation.followPending && person.relation.friend !== 'friends' && !person.relation.blockedByMe)
     .sort((a, b) => b.commonBooks - a.commonBooks).slice(0, 5)
   const trending = useMemo(() => [...books].sort((a, b) => (social[b.id]?.readers ?? 0) - (social[a.id]?.readers ?? 0)).slice(0, 5), [books, social])
+  const trendingIds = trending.map(b => b.id).join(',')
+  useEffect(() => { if (trendingIds) want(trendingIds.split(',')) }, [trendingIds, want])
   const canPost = !!me?.handle
   const empty: Record<Exclude<Tab, 'people'>, string> = {
     all: pt ? 'Ninguém publicou ainda. Que tal ser a primeira pessoa?' : 'Nobody has posted yet. Be the first.',
@@ -86,27 +105,16 @@ export function Community() {
           <div className="sticky top-6 space-y-4"><MeCard me={me} pt={pt} /></div>
         </aside>
 
-        <main className="min-w-0 space-y-4">
-          <header className="flex items-end justify-between gap-4">
-            <div>
-              <h1 className="font-display text-[36px] md:text-[46px] leading-[1.02] tracking-[-0.01em]">{pt ? 'Comunidade' : 'Community'}</h1>
-              <p className="mt-2 text-[15px]" style={muted}>{pt ? 'Gente aprendendo inglês com livros, lado a lado.' : 'People learning English with books, side by side.'}</p>
-            </div>
-            <div className="flex items-center gap-2 lg:hidden">
-              <Link to="/u/me" className="shrink-0 rounded-full" aria-label={pt ? 'Meu perfil' : 'My profile'}>
-                {me ? <Avatar src={me.avatarUrl} name={me.name || me.handle} size={40} /> : <span className="grid place-items-center w-10 h-10 rounded-full border" style={{ borderColor: 'var(--theme-border)' }}><UserRound className="w-4 h-4" /></span>}
-              </Link>
-            </div>
-          </header>
-
-          {me !== undefined && <Composer me={me} books={books} pt={pt} onPosted={() => { setTab(current => current === 'people' ? 'all' : current); setRefresh(n => n + 1) }} />}
-
+        <main className="min-w-0 space-y-5">
+          <h1 className="sr-only">{pt ? 'Comunidade' : 'Community'}</h1>
           <PillTabs<Tab> value={tab} onChange={setTab} sticky items={[
             ['all', pt ? 'Geral' : 'Everyone', Compass],
             ['following', pt ? 'Seguindo' : 'Following', Users],
             ['friends', pt ? 'Amigos' : 'Friends', UserCheck],
             ['people', pt ? 'Pessoas' : 'People', Search],
           ]} />
+
+          {me !== undefined && tab !== 'people' && <Composer me={me} books={books} pt={pt} onPosted={() => { setTab(current => current === 'people' ? 'all' : current); setRefresh(n => n + 1) }} />}
 
           {(tab === 'following' || tab === 'friends') && me?.userId && me.handle && <PeopleList key={tab} userId={me.userId} handle={me.handle} kind={tab} pt={pt} />}
           {tab === 'people'
@@ -143,7 +151,7 @@ export function Community() {
                     return (
                       <li key={book.id}>
                         <Link to={`/gallery/${book.id}`} className="group flex items-center gap-3">
-                          <BookCover title={book.title} coverData={book.coverData} className="w-10 shrink-0 rounded-md [&_span]:text-[7px] [&_span]:px-0.5" />
+                          <BookCover title={book.title} coverData={covers[book.id] ?? book.coverData} className="w-10 shrink-0 rounded-md [&_span]:text-[7px] [&_span]:px-0.5" />
                           <span className="min-w-0 flex-1">
                             <span className="block text-[13.5px] font-medium leading-snug line-clamp-2 group-hover:underline">{book.title}</span>
                             <span className="mt-0.5 flex items-center gap-1.5 text-[12px]" style={muted}>

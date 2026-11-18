@@ -1,4 +1,6 @@
 import { EmojiButton, MentionTextarea, RichText } from './TextAssist'
+import { BookPicker, type PickedBook } from './BookPicker'
+import { loadCoverThumbs } from '@/lib/catalog'
 import { askConfirm } from '@/components/ui/confirm'
 // Timeline social: publicações manuais (texto, foto, livro) e atividades de leitura (começou, avançou,
 // terminou, resenha, meta), todas com curtir, comentar (com resposta de um nível) e compartilhar.
@@ -46,7 +48,15 @@ function AuthorLine({ author, at, pt, postId, edited, audience, action }: { auth
 /** Capa: da galeria vem pronta; livro da estante é pedido à parte (pode ser grande). */
 function useBookCover(catalogId: string | undefined, bookId: string | undefined, covers: Covers) {
   const [own, setOwn] = useState<string | undefined>(undefined)
-  const fromCatalog = catalogId ? covers[catalogId] : undefined
+  const [thumb, setThumb] = useState<string | undefined>(undefined)
+  const fromCatalog = (catalogId ? covers[catalogId] : undefined) ?? thumb
+  // A lista da galeria vem sem capas (mais leve): a capa do livro do post é buscada sozinha, em lote com as outras.
+  useEffect(() => {
+    if (!catalogId || fromCatalog) return
+    let alive = true
+    void loadCoverThumbs([catalogId]).then(map => { if (alive && map[catalogId]) setThumb(map[catalogId]) })
+    return () => { alive = false }
+  }, [catalogId, fromCatalog])
   useEffect(() => {
     if (fromCatalog || !bookId) return
     let alive = true
@@ -80,7 +90,8 @@ export function Composer({ me, books, pt, onPosted }: { me: ProfileView | null; 
   const { user } = useAuth()
   const library = useBookStore(s => s.books)
   const [body, setBody] = useState('')
-  const [bookKey, setBookKey] = useState('')
+  const [picked, setPicked] = useState<PickedBook[]>([])
+  const [pickerOpen, setPickerOpen] = useState(false)
   const [audience, setAudience] = useState<Audience>('public')
   const [image, setImage] = useState<{ blob: Blob; url: string } | null>(null)
   const [busy, setBusy] = useState(false)
@@ -105,14 +116,7 @@ export function Composer({ me, books, pt, onPosted }: { me: ProfileView | null; 
     )
   }
 
-  const selected: PostBook | undefined = (() => {
-    if (bookKey.startsWith('cat:')) return { catalogId: bookKey.slice(4) }
-    if (bookKey.startsWith('lib:')) {
-      const book = library.find(item => item.id === bookKey.slice(4))
-      return book ? (book.catalogId ? { catalogId: book.catalogId } : { bookId: book.id, title: book.title, author: book.author }) : undefined
-    }
-    return undefined
-  })()
+  const asPostBook = (p: PickedBook): PostBook => p.catalogId ? { catalogId: p.catalogId } : { bookId: p.bookId, title: p.title, author: p.author }
 
   const pick = async (file: File | undefined) => {
     if (!file) return
@@ -127,8 +131,8 @@ export function Composer({ me, books, pt, onPosted }: { me: ProfileView | null; 
     if (!user || (!body.trim() && !image)) return
     setBusy(true); setError('')
     try {
-      await createPost(user.id, { body, book: selected, image: image?.blob, audience })
-      setBody(''); setBookKey(''); setImage(null)
+      await createPost(user.id, { body, book: picked[0] ? asPostBook(picked[0]) : undefined, extraBooks: picked.slice(1).map(asPostBook), image: image?.blob, audience })
+      setBody(''); setPicked([]); setImage(null)
       toast(pt ? 'Publicado.' : 'Posted.', { tone: 'success' })
       onPosted()
     } catch (err) {
@@ -142,11 +146,6 @@ export function Composer({ me, books, pt, onPosted }: { me: ProfileView | null; 
     ? (pt ? 'O que você está lendo? Uma frase, uma palavra nova, uma conquista…' : 'What are you reading? A quote, a new word, a win…')
     : (pt ? 'Seu perfil é fechado: só quem você aprovou vê.' : 'Your profile is closed: only people you approve see this.')
 
-  const tagged = (() => {
-    if (bookKey.startsWith('cat:')) { const b = books.find(item => item.id === bookKey.slice(4)); return b ? { title: b.title, cover: b.coverData } : null }
-    if (bookKey.startsWith('lib:')) { const b = library.find(item => item.id === bookKey.slice(4)); return b ? { title: b.title, cover: b.coverData } : null }
-    return null
-  })()
   const addEmoji = (emoji: string) => {
     const el = area.current
     const start = el?.selectionStart ?? body.length, end = el?.selectionEnd ?? body.length
@@ -175,15 +174,19 @@ export function Composer({ me, books, pt, onPosted }: { me: ProfileView | null; 
               </button>
             </div>
           )}
-          {tagged && (
-            <div className="mt-2 inline-flex max-w-full items-center gap-2.5 rounded-2xl border py-1.5 pl-1.5 pr-2" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg-secondary)' }}>
-              {tagged.cover
-                ? <img src={tagged.cover} alt="" className="w-7 h-10 rounded-md object-cover shrink-0" />
-                : <span className="w-7 h-10 grid place-items-center rounded-md shrink-0" style={{ backgroundColor: 'var(--theme-card-bg)' }}><BookOpen className="w-3.5 h-3.5" style={muted} /></span>}
-              <span className="min-w-0 text-[13px] font-medium truncate">{tagged.title}</span>
-              <button type="button" onClick={() => setBookKey('')} aria-label={pt ? 'Tirar livro' : 'Remove book'} className="w-6 h-6 grid place-items-center rounded-full shrink-0 hover:bg-[var(--ui-hover)]" style={muted}>
-                <X className="w-3.5 h-3.5" />
-              </button>
+          {picked.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {picked.map(p => (
+                <span key={p.key} className="inline-flex max-w-full items-center gap-2 rounded-2xl border py-1.5 pl-1.5 pr-1.5" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg-secondary)' }}>
+                  {p.cover
+                    ? <img src={p.cover} alt="" className="w-7 h-10 rounded-md object-cover shrink-0" />
+                    : <span className="w-7 h-10 grid place-items-center rounded-md shrink-0" style={{ backgroundColor: 'var(--theme-card-bg)' }}><BookOpen className="w-3.5 h-3.5" style={muted} /></span>}
+                  <span className="min-w-0 max-w-[180px] text-[13px] font-medium truncate">{p.title}</span>
+                  <button type="button" onClick={() => setPicked(cur => cur.filter(x => x.key !== p.key))} aria-label={pt ? 'Tirar livro' : 'Remove book'} className="w-6 h-6 grid place-items-center rounded-full shrink-0 hover:bg-[var(--ui-hover)]" style={muted}>
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </span>
+              ))}
             </div>
           )}
         </div>
@@ -195,23 +198,10 @@ export function Composer({ me, books, pt, onPosted }: { me: ProfileView | null; 
         <button type="button" onClick={() => fileInput.current?.click()} className={tool} style={muted} title={pt ? 'Adicionar foto' : 'Add photo'}>
           <ImagePlus className="w-[18px] h-[18px]" /><span className="hidden sm:inline">{pt ? 'Foto' : 'Photo'}</span>
         </button>
-        <label className={`${tool} relative cursor-pointer`} style={muted} title={pt ? 'Marcar um livro' : 'Tag a book'}>
-          <BookOpen className="w-[18px] h-[18px]" /><span className="hidden sm:inline">{pt ? 'Livro' : 'Book'}</span>
-          <select value={bookKey} onChange={e => setBookKey(e.target.value)} aria-label={pt ? 'Marcar um livro' : 'Tag a book'}
-            className="absolute inset-0 opacity-0 cursor-pointer">
-            <option value="">{pt ? 'Nenhum livro' : 'No book'}</option>
-            {library.length > 0 && (
-              <optgroup label={pt ? 'Minha estante' : 'My shelf'}>
-                {library.map(book => <option key={book.id} value={`lib:${book.id}`}>{book.title}</option>)}
-              </optgroup>
-            )}
-            {books.length > 0 && (
-              <optgroup label={pt ? 'Galeria' : 'Gallery'}>
-                {books.map(book => <option key={book.id} value={`cat:${book.id}`}>{book.title}</option>)}
-              </optgroup>
-            )}
-          </select>
-        </label>
+        <button type="button" onClick={() => setPickerOpen(true)} className={tool} style={picked.length ? { color: 'var(--theme-text)' } : muted} title={pt ? 'Marcar livros' : 'Tag books'}>
+          <BookOpen className="w-[18px] h-[18px]" /><span className="hidden sm:inline whitespace-nowrap">{picked.length ? (pt ? `Livros · ${picked.length}` : `Books · ${picked.length}`) : (pt ? 'Livro' : 'Book')}</span>
+        </button>
+        <BookPicker open={pickerOpen} onOpenChange={setPickerOpen} books={books} value={picked} onChange={setPicked} pt={pt} />
         <EmojiButton onPick={addEmoji} pt={pt} />
         <span className="mx-1 h-5 w-px shrink-0" style={{ backgroundColor: 'var(--theme-border)' }} aria-hidden />
         <label className={`${tool} relative cursor-pointer`} style={muted} title={pt ? 'Quem pode ver' : 'Who can see'}>
@@ -403,6 +393,20 @@ export function PostCard({ item, covers, pt, canPost, onDeleted, standalone = fa
     try { await blockUser(user.id, item.author.userId); toast(pt ? 'Pessoa bloqueada.' : 'Blocked.', { tone: 'success' }); onDeleted() } catch (err) { toast(errorText(err, pt), { tone: 'error' }) }
   }
 
+  // Momento de leitura sem texto nem foto: cartão próprio, com a capa grande e o livro em destaque.
+  const moment = (item.kind === 'started' || item.kind === 'progress' || item.kind === 'finished') && item.book && !shown.body && !item.imageUrl && !editing
+  if (moment) return (
+    <ReadingMoment item={item} covers={covers} pt={pt} activity={activity ?? ''} liked={liked} likes={likes} comments={comments} open={open}
+      onLike={() => { void applyLike(!liked) }} onToggleComments={() => setOpen(v => !v)} onShare={() => { void share() }} copied={copied}
+      menu={<MoreMenu label={pt ? 'Mais opções' : 'More options'}>
+        <MenuItem onClick={() => { void share() }} icon={<Link2 className="w-4 h-4" />}>{pt ? 'Copiar link' : 'Copy link'}</MenuItem>
+        {item.mine && <MenuItem onClick={() => { void remove() }} icon={<Trash2 className="w-4 h-4" />} danger>{pt ? 'Apagar' : 'Delete'}</MenuItem>}
+        {!item.mine && <MenuItem onClick={() => setReporting(true)} icon={<Flag className="w-4 h-4" />}>{pt ? 'Denunciar' : 'Report'}</MenuItem>}
+      </MoreMenu>}
+      comments_panel={open ? <div className="border-t px-5 pb-4" style={{ borderColor: 'var(--theme-border)' }}><Comments postId={item.id} pt={pt} canPost={canPost} onCount={delta => setComments(count => Math.max(0, count + delta))} /></div> : null}
+      report={<ReportDialog open={reporting} onOpenChange={setReporting} pt={pt} target={{ type: 'post', postId: item.id }} onDone={onDeleted} />} />
+  )
+
   return (
     <article className="rounded-3xl border overflow-hidden transition-shadow hover:shadow-[0_4px_18px_rgba(0,0,0,0.05)]" style={finished ? { ...card, backgroundColor: 'var(--pastel-green-bg)', color: 'var(--pastel-green-fg)' } : card}>
       <div className="px-5 sm:px-6 pt-5">
@@ -448,6 +452,16 @@ export function PostCard({ item, covers, pt, canPost, onDeleted, standalone = fa
       )}
 
       {item.book && item.kind !== 'goal' && <BookChip item={item} covers={covers} pt={pt} />}
+      {!!item.extraBooks?.length && (
+        <div className="mt-2 grid gap-2 sm:grid-cols-2">
+          {item.extraBooks.map((b, i) => {
+            const body = <><BookCover title={b.title} coverData={b.catalogId ? covers[b.catalogId] : undefined} className="w-10 shrink-0 rounded-md [&_span]:text-[7px] [&_span]:px-0.5" /><span className="min-w-0"><span className="block text-[13.5px] font-semibold leading-snug line-clamp-2">{b.title}</span>{b.author && <span className="block text-[12px] truncate" style={muted}>{b.author}</span>}</span></>
+            return b.catalogId
+              ? <Link key={i} to={`/gallery/${b.catalogId}`} className="flex items-center gap-3 rounded-2xl border p-2.5 transition-colors hover:bg-[var(--ui-hover)]" style={{ borderColor: 'var(--theme-border)' }}>{body}</Link>
+              : <div key={i} className="flex items-center gap-3 rounded-2xl border p-2.5" style={{ borderColor: 'var(--theme-border)' }}>{body}</div>
+          })}
+        </div>
+      )}
 
       </div>
       {/* Ações: três botões iguais, separados do conteúdo por uma linha. */}
@@ -473,6 +487,58 @@ export function PostCard({ item, covers, pt, canPost, onDeleted, standalone = fa
       </footer>
       {open && <div className="border-t px-4 sm:px-5 pb-4" style={{ borderColor: 'var(--theme-border)' }}><Comments postId={item.id} pt={pt} canPost={canPost} onCount={delta => setComments(count => Math.max(0, count + delta))} /></div>}
       <ReportDialog open={reporting} onOpenChange={setReporting} pt={pt} target={{ type: 'post', postId: item.id }} onDone={onDeleted} />
+    </article>
+  )
+}
+
+function ReadingMoment({ item, covers, pt, activity, liked, likes, comments, open, onLike, onToggleComments, onShare, copied, menu, comments_panel, report }: {
+  item: FeedItem; covers: Covers; pt: boolean; activity: string; liked: boolean; likes: number; comments: number; open: boolean
+  onLike: () => void; onToggleComments: () => void; onShare: () => void; copied: boolean; menu: ReactNode; comments_panel: ReactNode; report: ReactNode
+}) {
+  const cover = useBookCover(item.catalogId, item.bookId, covers)
+  const book = item.book!
+  const finished = item.kind === 'finished'
+  const pct = item.kind === 'progress' ? Number(item.milestone) || 0 : finished ? 100 : 0
+  return (
+    <article className="rounded-3xl border overflow-hidden transition-shadow hover:shadow-[0_4px_18px_rgba(0,0,0,0.05)]" style={card}>
+      <div className="p-5 sm:p-6 flex gap-4 sm:gap-5">
+        <Link to={item.catalogId ? `/gallery/${item.catalogId}` : `/u/${item.author.handle}`} className="shrink-0">
+          <BookCover title={book.title} coverData={cover} className="w-20 sm:w-24 rounded-lg shadow-[0_6px_16px_rgba(0,0,0,0.15)] [&_span]:text-[9px] [&_span]:px-1" />
+        </Link>
+        <div className="min-w-0 flex-1 flex flex-col">
+          <div className="flex items-start gap-2.5">
+            <Link to={`/u/${item.author.handle}`} className="shrink-0"><Avatar src={item.author.avatarUrl} name={item.author.name || item.author.handle} size={30} /></Link>
+            <p className="min-w-0 flex-1 text-[13.5px] leading-snug pt-1">
+              <Link to={`/u/${item.author.handle}`} className="font-semibold hover:underline">{item.author.name || item.author.handle}</Link>
+              <span style={muted}> {activity} · {timeAgo(item.at, pt)}</span>
+            </p>
+            {menu}
+          </div>
+          {item.catalogId
+            ? <Link to={`/gallery/${item.catalogId}`} className="mt-3 block font-display text-[22px] sm:text-[26px] leading-[1.1] hover:underline">{book.title}</Link>
+            : <span className="mt-3 block font-display text-[22px] sm:text-[26px] leading-[1.1]">{book.title}</span>}
+          {book.author && <p className="mt-1 text-[13.5px]" style={muted}>{book.author}</p>}
+          {pct > 0 && (
+            <div className="mt-3 max-w-xs">
+              <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}><div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: finished ? 'var(--pastel-green-fg)' : 'var(--theme-text)' }} /></div>
+              <p className="mt-1 text-[12px] tabular-nums" style={muted}>{finished ? (pt ? 'Livro concluído' : 'Finished') : `${pct}%`}</p>
+            </div>
+          )}
+          <div className="mt-auto pt-4 flex items-center gap-1 -ml-2">
+            <button type="button" onClick={onLike} aria-pressed={liked} aria-label={pt ? 'Curtir' : 'Like'} className="h-9 px-2.5 inline-flex items-center gap-1.5 rounded-full text-[13px] font-medium hover:bg-[var(--ui-hover)]" style={{ color: liked ? 'var(--pastel-rose-fg)' : 'var(--theme-text-secondary)' }}>
+              <Heart className="w-[18px] h-[18px]" fill={liked ? 'currentColor' : 'none'} />{likes > 0 && <span className="tabular-nums">{likes}</span>}
+            </button>
+            <button type="button" onClick={onToggleComments} aria-expanded={open} aria-label={pt ? 'Comentários' : 'Comments'} className="h-9 px-2.5 inline-flex items-center gap-1.5 rounded-full text-[13px] font-medium hover:bg-[var(--ui-hover)]" style={{ color: open ? 'var(--theme-text)' : 'var(--theme-text-secondary)' }}>
+              <MessageCircle className="w-[18px] h-[18px]" />{comments > 0 && <span className="tabular-nums">{comments}</span>}
+            </button>
+            <button type="button" onClick={onShare} aria-label={pt ? 'Compartilhar' : 'Share'} className="h-9 px-2.5 inline-flex items-center gap-1.5 rounded-full text-[13px] font-medium hover:bg-[var(--ui-hover)]" style={muted}>
+              {copied ? <Check className="w-[18px] h-[18px]" /> : <Link2 className="w-[18px] h-[18px]" />}
+            </button>
+          </div>
+        </div>
+      </div>
+      {comments_panel}
+      {report}
     </article>
   )
 }

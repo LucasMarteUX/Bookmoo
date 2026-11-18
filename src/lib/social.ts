@@ -31,6 +31,8 @@ export type FeedItem = {
   catalogId?: string
   bookId?: string
   book?: { title: string; author?: string }
+  /** Livros a mais marcados na publicação (até 4, além do principal). */
+  extraBooks?: { catalogId?: string; title: string; author?: string }[]
   review?: Review
   likes: number
   liked: boolean
@@ -121,6 +123,7 @@ function feedItemOf(value: unknown): FeedItem {
     catalogId: text(row.catalog_id) || undefined,
     bookId: text(row.book_id) || undefined,
     book: book ? { title: text(book.title), author: text(book.author) || undefined } : undefined,
+    extraBooks: Array.isArray(row.extra_books) ? (row.extra_books as Record<string, unknown>[]).map(b => ({ catalogId: text(b.catalog_id) || undefined, title: text(b.title), author: text(b.author) || undefined })).filter(b => b.title) : undefined,
     review: reviewOf(row.review),
     likes: num(row.likes),
     liked: row.liked === true,
@@ -181,7 +184,7 @@ function mediaPath(imageUrl: string): string | null {
 export type PostBook = { catalogId?: string; bookId?: string; title?: string; author?: string }
 
 /** Publica texto e/ou foto. A foto sobe antes; se a publicação falhar, ela é removida. */
-export async function createPost(userId: string, input: { body: string; book?: PostBook; image?: Blob; audience: Audience }): Promise<void> {
+export async function createPost(userId: string, input: { body: string; book?: PostBook; extraBooks?: PostBook[]; image?: Blob; audience: Audience }): Promise<void> {
   const db = need()
   const body = input.body.trim().slice(0, POST_MAX)
   if (!body && !input.image) throw new SocialError('empty')
@@ -199,6 +202,8 @@ export async function createPost(userId: string, input: { body: string; book?: P
     book_id: input.book?.catalogId ? null : input.book?.bookId ?? null,
     book_title: input.book?.catalogId ? null : input.book?.title ?? null,
     book_author: input.book?.catalogId ? null : input.book?.author ?? null,
+    // Só manda a coluna quando há mais de um livro (publicações com um livro continuam iguais).
+    ...(input.extraBooks?.length ? { extra_books: input.extraBooks.slice(0, 4).map(b => b.catalogId ? { catalog_id: b.catalogId } : { title: (b.title ?? '').slice(0, 200), author: (b.author ?? '').slice(0, 120) }) } : {}),
   })
   if (error) {
     if (path) await db.storage.from(MEDIA_BUCKET).remove([path])
