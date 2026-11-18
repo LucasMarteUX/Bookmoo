@@ -937,3 +937,6 @@ html.reader-immersive:not(.reader-chrome-hidden) [data-chrome="footer"] { pointe
   .prof-report .prof-skill { break-before: page; }
   .prof-report .break-inside-avoid, .prof-report .rounded-2xl { break-inside: avoid; }
 }
+@keyframes prof-fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.prof-fade { animation: prof-fade 0.35s ease-out; }
+@media (prefers-reduced-motion: reduce) { .prof-fade { animation: none; } }
