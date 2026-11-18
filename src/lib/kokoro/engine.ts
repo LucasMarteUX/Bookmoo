@@ -180,12 +180,12 @@ const audioCache = new Map<string, Promise<KokoroClip>>()
 const MAX_CACHE = 200
 
 /** Gera (ou reaproveita) o áudio; devolve a object URL e os tempos reais de cada palavra. */
-export function kokoroAudioUrl(text: string, voice: string, speed: number, priority: 'high' | 'low' = 'low'): Promise<KokoroClip> {
-  const key = `${voice}|${speed.toFixed(2)}|${text}`
+export function kokoroAudioUrl(text: string, voice: string, speed: number, priority: 'high' | 'low' = 'low', deEss?: { maxDb: number; hz: number }): Promise<KokoroClip> {
+  const key = `${voice}|${speed.toFixed(2)}|${deEss ? `${deEss.maxDb}@${Math.round(deEss.hz)}` : ''}|${text}`
   const hit = audioCache.get(key)
   if (hit) return hit
   // Frase atual: se o motor não responder em 30s (após carregado), ele é reiniciado e o app cai para a voz do navegador.
-  const p = send({ type: 'generate', text, voice, speed, priority }, undefined, priority === 'high' ? 30_000 : undefined)
+  const p = send({ type: 'generate', text, voice, speed, priority, deEss }, undefined, priority === 'high' ? 30_000 : undefined)
     .then(({ blob, ms, words }) => {
       if (import.meta.env.DEV) console.debug(`[kokoro] ${ms}ms "${text.slice(0, 40)}"`)
       return { url: URL.createObjectURL(blob!), words: words ?? null }

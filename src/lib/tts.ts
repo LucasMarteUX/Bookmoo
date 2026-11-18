@@ -433,7 +433,9 @@ export async function speak(text: string, opts: SpeakOptions = {}): Promise<Spea
       // gera em velocidade/tom para o resultado final sair na velocidade escolhida com o tom do personagem igual em
       // qualquer velocidade (antes, tom × velocidade: no "devagar" o tom sumia e no "rápido" batia no limite).
       const genSpeed = pitch !== 1 ? Math.round(Math.min(1.4, Math.max(0.92, (opts.rate ?? 1) / pitch)) * 100) / 100 : 1
-      const clip = await kokoroAudioUrl(trimmed, kokoroVoice, genSpeed, 'high')
+      // De-esser do personagem: corte em 4,5 kHz audíveis, convertido para o áudio gerado (que toca acelerado pelo tom).
+      const deEssOpt = sp?.deEssDb ? { maxDb: sp.deEssDb, hz: 4500 / pitch } : undefined
+      const clip = await kokoroAudioUrl(trimmed, kokoroVoice, genSpeed, 'high', deEssOpt)
       opts.onLoading?.(false)
       if (token !== currentToken) return { done: Promise.resolve(), source: 'kokoro' }
       const starts = clip.words ? startsFromTimings(trimmed, clip.words) : undefined

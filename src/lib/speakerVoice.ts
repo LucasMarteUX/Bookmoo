@@ -9,6 +9,8 @@ export type SpeakerVoice = {
   pitch: number
   /** Vozes preferidas, na ordem (se estiverem instaladas). */
   prefer?: string[]
+  /** De-esser (redução máxima em dB nas sibilantes S, SH, F, Z); 0 ou ausente = desligado. */
+  deEssDb?: number
 }
 
 let current: SpeakerVoice | null = null

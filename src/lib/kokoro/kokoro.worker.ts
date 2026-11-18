@@ -2,6 +2,7 @@
 // Roda o Kokoro-82M (Apache-2.0) 100% no navegador do aluno, fora da thread da UI.
 // O modelo é baixado uma vez do Hugging Face e fica no Cache Storage do navegador.
 import { KokoroTTS } from 'kokoro-js'
+import { deEss, type DeEssOptions } from './deEsser'
 import { env } from '@huggingface/transformers'
 import { configureModelEnv, redirectHuggingFaceFetch } from '../modelHost'
 
@@ -91,7 +92,7 @@ if (typeof navigator !== 'undefined' && smallDeviceEarly() && env.backends?.onnx
 else if (typeof navigator !== 'undefined' && env.backends?.onnx?.wasm) env.backends.onnx.wasm.numThreads = Math.max(1, Math.min(4, (navigator.hardwareConcurrency || 4) - 2))
 function smallDeviceEarly() { return /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) }
 
-type GenMsg = { type: 'generate'; reqId: number; text: string; voice: string; speed: number; priority?: 'high' | 'low' }
+type GenMsg = { type: 'generate'; reqId: number; text: string; voice: string; speed: number; priority?: 'high' | 'low'; deEss?: DeEssOptions }
 type InMsg = { type: 'load'; reqId: number } | GenMsg | { type: 'cancelLow' }
 
 let ttsPromise: Promise<KokoroTTS> | null = null
@@ -228,7 +229,8 @@ async function pump() {
     if (raw.audio && raw.sampling_rate) {
       const pad = Math.round(raw.sampling_rate * LEAD_SILENCE_S)
       const samples = new Float32Array(pad + raw.audio.length)
-      samples.set(raw.audio, pad)
+      // Yuno e Yuri: de-esser nas sibilantes (o tom mais agudo deixava S/SH/F/Z estridentes). Mesma duração, sem atraso.
+      samples.set(next.deEss ? deEss(raw.audio, raw.sampling_rate, next.deEss) : raw.audio, pad)
       blob = wavBlob(samples, raw.sampling_rate)
       if (words) { const k = raw.audio.length / samples.length; const o = pad / samples.length; words = words.map((w) => ({ ...w, f: o + w.f * k })) }
     } else blob = audio.toBlob()
