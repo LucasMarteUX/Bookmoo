@@ -185,7 +185,7 @@ function wordTimings(tts: KokoroTTS, c: Captured): { f: number; n: number }[] | 
 // O ONNX Runtime (principalmente em WebGPU) não suporta inferências simultâneas na mesma sessão:
 // chamadas concorrentes travam ou corrompem o áudio. Geramos uma frase por vez, com prioridade
 // para a frase que vai tocar agora ('high') sobre os pré-carregamentos ('low').
-const LEAD_SILENCE_S = 0.12
+const LEAD_SILENCE_S = 0.25
 
 /** WAV mono de 16 bits. */
 function wavBlob(samples: Float32Array, rate: number): Blob {
