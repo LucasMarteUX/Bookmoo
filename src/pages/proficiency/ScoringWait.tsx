@@ -101,11 +101,18 @@ export function ScoringWait({ sessionId, onReady, compact = false }: { sessionId
       {/* Cartão principal: Bia à esquerda, estado da avaliação e ações à direita. */}
       <section className="rounded-[28px] border overflow-hidden" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-card-bg)' }}>
         <div className="grid md:grid-cols-[minmax(0,420px)_1fr]">
-          <div className="flex flex-col border-b md:border-b-0 md:border-r" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg-secondary)' }}>
-            <div className="relative z-10 m-4 mb-0 rounded-2xl px-4 py-3 border shadow-[0_2px_12px_rgba(0,0,0,0.06)]" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-card-bg)' }}>
+          <div className="relative overflow-hidden min-h-[380px] md:min-h-[460px] border-b md:border-b-0 md:border-r" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg-secondary)' }}>
+            {/* O palco do personagem reserva espaço em cima para o balão dele; aqui o balão é nosso, então a Bia é ampliada
+                a partir da base para preencher a área. */}
+            <div className="absolute inset-0">
+              <div className="absolute inset-0 origin-bottom" style={{ transform: 'scale(1.35)' }}>
+                <CharacterAvatar stage voice characterId={tutorId} kind="woman" state={talking ? 'speaking' : 'thinking'} followPointer />
+              </div>
+            </div>
+            <div className="absolute z-10 left-4 right-4 bottom-4 rounded-2xl px-4 py-3 border shadow-[0_2px_12px_rgba(0,0,0,0.06)]" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-card-bg)' }}>
               <p className="text-[11.5px] font-semibold uppercase tracking-[0.08em]" style={muted}>{tutor?.name} · sobre o seu relatório</p>
               <p key={tipAt} className="mt-1 text-[14px] leading-relaxed prof-fade">{tips[tipAt]}</p>
-              <span aria-hidden className="absolute left-1/2 -bottom-[7px] w-3.5 h-3.5 -translate-x-1/2 rotate-45 border-r border-b" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-card-bg)' }} />
+              <span aria-hidden className="absolute left-1/2 -top-[7px] w-3.5 h-3.5 -translate-x-1/2 rotate-45 border-l border-t" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-card-bg)' }} />
               <div className="mt-3 flex items-center justify-between gap-2">
                 <div className="flex gap-1" aria-hidden>{tips.map((_, i) => <span key={i} className="h-1.5 rounded-full transition-all" style={{ width: i === tipAt ? 16 : 6, backgroundColor: i === tipAt ? 'var(--theme-text)' : 'var(--theme-border)' }} />)}</div>
                 <div className="flex gap-1">
@@ -114,13 +121,7 @@ export function ScoringWait({ sessionId, onReady, compact = false }: { sessionId
                 </div>
               </div>
             </div>
-            {/* O palco do personagem reserva espaço em cima para o balão dele; aqui o balão é nosso, então a Bia é ampliada
-                a partir da base para preencher a área. */}
-            <div className="relative h-[300px] md:h-[440px] overflow-hidden">
-              <div className="absolute inset-0 origin-bottom" style={{ transform: 'scale(1.55)' }}>
-                <CharacterAvatar stage voice characterId={tutorId} kind="woman" state={talking ? 'speaking' : 'thinking'} followPointer />
-              </div>
-            </div>
+
           </div>
 
           <div className="p-6 md:p-10 flex flex-col justify-center">
