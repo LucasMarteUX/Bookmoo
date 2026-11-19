@@ -347,7 +347,7 @@ export function LivLivAvatar({ characterId, state, speakingText = '', onHead, on
         pr.eyeBallY = (pr.eyeBallY ?? 0) * (1 - w) + clamp(-look.ey * (look.ey > 0 ? 1.7 : 1.3), -1, 1) * w
         // cabeça: vira e inclina um pouco para o lado do mouse (menos enquanto fala, para a fala mandar)
         const hk = stateRef.current === 'speaking' ? 0.6 : 1
-        pr.angleX = (pr.angleX ?? 0) + look.hdx * 14 * hk
+        pr.angleX = (pr.angleX ?? 0) + look.hdx * 10 * hk
         // para baixo a cabeça abaixa mais (é para onde a pessoa costuma levar o mouse: os botões ficam embaixo)
         pr.angleY = (pr.angleY ?? 0) - look.hdy * (look.hdy > 0 ? 13 : 7) * hk
         pr.angleZ = (pr.angleZ ?? 0) - look.hdx * 3 * hk
@@ -726,7 +726,12 @@ export function LivLivAvatar({ characterId, state, speakingText = '', onHead, on
   }, [player, ready, state])
 
   // Expressão que existe neste modelo (ou nenhuma).
-  const hasExpr = (p: Player, id: string | null) => (id && p.expressions.some(e => e.id === id) ? id : null)
+  const hasExpr = (p: Player, id: string | null) => {
+    // reação que este personagem não usa (a tímida da Bia) vira a que está na ficha dele
+    const swap = characterById(characterId)?.exprSwap
+    if (id && swap && id in swap) id = swap[id]
+    return id && p.expressions.some(e => e.id === id) ? id : null
+  }
   /** Reação: expressão (por um instante, ou fixa), movimento e sobrancelhas. */
   const react = (r: Reaction, hold = false, ms = 1400) => {
     const p = playerRef.current

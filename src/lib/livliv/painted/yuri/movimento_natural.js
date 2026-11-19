@@ -70,7 +70,9 @@ export async function configurarMovimentoNatural(player,modelBaseURL){
    p.params.angleX=clamp(p.params.angleX,-14,14)+state.head[0];p.params.angleY=clamp(p.params.angleY,-15,10)+state.head[1];
    // Atuação da fala (LivLivAvatar: pose por frase, acentos, riso) soma à cabeça; falando, a inclinação lenta do idle diminui.
    const spk=p.params.speaking?0.35:1;
-   p.params.angleX+=p.params.speechYaw||0;p.params.angleY+=p.params.speechPitch||0;
+   /* Bookmoo: teto final do giro depois de somar mouse, gesto, posturas e fala: o rosto pintado é uma imagem só e, acima de
+    ~11, a malha dobra na linha do cabelo (a mecha da testa virava uma borda reta, a "testa cortada") */
+   p.params.angleX=clamp(p.params.angleX+(p.params.speechYaw||0),-11,11);p.params.angleY=clamp(p.params.angleY+(p.params.speechPitch||0),-14,10);
    p.params.angleZ=clamp(tilt*spk+0.18*p.params.angleX+state.head[2]+(p.params.speechRoll||0),-30,30);
    if(p.params.angleZ>0)p.rig.roll=originalRoll*state.positiveRollGain;
   }

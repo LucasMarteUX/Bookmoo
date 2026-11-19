@@ -195,7 +195,7 @@ Agora `LivLivAvatar` (driver de ordem 9.5) faz o seguimento, com hierarquia de a
 (~0,3 s), corpo por último (~0,6 s).
 
 - Olhos: `eyeBallX/Y` até o limite com o mouse longe; alcance da íris 2,2x o do modelo (a máscara do olho continua recortando).
-- Cabeça: vira até ~14 unidades e inclina ~3 para o lado do mouse; para baixo abaixa mais (13) que para cima (7); falando, 60%.
+- Cabeça: vira até ~10 unidades (teto final ±11 somando tudo) e inclina ~3 para o lado do mouse; para baixo abaixa mais (13) que para cima (7); falando, 60%.
 - Para baixo: a pálpebra fecha até 22% e as sobrancelhas descem ~4 px (campo na malha do rosto em `painted/index.ts`,
   `lookDown`), sumindo antes do olho.
 - Corpo: vai para o lado **oposto** ao mouse (`pointerLean`, até ~34 px no topo da cabeça, base parada), em todos os
@@ -209,6 +209,8 @@ Defeitos corrigidos no caminho:
 | Defeito | Causa | Correção |
 |---|---|---|
 | Olho fechado "saindo do rosto" (sorriso, piscada) com o mouse de lado | O balanço do corpo só movia camadas visíveis naquele instante; a pálpebra fechada só aparece no desenho (dentro de `withClosedEyes`) e ficava para trás | O balanço move todas as camadas |
+| "Testa cortada" (Bia tímida, mão no queixo, mouse embaixo à esquerda) | Giros somados (mouse ~14 + resposta do gesto + posturas) passavam de ~20; o rosto pintado é uma imagem só e a malha dobrava na linha do cabelo: a mecha que cruza a testa virava uma borda reta | Teto final de giro ±11 (e queixo −14/+10) nos quatro `movimento_natural.js`, depois de somar tudo; seguir o mouse gira até 10 |
+| Rosto tímido da Bia ruim | A pintura da reação tímida da Bia não agradou | A Bia não usa a tímida: `exprSwap: { shy: 'smile' }` na ficha dela (`characters.ts`), aplicado em `hasExpr` do `LivLivAvatar`; as falas de vergonha saem com o sorriso. Luck, Yuno e Yuri mantêm a tímida |
 | Olho "escorregando" ao piscar olhando para o lado | Com a íris no canto, o olho achatado mostrava a íris inteira deslocada dentro da fenda | Fechando a pálpebra, a íris volta ao centro (`withClosedEyes` nos quatro `reacoes.js`) |
 
 ## 5. Como validar (o que foi feito e como repetir)
