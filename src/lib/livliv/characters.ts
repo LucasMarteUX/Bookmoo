@@ -34,6 +34,8 @@ export type Character = {
   painted?: 'bia' | 'luck' | 'yuno' | 'yuri'
   /** Ganho da abertura da boca no lip sync por fonemas (1 = como vem dos fonemas). */
   mouthGain?: number
+  /** Fundo pastel do rosto (chat, bolinha), tirado da roupa do personagem. */
+  tint?: string
   /** Mais jovem: indicada para assuntos infantis. */
   young?: boolean
 }
@@ -48,14 +50,14 @@ const TEEN: SpeakerVoice = { gender: 'female', pitch: 1.2, deEssDb: 4, prefer: [
 const TEEN_BOY: SpeakerVoice = { gender: 'male', pitch: 1.18, deEssDb: 3.5, prefer: ['am_liam', 'am_puck', 'am_echo'] }
 
 export const CHARACTERS: Character[] = [
-  { id: 'bookmoo-mulher', name: 'Bia', pt: 'Mulher', en: 'Woman', voice: WOMAN, folder: 'bia-pintura', zoomK: 0.86, gestures: true, painted: 'bia', baseAngleZ: 0 },
-  { id: 'bookmoo-homem', name: 'Luck', pt: 'Homem', en: 'Man', voice: MAN, folder: 'luck-pintura', zoomK: 0.89, gestures: true, painted: 'luck', baseAngleZ: 0 },
+  { id: 'bookmoo-mulher', name: 'Bia', pt: 'Mulher', en: 'Woman', voice: WOMAN, folder: 'bia-pintura', tint: '#F2D5C8', zoomK: 0.86, gestures: true, painted: 'bia', baseAngleZ: 0 },
+  { id: 'bookmoo-homem', name: 'Luck', pt: 'Homem', en: 'Man', voice: MAN, folder: 'luck-pintura', tint: '#CFE3E3', zoomK: 0.89, gestures: true, painted: 'luck', baseAngleZ: 0 },
   // Yuno pintada (gola-v4). A versão anterior continua em public/characters/bookmoo/yuno/: para voltar, troque por
   // folder: 'yuno', appModel: true, baseAngleZ: -4 e tire painted.
-  { id: 'bookmoo-yuno', name: 'Yuno', pt: 'Jovem', en: 'Teen', voice: TEEN, folder: 'yuno-pintura', zoomK: 1.0, gestures: true, painted: 'yuno', mouthGain: 0.82, baseAngleZ: 0, young: true },
+  { id: 'bookmoo-yuno', name: 'Yuno', pt: 'Jovem', en: 'Teen', voice: TEEN, folder: 'yuno-pintura', tint: '#E2D8F1', zoomK: 1.0, gestures: true, painted: 'yuno', mouthGain: 0.82, baseAngleZ: 0, young: true },
   // Yuri pintado (yuri-v1). A versão anterior continua em public/characters/bookmoo/yuri/: para voltar, troque por
   // folder: 'yuri', appModel: true e tire painted.
-  { id: 'bookmoo-yuri', name: 'Yuri', pt: 'Jovem', en: 'Teen', voice: TEEN_BOY, folder: 'yuri-pintura', zoomK: 1.04, gestures: true, painted: 'yuri', mouthGain: 0.82, baseAngleZ: 0, young: true },
+  { id: 'bookmoo-yuri', name: 'Yuri', pt: 'Jovem', en: 'Teen', voice: TEEN_BOY, folder: 'yuri-pintura', tint: '#D5DFEA', zoomK: 1.04, gestures: true, painted: 'yuri', mouthGain: 0.82, baseAngleZ: 0, young: true },
 ]
 
 export const DEFAULT_CHARACTER = 'bookmoo-mulher'
@@ -82,5 +84,10 @@ export function characterModelUrl(id: string) {
 export function characterBaseUrl(id: string) {
   const c = characterById(effectiveCharacterId(id))!
   return new URL(`${BASE}/${c.folder}/?v=${ASSET_REV}`, window.location.origin).href
+}
+/** Rosto com fundo transparente (os pintados têm face.webp; os outros usam a miniatura). */
+export function characterFaceUrl(id: string) {
+  const c = characterById(effectiveCharacterId(id))!
+  return c.painted ? `${BASE}/${c.folder}/face.webp?v=${ASSET_REV}` : characterAvatarUrl(id)
 }
 export function characterAvatarUrl(id: string) { return `${BASE}/${characterById(effectiveCharacterId(id))!.folder}/avatar.webp` }

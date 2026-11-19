@@ -10,6 +10,8 @@ interface AvatarSettings {
   setCharacter: (id: string) => void
   /** Último tutor com quem a pessoa conversou: é ele que aparece ao entrar em Conversar. */
   lastTalked: string | null
+  /** Quando foi a última conversa com um tutor (ms): o banner da home usa para voltar depois de um tempo sem praticar. */
+  lastTalkedAt: number | null
   setLastTalked: (id: string) => void
 }
 
@@ -19,5 +21,6 @@ export const useAvatarSettings = create<AvatarSettings>()(persist((set) => ({
   setEngine: (engine) => set({ engine }),
   setCharacter: (characterId) => set({ characterId, engine: 'livliv' }),
   lastTalked: null,
-  setLastTalked: (lastTalked) => set({ lastTalked }),
+  lastTalkedAt: null,
+  setLastTalked: (lastTalked) => set({ lastTalked, lastTalkedAt: Date.now() }),
 }), { name: 'bookmoo-avatar' }))

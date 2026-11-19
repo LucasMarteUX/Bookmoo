@@ -18,6 +18,7 @@ import { speak, stopSpeaking } from '@/lib/tts'
 import { createRecognizer, defaultEngine, type Recognizer } from '@/lib/speech/recognizers'
 import { characterAvatarUrl } from '@/lib/livliv/characters'
 import { useAvatarSettings } from '@/store/useAvatarSettings'
+import { useTutorDock } from '@/store/useTutorDock'
 import { getSpeakerVoice, setSpeakerVoice } from '@/lib/speakerVoice'
 import { characterById, effectiveCharacterId } from '@/lib/livliv/characters'
 
@@ -36,6 +37,9 @@ export function PlacementPage() {
   const [status, setStatus] = useState<Status | null>(null)
   const [error, setError] = useState('')
   const [run, setRun] = useState<Run | null>(null)
+  // Durante o teste o tutor flutuante sai da tela (antes e depois ele pode tirar dúvidas).
+  const enterTutorFocus = useTutorDock(st => st.enterFocus)
+  useEffect(() => (run ? enterTutorFocus() : undefined), [run, enterTutorFocus])
   const [result, setResult] = useState<Result | null>(null)
   const [levelUp, setLevelUp] = useState<{ from: CefrId; to: CefrId } | null>(null)
   const [busy, setBusy] = useState(false)

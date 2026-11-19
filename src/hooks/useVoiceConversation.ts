@@ -59,6 +59,16 @@ function ptVoice(gender?: 'female' | 'male') {
   return (byGender.find(v => good.test(v.name)) ?? byGender[0] ?? pool.find(v => good.test(v.name)) ?? pool[0]) || null
 }
 
+/** Riso escrito vira riso falado: "kkk", "rsrs", "lol" e emojis de riso saem como "Haha!" na voz (o texto na tela não muda). */
+function vocalize(text: string) {
+  return text
+    .replace(/\bk{3,}\b/gi, 'Haha!')
+    .replace(/\b(rs){2,}\b/gi, 'Haha!')
+    .replace(/\blol\b/gi, 'Haha!')
+    .replace(/(😂|🤣)+/g, ' Haha! ')
+    .replace(/\s{2,}/g, ' ').trim()
+}
+
 /** Voz da fala: a do personagem na tela (gênero e tom dele), senão a do gênero da cena. */
 function speakerFor(gender?: 'female' | 'male'): { voice?: string; gender?: 'female' | 'male'; pitch: number } {
   const sp = getSpeakerVoice()
@@ -241,7 +251,7 @@ export function useVoiceConversation(opts: {
     // Fala por trechos de idioma: inglês na voz Kokoro, português na voz pt-BR do aparelho.
     const parts = (segments?.length ? segments : [{ lang: 'en' as const, text: reply }])
       .flatMap(seg => splitSentences(seg.text).map(text => ({ lang: seg.lang, text })))
-    parts.slice(1).filter(p => p.lang === 'en').forEach(p => warm(p.text))
+    parts.slice(1).filter(p => p.lang === 'en').forEach(p => warm(vocalize(p.text)))
     resumable.current = null
     if (MOBILE) closeMic()
     set('speaking')
@@ -250,7 +260,7 @@ export function useVoiceConversation(opts: {
       setSpeakingText(p.text)
       // Lido a cada frase: trocar de personagem no meio da conversa já muda a próxima fala.
       const sp = speakerFor(optsRef.current.gender)
-      await say(p.text, optsRef.current.rate ?? 0.95, alive, sp.voice, p.lang, sp.gender, sp.pitch)
+      await say(vocalize(p.text), optsRef.current.rate ?? 0.95, alive, sp.voice, p.lang, sp.gender, sp.pitch)
     }
     setSpeakingText('')
     metrics.current.aiEndedAt = performance.now()
@@ -395,6 +405,36 @@ export function useVoiceConversation(opts: {
     set('idle')
   }, [])
 
+  /** Mensagem escrita (chat por texto): mesma conversa, sem microfone. A resposta chega como texto; com `speak`, também é
+   *  falada pela voz do personagem. Se uma chamada estiver aberta, ela é encerrada antes. */
+  const ask = useCallback(async (text: string, speak = false) => {
+    const msg = text.trim()
+    if (!msg) return
+    if (active.current) stop()
+    const o = optsRef.current
+    push({ role: 'user', text: msg })
+    const aiId = push({ role: 'ai', text: '', pending: true })
+    set('thinking')
+    try {
+      const { reply, extra, segments } = await o.onTurn(msg, null)
+      patch(aiId, { text: reply, pending: false })
+      if (extra) o.onExtra?.(extra)
+      if (speak) {
+        active.current = true
+        await speakReply(reply, segments)
+        active.current = false
+      }
+      set('idle')
+    } catch (e) {
+      const code = (e as { code?: string }).code ?? 'request_failed'
+      patch(aiId, { text: '', pending: false })
+      setBubbles(prev => prev.filter(b => b.id !== aiId))
+      setError(code)
+      o.onError?.(code)
+      set('error')
+    }
+  }, [speakReply, stop])
+
   const preload = useCallback((phrases: string[]) => phrases.forEach(warm), [])
 
   const getMetrics = () => {
@@ -408,5 +448,5 @@ export function useVoiceConversation(opts: {
 
   useEffect(() => () => { stop() }, [stop])
 
-  return { state, bubbles, interim, level, error, speakingText, start, listen, stop, preload, getMetrics, setBubbles, active: () => active.current }
+  return { state, bubbles, interim, level, error, speakingText, start, listen, stop, ask, preload, getMetrics, setBubbles, active: () => active.current }
 }

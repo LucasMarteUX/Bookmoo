@@ -22,6 +22,7 @@ import { BookCardSkeleton } from '@/components/BookCardSkeleton'
 import { TasteShelf } from '@/components/book/TasteShelf'
 import { EmptyState } from '@/components/ui/empty-state'
 import { GalleryBanner } from '@/components/GalleryBanner'
+import { TutorsBanner } from '@/components/TutorsBanner'
 import { CoverSpecHint } from '@/components/book/CoverSpecHint'
 import { XpBadge } from '@/components/stats/XpBadge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
@@ -464,6 +465,9 @@ export function Dashboard() {
           </div>
         </div>
       </section>
+
+      {/* Conversa com os tutores */}
+      <TutorsBanner pt={pt} />
 
       {/* Praticar */}
       <section className="space-y-3">

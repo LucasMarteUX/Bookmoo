@@ -12,6 +12,9 @@
 // 5. A frase manda: elogio, surpresa, pena, riso, pergunta e agradecimento escolhem rosto e gesto; sem pista, alterna
 //    explicar e enfatizar. Uma frase com pista forte pode antecipar a troca, mas só depois dos 3 s da pose atual.
 // 6. Ao ouvir ou ficar quieta o corpo volta ao neutro, também respeitando os 3 s da pose em andamento.
+// 7. Fronteira de frase manda no corpo (estudos de gesto co-verbal: os limites do gesto coincidem com o começo das frases
+//    prosódicas): depois do tempo mínimo, a troca de pose espera a próxima frase começar (até 2,5 s; se não vier, troca).
+// 8. Olhar: ao começar uma frase, às vezes desvia um instante (planejando o que dizer) e volta para a pessoa.
 import type { Mood } from '@/components/voice/TutorAvatar'
 import { moodFromText } from '@/lib/tutorReactions'
 import type { BodyGesture, BodyGestureControl } from '@/lib/livliv/bodyGestures'
@@ -83,11 +86,19 @@ export class GestureDirector {
   private lastFace = 0
   private count = 0
   private noSkip = false // depois de um descanso, a próxima frase sempre gesticula (senão o corpo ficaria parado por muito tempo)
+  private pending: (() => void) | null = null // troca esperando o começo da próxima frase
+  private pendingTimer = 0
 
   constructor(private h: DirectorHooks) {}
 
   private now() { return performance.now() }
-  private clear() { window.clearTimeout(this.timer) }
+  private clear() { window.clearTimeout(this.timer); window.clearTimeout(this.pendingTimer); this.pending = null }
+  /** Faz `fn` no começo da próxima frase (ou em 2,5 s, se ela não vier). */
+  private atNextPhrase(fn: () => void) {
+    this.pending = fn
+    window.clearTimeout(this.pendingTimer)
+    this.pendingTimer = window.setTimeout(() => { const f = this.pending; this.pending = null; f?.() }, 2500)
+  }
   /** Quanto falta para a pose atual completar os 3 s mínimos. */
   private lockLeft() { return this.gesture === 'neutro' ? 0 : Math.max(0, MIN_HOLD_MS - (this.now() - this.since)) }
 
@@ -146,9 +157,9 @@ export class GestureDirector {
 
   private afterHold() {
     if (!this.speaking) { this.settle(); return }
-    // Continua falando: às vezes troca direto de pose, às vezes descansa.
-    if (this.active < 2 && Math.random() < 0.4) this.step()
-    else this.rest()
+    // Continua falando: às vezes troca direto de pose, às vezes descansa; as duas coisas no começo da próxima frase.
+    if (this.active < 2 && Math.random() < 0.4) this.atNextPhrase(() => this.step())
+    else this.atNextPhrase(() => this.rest())
   }
 
   private rest() {
@@ -159,13 +170,19 @@ export class GestureDirector {
       this.apply('neutro')
       this.noSkip = true
       if (!this.speaking) return
-      this.timer = window.setTimeout(() => this.step(), rand([MIN_REST_MS, 3000]))
+      // Descansa um pouco e volta a gesticular no começo de uma frase.
+      this.timer = window.setTimeout(() => this.atNextPhrase(() => this.step()), rand([MIN_REST_MS, 2200]))
     }, wait)
   }
 
   /** Uma frase nova com pista forte (elogio, surpresa, pena...) pode antecipar a troca, mas só depois dos 3 s da pose. */
   onSentence(text: string) {
-    if (!this.speaking || this.lockLeft() > 0) return
+    if (!this.speaking) return
+    // Começo de frase: às vezes o olhar desvia um instante (planejando a fala) e volta.
+    if (Math.random() < 0.3) this.h.glance?.()
+    // Troca de pose que estava esperando esta frase.
+    if (this.pending) { const f = this.pending; this.pending = null; window.clearTimeout(this.pendingTimer); f(); return }
+    if (this.lockLeft() > 0) return
     const m = moodFromText(text)
     if (m && STRONG.includes(m) && this.now() - this.since > 3500) {
       this.clear()

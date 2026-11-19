@@ -1,0 +1,1659 @@
+{
+  "dataDaBaseline": "2026-11-18",
+  "raizDeCaptura": "/Users/lucasmarte/Desktop/Personagens",
+  "escopo": "Snapshot local de modelos, masters, texturas referenciadas, módulos, player e prompts; não equivale a aprovação visual ou integração no produto.",
+  "vozRealValidadaNestaBaseline": false,
+  "pacotes": [
+    {
+      "personagem": "Bia",
+      "master": "00_master_revisado.png",
+      "prompt": "PROMPT-PARA-CLAUDE-INTEGRAR-BIA-PINTURA.md",
+      "revisao": "Pacote pintado com reparo de cabelo, olhos reduzidos e reações; adaptador anterior sem acoes.js.",
+      "pasta": "bia_pintura",
+      "rig": "bia_pintura/rig/model.json",
+      "canvas": [
+        1024,
+        1536
+      ],
+      "camadas": 19,
+      "expressoes": [
+        "smile",
+        "surprised",
+        "sad",
+        "angry",
+        "shy",
+        "x_wink"
+      ],
+      "head": {
+        "cx": 521,
+        "cy": 347,
+        "rx": 175,
+        "ry": 208
+      },
+      "jaw": {
+        "top": 475,
+        "chin": 535,
+        "half": 0.7,
+        "open": 3.5,
+        "round": 2.2,
+        "wide": 2.7
+      },
+      "jawField": {
+        "cx": 521,
+        "top": 475,
+        "chin": 535,
+        "end": 555,
+        "fullWidth": 60,
+        "outerWidth": 110
+      },
+      "mouth": {
+        "x": 452,
+        "y": 417,
+        "w": 157,
+        "h": 88,
+        "pivot": [
+          530,
+          448
+        ],
+        "frames": [
+          "textures/mouth_f0.png",
+          "textures/mouth_f1.png",
+          "textures/mouth_f2.png",
+          "textures/mouth_f3.png",
+          "textures/mouth_f4.png"
+        ]
+      },
+      "tex": null,
+      "modulosPresentes": [
+        "queixo_local.js",
+        "movimento_natural.js",
+        "boca_natural.js",
+        "resposta_cabeca.js",
+        "reacoes.js"
+      ],
+      "validacoesPresentes": [
+        "validacao_ancoras.json",
+        "validacao_gestos.json",
+        "validacao_inclinacao.json",
+        "validacao_player.json",
+        "validacao_previa_natural.json",
+        "validacao_queixo.json",
+        "validacao_reacoes.json",
+        "validacao_realismo.json",
+        "validacao_sorriso_piscada.json"
+      ],
+      "arquivos": [
+        {
+          "caminho": "PROMPT-PARA-CLAUDE-INTEGRAR-BIA-PINTURA.md",
+          "sha256": "4a0f0bf28b6770c237fe69459d8b6c370faae50ee53ead71f9e7c2316c66ed75"
+        },
+        {
+          "caminho": "auditoria/livliv-player/dist/index.js",
+          "sha256": "f3f9880556405c6037997e6a27c6a9c7519659b4ae653c7c6a380eb1165b0578"
+        },
+        {
+          "caminho": "bia_pintura/00_master_revisado.png",
+          "sha256": "28c8b3594cb0e657bb4c882c8e35feedb19c1786efc8d1cd32e056c79150f6dc"
+        },
+        {
+          "caminho": "bia_pintura/boca_natural.js",
+          "sha256": "f2b0a4b8131d6e81674dd4bf14751aff3add900b450e07fa3ad8318e0fe4c8a2"
+        },
+        {
+          "caminho": "bia_pintura/movimento_natural.js",
+          "sha256": "0c6e98574f2d69ae1d006b18fdeab2d5d3154534081b21d4ecec45c6dbeded6e"
+        },
+        {
+          "caminho": "bia_pintura/queixo_local.js",
+          "sha256": "a29fd51b3a1b6e30b7b023e3553201ebfc49a5ef3ee539d07ff634365513743c"
+        },
+        {
+          "caminho": "bia_pintura/reacoes.js",
+          "sha256": "b6bff12f1a94624c2c33b43468274875dd850208412a08b031868bebc7cb2291"
+        },
+        {
+          "caminho": "bia_pintura/resposta_cabeca.js",
+          "sha256": "cef3a2830e4475d1d802bbe6172ea20681fc7be8df52d86dc8ae91285a1b557d"
+        },
+        {
+          "caminho": "bia_pintura/rig/model.json",
+          "sha256": "6e450eb7d22aa7b162ebf4912cb8522bb620e49c38536c6cd4a1d89560bd82d5"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/body.png",
+          "sha256": "867ba2fdf0c87d6bb10f364eac7855180c9d4744463870b1d3002352e28b515b"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/eye_L.png",
+          "sha256": "de788b6b1082d9dcac371656e51de337e92791a0cf0481732f9bf9c724fe4d3e"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/eye_L_closed.png",
+          "sha256": "017c4063dc28e09fc3df3b43ae42e45befb781698e35a70235f54f125bfc0870"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/eye_R.png",
+          "sha256": "8c0e5b7a71fcee7ac912de38e05d93609a38e02d92826115b6fab21cbfdd3499"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/eye_R_closed.png",
+          "sha256": "d6caec8956a2315d21102aa8d56833242b1c8714284008d0bcdb301098d1c05e"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/face.png",
+          "sha256": "778480bc9cc0167845d135eabea2a340d3ab96c4ad03ccea7c11421ea23dd281"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/gesto_abertura.png",
+          "sha256": "39d2c63468c68b82bbf63f6f2101c828c1e3c8f471c8962a5f452af6103c864c"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/gesto_conclusao.png",
+          "sha256": "b652085256a7b06febd13961bb757c6c0d16a815db4d2e3f9bb315c259adbc91"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/gesto_enfase.png",
+          "sha256": "cf91483e477da4840842dbddbd80a1fa039a54f0b32cbcd36375aaad76263698"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/gesto_explicativo.png",
+          "sha256": "fc0b70e736263792ad23af9fa60ba7ef2780f635d4a812dd09c767f8e7b5a7ba"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/gesto_pescoco_comum.png",
+          "sha256": "999c44c226ef85da3aa2f1f7b6bdf54cc3ce1343fa5d3a0e8a236b1298686ca8"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/gesto_reflexao.png",
+          "sha256": "c9eb678e185075462141113f0637b7bbba1576417a44a609770793b8258ee06b"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/gesto_reflexao_mao_frente.png",
+          "sha256": "24970ceaae326e4e8eb95f2ad14319febac2e8d9e56c8f01dc650736db028161"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/iris_L.png",
+          "sha256": "7c17869f360781669079d307a706dc1279ca6f563983a687944c4f1592385665"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/iris_R.png",
+          "sha256": "5fef8624d57941673f0d6a2dd0a1a4ee1f9437cc535f2d5b1275afbcffae198c"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/mask_L.png",
+          "sha256": "9d4e897a9f31a5edd769d32631231aefddd33794c4491afde192d8ebf8261d74"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/mask_R.png",
+          "sha256": "d14b82e77bac69991dd08e18a6760d48f7cd9044ea30f62d93e6f9869e91357b"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/mouth.png",
+          "sha256": "2d2a3f4ec2e7b3f99d4ce914102650d0b4a0ff4f38420a102408296788c3d30b"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/mouth_f0.png",
+          "sha256": "2d2a3f4ec2e7b3f99d4ce914102650d0b4a0ff4f38420a102408296788c3d30b"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/mouth_f1.png",
+          "sha256": "540ba7a55bc4fb3ffb0aeff83179e66f313b7ab0735eb08f1b5d777facf1f6c6"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/mouth_f2.png",
+          "sha256": "b1303b0a4c91fb248d34a005a4479f67196d1daef6b851b537da7b06e9f39a13"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/mouth_f3.png",
+          "sha256": "8da87c77d4f8cfeb370ba2e584625b9256407088086d5b43529fb4702ddd3814"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/mouth_f4.png",
+          "sha256": "f4709bf5db936b79310b483ca71fef036c33d360e14bcfeea2aae4f930b693a4"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/reaction_angry_eye_L.png",
+          "sha256": "1a4af21e8f4ede33ffb7a60912ba2f7968c2f91ee6fe4d13eb433149b8743a94"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/reaction_angry_eye_R.png",
+          "sha256": "130aadeac895813f831e38b88c41ad386cc9a42486790cac429cfb0b9a2466cd"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/reaction_angry_face.png",
+          "sha256": "27aad59ed5fc8f5868b82054804d5459a6c1b2b4281d3f5dd7b116d0b0c0e64b"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/reaction_angry_lid_L.png",
+          "sha256": "81abd766acf4e2c6ac73085f2f2940c906d258075ed352f16cc6b990fa17b751"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/reaction_angry_lid_R.png",
+          "sha256": "18a29896854a235c16a1086f093b2d6bb0d6d797a475628dc039085cbea646e1"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/reaction_angry_mask_L.png",
+          "sha256": "5d2b529def2f3b5fb85472313d79e521123d30cf6d021787d64792c5a8df1a75"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/reaction_angry_mask_R.png",
+          "sha256": "59bfded723334f7bc6df377ff790a6ba8c30934c624446d05b044620f36dbd0d"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/reaction_angry_mouth.png",
+          "sha256": "042372fea5cc697c81bfad9984ee77fd7e00c917c617b6f06906877a500e53f3"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/reaction_sad_eye_L.png",
+          "sha256": "47d814a135d4870c9ce059cc70dde5ad584605241899034d094d84270dcd1b7a"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/reaction_sad_eye_R.png",
+          "sha256": "05a566ecd3bb4aa9ace334058f5905551f5776287c4efebd9c11479c91ab1a9b"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/reaction_sad_face.png",
+          "sha256": "e09930ada0b4ef07a4d0b264679f5d35c61a009096e5aeaeac7291c0acc2d228"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/reaction_sad_lid_L.png",
+          "sha256": "54943a05b59da96a6b39730666f2b457c9a1df29ce965849f73418cba646961d"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/reaction_sad_lid_R.png",
+          "sha256": "c0080749d41d53ef36356a9698e514154de7af046eb2bb53c39723c51999f9e2"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/reaction_sad_mask_L.png",
+          "sha256": "2d44680f163834d012deada6532efafaad6537540ee4e964aea2670d35171c78"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/reaction_sad_mask_R.png",
+          "sha256": "c6d5310cb7c25949663e4bb2ae92b2b2607bb5f673ab4c3c60fd494f7f881270"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/reaction_sad_mouth.png",
+          "sha256": "d58a44c240d2d2c4fa1ea82c554eecafac943aa61e20901e4d27f88c38ad5dcb"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/reaction_shy_eye_L.png",
+          "sha256": "b477d46170fdbe5cf2fe99c60f66ade1844a6a05a1457fa08aea59318b70529b"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/reaction_shy_eye_R.png",
+          "sha256": "8c99039ddebf4dd483783d0b973a076d28ec8a821b8936a3ed690a70096d8940"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/reaction_shy_face.png",
+          "sha256": "4d09a90b6d5d74e425e99279ed36c336eb10b023170ad9cb6145daed29e13d5b"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/reaction_shy_lid_L.png",
+          "sha256": "54943a05b59da96a6b39730666f2b457c9a1df29ce965849f73418cba646961d"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/reaction_shy_lid_R.png",
+          "sha256": "99ed0ea39c3cabb831f0a4fb5c8f97144032f1c2051ec44ccc462a8bf1d7c5b4"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/reaction_shy_mask_L.png",
+          "sha256": "fb44654db2fe2655f96977bb82505ccd211cabf12f3bda929647155b83d06051"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/reaction_shy_mask_R.png",
+          "sha256": "47f3c71295316443dbc464f2af38f6f925b7706fb20e42f61882e9634ee80e6a"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/reaction_shy_mouth.png",
+          "sha256": "3fa84e06d1c5486a51611ebde1844a96ca010b8e82a4229194f1e992450abd62"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/reaction_smile_eye_L.png",
+          "sha256": "caa88c7a54deaea442d1e4f5f31e119be1e728fb6f7346fdf664677dcc70e458"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/reaction_smile_eye_R.png",
+          "sha256": "deeec865b344e21c6585d727a408bad6168674e8fd3282d4330d091e18b7cf9c"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/reaction_smile_face.png",
+          "sha256": "0f4b3f783bbbfe82c77e8fa5170843a42f1bc4c7be196e156ef6df38833cd15d"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/reaction_smile_lid_L.png",
+          "sha256": "98d98c215be6bc61da29324de2d05ce9f9eff3b2428c193c13c9c19af668aec5"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/reaction_smile_lid_R.png",
+          "sha256": "d4f8c1e463ac16affc132d7ffcfe4e9ce16042fcebee89b1295bc396eaf33cd1"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/reaction_smile_mask_L.png",
+          "sha256": "dec4bfbf242aa02bc847c5df6295e2562136bf6bb63d54381b027aa1826d46e8"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/reaction_smile_mask_R.png",
+          "sha256": "6ebb2cfd72d98c854aa1542eba31232ba2d44404f9fa0c8fb4622031e3c9a70d"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/reaction_smile_mouth.png",
+          "sha256": "3db77e68f40cb0651d5c81f8fbf40c67ad840c29a6028309b26de90dda17f0de"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/reaction_surprised_eye_L.png",
+          "sha256": "83f89c5d821956dd927f032572285ffa56ab8a7e6fb171475d2b20cb1b550024"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/reaction_surprised_eye_R.png",
+          "sha256": "68a69c9c03aac76f54565cb9a12ab53db3f653dc5caf87dc420307dcc3bed1a2"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/reaction_surprised_face.png",
+          "sha256": "71fdfb9e9c1b757eb71756123ddeb64e7aa9fffdf7b3e64934ced2031b0b636a"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/reaction_surprised_lid_L.png",
+          "sha256": "54943a05b59da96a6b39730666f2b457c9a1df29ce965849f73418cba646961d"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/reaction_surprised_lid_R.png",
+          "sha256": "99ed0ea39c3cabb831f0a4fb5c8f97144032f1c2051ec44ccc462a8bf1d7c5b4"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/reaction_surprised_mask_L.png",
+          "sha256": "f405c47d1923920e94f338c3ea50f7c1e97e3fcfd69d20f73768fea3e055f24c"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/reaction_surprised_mask_R.png",
+          "sha256": "6f652d72bee9357099fa8eb316781fa3d3142245c9038ea1ec894689352f45b6"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/reaction_surprised_mouth.png",
+          "sha256": "f17f33fdb9f4e0f2558b50f06c1ce7627b1eeba04a94376245807aee15574539"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/reaction_x_wink_eye_L.png",
+          "sha256": "2d8da288dec5b5cf0767750baf32c7d9b77fa561ec1beee5dd2004117a4a2ae1"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/reaction_x_wink_eye_R.png",
+          "sha256": "c1b62503acb5eeae988e54044c916a94a6621013e505e711b7b3e4c778675586"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/reaction_x_wink_face.png",
+          "sha256": "375e3d2d4ee08e841c36c467577dd5a9fb90ca98c91d6d1d17bb1ff80eda2d1b"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/reaction_x_wink_lid_L.png",
+          "sha256": "f800415e45ac3a961d9704468ed0626e7f478acdf3a9e195b19c8fb5cff3b5b8"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/reaction_x_wink_lid_R.png",
+          "sha256": "99ed0ea39c3cabb831f0a4fb5c8f97144032f1c2051ec44ccc462a8bf1d7c5b4"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/reaction_x_wink_mask_L.png",
+          "sha256": "dec4bfbf242aa02bc847c5df6295e2562136bf6bb63d54381b027aa1826d46e8"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/reaction_x_wink_mask_R.png",
+          "sha256": "59bf52880a9206fb60211c191a39517a34a75f82667b403bac22538e006ce92a"
+        },
+        {
+          "caminho": "bia_pintura/rig/textures/reaction_x_wink_mouth.png",
+          "sha256": "7a84fa67a45bd6c74b7219d96da35bb5a33dab05f5f6fc16cf2ae2b672c59126"
+        },
+        {
+          "caminho": "bia_pintura/testar.html",
+          "sha256": "3103625618fc1d45f534c66ffb94fa17658ca02ebb8c2ad94866983cc37118de"
+        }
+      ]
+    },
+    {
+      "personagem": "Luck",
+      "master": "00_master.png",
+      "prompt": "PROMPT-PARA-CLAUDE-INTEGRAR-LUCK-PINTURA.md",
+      "revisao": "Braços explicativo, boca conversacional, repouso triste/bravo, queixo e ações.",
+      "pasta": "luck_pintura",
+      "rig": "luck_pintura/rig/model.json",
+      "canvas": [
+        1024,
+        1536
+      ],
+      "camadas": 19,
+      "expressoes": [
+        "smile",
+        "surprised",
+        "sad",
+        "angry",
+        "shy",
+        "x_wink"
+      ],
+      "head": {
+        "cx": 516,
+        "cy": 307,
+        "rx": 178,
+        "ry": 198
+      },
+      "jaw": {
+        "top": 440,
+        "chin": 502,
+        "half": 1.3,
+        "open": 7.2,
+        "round": 4.2,
+        "wide": 5.6
+      },
+      "jawField": {
+        "cx": 516,
+        "top": 440,
+        "chin": 502,
+        "end": 528,
+        "fullWidth": 60,
+        "outerWidth": 112
+      },
+      "mouth": {
+        "x": 443,
+        "y": 390,
+        "w": 151,
+        "h": 84,
+        "pivot": [
+          516,
+          418
+        ],
+        "frames": [
+          "textures/mouth_f0.png",
+          "textures/mouth_f1.png",
+          "textures/mouth_f2.png",
+          "textures/mouth_f3.png",
+          "textures/mouth_f4.png"
+        ]
+      },
+      "tex": null,
+      "modulosPresentes": [
+        "queixo_local.js",
+        "movimento_natural.js",
+        "boca_natural.js",
+        "resposta_cabeca.js",
+        "reacoes.js",
+        "acoes.js",
+        "fala_demo.js"
+      ],
+      "validacoesPresentes": [
+        "validacao_acoes.json",
+        "validacao_boca_reacoes.json",
+        "validacao_entrega.json",
+        "validacao_gestos.json",
+        "validacao_inclinacao.json",
+        "validacao_malha_boca.json",
+        "validacao_queixo.json",
+        "validacao_reacoes.json",
+        "validacao_realismo.json",
+        "validacao_sorriso_piscada.json"
+      ],
+      "arquivos": [
+        {
+          "caminho": "PROMPT-PARA-CLAUDE-INTEGRAR-LUCK-PINTURA.md",
+          "sha256": "57cbcb9b24f0d65c101fd374f8777e281337861ea2e47624310fb1681899019a"
+        },
+        {
+          "caminho": "auditoria/livliv-player/dist/index.js",
+          "sha256": "f3f9880556405c6037997e6a27c6a9c7519659b4ae653c7c6a380eb1165b0578"
+        },
+        {
+          "caminho": "luck_pintura/00_master.png",
+          "sha256": "03185ff385ca37d70a38f89fdebe5502340986f29510d198e4e72d911374b008"
+        },
+        {
+          "caminho": "luck_pintura/acoes.js",
+          "sha256": "ff008805743fc83b877da622536ff6f06cf24de529e77b7500a1c676fee5484c"
+        },
+        {
+          "caminho": "luck_pintura/boca_natural.js",
+          "sha256": "0e1a8939ab4314de5864899502a1de705a9b583c8787afbfc3ffe929e7d67f78"
+        },
+        {
+          "caminho": "luck_pintura/fala_demo.js",
+          "sha256": "6d8b6fb6121670b821a52665cc423765557737614286bd60ce95130210d85e5f"
+        },
+        {
+          "caminho": "luck_pintura/movimento_natural.js",
+          "sha256": "033b8ad162072b0d0e8816341fb29f92232f235b73e19d1b41587ab15ba51988"
+        },
+        {
+          "caminho": "luck_pintura/queixo_local.js",
+          "sha256": "0910c8f67aa040a8fb905a9d29ed952ea24159ccf8c7d498bb8a759c06df7332"
+        },
+        {
+          "caminho": "luck_pintura/reacoes.js",
+          "sha256": "56f3d4812191104a851983e245ff3c30e9db50dddf454ee71c74f73e902d3a43"
+        },
+        {
+          "caminho": "luck_pintura/resposta_cabeca.js",
+          "sha256": "cef3a2830e4475d1d802bbe6172ea20681fc7be8df52d86dc8ae91285a1b557d"
+        },
+        {
+          "caminho": "luck_pintura/rig/model.json",
+          "sha256": "140f1cb2f1803bc2359e48f3405caecfad47bed5986680986bb45621f71bc1c0"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/body.png",
+          "sha256": "e3e5c5bbf53895b8c18db82119b20e9001b14e56522aee3056de83aac5f21499"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/gesto_abertura.png",
+          "sha256": "4860ae0e03134c023c8eeffe36dc98be3a1b5402f4c340a6d96e732a9797b8ce"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/gesto_conclusao.png",
+          "sha256": "268024ce864b9cb790f56fec0e3388e88938b14116fbc93bcbc6881d6602e7e8"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/gesto_enfase.png",
+          "sha256": "b5b70e8e3077f346dae7c63d6b077c543377b04486a6d89f65853d8f73b3c082"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/gesto_explicativo.png",
+          "sha256": "c664f6a3ec10e873e08199c1f39c9aa9b5d99593e761eeb55ec019853a99138e"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/gesto_pescoco_comum.png",
+          "sha256": "3d8c5ec456ef8278aa8896b78ca17cdb8072abb82332a6b6fdd85f000ae5db81"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/gesto_reflexao.png",
+          "sha256": "b2a05c6687db15882b17a3b2d70ac01a6becac9bd469b14049f44e480c7b49d4"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/gesto_reflexao_mao_frente.png",
+          "sha256": "aecf147403ee5ba788c4ea3daa6bdd3b0b312ce02ae77d299a0435047964715c"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/iris_L.png",
+          "sha256": "5b3754c6213ba5719154fe251a689f56f61c619a7713ebd9f098b92a6fddd1b3"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/iris_R.png",
+          "sha256": "7d1a041985268488a129c51e14943f2de5a037ee1e615facbb952c7e15177381"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/mouth_f0.png",
+          "sha256": "150034563f8dc15b50a870beebfaf08b48755a2e2ddf5dbb61885d499b9f490b"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/mouth_f1.png",
+          "sha256": "8c911ee1e0f9537661c40501420eeef289ed2be5e86d4facb64f9c18afa4e5f8"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/mouth_f2.png",
+          "sha256": "5c5e3dee488411ebe8628166c861423abb6118f8abcba403aa4c88b9556650cd"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/mouth_f3.png",
+          "sha256": "5d7821cda0e5857eb4ae1c054dd02ada1e58dc3db338448584c14ddea0862a40"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/mouth_f4.png",
+          "sha256": "c8e1ced1be02e2c9311427b5917fef6efd25b68178d37924e302decd162c13aa"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/reaction_angry_eye_L.png",
+          "sha256": "a547ef441d25463afc2c8c527592b6487c862a6de6d4f95f46892f6938507ab4"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/reaction_angry_eye_R.png",
+          "sha256": "cb95465bdb63f7cde5f1ae49a5e8e85b65d75a43bb60930e6137f345e07a594e"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/reaction_angry_face.png",
+          "sha256": "31b20e1d0a74f59e660522c7f50de045f2f15873d76b7aac271eac434cb5c216"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/reaction_angry_lid_L.png",
+          "sha256": "35ad6f2a2eeb22965bff8576e99ac66af650bf97cd9f1ebef90822e18b51cd77"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/reaction_angry_lid_R.png",
+          "sha256": "3c9c4aeb9320d1e975cd907847c53c60b7bd5fb225ab09f157e9355b10887379"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/reaction_angry_mask_L.png",
+          "sha256": "6d39a5399d3d6942345873c140a0727ce75c5e1758862ed1f638a5cbc19e8805"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/reaction_angry_mask_R.png",
+          "sha256": "3b5266113e396d371cc4adbd52c798ce40baea1cb276ac14b7a7900f04edbf78"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/reaction_angry_mouth.png",
+          "sha256": "ad9d3607df33cee7ac263d5905256d718e73255dec2c88a3a9c75e5c12e2e9c2"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/reaction_neutro_eye_L.png",
+          "sha256": "158fbcab46e6b309b2211065b0eb63f33e267c0c5455ecbae32ec961a27db889"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/reaction_neutro_eye_R.png",
+          "sha256": "ddc8d50bc5a94307a3d9cc1dfdce0989891852fe680c8b4afaf6cbf2f67cee43"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/reaction_neutro_face.png",
+          "sha256": "2232e25ba15cbb09b67430bee0d281c4fec905581d9b8d8d422b97c2f9b910ab"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/reaction_neutro_lid_L.png",
+          "sha256": "6b16868369ba4fab4adb3519b8eae2082f62a81605866e4c355ca51723ba5279"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/reaction_neutro_lid_R.png",
+          "sha256": "24fcb3413764b263da15fe796dc2ca82954d95aa3170641e053806c1a251e8db"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/reaction_neutro_mask_L.png",
+          "sha256": "48eff2000c50e80415cd5cb16d488da768a86b08fb241d9d303b0efa49d53e99"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/reaction_neutro_mask_R.png",
+          "sha256": "7f8cdba9b17494bdfaeb8ed59053d6460ba17ecaa21c0ecf50c8f526966ba945"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/reaction_sad_eye_L.png",
+          "sha256": "3f7f9016ee0a07208e2759ea4dc855f2b73f1d81ca2a1d682482f98b5dced8aa"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/reaction_sad_eye_R.png",
+          "sha256": "475d0772cc188250b11753d7580865bd9b5d9878bb4ec9a3a5762da9e9469215"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/reaction_sad_face.png",
+          "sha256": "28c01183e1af3c09ddd92acf7346d16e01889fcff7876332bc12bb8d9b1e7d6e"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/reaction_sad_lid_L.png",
+          "sha256": "35ad6f2a2eeb22965bff8576e99ac66af650bf97cd9f1ebef90822e18b51cd77"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/reaction_sad_lid_R.png",
+          "sha256": "3c9c4aeb9320d1e975cd907847c53c60b7bd5fb225ab09f157e9355b10887379"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/reaction_sad_mask_L.png",
+          "sha256": "77e11f76be4f347e64dbdc8222fc8c03e05916fde4c66363fd8f0508aad3f755"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/reaction_sad_mask_R.png",
+          "sha256": "7771331235d1160b30c4ed3d3e5d7afe82a933156658e9dc9df4ef7367a92604"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/reaction_sad_mouth.png",
+          "sha256": "ce02b850e963842d51cee03f29ed9e240ced1b978e36b113e35b931fed6446e2"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/reaction_shy_eye_L.png",
+          "sha256": "0528f201b141b1c64f23f476197069bb71873ae55de26bb2641534d65f2d141d"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/reaction_shy_eye_R.png",
+          "sha256": "f731fcda9fe13d9f6cd92a3ef1507c4149c875e9dcbdb95d37ef1a0326eab989"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/reaction_shy_face.png",
+          "sha256": "939607a213ab83b5926059b562ed772c2b40063e95736965abfecfd2e84ed971"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/reaction_shy_lid_L.png",
+          "sha256": "35ad6f2a2eeb22965bff8576e99ac66af650bf97cd9f1ebef90822e18b51cd77"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/reaction_shy_lid_R.png",
+          "sha256": "3c9c4aeb9320d1e975cd907847c53c60b7bd5fb225ab09f157e9355b10887379"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/reaction_shy_mask_L.png",
+          "sha256": "c1421108c56b981e3612a9a7874f27731768d6b2248430c7d1d51363df14bbf3"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/reaction_shy_mask_R.png",
+          "sha256": "19f67232b3f17976d181a428e00d4cdcfc95c769fbc7823ff0f10f4d66647619"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/reaction_shy_mouth.png",
+          "sha256": "c152d2ca002ff9591154c0393cc1564e9265168609cc8eda96844dfda19a0cd7"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/reaction_smile_eye_L.png",
+          "sha256": "6fac71e53574edada1d8b467ae6192c059b561c9677e8c1f991268e97ab503bb"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/reaction_smile_eye_R.png",
+          "sha256": "b78c83bc1129dd560c2ab6c5bcd98dcc50df42cc913eeea8626521e47859639a"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/reaction_smile_face.png",
+          "sha256": "0fc43eb282343ee84f410ebc10dc2972d4783d3a65e6b91637aa04aea4710743"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/reaction_smile_lid_L.png",
+          "sha256": "231c2abe5ade225d75d27ff8e2470750d3253e5bcef4f0df2c16e9837e242bd5"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/reaction_smile_lid_R.png",
+          "sha256": "25aff270807be8f385e1b6502a5ac145e5abfb429b2106fb04f73e9e23414ef3"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/reaction_smile_mask_L.png",
+          "sha256": "9c93e8c3baab46778c84ce604b576ff983032f59bb7ffc811f9282508bfc7a91"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/reaction_smile_mask_R.png",
+          "sha256": "a967cab390a136bb5969c4daa39a6dd08bcc755c92112902597d9998a3529a3a"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/reaction_smile_mouth.png",
+          "sha256": "6af0fa36c4db7f8ec21720b64a9cdf4ea7afae35e40ee59a931c9017d6685806"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/reaction_surprised_eye_L.png",
+          "sha256": "5e712e38fdef63ad5c4d0f759c58dcbc255bff8875f520b2d5da0254462d5121"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/reaction_surprised_eye_R.png",
+          "sha256": "0b831c32005e3725fa14bc5f08d24556c1a3de32a29c773ef880aaa1b0b1eb57"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/reaction_surprised_face.png",
+          "sha256": "ca7f6349f7b1cdb11cccb8af293a59ff5fb7016811b5e8aaa39244f33fec85c8"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/reaction_surprised_lid_L.png",
+          "sha256": "6b16868369ba4fab4adb3519b8eae2082f62a81605866e4c355ca51723ba5279"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/reaction_surprised_lid_R.png",
+          "sha256": "24fcb3413764b263da15fe796dc2ca82954d95aa3170641e053806c1a251e8db"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/reaction_surprised_mask_L.png",
+          "sha256": "a4deff095134d7804e542d20c334438cc3b2b3a2c77afe1f048b64183d3a8bc9"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/reaction_surprised_mask_R.png",
+          "sha256": "b56f52572730ed630e326e330e3461a3b806f8aeff7ee25101de8977fea418a9"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/reaction_surprised_mouth.png",
+          "sha256": "ad21efae3a74e669b9b29caa2e211d3a82d923509b29f595bdc3f2f507520abd"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/reaction_x_wink_eye_L.png",
+          "sha256": "733067ce0e9488d2f81672f8176cfc0439e7d78716e096b50e1aacbb34ec91cd"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/reaction_x_wink_eye_R.png",
+          "sha256": "1ed3fc32adad35aa09898014f0111daa3b3a3369efb4ad9751403590d895e186"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/reaction_x_wink_face.png",
+          "sha256": "29050eac73e4fdc17f9895c5f0817812bdee5b58c773a0cbb6401f8597a9b865"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/reaction_x_wink_lid_L.png",
+          "sha256": "ca8817b849b19b2971094903f407513f800a3a63d655c5c27da41d62586c86eb"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/reaction_x_wink_lid_R.png",
+          "sha256": "24fcb3413764b263da15fe796dc2ca82954d95aa3170641e053806c1a251e8db"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/reaction_x_wink_mask_L.png",
+          "sha256": "9c93e8c3baab46778c84ce604b576ff983032f59bb7ffc811f9282508bfc7a91"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/reaction_x_wink_mask_R.png",
+          "sha256": "fb361bf66b10e718dc6f80543de6fcf96417764bc74f778326221b8ab04413b5"
+        },
+        {
+          "caminho": "luck_pintura/rig/textures/reaction_x_wink_mouth.png",
+          "sha256": "a9d0ae3df05f3dd4c9063da0f34bef38f42c28204922032fffed8f1446109d18"
+        },
+        {
+          "caminho": "luck_pintura/testar.html",
+          "sha256": "da396536f70d6b134fd60d156f03b85c830f6fafb1cdc69d739173c539ab98b5"
+        }
+      ]
+    },
+    {
+      "personagem": "Yuno",
+      "master": "00_master.png",
+      "prompt": "yuno_pintura/PROMPT-PARA-CLAUDE-INTEGRAR-YUNO-PINTURA.md",
+      "revisao": "gola-v4",
+      "pasta": "yuno_pintura",
+      "rig": "yuno_pintura/rig/model.json",
+      "canvas": [
+        1024,
+        1536
+      ],
+      "camadas": 19,
+      "expressoes": [
+        "smile",
+        "surprised",
+        "sad",
+        "angry",
+        "shy",
+        "x_wink"
+      ],
+      "head": {
+        "cx": 519,
+        "cy": 294,
+        "rx": 167,
+        "ry": 164
+      },
+      "jaw": {
+        "top": 398,
+        "chin": 447,
+        "half": 1.1,
+        "open": 6.4,
+        "round": 3.7,
+        "wide": 5.0
+      },
+      "jawField": {
+        "cx": 519,
+        "top": 398,
+        "chin": 447,
+        "end": 469,
+        "fullWidth": 48,
+        "outerWidth": 91
+      },
+      "mouth": {
+        "x": 452,
+        "y": 350,
+        "w": 153,
+        "h": 80,
+        "pivot": [
+          526,
+          378
+        ],
+        "frames": [
+          "textures/mouth_f0.png",
+          "textures/mouth_f1.png",
+          "textures/mouth_f2.png",
+          "textures/mouth_f3.png",
+          "textures/mouth_f4.png"
+        ]
+      },
+      "tex": "ba7963c69758c7d0",
+      "modulosPresentes": [
+        "queixo_local.js",
+        "movimento_natural.js",
+        "boca_natural.js",
+        "resposta_cabeca.js",
+        "reacoes.js",
+        "acoes.js",
+        "fala_demo.js"
+      ],
+      "validacoesPresentes": [
+        "validacao_acoes.json",
+        "validacao_boca_reacoes.json",
+        "validacao_composicoes.json",
+        "validacao_encaixe.json",
+        "validacao_entrega.json",
+        "validacao_gestos.json",
+        "validacao_gola.json",
+        "validacao_inclinacao.json",
+        "validacao_malha_boca.json",
+        "validacao_queixo.json",
+        "validacao_reacoes.json",
+        "validacao_realismo.json",
+        "validacao_sorriso_piscada.json",
+        "validacao_transicoes_boca.json"
+      ],
+      "arquivos": [
+        {
+          "caminho": "auditoria/livliv-player/dist/index.js",
+          "sha256": "f3f9880556405c6037997e6a27c6a9c7519659b4ae653c7c6a380eb1165b0578"
+        },
+        {
+          "caminho": "yuno_pintura/00_master.png",
+          "sha256": "0e5ab258366758a0eb699a814f57aa11f0f5cd43599b51bf71e776eae4f3a106"
+        },
+        {
+          "caminho": "yuno_pintura/PROMPT-PARA-CLAUDE-INTEGRAR-YUNO-PINTURA.md",
+          "sha256": "65d58991893efe62e010f9884c41d78d329bd8e5fb21b28fdd21023630344edc"
+        },
+        {
+          "caminho": "yuno_pintura/acoes.js",
+          "sha256": "ff008805743fc83b877da622536ff6f06cf24de529e77b7500a1c676fee5484c"
+        },
+        {
+          "caminho": "yuno_pintura/boca_natural.js",
+          "sha256": "72c869a9b225576959a83e4345f02c682667f05109a9022b5ac014018d8bf1ad"
+        },
+        {
+          "caminho": "yuno_pintura/fala_demo.js",
+          "sha256": "6d8b6fb6121670b821a52665cc423765557737614286bd60ce95130210d85e5f"
+        },
+        {
+          "caminho": "yuno_pintura/movimento_natural.js",
+          "sha256": "8a4b1deba2f578fa6508121096dc4c545103f782e782d09e4187967a3b5ca60e"
+        },
+        {
+          "caminho": "yuno_pintura/queixo_local.js",
+          "sha256": "3af94316f9f292c8a6e35fc8b1d687c1e65f53d983551beafa5d666107d909ed"
+        },
+        {
+          "caminho": "yuno_pintura/reacoes.js",
+          "sha256": "514ef0940b7abd89f3830cd43d231b2593ae91b051254d810c699ac70777f079"
+        },
+        {
+          "caminho": "yuno_pintura/resposta_cabeca.js",
+          "sha256": "cef3a2830e4475d1d802bbe6172ea20681fc7be8df52d86dc8ae91285a1b557d"
+        },
+        {
+          "caminho": "yuno_pintura/rig/model.json",
+          "sha256": "85dd59188f4dbda72fa0d1c2437d97c85a9437882d64145563842f2318eac32d"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/body.png",
+          "sha256": "081ec119080b31592d215262fa24bdb3af3e9c8da0380416bae19e489baefa57"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/gesto_abertura.png",
+          "sha256": "36b45945ecc38750d0af9b8b68d1054b39b136909e17b55a05ba8c45fc823879"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/gesto_conclusao.png",
+          "sha256": "2b25878c5fe03b6cad5d233a21599792a4f0351d5f779d755510467bd981c807"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/gesto_enfase.png",
+          "sha256": "3c7198611c8353b539eff0fd9eed04e3889227b687d7c1cbd61609ff196f7a96"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/gesto_explicativo.png",
+          "sha256": "d3ffd29a5de417f3f6d9949b6f8ef9074a6442583776957590bdcca033a2ac71"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/gesto_pescoco_comum.png",
+          "sha256": "411ae466454217c3ea1a2a9e94168529b24b036f5a36d0541c410b1ff5bbcdd9"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/gesto_reflexao.png",
+          "sha256": "a19432bd7a0281b28e0ecec4bf90d30bcb2564fb6b885a14da936bccc624724e"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/gesto_reflexao_mao_frente.png",
+          "sha256": "afbfc084d2b03e6539c4b894f1b2662a2c7120ec69927cfae6b35bdc15f80932"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/iris_L.png",
+          "sha256": "3b8c35ad3233916dbbed77d8ab227e80d348b78d2a119051ee94fd26dd9278b4"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/iris_R.png",
+          "sha256": "94e94e59c5595e9d08c89baccf92342b645e809ef100a5212a08f197c88c401a"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/mouth_f0.png",
+          "sha256": "b2e26061a913e543aebb3583b8143589bafe0ec38cbd2cd6cb4c5d71561baba8"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/mouth_f1.png",
+          "sha256": "7d95a2801b045604355c6710bee995afb3ab3786676f41fdf19a774aff4539ad"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/mouth_f2.png",
+          "sha256": "20ec34d3e9f59b79445855b371e17ebe2b65a08ea4afbd4365a5b460fe66c4c0"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/mouth_f3.png",
+          "sha256": "a0cc8f2e59c77746b1d8e23f2cd849c7f55020bd2a744b21d1a099ba0a50d5e4"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/mouth_f4.png",
+          "sha256": "82869777a4982b24fcaee05d90419ad32def3792afc1bb9706e605c1f6819206"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/reaction_angry_eye_L.png",
+          "sha256": "7a0b0e4f4923d56f17f5f99ebc641ea401eaf9bcd67af6fad54381dc4b34798e"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/reaction_angry_eye_R.png",
+          "sha256": "87b41ffc1f0f859aef5d1eba6ba3ab90fc1a1ff031a53811aa7398767858fd84"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/reaction_angry_face.png",
+          "sha256": "f4fd8dcdbf557c5c6449b50a5adf766276c8599b2d827eca382b3aaf88c7aac8"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/reaction_angry_lid_L.png",
+          "sha256": "3e316d24bd88f468678ef1b2a45b6564f776704272a0890c002a29fbea9de71b"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/reaction_angry_lid_R.png",
+          "sha256": "e5295fdc10a6a2f1bf4e7e74f4d7ba88acd485f96c7b3e2d11dd24c95092c80a"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/reaction_angry_mask_L.png",
+          "sha256": "2f25d39cafd7079ffbdbf268370315156b269f1f071db4083b84bbbbb4b0cf8a"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/reaction_angry_mask_R.png",
+          "sha256": "d7f8141539292bdc9877c297166e62f109226e978c7b6c57b0c9b78518691e87"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/reaction_angry_mouth.png",
+          "sha256": "01d7579e7de01770816ff6ff29d2dcd6ae8b7932b335251181a0e73bf0313572"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/reaction_neutro_eye_L.png",
+          "sha256": "45c4952f41d8c4ab85696ff41d8c018276b81c0ea54f9deade202b677369e1e8"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/reaction_neutro_eye_R.png",
+          "sha256": "bf67f06b764e985df047de20a66f55b42bc6ec2e0212771e1afe26c6f1266555"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/reaction_neutro_face.png",
+          "sha256": "4ea66a80e8587b26e7240a4c5bb7d10f5cb11be6c92148ed0a8afc4bf41b9cc8"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/reaction_neutro_lid_L.png",
+          "sha256": "db45342615e38cd335523b0ab563281e93e3b9d699787fb4a2e59aeb74d42ae1"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/reaction_neutro_lid_R.png",
+          "sha256": "04142bf74d525cb34d86618c3dbb7b9a2d9bdcdc2617d40bb3bdd7ef316223eb"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/reaction_neutro_mask_L.png",
+          "sha256": "90b4f7341a7c4535414895bf363a27b3829e8b9d2c308a64ef72a204af8eb6b8"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/reaction_neutro_mask_R.png",
+          "sha256": "1c482f79e4df8555369dc041e5d76806b41e3edfb77a9c97a11311ba2003ade9"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/reaction_sad_eye_L.png",
+          "sha256": "d8377331379303379a8e22a763c9b80035ddab2b9371263ce7b4c858e1491f92"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/reaction_sad_eye_R.png",
+          "sha256": "6ac00ab5fc5c48b9e820ca9ddf455e0739934351d62ff2c1ab74746596d04225"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/reaction_sad_face.png",
+          "sha256": "52d68348faadac6b1cb020c4d75a85cf5d0b85c00afc55d51a6902c243457eb9"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/reaction_sad_lid_L.png",
+          "sha256": "3e316d24bd88f468678ef1b2a45b6564f776704272a0890c002a29fbea9de71b"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/reaction_sad_lid_R.png",
+          "sha256": "e5295fdc10a6a2f1bf4e7e74f4d7ba88acd485f96c7b3e2d11dd24c95092c80a"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/reaction_sad_mask_L.png",
+          "sha256": "d0a612569ca667a59422d895a8521fa317c41acff49c6a0fb8a50ee0adca377b"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/reaction_sad_mask_R.png",
+          "sha256": "43ad78f6a26cbe6661ac1d724c0078f07b4f5649cdb4c93e53f9dcfa6ca89a00"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/reaction_sad_mouth.png",
+          "sha256": "38bfae460502c54b07e7bc960776608c2a92884dedfb8915e996c2aa53959933"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/reaction_shy_eye_L.png",
+          "sha256": "eea01fde6df0d4e83e91ac436147664db1e5f183de0f28c3041c3390394dbfab"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/reaction_shy_eye_R.png",
+          "sha256": "6ba613695ee2d8b5f2cc27eb3081c91fcd66c1bca87439dd8ce8950b3ccace09"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/reaction_shy_face.png",
+          "sha256": "c21b52406ee1644734702f30a835eb39c0b5b7e0f1bd9f7f53b620b269a0d152"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/reaction_shy_lid_L.png",
+          "sha256": "3e316d24bd88f468678ef1b2a45b6564f776704272a0890c002a29fbea9de71b"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/reaction_shy_lid_R.png",
+          "sha256": "e5295fdc10a6a2f1bf4e7e74f4d7ba88acd485f96c7b3e2d11dd24c95092c80a"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/reaction_shy_mask_L.png",
+          "sha256": "65b835e27445585820de37459c1c1a1a66048e39913324c00b69abdac0b308a2"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/reaction_shy_mask_R.png",
+          "sha256": "f6ceaa3370e49c41a9c8739780c5d6d033e815ef310661277e921cf4ca9f18ae"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/reaction_shy_mouth.png",
+          "sha256": "126b7b6a0c3b53020a5b0e7a9428fccefcdb43687949abc1239503215986c748"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/reaction_smile_eye_L.png",
+          "sha256": "3174c7ec9ff38ff9ae0c23331734f3e4e105e43aeb6c04347968b6fc6ca46e72"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/reaction_smile_eye_R.png",
+          "sha256": "b34f5f6b6045399f146813d933edca15e2152eb2616f3894a5c28b3eaca98128"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/reaction_smile_face.png",
+          "sha256": "7f8205c6b53c2f4a8f7e69ce36b88720e3dd78706ce10f6a9eaa7857b22fbc8c"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/reaction_smile_lid_L.png",
+          "sha256": "e58ad6e2406611fdcd063ecfff0319ff1b242c5f625f4597db9fc94b8983fe7d"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/reaction_smile_lid_R.png",
+          "sha256": "99e545a8129155d6a53c6095e8df8069e765717cdcb14c30320d8fe3433c8081"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/reaction_smile_mask_L.png",
+          "sha256": "c093a7fecefdc2695df278af63e98c5cbb77bfbb02ef987be33b03b50fb2672b"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/reaction_smile_mask_R.png",
+          "sha256": "c4c393b162c27950a0409abb742afe015992bfbe632562728383ab3e43e1294f"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/reaction_smile_mouth.png",
+          "sha256": "8885d9fdd6304b65f007714e2ec84779efc8973feaee811052b027d56d2b6a76"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/reaction_surprised_eye_L.png",
+          "sha256": "9adce763a082cdca8fa6fa755b700380f31be6bd6c1c48b11c4729c190ac1bd7"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/reaction_surprised_eye_R.png",
+          "sha256": "2239df6b018db84f03085674a77ef50f372e545fda676b9ba88a438f6fda3a63"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/reaction_surprised_face.png",
+          "sha256": "9cf0ff81164f5d33777e582f31f45ebf064d8b7b386546a20e7dbe1f87bc5ad6"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/reaction_surprised_lid_L.png",
+          "sha256": "db45342615e38cd335523b0ab563281e93e3b9d699787fb4a2e59aeb74d42ae1"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/reaction_surprised_lid_R.png",
+          "sha256": "04142bf74d525cb34d86618c3dbb7b9a2d9bdcdc2617d40bb3bdd7ef316223eb"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/reaction_surprised_mask_L.png",
+          "sha256": "561e5fe20f46540c82dc2f0336edf6c46a99a0500eeca233a6e3c03678a26bf0"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/reaction_surprised_mask_R.png",
+          "sha256": "1ab18733dfbc2e2b76d49c109cb69887350901007e4451e3b2a6a14bcc428e51"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/reaction_surprised_mouth.png",
+          "sha256": "cb9f31c2e008866bea8d93348beb87125d071c27e769b186dbcec636d627e439"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/reaction_x_wink_eye_L.png",
+          "sha256": "ebf8f1d6bcd6f0781cac611cff3c0b8ff65c7d3b46a98bbf7dc9fdae9f4e2d1c"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/reaction_x_wink_eye_R.png",
+          "sha256": "d47c520c485d4e1b4a483726b8fca1148abd2871a611c82136cbbb84b389093f"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/reaction_x_wink_face.png",
+          "sha256": "d417868b8f33e98225b56fde15b9c4af200191ce73e7da7fef144d5ef6ec1643"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/reaction_x_wink_lid_L.png",
+          "sha256": "ca877129eddfa3b846e255ef0586b2b1e72085daaa4f067049ec7f625a8d7126"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/reaction_x_wink_lid_R.png",
+          "sha256": "04142bf74d525cb34d86618c3dbb7b9a2d9bdcdc2617d40bb3bdd7ef316223eb"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/reaction_x_wink_mask_L.png",
+          "sha256": "c093a7fecefdc2695df278af63e98c5cbb77bfbb02ef987be33b03b50fb2672b"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/reaction_x_wink_mask_R.png",
+          "sha256": "2329e3bc3e51a79937b63eb07b673ac59071ee011790e77e3282382739f3aebc"
+        },
+        {
+          "caminho": "yuno_pintura/rig/textures/reaction_x_wink_mouth.png",
+          "sha256": "20d35bdbd1d5f7e386889f971d32a361e9b9d498a30b9a928f2c18d65c450a61"
+        },
+        {
+          "caminho": "yuno_pintura/testar.html",
+          "sha256": "f4c7fcdb84ffdbe306557249212f37f5b407d29a7173416301eb9413affe1e84"
+        }
+      ]
+    },
+    {
+      "personagem": "Yuri",
+      "master": "00_master.png",
+      "prompt": "yuri_pintura/PROMPT-PARA-CLAUDE-INTEGRAR-YURI-PINTURA.md",
+      "revisao": "yuri-v1; alpha real e13 retratos transparentes.",
+      "pasta": "yuri_pintura",
+      "rig": "yuri_pintura/rig/model.json",
+      "canvas": [
+        1024,
+        1536
+      ],
+      "camadas": 19,
+      "expressoes": [
+        "smile",
+        "surprised",
+        "sad",
+        "angry",
+        "shy",
+        "x_wink"
+      ],
+      "head": {
+        "cx": 518,
+        "cy": 283,
+        "rx": 161,
+        "ry": 142
+      },
+      "jaw": {
+        "top": 382,
+        "chin": 422,
+        "half": 1.2,
+        "open": 6.2,
+        "round": 3.6,
+        "wide": 4.8
+      },
+      "jawField": {
+        "cx": 518,
+        "top": 382,
+        "chin": 422,
+        "end": 448,
+        "fullWidth": 46,
+        "outerWidth": 82
+      },
+      "mouth": {
+        "x": 441,
+        "y": 331,
+        "w": 153,
+        "h": 80,
+        "pivot": [
+          518,
+          364
+        ],
+        "frames": [
+          "textures/mouth_f0.png",
+          "textures/mouth_f1.png",
+          "textures/mouth_f2.png",
+          "textures/mouth_f3.png",
+          "textures/mouth_f4.png"
+        ]
+      },
+      "tex": "cbc65cdd8de60842",
+      "modulosPresentes": [
+        "queixo_local.js",
+        "movimento_natural.js",
+        "boca_natural.js",
+        "resposta_cabeca.js",
+        "reacoes.js",
+        "acoes.js",
+        "fala_demo.js"
+      ],
+      "validacoesPresentes": [
+        "validacao_acoes.json",
+        "validacao_alpha.json",
+        "validacao_alpha_gestos.json",
+        "validacao_boca_reacoes.json",
+        "validacao_composicoes.json",
+        "validacao_encaixe.json",
+        "validacao_entrega.json",
+        "validacao_gestos.json",
+        "validacao_gola.json",
+        "validacao_inclinacao.json",
+        "validacao_pngs_finais.json",
+        "validacao_queixo.json",
+        "validacao_reacoes.json",
+        "validacao_realismo.json",
+        "validacao_sorriso_piscada.json",
+        "validacao_transicoes_boca.json"
+      ],
+      "arquivos": [
+        {
+          "caminho": "auditoria/livliv-player/dist/index.js",
+          "sha256": "f3f9880556405c6037997e6a27c6a9c7519659b4ae653c7c6a380eb1165b0578"
+        },
+        {
+          "caminho": "yuri_pintura/00_master.png",
+          "sha256": "f64f8b2b77f1e487337d6e75b8c4883060c8682ddd545c08471d5fc7b73b3515"
+        },
+        {
+          "caminho": "yuri_pintura/PROMPT-PARA-CLAUDE-INTEGRAR-YURI-PINTURA.md",
+          "sha256": "0119906f23f544bfe11b86161d656d1dc45505accfd348a19f70aa03a57999d6"
+        },
+        {
+          "caminho": "yuri_pintura/acoes.js",
+          "sha256": "ff008805743fc83b877da622536ff6f06cf24de529e77b7500a1c676fee5484c"
+        },
+        {
+          "caminho": "yuri_pintura/boca_natural.js",
+          "sha256": "40e0d5fb5457c7a0906bf0cc467847948ba7e039511ab0eaf3eac496f1449c0b"
+        },
+        {
+          "caminho": "yuri_pintura/fala_demo.js",
+          "sha256": "6d8b6fb6121670b821a52665cc423765557737614286bd60ce95130210d85e5f"
+        },
+        {
+          "caminho": "yuri_pintura/movimento_natural.js",
+          "sha256": "e776aedbcc8a7fd1cd1016861f2cb46a984154d22752bcbfeb26c5c5ec25b485"
+        },
+        {
+          "caminho": "yuri_pintura/queixo_local.js",
+          "sha256": "ea7b38ac0cb33c703bcc00d1def5cc330af0b4eef4b2a933e7218172e0d444ba"
+        },
+        {
+          "caminho": "yuri_pintura/reacoes.js",
+          "sha256": "514ef0940b7abd89f3830cd43d231b2593ae91b051254d810c699ac70777f079"
+        },
+        {
+          "caminho": "yuri_pintura/resposta_cabeca.js",
+          "sha256": "cef3a2830e4475d1d802bbe6172ea20681fc7be8df52d86dc8ae91285a1b557d"
+        },
+        {
+          "caminho": "yuri_pintura/rig/model.json",
+          "sha256": "bb3b39c483bf8e12ed0b2b015b3ef57b02fffd913d5377aa99854f6e2c722ae4"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/body.png",
+          "sha256": "9897ae08156e849c4ca4cf6cad75919d05c5c92801453d8f9e4fd28c2e97a2fb"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/gesto_abertura.png",
+          "sha256": "41f87aae8a76e29cb54fa91268cdb7c82baab66c718bab8649ef3d9db914b2a6"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/gesto_conclusao.png",
+          "sha256": "24df15ac2dc6a8452728c95f6fc03da0aaf90329bc6f617f3d1b57d1c234e340"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/gesto_enfase.png",
+          "sha256": "271ab624cdf98a27a55b6b38ae8058ffb87dd80933d6e7f4f8267b227dd1fee8"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/gesto_explicativo.png",
+          "sha256": "a462ec4409f8d3be8bc618a739485afe37e32d4e5e3ddae6c5002531c295b974"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/gesto_pescoco_comum.png",
+          "sha256": "f5f4893e13569580548423caeef4dd239a71d930c635642aeb8f67d8629a5af7"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/gesto_reflexao.png",
+          "sha256": "1d05a5c40553fa6d6d9608d5838d63262c4e4cff9f79c33fd7a0c07ec3c5147a"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/gesto_reflexao_mao_frente.png",
+          "sha256": "4cff2e076bd4db6ef9551cf705f316b5963fe674b80dd99f24c764cffa9acd81"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/iris_L.png",
+          "sha256": "26595499d4e0f2410a432a84090c44bd676ff3feb6d45bc1f90db3577f12fd5b"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/iris_R.png",
+          "sha256": "dbd686289985b819aeeaaa7c5cca05aa9d7b94f715b6072a9dd4503d83b64faf"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/mouth_f0.png",
+          "sha256": "a5ee0b1a73948dd06cfbc41c6a2cc2a656e624cbca54596a0d652faafe61bb12"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/mouth_f1.png",
+          "sha256": "04aea40724f07f982762d1c1773b35d5ac23e8e2d604ae3c900909d2df8c881b"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/mouth_f2.png",
+          "sha256": "b3ba11d011e76c98769885f3fa3a5cfe81df2ae82f52acbf059f6eb88313b23b"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/mouth_f3.png",
+          "sha256": "9ab1907dc061dc1a4d993bba6e14091a8c7702a6592083dc43eb0c987a07d1a8"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/mouth_f4.png",
+          "sha256": "e843d36e70072f7e59311010e091123801c0604ab972337184e6a65ffb51cf29"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/reaction_angry_eye_L.png",
+          "sha256": "845b7970cef10883e9f9e91df778b90a2fc91a5c27baa3f92ed83cb756c42213"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/reaction_angry_eye_R.png",
+          "sha256": "56063eac7e36a51575cdf6a82c997eb40d1b36277370673dc8b6a5227b345073"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/reaction_angry_face.png",
+          "sha256": "c2cfe4ccc89b523773d550e6fa7302aad3515ebe03fc1eabf7629c183eaec84d"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/reaction_angry_lid_L.png",
+          "sha256": "6e3227cb5d14eb3f9105c66ab3ee964983b4ee462b55921466a3fd9d8262ae99"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/reaction_angry_lid_R.png",
+          "sha256": "89cae6aeb7de7b4bb15b335672a07355a340927fac9096cc0cd5e33187b6ca2e"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/reaction_angry_mask_L.png",
+          "sha256": "c1d985a11567b59879872b7ebfc80d39019c88dae1ad217bf058bcfb782bf8a9"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/reaction_angry_mask_R.png",
+          "sha256": "0f97794cdab516304369ac785c457658138e3832615f731fe90feffd11d6efcf"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/reaction_angry_mouth.png",
+          "sha256": "0f93f2d317d279753a2a19ab7e77de41248824170fa7a98b0983ccbe48f1a732"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/reaction_neutro_eye_L.png",
+          "sha256": "e8141d778b8247aa4c5577df498a4805dddcf2949b44bc59200e0ecbd835064e"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/reaction_neutro_eye_R.png",
+          "sha256": "d5ff9154d5533e5a2601e2dcb359afad45307fb502de68709c6a9e514ad2a566"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/reaction_neutro_face.png",
+          "sha256": "04108bd06f6addcd31d7689cf2dbfce489281c9369b35a641966e8499789f71d"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/reaction_neutro_lid_L.png",
+          "sha256": "6e3227cb5d14eb3f9105c66ab3ee964983b4ee462b55921466a3fd9d8262ae99"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/reaction_neutro_lid_R.png",
+          "sha256": "89cae6aeb7de7b4bb15b335672a07355a340927fac9096cc0cd5e33187b6ca2e"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/reaction_neutro_mask_L.png",
+          "sha256": "bd81ee1ab5fffe735ef1185c778b395aec3a97d00fb692d102dd3526f5c98c84"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/reaction_neutro_mask_R.png",
+          "sha256": "de597df4d0bfd95e4ac46cde111e21a2ea0c8955ea15c95d0ccceb65ca6b088f"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/reaction_sad_eye_L.png",
+          "sha256": "0a7a827a5c52fb7369e72eb8325a22d3ac5296fb779c18bf11d4b87eed37d558"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/reaction_sad_eye_R.png",
+          "sha256": "0c7a8bfaed9d1cf7812e0dbb627fbd708d28572bc98649a8d47cdbc159057690"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/reaction_sad_face.png",
+          "sha256": "5f266b784e03a2a47820c46b0b09b69d0c554e753b1c1dd5b4918402ba20d8da"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/reaction_sad_lid_L.png",
+          "sha256": "6e3227cb5d14eb3f9105c66ab3ee964983b4ee462b55921466a3fd9d8262ae99"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/reaction_sad_lid_R.png",
+          "sha256": "89cae6aeb7de7b4bb15b335672a07355a340927fac9096cc0cd5e33187b6ca2e"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/reaction_sad_mask_L.png",
+          "sha256": "dcae8b3f926040964a4805420fa56b0d95574d49495b2f14b78ead73fa5f996f"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/reaction_sad_mask_R.png",
+          "sha256": "7ec8ba4cc02c6cd5cb288faa5bdb8583584da3d92ce68750472242dcb0fd6b4a"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/reaction_sad_mouth.png",
+          "sha256": "22f4c6ee31344c3670d63404be0301910c927f5dfec91f68ddcf84baaa6386ef"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/reaction_shy_eye_L.png",
+          "sha256": "54b3f6997b75aa3fdaf8d449b91f9b1f784775d3f2a51243a17291b9bd7fc265"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/reaction_shy_eye_R.png",
+          "sha256": "44346d1d2318afcec59ab08588a8ef6fae953c2f51b235d13c0942a9b5492850"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/reaction_shy_face.png",
+          "sha256": "e3659136949ae182b4f24f787b3f66ca0bbd965a34a1fdad991e5756722bda11"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/reaction_shy_lid_L.png",
+          "sha256": "6e3227cb5d14eb3f9105c66ab3ee964983b4ee462b55921466a3fd9d8262ae99"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/reaction_shy_lid_R.png",
+          "sha256": "89cae6aeb7de7b4bb15b335672a07355a340927fac9096cc0cd5e33187b6ca2e"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/reaction_shy_mask_L.png",
+          "sha256": "b33577fac325371d3d06f69580304882951bdcbcdc4ad565bef885b93065ac30"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/reaction_shy_mask_R.png",
+          "sha256": "50b9364921dfe6c36309904f4b3afdc9171244ef82133ef71fc97bc92597030e"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/reaction_shy_mouth.png",
+          "sha256": "aa4473a83c5bf5d511a3744587b39ffe1b69bfdd2e2c486661b10299c26fab91"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/reaction_smile_eye_L.png",
+          "sha256": "89e11944cfd454804ec771e39246b7d19d5396308456a99677d226dac73c8393"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/reaction_smile_eye_R.png",
+          "sha256": "3d88306ef92f453f43329425738ef341f2baae73f039032b4abe934d6786e9f9"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/reaction_smile_face.png",
+          "sha256": "4282d1a2f23bad0ebd5cb74c2a312632e8e301efa4cf6b5f4c1966075e38dbd2"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/reaction_smile_lid_L.png",
+          "sha256": "d8185743aed83207702b4e17fed07f1d7d6ce39f6d599cc6f1b04e65574e34f5"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/reaction_smile_lid_R.png",
+          "sha256": "f430831362ec0c8866f5bf6c0281b52a79f3799a912fc785e4335c0d366ff765"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/reaction_smile_mask_L.png",
+          "sha256": "f7bf4ad4f78dbf157aed54259f76fe4827b05c7a125340906589f2179d93090b"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/reaction_smile_mask_R.png",
+          "sha256": "f7bf4ad4f78dbf157aed54259f76fe4827b05c7a125340906589f2179d93090b"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/reaction_smile_mouth.png",
+          "sha256": "002f3722ecacb91f7f342372a316aeeeb938b34eed1c5f1c5874294891480d56"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/reaction_surprised_eye_L.png",
+          "sha256": "1fbb9e5ffd799900fd4376abe20c14a7b11d53fe918197e8ce3cc2088dd553f1"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/reaction_surprised_eye_R.png",
+          "sha256": "8d70838e23969a91678ebb0a033b472a8e6b068d422c17e2e50e714dc3e7ee8a"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/reaction_surprised_face.png",
+          "sha256": "7ea28a1ded4c60bc34df0f9ff86c8a9ef22485f52d0e6888f10f897583392f92"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/reaction_surprised_lid_L.png",
+          "sha256": "6e3227cb5d14eb3f9105c66ab3ee964983b4ee462b55921466a3fd9d8262ae99"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/reaction_surprised_lid_R.png",
+          "sha256": "89cae6aeb7de7b4bb15b335672a07355a340927fac9096cc0cd5e33187b6ca2e"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/reaction_surprised_mask_L.png",
+          "sha256": "974c8fc1f3cde809413be0947d30b08488dcbee005c8c1706cce0db450eb29c1"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/reaction_surprised_mask_R.png",
+          "sha256": "74c62b170e234c83d57be1c4806d7fd06f86c05d5d3abb4c29a7ab77c871d042"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/reaction_surprised_mouth.png",
+          "sha256": "8eec91c80bb8536f1ae2e0dd5035fc5a40235f071714295b9d05896a6fb016f5"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/reaction_x_wink_eye_L.png",
+          "sha256": "686f984fdc94893d95e1ed166c7a5150ae5e84efd540bf7a688f0d8dcf1f61e0"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/reaction_x_wink_eye_R.png",
+          "sha256": "2b5909cb581e97c616d3ea64cb1b3f59332c7eb66af6444b5bee51f77a526807"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/reaction_x_wink_face.png",
+          "sha256": "f814dc3cc36fde91e8e8be7a1bfb6da066e2b0bbfb0cbeb071607bbbb8b279b0"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/reaction_x_wink_lid_L.png",
+          "sha256": "50bc2ddbe076caa5991ab3f0e07a71f3893ca3fd47ecdeffdfc3e09f957b5197"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/reaction_x_wink_lid_R.png",
+          "sha256": "89cae6aeb7de7b4bb15b335672a07355a340927fac9096cc0cd5e33187b6ca2e"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/reaction_x_wink_mask_L.png",
+          "sha256": "f7bf4ad4f78dbf157aed54259f76fe4827b05c7a125340906589f2179d93090b"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/reaction_x_wink_mask_R.png",
+          "sha256": "2c0bdead503b56084e4f521a9fbdb18f55aa59d94a25f700f5737485669c2029"
+        },
+        {
+          "caminho": "yuri_pintura/rig/textures/reaction_x_wink_mouth.png",
+          "sha256": "5b4cbf8043726994086f4838afd2288e2e43bd8eaa6e32a45ab78b8ea96e7164"
+        },
+        {
+          "caminho": "yuri_pintura/testar.html",
+          "sha256": "f937c0b4585c3e0ced6a3b6e30d06f33a448d54f0718d00d94ff36ba3237adf5"
+        }
+      ]
+    }
+  ]
+}

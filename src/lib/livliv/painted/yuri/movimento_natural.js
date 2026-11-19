@@ -68,7 +68,10 @@ export async function configurarMovimentoNatural(player,modelBaseURL){
    tiltClock-=dt;if(tiltClock<=0){tiltSide=tiltSide>0?-1:1;tiltTarget=tiltSide*(1.6+Math.random()*1.8);tiltClock=6+Math.random()*6}
    tilt+=(tiltTarget-tilt)*(1-Math.exp(-dt/1.4));state.tilt=tilt;
    p.params.angleX=clamp(p.params.angleX,-14,14)+state.head[0];p.params.angleY=clamp(p.params.angleY,-10,10)+state.head[1];
-   p.params.angleZ=clamp(tilt+0.18*p.params.angleX+state.head[2],-30,30);
+   // Atuação da fala (LivLivAvatar: pose por frase, acentos, riso) soma à cabeça; falando, a inclinação lenta do idle diminui.
+   const spk=p.params.speaking?0.35:1;
+   p.params.angleX+=p.params.speechYaw||0;p.params.angleY+=p.params.speechPitch||0;
+   p.params.angleZ=clamp(tilt*spk+0.18*p.params.angleX+state.head[2]+(p.params.speechRoll||0),-30,30);
    if(p.params.angleZ>0)p.rig.roll=originalRoll*state.positiveRollGain;
   }
   p.params.angleX=clamp(p.params.angleX+action.angles[0],-30,30);p.params.angleY=clamp(p.params.angleY+action.angles[1],-30,30);p.params.angleZ=clamp(p.params.angleZ+action.angles[2],-30,30);

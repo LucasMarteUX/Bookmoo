@@ -39,7 +39,8 @@ export function isKokoroSupported() {
 /** Início de cada palavra falada, como fração (0–1) da duração do áudio; n = nº de fonemas. */
 export type WordTiming = { f: number; n: number }
 /** Fonema com início/fim em fração do áudio. */
-export type PhoneTiming = { p: string; f: number; e: number }
+/** Fonema com início e fim em fração do áudio; `s` = sílaba tônica (vem da marca ˈ do Kokoro). */
+export type PhoneTiming = { p: string; f: number; e: number; s?: 1 }
 export type KokoroClip = { url: string; words: WordTiming[] | null; phones?: PhoneTiming[] | null }
 
 let worker: Worker | null = null

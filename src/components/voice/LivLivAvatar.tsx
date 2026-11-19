@@ -9,7 +9,7 @@ import type { VoiceState } from '@/hooks/useVoiceConversation'
 import type { Mood } from '@/components/voice/TutorAvatar'
 import { borrowPlaybackElement } from '@/lib/tts'
 import { getSpeechClock } from '@/lib/speechClock'
-import { activeVisemeTrack, shapeAt } from '@/lib/visemeTrack'
+import { activeVisemeTrack, shapeAt, nextStress } from '@/lib/visemeTrack'
 import { characterAvatarUrl, characterBaseUrl, characterById, characterModelUrl } from '@/lib/livliv/characters'
 import { setupPainted, type PaintedControl } from '@/lib/livliv/painted'
 import { clearSpeakerVoice, setSpeakerVoice } from '@/lib/speakerVoice'
@@ -380,6 +380,9 @@ export function LivLivAvatar({ characterId, state, speakingText = '', onHead, on
         if (info.fullBody) player.view.fit = 'frame'
         // Palco: ajusta o enquadramento ANTES de mostrar (o personagem só aparece já no lugar, encostado embaixo).
         if (stage) await frameStage()
+        // Avatar pequeno de um pintado (painel do tutor): o modo cabeça do player mostrava o corpo inteiro nesses rigs;
+        // enquadra pela cabeça medida no model.json.
+        else if (painted && player.view.head) frameHead(player)
         if (playerRef.current === player) setReady(true)
       })
       .catch((e: Error & { name?: string }) => {
@@ -388,6 +391,35 @@ export function LivLivAvatar({ characterId, state, speakingText = '', onHead, on
         failRef.current?.()
       })
   }, [player, characterId, size, stage])
+
+  // Avatar pequeno: a cabeça (anchors.head do model.json, com o cabelo) ocupa o quadro, centralizada. O deslocamento é medido
+  // e conferido pelo próprio player (canvasToModel), então não depende do sentido dos eixos de view.x/view.y. A conversão só
+  // é atualizada quando o player desenha: cada ajuste é seguido de um draw(0).
+  function frameHead(p: Player) {
+    const head = (p as unknown as { puppet?: { model?: { anchors?: { head?: { cx: number; cy: number; ry: number } } } } }).puppet?.model?.anchors?.head
+    const c = canvasRef.current
+    if (!head || !c || !c.clientWidth) return
+    const w = c.clientWidth, h = c.clientHeight
+    p.view.head = false
+    p.view.fit = 'frame'
+    const redraw = () => (p as unknown as { draw?: (dt: number) => void }).draw?.(0)
+    p.view.x = 0; p.view.y = 0; p.view.zoom = 1
+    redraw()
+    const span = () => p.canvasToModel(0, h)[1] - p.canvasToModel(0, 0)[1]
+    const spanX = () => p.canvasToModel(w, 0)[0] - p.canvasToModel(0, 0)[0]
+    p.view.zoom = span() / (head.ry * 2 * 1.18)
+    redraw()
+    const center = () => p.canvasToModel(w / 2, h / 2)
+    for (const axis of ['x', 'y'] as const) {
+      const i = axis === 'x' ? 0 : 1, target = axis === 'x' ? head.cx : head.cy - head.ry * 0.08
+      const err0 = target - center()[i]
+      const step = err0 / (axis === 'x' ? spanX() : span())
+      p.view[axis] = step
+      redraw()
+      // se o erro aumentou, o eixo anda no sentido contrário
+      if (Math.abs(target - center()[i]) > Math.abs(err0)) { p.view[axis] = -step; redraw() }
+    }
+  }
 
   // Palco: enquadramento conforme o formato da tela (celular em pé, tablet, desktop).
   async function frameStage(): Promise<void> {
@@ -504,6 +536,63 @@ export function LivLivAvatar({ characterId, state, speakingText = '', onHead, on
         frame.params.vowel = v.vowel
       },
     })
+    // Atuação da cabeça enquanto fala (pesquisa de gesto co-verbal + animação de diálogo):
+    // - frase, não palavra: cada frase nova leva a cabeça a uma pose (vira/inclina um pouco), alternando o lado na maioria
+    //   das vezes e com amplitude que varia; perguntas terminam com o queixo um pouco acima e a cabeça inclinada;
+    // - acentos: o pico do aceno cai na sílaba tônica real (fonemas do Kokoro), ~100 ms adiantado como o ápice do gesto, só
+    //   em parte das tônicas e com intervalo mínimo (nada de tique por sílaba);
+    // - moving hold: entre uma coisa e outra a cabeça nunca congela, deriva bem pouco;
+    // - riso: frase com "haha"/"kkk" balança a cabeça como numa risada, decaindo.
+    // Escreve em speechYaw/Pitch/Roll (os rigs pintados somam à cabeça) e speaking (a inclinação lenta do idle diminui).
+    const LAUGH = /\b(ha ?ha+|he ?he+|lol|k{3,}|(rs){2,})\b|😂|🤣/i
+    const act = { text: '', side: Math.random() < 0.5 ? 1 : -1, tgt: [0, 0, 0], cur: [0, 0, 0], beat: 0, beatV: 0, lastBeat: 0, nextS: -1, laugh: 0, t: 0, prev: 0 }
+    const removeActing = player.use({
+      order: 10.6,
+      update(frame) {
+        const nowS = performance.now() / 1000
+        const dt = Math.min(0.05, act.prev ? nowS - act.prev : 0.016)
+        act.prev = nowS; act.t += dt
+        const pr = frame.params as unknown as Record<string, number>
+        const speaking = stateRef.current === 'speaking'
+        const text = speaking ? textRef.current.trim() : ''
+        // Frase nova: nova pose.
+        if (text && text !== act.text) {
+          act.text = text
+          if (Math.random() < 0.72) act.side = -act.side
+          const s = act.side, big = Math.random() < 0.3 ? 1.4 : 1
+          act.tgt = [s * (3 + Math.random() * 4) * big, -1.5 + Math.random() * 3, s * (2.2 + Math.random() * 3) * big * (Math.random() < 0.2 ? -1 : 1)]
+          if (text.endsWith('?')) { act.tgt[1] += 3; act.tgt[2] += s * 2.5 }
+          act.laugh = LAUGH.test(text) ? 1 : 0
+          act.nextS = -1
+        }
+        if (!speaking) { act.text = ''; act.tgt = [0, 0, 0]; act.laugh = 0 }
+        // Pose: chega com suavidade (~0,35 s) e segura com uma deriva lenta.
+        const k = 1 - Math.exp(-dt / (speaking ? 0.35 : 0.6))
+        for (let i = 0; i < 3; i++) act.cur[i] += (act.tgt[i] - act.cur[i]) * k
+        const drift = speaking ? [Math.sin(act.t * 0.7) * 0.9, Math.sin(act.t * 0.53 + 1) * 0.6, Math.sin(act.t * 0.41 + 2) * 0.7] : [0, 0, 0]
+        // Acento: aceno curto na tônica (mola), só em parte delas.
+        const t = activeVisemeTrack(el)
+        if (t && speaking) {
+          const f = (t.el.currentTime + 0.1 * (t.el.playbackRate || 1)) / t.el.duration
+          if (act.nextS < 0 || act.nextS < f - 0.02) act.nextS = nextStress(t, f - 0.01) ?? 2
+          if (act.nextS <= f && act.nextS < 2) {
+            if (nowS - act.lastBeat > 0.55 && Math.random() < 0.6) { act.beatV -= 110 + Math.random() * 50; act.lastBeat = nowS }
+            act.nextS = nextStress(t, act.nextS + 0.001) ?? 2
+          }
+        }
+        act.beatV += (-140 * act.beat - 16 * act.beatV) * dt
+        act.beat += act.beatV * dt
+        // Riso: balanço rápido que vai diminuindo.
+        if (act.laugh > 0.01) act.laugh *= Math.exp(-dt / 1.6)
+        const laugh = act.laugh * Math.sin(act.t * Math.PI * 2 * 4.2) * 4
+        pr.speechYaw = act.cur[0] + drift[0]
+        pr.speechPitch = act.cur[1] + drift[1] + act.beat + laugh
+        pr.speechRoll = act.cur[2] + drift[2] + laugh * 0.4
+        pr.speaking = speaking ? 1 : 0
+        // Personagens sem os adaptadores pintados recebem direto nos ângulos.
+        if (!paintedRef.current) { pr.angleX = (pr.angleX ?? 0) + pr.speechYaw; pr.angleY = (pr.angleY ?? 0) + pr.speechPitch; pr.angleZ = (pr.angleZ ?? 0) + pr.speechRoll }
+      },
+    })
     const EVENTS = ['pointerdown', 'keydown', 'touchend'] as const
     const off = () => EVENTS.forEach(t => window.removeEventListener(t, attach, true))
     EVENTS.forEach(t => window.addEventListener(t, attach, true))
@@ -511,6 +600,7 @@ export function LivLivAvatar({ characterId, state, speakingText = '', onHead, on
       cancelled = true
       off()
       removePhones()
+      removeActing()
       sync?.stop()
       release()
     }

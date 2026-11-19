@@ -18,6 +18,7 @@ import { restartTour } from '@/components/onboarding/GuidedTour'
 import { restartBookTour } from '@/components/onboarding/BookTour'
 import { BirthDateField } from '@/components/settings/BirthDate'
 import { isTutorHidden, setTutorHidden } from '@/components/reader/ReaderTutor'
+import { useTutorPersona } from '@/hooks/useTutorPersona'
 import { SettingsNote, SettingsRow, SettingsSection, SettingsToggle } from '@/components/settings/SettingsUI'
 import { cn } from '@/lib/utils'
 
@@ -33,6 +34,7 @@ export function Settings() {
   const { hasSupabase, user, loading } = useAuth()
   const signedIn = !loading && hasSupabase && !!user
   const [tutorOn, setTutorOn] = useState(!isTutorHidden())
+  const tutorFemale = useTutorPersona().female
   const [active, setActive] = useState('account')
 
   useEffect(() => {
@@ -141,8 +143,8 @@ export function Settings() {
               label={pt ? 'Estudar a página e Desafio' : 'Study the page and Challenge'}
               hint={pt ? 'Botões no leitor com a gramática da página e um quiz. A partir do nível B1 você pode desligar.' : 'Reader buttons with the page grammar and a quiz. From B1 you can turn them off.'} />
             <SettingsToggle checked={tutorOn} onChange={on => { setTutorHidden(!on); setTutorOn(on) }}
-              label={pt ? 'Tutora de leitura' : 'Reading tutor'}
-              hint={pt ? 'Botão flutuante no leitor para conversar por voz sobre o livro.' : 'Floating button in the reader to talk about the book by voice.'} />
+              label={pt ? (tutorFemale ? 'Tutora flutuante' : 'Tutor flutuante') : 'Floating tutor'}
+              hint={pt ? 'Botão no canto da tela para conversar com o tutor por texto, áudio ou chamada, em qualquer tela (no livro, sobre o livro).' : 'Corner button to chat with the tutor by text, voice note or call, on any screen (in a book, about the book).'} />
           </SettingsSection>
 
           <VoiceSettings />

@@ -15,10 +15,15 @@ let owner: VisemeTrack | null = null
 function normalize(ph: PhoneTiming[]): PhoneTiming[] {
   const out: PhoneTiming[] = []
   let carry: number | null = null
+  let stress = false
   for (const x of ph) {
+    if (x.p.includes('ˈ')) stress = true
     const clean = x.p.replace(/[ˈˌː]/g, '')
     if (!clean) { if (carry === null) carry = x.f; continue }
-    out.push({ p: clean, f: carry ?? x.f, e: x.e })
+    // A tônica marca a primeira vogal depois do ˈ (é onde cai o acento da palavra).
+    const vowel = !!SHAPES[clean]?.vowelish || !!SHAPES[clean[0]]?.vowelish
+    out.push({ p: clean, f: carry ?? x.f, e: x.e, ...(stress && vowel ? { s: 1 as const } : {}) })
+    if (stress && vowel) stress = false
     carry = null
   }
   return out
@@ -67,6 +72,12 @@ function shapeOf(p: string): Shape {
 }
 
 const smooth = (t: number) => t * t * (3 - 2 * t)
+
+/** Próxima sílaba tônica a partir de `f` (fração do áudio), ou null. Usado para os acenos de ênfase da cabeça. */
+export function nextStress(t: VisemeTrack, f: number): number | null {
+  for (const x of t.phones) if (x.s && x.f >= f) return x.f
+  return null
+}
 
 /**
  * Forma da boca no instante `f` (fração do áudio). Coarticulação: perto do fim de cada fonema a boca já vai para o próximo;

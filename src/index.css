@@ -792,12 +792,15 @@ html.comic-immersive .sheet-content{z-index:111}
 
   /* Tooltip global (TooltipLayer) */
   .ui-tooltip {
-    position: fixed; z-index: 300; pointer-events: none; max-width: 240px;
+    /* width max-content: perto da borda da tela o tooltip encolhia até a largura que sobrava e quebrava palavra por palavra. */
+    position: fixed; z-index: 300; pointer-events: none; width: max-content; max-width: 240px;
     padding: 6px 9px; border-radius: 8px; font-size: 12.5px; line-height: 1.35; font-weight: 500;
     background: var(--theme-text); color: var(--theme-bg);
     box-shadow: 0 6px 20px rgba(0,0,0,.18);
     animation: ui-tip-in var(--dur-fast) var(--ease-out);
   }
+  /* No escuro, superfície escura com borda (o invertido virava um bloco claro chamativo no tema escuro). */
+  .theme-dark .ui-tooltip { background: var(--theme-card-bg); color: var(--theme-text); border: 1px solid var(--theme-border); box-shadow: 0 6px 20px rgba(0,0,0,.45); }
   .ui-tooltip[data-side="bottom"] { animation-name: ui-tip-in-down; }
   .ui-tooltip kbd { margin-left: 6px; padding: 0 4px; border-radius: 4px; font: inherit; font-size: 11px; opacity: .7; border: 1px solid currentColor; }
   @keyframes ui-tip-in { from { opacity: 0; transform: translateY(3px) scale(.97); } to { opacity: 1; transform: none; } }

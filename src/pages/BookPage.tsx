@@ -27,7 +27,7 @@ import { activeKokoroVoice } from '@/lib/kokoro/engine'
 import { useAuth } from '@/contexts/AuthContext'
 import { canOpenCatalog, useEntitlements } from '@/store/useEntitlements'
 import { openPaywall } from '@/components/billing/Paywall'
-import { ReaderTutor } from '@/components/reader/ReaderTutor'
+import { useTutorDock } from '@/store/useTutorDock'
 import { BookTour } from '@/components/onboarding/BookTour'
 
 export function BookPage() {
@@ -83,6 +83,13 @@ export function BookPage() {
       updateBookAndSync(book.id, { lastRead: Date.now() })
     }
   }, [book?.id, updateBookAndSync])
+
+  // Tutor flutuante (montado no Layout): lendo ou ouvindo, conversa sobre este livro; nas práticas de fala e escrita
+  // (microfone e teclado em uso) ele sai da tela.
+  const setTutorBook = useTutorDock(s => s.setBook)
+  const enterTutorFocus = useTutorDock(s => s.enterFocus)
+  useEffect(() => { setTutorBook(book ?? null); return () => setTutorBook(null) }, [book, setTutorBook])
+  useEffect(() => (mode === 'edit' || mode === 'speak' ? enterTutorFocus() : undefined), [mode, enterTutorFocus])
 
   if (!book) {
     return (
@@ -207,7 +214,6 @@ export function BookPage() {
         ) : (
           <>
             <Reader book={book} autoPlay={mode === 'listen'} headerSlot={headerSlot} headerEndSlot={headerEndSlot} headerMobileSlot={headerMobileSlot} />
-            <ReaderTutor book={book} />
           </>
         )}
       </div>

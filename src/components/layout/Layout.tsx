@@ -23,6 +23,8 @@ import { OfflineBanner } from '@/components/mobile/OfflineBanner'
 import { useEdgeSwipeBack, useScreenTransitions } from '@/components/mobile/useScreenTransitions'
 import { Toaster } from '@/components/ui/toast'
 import { TooltipLayer } from '@/components/ui/tooltip'
+import { TutorDock } from '@/components/reader/ReaderTutor'
+import { useTutorDock } from '@/store/useTutorDock'
 import type { CSSProperties } from 'react'
 
 export function Layout() {
@@ -42,6 +44,8 @@ export function Layout() {
   const immersive = useReaderChrome(state => state.immersive)
 
   const isBookPage = /^\/book\/[^/]+$/.test(location.pathname)
+  // Chat com tutor aberto no celular: sem a tab bar (o campo de mensagem fica no rodapé).
+  const tutorChatOpen = useTutorDock(s => s.chatOpen)
   useScreenTransitions(screenRef)
   // No leitor o gesto de borda compete com virar página/arrastar balões.
   useEdgeSwipeBack(screenRef, isMobile && !isBookPage)
@@ -65,7 +69,7 @@ export function Layout() {
             // Leitura imersiva: as barras flutuam por cima; o texto começa logo abaixo da área segura.
             paddingTop: immersive ? 'calc(var(--safe-t) + 0.75rem)' : 'calc(var(--safe-t) + var(--navbar-h) + 0.75rem)',
             // No leitor a barra de ferramentas própria fica embaixo; nas outras telas, a tab bar.
-            paddingBottom: immersive ? 'calc(var(--safe-b) + 3.5rem)' : isBookPage ? 'calc(var(--safe-b) + 6.5rem)' : 'calc(var(--safe-b) + var(--tabbar-h) + 1.5rem)',
+            paddingBottom: immersive ? 'calc(var(--safe-b) + 3.5rem)' : isBookPage ? 'calc(var(--safe-b) + 6.5rem)' : tutorChatOpen ? 'calc(var(--safe-b) + 1.5rem)' : 'calc(var(--safe-b) + var(--tabbar-h) + 1.5rem)',
             paddingLeft: 'calc(1rem + var(--safe-l))',
             paddingRight: 'calc(1rem + var(--safe-r))',
           } : undefined}>
@@ -81,9 +85,11 @@ export function Layout() {
       <Toaster />
       <ConfirmHost />
       <TooltipLayer />
+      {/* Tutor flutuante: em todas as telas do app (some sozinho na conversa e no teste de nível). */}
+      <TutorDock />
       <OfflineBanner />
       <VoiceRequiredDialog open={voicePrompt} pt={pt} onOpenChange={(open) => { if (!open) markVoicePromptSeen(); setVoicePrompt(open) }} />
-      {isMobile && !isBookPage ? <TabBar /> : null}
+      {isMobile && !isBookPage && !tutorChatOpen ? <TabBar /> : null}
       {isMobile ? <InstallPrompt /> : null}
     </div>
   )

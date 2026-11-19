@@ -2,7 +2,7 @@
 // A situação (conversa livre ou uma Cena) e os ajustes ficam em painéis discretos.
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { Captions, CaptionsOff, Check, ChevronDown, ChevronLeft, ChevronRight, History, Languages, LifeBuoy, Lock, MessageSquareText, Mic, MicOff, Plus, RefreshCw, SlidersHorizontal, X } from 'lucide-react'
+import { BarChart3, Captions, CaptionsOff, Check, ChevronDown, ChevronLeft, ChevronRight, Languages, Lightbulb, LifeBuoy, Lock, MessagesSquare, Mic, MicOff, Plus, RefreshCw, SlidersHorizontal, X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useLanguage } from '@/store/useLanguage'
 import { useEntitlements } from '@/store/useEntitlements'
@@ -21,6 +21,7 @@ import { useAvatarSettings } from '@/store/useAvatarSettings'
 import { CHARACTERS, characterById, effectiveCharacterId, YOUNG_CHARACTER } from '@/lib/livliv/characters'
 import { useTutorLang } from '@/lib/tutorLang'
 import { greetingFor } from '@/lib/greetings'
+import { TutorInbox } from '@/components/reader/ReaderTutor'
 import { useBookStore } from '@/store/useBookStore'
 import { EFFORT_NAMES, useEffort, type Effort } from '@/lib/effort'
 import { levelName, type CefrId } from '@/lib/cefr'
@@ -49,7 +50,10 @@ export function ConversePage() {
   // sempre para o mesmo tutor).
   useState(() => {
     const { lastTalked, characterId } = useAvatarSettings.getState()
-    if (lastTalked && lastTalked !== characterId) useAvatarSettings.setState({ characterId: lastTalked })
+    // Vindo do banner da home com um tutor escolhido (?tutor=<id>): ele tem prioridade sobre o último da conversa.
+    const asked = new URLSearchParams(window.location.search).get('tutor')
+    if (asked && CHARACTERS.some(c => c.id === asked)) { if (asked !== characterId) useAvatarSettings.setState({ characterId: asked }) }
+    else if (lastTalked && lastTalked !== characterId) useAvatarSettings.setState({ characterId: lastTalked })
     return null
   })
   const pt = useLanguage().locale === 'pt-BR'
@@ -63,7 +67,9 @@ export function ConversePage() {
   const [choice, setChoice] = useState<Choice>(() => canFree ? { kind: 'tutor' } : { kind: 'scene', scene: SCENES.find(s => s.key === DEMO_SCENE_KEY)! })
   const [picker, setPicker] = useState(false)
   const [settings, setSettings] = useState(false)
-  const [history, setHistory] = useState(false)
+  // Conversas com os tutores (no corpo da página): abre direto vindo do chat flutuante (/conversar?conversas=1).
+  const [history, setHistory] = useState(() => new URLSearchParams(window.location.search).has('conversas'))
+  const [scores, setScores] = useState(false)
   const [creating, setCreating] = useState(false)
   const [rate, setRate] = useState<number>(() => readPref('bookmoo-voice-rate', 0.95))
   const [captions, setCaptions] = useState<boolean>(() => readPref('bookmoo-voice-captions', true))
@@ -102,6 +108,13 @@ export function ConversePage() {
   }
 
   if (creating) return <CreateScene pt={pt} level={level.id} onDone={created => { setCreating(false); if (created) loadCustom() }} />
+  // Histórico: as conversas com os tutores no corpo da página, como um app de mensagens (o modal com as notas segue no botão).
+  if (history) return (
+    <>
+      <TutorInbox onClose={() => setHistory(false)} onCall={id => { setCharacterOuter(id); setChoice({ kind: 'tutor' }); setHistory(false) }} extra={<IconBtn label={pt ? 'Notas das conversas' : 'Conversation scores'} onClick={() => setScores(true)}><BarChart3 className="w-[18px] h-[18px]" /></IconBtn>} />
+      <HistoryDialog open={scores} onOpenChange={setScores} pt={pt} />
+    </>
+  )
   if (feedback) return <FeedbackView feedback={feedback} pt={pt} goals={choice.kind === 'scene' ? choice.scene.goals : []} onExit={() => setFeedback(null)} />
 
   const title = choice.kind === 'tutor' ? (pt ? 'Conversa livre' : 'Free talk') : (pt ? choice.scene.title.pt : choice.scene.title.en)
@@ -150,7 +163,7 @@ export function ConversePage() {
         </DialogContent>
       </Dialog>
 
-      <HistoryDialog open={history} onOpenChange={setHistory} pt={pt} />
+      <HistoryDialog open={scores} onOpenChange={setScores} pt={pt} />
 
       <Dialog open={settings} onOpenChange={setSettings}>
         <DialogContent className="sm:max-w-sm">
@@ -468,7 +481,7 @@ function Session({ choice, pt, level, rate, captions, minutes, title, subtitle, 
               <PopoverTrigger asChild>
                 <button type="button" aria-label={pt ? 'Assunto da conversa' : 'Conversation topic'} title={topic ? (pt ? `Assunto: ${topic.pt}` : `Topic: ${topic.en}`) : (pt ? 'Assunto da conversa' : 'Conversation topic')}
                   className="relative w-10 h-10 rounded-full grid place-items-center transition-colors hover:bg-[var(--ui-hover)]" style={{ color: 'var(--theme-text)' }}>
-                  <MessageSquareText className="w-[18px] h-[18px]" />
+                  <Lightbulb className="w-[18px] h-[18px]" />
                   {topic && <span aria-hidden className="absolute top-2 right-2 w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--theme-primary)', boxShadow: '0 0 0 2px var(--theme-bg)' }} />}
                 </button>
               </PopoverTrigger>
@@ -490,7 +503,7 @@ function Session({ choice, pt, level, rate, captions, minutes, title, subtitle, 
               </PopoverContent>
             </Popover>
           )}
-          {!live && <IconBtn label={pt ? 'Histórico de conversas' : 'Conversation history'} onClick={onOpenHistory}><History className="w-[18px] h-[18px]" /></IconBtn>}
+          {!live && <IconBtn label={pt ? 'Conversas com os tutores' : 'Chats with the tutors'} onClick={onOpenHistory}><MessagesSquare className="w-[18px] h-[18px]" /></IconBtn>}
           <IconBtn label={pt ? 'Ajustes' : 'Settings'} onClick={onOpenSettings}><SlidersHorizontal className="w-[18px] h-[18px]" /></IconBtn>
           {!live && <TutorPicker pt={pt} />}
         </div>

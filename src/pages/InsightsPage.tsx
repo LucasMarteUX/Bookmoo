@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase'
 import { useLanguage } from '@/store/useLanguage'
 import { useEntitlements } from '@/store/useEntitlements'
 import { useStudyLevel } from '@/hooks/useStudyLevel'
+import { levelName } from '@/lib/cefr'
 import { coach, type Insight, type ReinforcementStory, type SkillKey } from '@/lib/billingApi'
 import { openPaywall } from '@/components/billing/Paywall'
 import { speak, stopSpeaking } from '@/lib/tts'
@@ -104,7 +105,7 @@ export function InsightsPage() {
           <p className="mt-1 text-[14.5px]" style={muted}>{pt ? 'Como está o seu inglês, o que melhorou e onde focar.' : 'Where your English is, what improved and where to focus.'}</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="h-9 px-3 rounded-full inline-flex items-center text-[13px] border" style={{ borderColor: 'var(--theme-border)' }}>{pt ? 'Seu nível' : 'Your level'} · <b className="ml-1">{level.id}</b></span>
+          <span className="h-9 px-3 rounded-full inline-flex items-center text-[13px] border" style={{ borderColor: 'var(--theme-border)' }}>{pt ? 'Seu nível' : 'Your level'} · <b className="ml-1">{levelName(level.id, pt)}</b></span>
           <button type="button" onClick={generate} disabled={busy !== null} className="h-9 px-4 rounded-full text-[13.5px] font-semibold inline-flex items-center gap-2 disabled:opacity-60" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
             {busy === 'insight' ? <Loader2 className="w-4 h-4 animate-spin" /> : !allowed ? <Lock className="w-4 h-4" /> : null}
             {withScores.length ? (pt ? 'Nova avaliação' : 'New assessment') : (pt ? 'Gerar avaliação' : 'Generate assessment')}

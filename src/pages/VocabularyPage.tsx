@@ -3,6 +3,9 @@ import { useEffect, useState, useMemo } from 'react'
 import { Check, Pencil, RotateCcw, Search, Sparkles, SkipForward, Star, Trash2, Volume2, Layers, X } from 'lucide-react'
 import { useVocabularyStore, type Vocabulary, type VocabStatus } from '@/store/useVocabularyStore'
 import { useBookStore } from '@/store/useBookStore'
+import { TUTOR_CHAT_BOOK } from '@/store/useTutorChats'
+
+const PAGE = 20
 import { useLanguage } from '@/store/useLanguage'
 import { useTranslations } from '@/lib/i18n'
 import { useAuth } from '@/contexts/AuthContext'
@@ -54,6 +57,8 @@ export function VocabularyPage() {
   const [filterStatus, setFilterStatus] = useState<VocabStatus | ''>('')
   const [query, setQuery] = useState('')
   const [reviewing, setReviewing] = useState<string[] | null>(null)
+  // Lista em páginas de 20: "Carregar mais" mostra as próximas (volta a 20 ao mudar busca ou filtro).
+  const [shown, setShown] = useState(PAGE)
 
   const statusLabel: Record<VocabStatus, string> = { learned: t('learned'), review: t('review'), important: t('important') }
   const counts = useMemo(() => ({
@@ -69,8 +74,10 @@ export function VocabularyPage() {
       .filter(v => !q || `${v.text} ${v.explanation ?? ''}`.toLowerCase().includes(q))
       .sort((a, b) => +new Date(b.createdAt ?? 0) - +new Date(a.createdAt ?? 0))
   }, [vocabularies, filterBookId, filterStatus, query])
+  useEffect(() => { setShown(PAGE) }, [filterBookId, filterStatus, query])
 
-  const getBookTitle = (bookId: string) => books.find(b => b.id === bookId)?.title ?? t('bookRemoved')
+  // Palavras salvas nas conversas com os tutores (fora de um livro) vêm com o bookId do chat.
+  const getBookTitle = (bookId: string) => bookId === TUTOR_CHAT_BOOK ? (pt ? 'Conversa com os tutores' : 'Chat with the tutors') : books.find(b => b.id === bookId)?.title ?? t('bookRemoved')
   const handleEdit = (v: Vocabulary) => { setEditingVocabId(v.id); setEditingBookId(v.bookId); setModalOpen(true) }
   const handleCloseModal = () => { setModalOpen(false); setEditingVocabId(null); setEditingBookId('') }
   const setStatus = (id: string, status: VocabStatus) => {
@@ -116,7 +123,7 @@ export function VocabularyPage() {
       <div className="flex flex-wrap items-center gap-2">
         <FilterSearch grow value={query} onChange={setQuery} placeholder={pt ? 'Buscar palavra ou significado' : 'Search word or meaning'} />
         <FilterSelect value={filterBookId} onChange={setFilterBookId} label={t('book')}
-          options={[{ value: '', label: pt ? 'Todos os livros' : 'All books' }, ...books.map(b => ({ value: b.id, label: b.title }))]} />
+          options={[{ value: '', label: pt ? 'Todos os livros' : 'All books' }, ...books.map(b => ({ value: b.id, label: b.title })), ...(vocabularies.some(v => v.bookId === TUTOR_CHAT_BOOK) ? [{ value: TUTOR_CHAT_BOOK, label: pt ? 'Conversa com os tutores' : 'Chat with the tutors' }] : [])]} />
         {(filterStatus || filterBookId || query) && (
           <FilterClear onClick={() => { setFilterStatus(''); setFilterBookId(''); setQuery('') }}>{pt ? 'Limpar' : 'Clear'}</FilterClear>
         )}
@@ -130,7 +137,7 @@ export function VocabularyPage() {
         </div>
       ) : (
         <ul className="rounded-2xl border divide-y overflow-hidden" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-card-bg)' }}>
-          {filtered.map(v => {
+          {filtered.slice(0, shown).map(v => {
             const { bg, fg, icon: Icon } = STATUS_STYLE[v.status]
             const ipa = ipaOf(v.explanation)
             return (
@@ -163,6 +170,12 @@ export function VocabularyPage() {
             )
           })}
         </ul>
+      )}
+      {filtered.length > shown && (
+        <div className="flex flex-col items-center gap-1.5">
+          <Button variant="outline" onClick={() => setShown(n => n + PAGE)}>{pt ? 'Carregar mais' : 'Load more'}</Button>
+          <span className="text-[12.5px] tabular-nums" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? `${shown} de ${filtered.length}` : `${shown} of ${filtered.length}`}</span>
+        </div>
       )}
 
       {reviewing && (
