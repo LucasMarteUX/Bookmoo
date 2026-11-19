@@ -38,6 +38,13 @@ export const POKES: ReactionLine[] = [
 /** Cutucar demais (5 vezes em poucos segundos): ela fica brava, de brincadeira. */
 export const POKE_ANGRY: ReactionLine = { mood: 'angry', pt: 'Hey! Stop poking me! Ei, para com isso!', en: 'Hey! Stop poking me!' }
 
+/** Mouse rodando rápido em volta do personagem: fica tonto(a), de brincadeira. */
+export const dizzyLine = (female: boolean): ReactionLine => ({
+  mood: 'surprised',
+  pt: `Whoa, I'm so dizzy! Assim você me deixa ${female ? 'tonta' : 'tonto'}... rs`,
+  en: "Whoa, you're making me dizzy... hehe",
+})
+
 /** Microfone bloqueado ou ausente: ela se assusta. */
 export const MIC_SCARE: ReactionLine = {
   mood: 'surprised',

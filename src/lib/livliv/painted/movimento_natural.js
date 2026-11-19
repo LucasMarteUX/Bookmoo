@@ -25,6 +25,9 @@ export async function configurarMovimentoNatural(player,modelBaseURL){
  const hair=strands.map(s=>({x:spring(s.w,2.2),y:spring(s.w,1.1)})),ear=earrings.map(s=>spring(s.w,.048));
  const cloth=[spring(15,.9),spring(17,.7),spring(13,.65)];
  let tilt=0,tiltTarget=0,tiltSide=Math.random()<.5?1:-1,tiltClock=2+Math.random()*3;
+ // Bookmoo: balanço do corpo pela malha (base parada, cresce até a cabeça), como nos outros: o mouse leva o corpo para o lado
+ // oposto (LivLivAvatar escreve pointerLean), mais a inclinação lenta e uma respiração lateral bem leve.
+ let lean=0,leanV=0,breathT=0;const BASE_Y=1536,TOP_Y=240;
  let lastTime=p.time,previous=null,velocity=[0,0],accel=[0,0],cuePos=[...cuff.neutro],cueVel=[0,0],cueAccel=[0,0];
  const im=await new Promise((resolve,reject)=>{const i=new Image();i.onload=()=>resolve(i);i.onerror=reject;i.src=assetUrl('textures/face.png',modelBaseURL)});
  const c=document.createElement('canvas');c.width=1024;c.height=1536;const ctx=c.getContext('2d',{willReadFrequently:true});ctx.drawImage(im,0,0);const rgba=ctx.getImageData(0,0,1024,1536).data;
@@ -58,7 +61,7 @@ export async function configurarMovimentoNatural(player,modelBaseURL){
    // de tempos em tempos (não fica presa para um lado só).
    tiltClock-=dt;if(tiltClock<=0){tiltSide=tiltSide>0?-1:1;tiltTarget=tiltSide*(1.6+Math.random()*1.8);tiltClock=6+Math.random()*6}
    tilt+=(tiltTarget-tilt)*(1-Math.exp(-dt/1.4));state.tilt=tilt;state.angles=[p.params.angleX,p.params.angleY];
-   p.params.angleX=clamp(p.params.angleX,-14,14)+state.head[0];p.params.angleY=clamp(p.params.angleY,-10,10)+state.head[1];
+   p.params.angleX=clamp(p.params.angleX,-14,14)+state.head[0];p.params.angleY=clamp(p.params.angleY,-15,10)+state.head[1];
    // Atuação da fala (LivLivAvatar: pose por frase, acentos, riso) soma à cabeça; falando, a inclinação lenta do idle diminui.
    const spk=p.params.speaking?0.35:1;
    p.params.angleX+=p.params.speechYaw||0;p.params.angleY+=p.params.speechPitch||0;
@@ -67,7 +70,11 @@ export async function configurarMovimentoNatural(player,modelBaseURL){
   }
   if(boca.state.enabled)p.params.mouthOpen=open;
   try{
-   originalDeform();if(boca.state.enabled&&open>0){for(const [i,dx,dy]of muscles){face.out[2*i]+=open*dx;face.out[2*i+1]+=open*dy}face.uploaded=false}if(!state.enabled||dt===0)return;
+   originalDeform();if(boca.state.enabled&&open>0){for(const [i,dx,dy]of muscles){face.out[2*i]+=open*dx;face.out[2*i+1]+=open*dy}face.uploaded=false}
+   {breathT+=dt;const leanTarget=(p.params.pointerLean||0)*34+tilt*2+Math.sin(breathT*.55)*1.1;
+    leanV+=((leanTarget-lean)*28-leanV*9)*dt;lean+=leanV*dt;state.lean=lean;
+    if(Math.abs(lean)>.01)for(const L of p.layers){if(!L.out)continue;/* todas as camadas: a pálpebra fechada só aparece no desenho (olhos fechados lá), aqui ela contaria como escondida e ficava para trás */for(let i=0;i<L.out.length/2;i++){const y=L.rest[2*i+1],w=clamp((BASE_Y-y)/(BASE_Y-TOP_Y),0,1.15);L.out[2*i]+=lean*w*w*(3-2*Math.min(1,w))}L.uploaded=false}}
+   if(!state.enabled||dt===0)return;
    const hp=[0,0];p.headXform(521,347,0,p.params,hp);
    if(!previous)previous=[...hp];
    const k=1-Math.exp(-dt/.07);

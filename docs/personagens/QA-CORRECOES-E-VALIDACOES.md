@@ -57,8 +57,9 @@ o `act` automático do diretor).
 | Olho fechado "pula de lugar" no feliz e na piscadinha | O feliz/piscadinha da entrega fecham com um arco pintado mais alto e de outro formato que a pálpebra da piscada normal; cada troca mudava o desenho do olho fechado | Feliz e piscadinha usam olho e pálpebra do **neutro**; o fechamento é sempre pela pálpebra (`ei = 0` em `reacoes.js`). No feliz os olhos ficam abertos |
 | Pálpebra aparece já embaixo ao piscar | A pálpebra fechada é pintada na linha de baixo e entrava por transparência | A pálpebra **desce** desde os cílios de cima (`LID_DROP`, medido por reação e por lado nas texturas: mediana da linha dos cílios no olho aberto × na pálpebra) |
 | Traço escuro acima do olho ao piscar | Mover a textura inteira da pálpebra subia a borda de cima dela | Só a linha dos cílios sobe; a pele acima dela **comprime** (o topo da textura fica parado) |
-| Piscadinha travada e o outro olho piscando junto | A reação mantinha o olho fechado o tempo todo da reação | Pulso rápido de ~0,38 s (fecha 0,1 / segura 0,12 / abre 0,16) só no olho esquerdo; o direito fica aberto; depois volta ao neutro |
+| Piscadinha travada e o outro olho piscando junto | A reação mantinha o olho fechado o tempo todo da reação | Pulso curto só no olho esquerdo; o direito fica aberto; depois volta ao neutro |
 | Na piscadinha da Yuno, olho fechado "maior e fora do rosto" | O rosto `x_wink` é pintado para o arco da entrega; a pálpebra neutra por cima virava uma oval | Durante a piscadinha o **rosto fica o neutro**; só a boca de canto continua |
+| Piscadinha de todos: olho que pisca "maior"/oval fantasma e o outro olho mudando | (1) Fechar em 0,1 s e abrir em 0,16 s deixava vários quadros no meio do caminho do player, que achata o olho para o centro e mistura a pálpebra semitransparente; (2) Bia e Luck trocavam rosto e os dois olhos para as texturas `x_wink` (olho aberto diferente, olho fechado pintado no rosto); (3) no Luck a pálpebra do olho que pisca não descia | A piscadinha é a **piscada normal num olho só, segurada**: fecha em 0,07 s, segura até 0,31 s, abre em 0,14 s (total 0,45 s). Os quatro usam rosto, olhos e pálpebras do neutro; a pálpebra desce de cima (`LID_DROP`) no olho que pisca; o outro olho fica exatamente como no neutro. Validado quadro a quadro (1/60 s) nos quatro |
 | Cílios fantasmas na Bia | Cílios pintados no rosto, fora da camada do olho | Movidos para a camada do olho aberto (`scripts/characters/bia-pintura-olhos.py`); no bravo só contam pixels escuros a até 9 px da máscara, para não apagar a sobrancelha |
 
 **Tentativa descartada:** mover cílios do rosto para o olho por cor na Yuno apagou trechos das sobrancelhas do bravo. Texturas
@@ -155,6 +156,29 @@ moving holds):
 - Mãos: o diretor (`performance.ts`) só troca de gesto no começo de uma frase (até 2,5 s de espera) e às vezes desvia o
   olhar ao começar uma frase.
 - Pensando: a fala-ponte ("Hmm…", "Let me think…") sai pela voz com o lip sync fechando a boca no "mm", e o olhar sobe.
+
+## 4c. Seguir o mouse (todos os tutores pintados)
+
+Antes, o player quase não virava a cabeça para o cursor (angleX igual com o mouse nos dois cantos) e a íris andava ~2 px.
+Agora `LivLivAvatar` (driver de ordem 9.5) faz o seguimento, com hierarquia de animação: olho primeiro (~0,07 s), cabeça
+(~0,3 s), corpo por último (~0,6 s).
+
+- Olhos: `eyeBallX/Y` até o limite com o mouse longe; alcance da íris 2,2x o do modelo (a máscara do olho continua recortando).
+- Cabeça: vira até ~14 unidades e inclina ~3 para o lado do mouse; para baixo abaixa mais (13) que para cima (7); falando, 60%.
+- Para baixo: a pálpebra fecha até 22% e as sobrancelhas descem ~4 px (campo na malha do rosto em `painted/index.ts`,
+  `lookDown`), sumindo antes do olho.
+- Corpo: vai para o lado **oposto** ao mouse (`pointerLean`, até ~34 px no topo da cabeça, base parada), em todos os
+  `movimento_natural.js` (a Bia ganhou o balanço que não tinha).
+- Mouse parado por 4,5 s: o olhar volta para a pessoa; "pensando" não segue o mouse.
+- Tonto: mouse rodando rápido em volta da cabeça (~1,3 volta acumulada no mesmo sentido) dispara surpresa, cabeça e olhos
+  girando ~1,8 s e a frase no balão ("Assim você me deixa tonta/tonto... rs"); espera 12 s para repetir; não interrompe fala.
+
+Defeitos corrigidos no caminho:
+
+| Defeito | Causa | Correção |
+|---|---|---|
+| Olho fechado "saindo do rosto" (sorriso, piscada) com o mouse de lado | O balanço do corpo só movia camadas visíveis naquele instante; a pálpebra fechada só aparece no desenho (dentro de `withClosedEyes`) e ficava para trás | O balanço move todas as camadas |
+| Olho "escorregando" ao piscar olhando para o lado | Com a íris no canto, o olho achatado mostrava a íris inteira deslocada dentro da fenda | Fechando a pálpebra, a íris volta ao centro (`withClosedEyes` nos quatro `reacoes.js`) |
 
 ## 5. Como validar (o que foi feito e como repetir)
 

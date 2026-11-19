@@ -67,7 +67,7 @@ export async function configurarMovimentoNatural(player,modelBaseURL){
    // Bookmoo: o olhar do mouse (angleX/Y) passa para a cabeça; o balanço do idle em Z não, a inclinação lenta troca de lado.
    tiltClock-=dt;if(tiltClock<=0){tiltSide=tiltSide>0?-1:1;tiltTarget=tiltSide*(1.6+Math.random()*1.8);tiltClock=6+Math.random()*6}
    tilt+=(tiltTarget-tilt)*(1-Math.exp(-dt/1.4));state.tilt=tilt;
-   p.params.angleX=clamp(p.params.angleX,-14,14)+state.head[0];p.params.angleY=clamp(p.params.angleY,-10,10)+state.head[1];
+   p.params.angleX=clamp(p.params.angleX,-14,14)+state.head[0];p.params.angleY=clamp(p.params.angleY,-15,10)+state.head[1];
    // Atuação da fala (LivLivAvatar: pose por frase, acentos, riso) soma à cabeça; falando, a inclinação lenta do idle diminui.
    const spk=p.params.speaking?0.35:1;
    p.params.angleX+=p.params.speechYaw||0;p.params.angleY+=p.params.speechPitch||0;
@@ -80,16 +80,16 @@ export async function configurarMovimentoNatural(player,modelBaseURL){
    originalDeform();
    {const act=reacoes.state.active||'neutro',blink=p.bookmooBlink??1;
     for(let k=0;k<2;k++){const sd=k?'R':'L',L=lids[k];if(!L?.out)continue;const D=LID_DROP[sd][act]??LID_DROP[sd].neutro;
-     let open=clamp(Math.min(k?p.params.eyeROpen:p.params.eyeLOpen,blink),0,1);if(act==='x_wink'&&!k)open=1-(reacoes.state.winkClosed?.()??0);
+     let open=clamp(Math.min(k?p.params.eyeROpen:p.params.eyeLOpen,blink),0,1);if(act==='x_wink')open=k?1:1-(reacoes.state.winkClosed?.()??0);
      const dy=-D*open;if(Math.abs(dy)<.01)continue;const top=lidTop[k],lash=top+LASH_ROW[k];
      // a linha dos cílios sobe inteira; a pele acima dela comprime (o topo da textura não sai do lugar)
      for(let i=1;i<L.out.length;i+=2){const y=L.rest[i],w=clamp((y-top)/(lash-top),0,1);L.out[i]+=dy*w}L.uploaded=false}}
    {const isS=reacoes.state.active==='surprised';if(isS&&!wasSurprised)for(const h of hair)h.y.v-=22;wasSurprised=isS;
     surprise+=((isS?1:0)-surprise)*(1-Math.exp(-dt/.1));
     if(surprise>.01){for(const i of hairVertices){let w=0;for(let j=0;j<strands.length;j++)w+=weights[i*strands.length+j];const y=face.rest[2*i+1];face.out[2*i+1]-=2.2*surprise*Math.min(1,w+(y<220?.6:0))}face.uploaded=false}}
-   breathT+=dt;const leanTarget=clamp(saved[0],-14,14)*1.0+tilt*2+Math.sin(breathT*.55)*1.1;
+   breathT+=dt;const leanTarget=(p.params.pointerLean||0)*34+/* mouse: corpo para o lado oposto (LivLivAvatar) */tilt*2+Math.sin(breathT*.55)*1.1;
    leanV+=((leanTarget-lean)*28-leanV*9)*dt;lean+=leanV*dt;state.lean=lean;
-   if(Math.abs(lean)>.01)for(const L of p.layers){if(!L.out||!p.shown(L))continue;for(let i=0;i<L.out.length/2;i++){const y=L.rest[2*i+1],w=clamp((BASE_Y-y)/(BASE_Y-TOP_Y),0,1.15);L.out[2*i]+=lean*w*w*(3-2*Math.min(1,w))}L.uploaded=false}if(boca.state.enabled&&open>0){for(const [i,dx,dy]of muscles){face.out[2*i]+=open*dx;face.out[2*i+1]+=open*dy}face.uploaded=false}if(!state.enabled||dt===0)return;
+   if(Math.abs(lean)>.01)for(const L of p.layers){if(!L.out)continue;/* todas as camadas: a pálpebra fechada só aparece no desenho (olhos fechados lá), aqui ela contaria como escondida e ficava para trás */for(let i=0;i<L.out.length/2;i++){const y=L.rest[2*i+1],w=clamp((BASE_Y-y)/(BASE_Y-TOP_Y),0,1.15);L.out[2*i]+=lean*w*w*(3-2*Math.min(1,w))}L.uploaded=false}if(boca.state.enabled&&open>0){for(const [i,dx,dy]of muscles){face.out[2*i]+=open*dx;face.out[2*i+1]+=open*dy}face.uploaded=false}if(!state.enabled||dt===0)return;
    const hp=[0,0];p.headXform(518,283,0,p.params,hp);
    if(!previous)previous=[...hp];
    const k=1-Math.exp(-dt/.07);

@@ -64,7 +64,7 @@ export async function configurarMovimentoNatural(player,modelBaseURL){
   if(state.headEnabled){
    // Idle still blinks and moves the eyes; gesture responses return to a stable center.
    // Bookmoo: o olhar do mouse (angleX/Y) passa para a cabeça, como nos outros personagens; o balanço do idle em Z não.
-   p.params.angleX=clamp(p.params.angleX,-14,14)+state.head[0];p.params.angleY=clamp(p.params.angleY,-10,10)+state.head[1];
+   p.params.angleX=clamp(p.params.angleX,-14,14)+state.head[0];p.params.angleY=clamp(p.params.angleY,-15,10)+state.head[1];
    tiltClock-=dt;if(tiltClock<=0){tiltSide=tiltSide>0?-1:1;tiltTarget=tiltSide*(1.6+Math.random()*1.8);tiltClock=6+Math.random()*6}
    tilt+=(tiltTarget-tilt)*(1-Math.exp(-dt/1.4));state.tilt=tilt;
    // Atuação da fala (LivLivAvatar: pose por frase, acentos, riso) soma à cabeça; falando, a inclinação lenta do idle diminui.
@@ -78,8 +78,10 @@ export async function configurarMovimentoNatural(player,modelBaseURL){
   try{
    originalDeform();
    {const act=reacoes.state.active||'neutro',D=LID_DROP[act]??14,blink=p.bookmooBlink??1;
-    for(let k=0;k<2;k++){const L=lids[k];if(!L?.out)continue;if(act==='x_wink'&&k===0)continue;
-     const open=clamp(Math.min(k?p.params.eyeROpen:p.params.eyeLOpen,blink),0,1),dy=-D*open;if(Math.abs(dy)<.01)continue;
+    for(let k=0;k<2;k++){const L=lids[k];if(!L?.out)continue;
+     // piscadinha: o olho que pisca desce a pálpebra igual à piscada normal; o outro fica aberto
+     let open=clamp(Math.min(k?p.params.eyeROpen:p.params.eyeLOpen,blink),0,1);if(act==='x_wink')open=k?1:1-(reacoes.state.winkClosed?.()??0);
+     const dy=-D*open;if(Math.abs(dy)<.01)continue;
      for(let i=1;i<L.out.length;i+=2)L.out[i]+=dy;L.uploaded=false}}
    // Surpresa: o rosto pintado muda (sobrancelhas sobem); o couro cabeludo sobe um pouco junto e as mechas recebem um impulso.
    {const isS=reacoes.state.active==='surprised';if(isS&&!wasSurprised)for(const h of hair)h.y.v-=26;wasSurprised=isS;
@@ -92,9 +94,9 @@ export async function configurarMovimentoNatural(player,modelBaseURL){
       const yy=Math.min(y,505);p.headXform(x,yy,0,p.params,hp);const dx=(hp[0]-x)*w,dy=(hp[1]-yy)*w;L.out[2*i]+=dx;L.out[2*i+1]+=dy;mx=Math.max(mx,Math.hypot(dx,dy));any=true}
      if(any)L.uploaded=false}state.neck=mx}
    // Corpo: cisalhamento suave que cresce da base (parada) até a cabeça, levado pelo olhar/mouse e pela inclinação, com mola.
-   breathT+=dt;const leanTarget=clamp(saved[0],-14,14)*1.1+tilt*2.2+Math.sin(breathT*.55)*1.2;
+   breathT+=dt;const leanTarget=(p.params.pointerLean||0)*34+/* mouse: corpo para o lado oposto (LivLivAvatar) */tilt*2.2+Math.sin(breathT*.55)*1.2;
    leanV+=((leanTarget-lean)*28-leanV*9)*dt;lean+=leanV*dt;state.lean=lean;
-   if(Math.abs(lean)>.01)for(const L of p.layers){if(!L.out||!p.shown(L))continue;for(let i=0;i<L.out.length/2;i++){const y=L.rest[2*i+1],w=clamp((BASE_Y-y)/(BASE_Y-TOP_Y),0,1.15);L.out[2*i]+=lean*w*w*(3-2*Math.min(1,w))}L.uploaded=false}if(boca.state.enabled&&open>0){for(const [i,dx,dy]of muscles){face.out[2*i]+=open*dx;face.out[2*i+1]+=open*dy}face.uploaded=false}if(!state.enabled||dt===0)return;
+   if(Math.abs(lean)>.01)for(const L of p.layers){if(!L.out)continue;/* todas as camadas: a pálpebra fechada só aparece no desenho (olhos fechados lá), aqui ela contaria como escondida e ficava para trás */for(let i=0;i<L.out.length/2;i++){const y=L.rest[2*i+1],w=clamp((BASE_Y-y)/(BASE_Y-TOP_Y),0,1.15);L.out[2*i]+=lean*w*w*(3-2*Math.min(1,w))}L.uploaded=false}if(boca.state.enabled&&open>0){for(const [i,dx,dy]of muscles){face.out[2*i]+=open*dx;face.out[2*i+1]+=open*dy}face.uploaded=false}if(!state.enabled||dt===0)return;
    const hp=[0,0];p.headXform(516,307,0,p.params,hp);
    if(!previous)previous=[...hp];
    const k=1-Math.exp(-dt/.07);

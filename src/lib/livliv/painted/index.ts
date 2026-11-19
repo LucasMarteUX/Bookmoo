@@ -21,6 +21,45 @@ export async function setupPainted(kind: PaintedKind, player: Player, modelBaseU
   const [queixo, movimento] = kind === 'luck' ? [queixoLuck, movimentoLuck] : kind === 'yuno' ? [queixoYuno, movimentoYuno] : kind === 'yuri' ? [queixoYuri, movimentoYuri] : [queixoBia, movimentoBia]
   queixo(player)
   const natural = await movimento(player, modelBaseURL)
+  const removeBrows = installLookDownBrows(player)
   if (import.meta.env.DEV) (window as unknown as { __painted?: unknown }).__painted = natural
-  return { dispose: () => { try { natural.dispose() } catch { /* o puppet já foi descartado */ } } }
+  return { dispose: () => { removeBrows(); try { natural.dispose() } catch { /* o puppet já foi descartado */ } } }
+}
+
+type Layer = { def: { x: number; y: number; w: number; h: number }; rest: Float32Array | number[]; out: Float32Array | number[]; uploaded: boolean }
+type Puppet = { byId: Map<string, Layer>; params: Record<string, number>; deform: (...a: unknown[]) => unknown }
+
+/**
+ * Olhando para baixo (mouse embaixo): as sobrancelhas descem alguns pixels, suave. Nos pintados elas são da textura do rosto,
+ * então um campo na malha do rosto em volta de cada sobrancelha (acima do olho) desce com `params.lookDown` (0 a 1), e o
+ * efeito some antes de chegar no olho (a pele logo acima dele comprime, sem tocar na camada do olho).
+ */
+function installLookDownBrows(player: Player): () => void {
+  const p = (player as unknown as { puppet?: Puppet }).puppet
+  const face = p?.byId.get('face')
+  const eyes = ['eye_L', 'eye_R'].map(id => p?.byId.get(id)?.def)
+  if (!p || !face || eyes.some(e => !e)) return () => {}
+  const smooth = (a: number, b: number, v: number) => { const t = Math.max(0, Math.min(1, (v - a) / (b - a))); return t * t * (3 - 2 * t) }
+  const field: [number, number][] = []
+  for (let i = 0; i < face.rest.length / 2; i++) {
+    const x = face.rest[2 * i], y = face.rest[2 * i + 1]
+    let w = 0
+    for (const e of eyes as Layer['def'][]) {
+      const cx = e.x + e.w / 2, cy = e.y - e.h * 0.45
+      const g = Math.exp(-(((x - cx) / (e.w * 0.8)) ** 2) - ((y - cy) / (e.h * 0.75)) ** 2)
+      w = Math.max(w, g * (1 - smooth(e.y - e.h * 0.25, e.y + 2, y)))
+    }
+    if (w > 0.01) field.push([i, w])
+  }
+  const original = p.deform
+  p.deform = function (this: unknown, ...args: unknown[]) {
+    const out = original.apply(this, args)
+    const d = p.params.lookDown || 0
+    if (d > 0.005) {
+      for (const [i, w] of field) face.out[2 * i + 1] += 4 * d * w
+      face.uploaded = false
+    }
+    return out
+  }
+  return () => { p.deform = original }
 }

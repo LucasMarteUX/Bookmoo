@@ -16,7 +16,7 @@ import { clearSpeakerVoice, setSpeakerVoice } from '@/lib/speakerVoice'
 import { installBodyGestures, type BodyGestureControl } from '@/lib/livliv/bodyGestures'
 import { installBodyLanguage } from '@/lib/livliv/bodyLanguage'
 import { GestureDirector } from '@/lib/livliv/performance'
-import { moodFromText, pickNext, POKE_ANGRY, POKES, type ReactionLine } from '@/lib/tutorReactions'
+import { dizzyLine, moodFromText, pickNext, POKE_ANGRY, POKES, type ReactionLine } from '@/lib/tutorReactions'
 
 type Action = 'nod' | 'shake' | 'tilt' | 'shy'
 type Reaction = { expr: string | null; act?: [Action, number]; brow?: number }
@@ -139,6 +139,10 @@ export function LivLivAvatar({ characterId, state, speakingText = '', onHead, on
   headRef.current = onHead
   // Bia pintada: a cabeça, a boca, o cabelo e a roupa são dos adaptadores dela; os controladores de cabeça abaixo ficam quietos.
   const paintedRef = useRef(false)
+  const stageRef = useRef(stage)
+  stageRef.current = stage
+  // Mouse rodando em volta: tonto (o efeito do player chama isto; aqui ele vê as props e o react atuais).
+  const dizzyRef = useRef<() => void>(() => {})
   const paintedCtl = useRef<PaintedControl | null>(null)
   const loadToken = useRef(0)
   const failRef = useRef(onFail)
@@ -281,6 +285,92 @@ export function LivLivAvatar({ characterId, state, speakingText = '', onHead, on
       basePerDeg: () => basePerDeg.current,
       off: () => paintedRef.current,
     })
+    // Seguir o mouse (personagens pintados). O player quase não virava a cabeça para o cursor e a íris andava ~2 px.
+    // Hierarquia de animação: o olho chega primeiro (~0,07 s), a cabeça logo depois (~0,3 s) e o corpo por último (~0,6 s).
+    // O corpo vai para o lado OPOSTO ao do mouse: quem olha algo do lado se afasta um pouco para enxergar melhor.
+    // Sem mexer o mouse por uns segundos, o olhar volta para a pessoa (os olhares de lado e o "pensando" voltam a valer).
+    // Mouse rodando rápido em volta do personagem: ele fica tonto (surpresa, cabeça e olhos girando e a frase no balão).
+    const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v))
+    const look = { px: 0, py: 0, at: -1e9, hx: 0, hy: 0, w: 0, ex: 0, ey: 0, hdx: 0, hdy: 0, bx: 0 }
+    const spin = { acc: 0, t: 0, last: NaN, cool: 0, t0: -1e9 }
+    const onPtr = (e: PointerEvent) => {
+      if (e.pointerType === 'touch') return
+      const now = performance.now()
+      look.px = e.clientX; look.py = e.clientY; look.at = now
+      if (!stageRef.current || !paintedRef.current || !visibleRef.current) return
+      const dx = e.clientX - look.hx, dy = e.clientY - look.hy
+      if (Math.hypot(dx, dy) < 40) { spin.last = NaN; return }
+      const th = Math.atan2(dy, dx)
+      if (!Number.isNaN(spin.last)) {
+        let d = th - spin.last
+        if (d > Math.PI) d -= 2 * Math.PI; else if (d < -Math.PI) d += 2 * Math.PI
+        spin.acc = spin.acc * Math.exp(-(now - spin.t) / 2500) + d
+        // ~1,3 volta acumulada no mesmo sentido, rodando rápido (uma volta lenta some antes de chegar lá)
+        if (Math.abs(spin.acc) > 2.6 * Math.PI && now > spin.cool) {
+          spin.acc = 0; spin.cool = now + 12000; spin.t0 = now
+          dizzyRef.current()
+        }
+      }
+      spin.last = th; spin.t = now
+    }
+    const onOut = (e: PointerEvent) => { if (!e.relatedTarget) look.at = -1e9 }
+    window.addEventListener('pointermove', onPtr, { passive: true })
+    document.addEventListener('pointerout', onOut)
+    const removeFollow = p.use({
+      order: 9.5,
+      update(frame) {
+        if (!paintedRef.current) return
+        const dt = Math.max(1e-4, Math.min(0.05, frame.dt)) // quadro sem tempo (redesenho) ainda aplica a pose atual
+        const now = performance.now()
+        const pr = frame.params as unknown as Record<string, number>
+        const rect = canvas.getBoundingClientRect()
+        const a = p.getAnchor('head')
+        let tx = 0, ty = 0, want = 0
+        if (a && rect.width) {
+          look.hx = rect.left + a.x * rect.width; look.hy = rect.top + a.y * rect.height
+          if (now - look.at < 4500 && stateRef.current !== 'thinking') {
+            const span = clamp(window.innerWidth * 0.45, 260, 700)
+            tx = clamp((look.px - look.hx) / span, -1, 1); ty = clamp((look.py - look.hy) / span, -1, 1)
+            want = 1
+          }
+        }
+        const ease = (tau: number) => 1 - Math.exp(-dt / tau)
+        look.w += (want - look.w) * ease(want ? 0.2 : 0.9)
+        look.ex += (tx - look.ex) * ease(0.07)
+        look.ey += (ty - look.ey) * ease(0.07)
+        look.hdx += (tx * want - look.hdx) * ease(0.3)
+        look.hdy += (ty * want - look.hdy) * ease(0.3)
+        look.bx += (tx * want - look.bx) * ease(0.6)
+        const w = look.w
+        // olhos: a íris ganhou mais alcance no carregamento; aqui ela vai até a borda com o mouse longe
+        pr.eyeBallX = (pr.eyeBallX ?? 0) * (1 - w) + clamp(look.ex * 1.4, -1, 1) * w
+        pr.eyeBallY = (pr.eyeBallY ?? 0) * (1 - w) + clamp(-look.ey * (look.ey > 0 ? 1.7 : 1.3), -1, 1) * w
+        // cabeça: vira e inclina um pouco para o lado do mouse (menos enquanto fala, para a fala mandar)
+        const hk = stateRef.current === 'speaking' ? 0.6 : 1
+        pr.angleX = (pr.angleX ?? 0) + look.hdx * 14 * hk
+        // para baixo a cabeça abaixa mais (é para onde a pessoa costuma levar o mouse: os botões ficam embaixo)
+        pr.angleY = (pr.angleY ?? 0) - look.hdy * (look.hdy > 0 ? 13 : 7) * hk
+        pr.angleZ = (pr.angleZ ?? 0) - look.hdx * 3 * hk
+        // olhando para baixo: a pálpebra de cima acompanha o olho e fecha um pouco, e a sobrancelha desce de leve
+        // (a sobrancelha é da textura do rosto: o campo dela fica em painted/index.ts e lê `lookDown`)
+        const down = clamp(look.ey, 0, 1) * w
+        pr.lookDown = down
+        pr.eyeLOpen = (pr.eyeLOpen ?? 1) * (1 - 0.22 * down)
+        pr.eyeROpen = (pr.eyeROpen ?? 1) * (1 - 0.22 * down)
+        // corpo: lido pelo movimento_natural de cada pintado (deslocamento da malha, base parada)
+        pr.pointerLean = -look.bx
+        // tonto: a cabeça e os olhos giram em círculo e o giro some em ~1,8 s
+        const u = (now - spin.t0) / 1800
+        if (u >= 0 && u < 1) {
+          const env = Math.min(1, u * 5) * (1 - u) * (1 - u)
+          const ph = u * 1.8 * 2 * Math.PI * 1.4 // ~1,4 volta por segundo
+          pr.angleX += 5 * env * Math.sin(ph)
+          pr.angleZ += 4 * env * Math.cos(ph)
+          pr.eyeBallX = pr.eyeBallX * (1 - env) + Math.sin(ph * 1.3) * env
+          pr.eyeBallY = pr.eyeBallY * (1 - env) + Math.cos(ph * 1.3) * env
+        }
+      },
+    })
     // Voz do navegador (português): a boca segue o relógio da fala, suavizada.
     let open = 0, vowel = 0
     const removeBrowserVoice = p.use({
@@ -328,6 +418,9 @@ export function LivLivAvatar({ characterId, state, speakingText = '', onHead, on
     setPlayer(p)
     if (import.meta.env.DEV) ((window as unknown as { __livliv?: Player[] }).__livliv ??= []).push(p)
     return () => {
+      removeFollow()
+      window.removeEventListener('pointermove', onPtr)
+      document.removeEventListener('pointerout', onOut)
       removeBrows()
       removeWink()
       removeBodyLanguage()
@@ -374,6 +467,13 @@ export function LivLivAvatar({ characterId, state, speakingText = '', onHead, on
           const ctl = await setupPainted(characterById(characterId)?.painted ?? 'bia', player, characterBaseUrl(characterId))
           if (token !== loadToken.current || playerRef.current !== player || (player as unknown as { puppet?: object }).puppet !== puppet) { ctl.dispose(); return }
           paintedCtl.current = ctl
+          // A íris dos pintados andava ~3 px (olho de ~100 px): passa a andar até ~2,2x isso; a máscara do olho continua
+          // recortando, então ela nunca sai do branco do olho. Cada carregamento traz um modelo novo (não acumula).
+          const byId = (player as unknown as { puppet?: { byId?: Map<string, { def?: { range?: number[]; bkIris?: boolean } }> } }).puppet?.byId
+          for (const id of ['iris_L', 'iris_R']) {
+            const d = byId?.get(id)?.def
+            if (d?.range && d.range.length >= 2 && !d.bkIris) { d.bkIris = true; d.range = [d.range[0] * 2.2, d.range[1] * 2.2] }
+          }
         }
         gestureRef.current?.set('neutro')
         player.view.head = !stage && size < 120
@@ -774,6 +874,13 @@ export function LivLivAvatar({ characterId, state, speakingText = '', onHead, on
     const [mx, my] = p.canvasToModel(e.clientX - rect.left, e.clientY - rect.top)
     p.poke(mx, my)
     onPoke?.(line)
+  }
+
+  dizzyRef.current = () => {
+    if (state !== 'idle' && state !== 'listening') return // falando ou pensando, não interrompe
+    const line = dizzyLine(characterById(characterId)?.voice.gender === 'female')
+    if (onPoke) onPoke(line)
+    else react(MOOD_REACTION[line.mood])
   }
 
   if (stage) {
