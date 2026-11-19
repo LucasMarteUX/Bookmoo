@@ -80,7 +80,7 @@ export async function configurarMovimentoNatural(player,modelBaseURL){
    {const act=reacoes.state.active||'neutro',D=LID_DROP[act]??14,blink=p.bookmooBlink??1;
     for(let k=0;k<2;k++){const L=lids[k];if(!L?.out)continue;
      // piscadinha: o olho que pisca desce a pálpebra igual à piscada normal; o outro fica aberto
-     let open=clamp(Math.min(k?p.params.eyeROpen:p.params.eyeLOpen,blink),0,1);if(act==='x_wink')open=k?1:1-(reacoes.state.winkClosed?.()??0);
+     let open=clamp(Math.min(k?p.params.eyeROpen:p.params.eyeLOpen,blink),0,1);if(act==='x_wink')open=k?Math.min(open,.93):1-(reacoes.state.winkClosed?.()??0);
      const dy=-D*open;if(Math.abs(dy)<.01)continue;
      for(let i=1;i<L.out.length;i+=2)L.out[i]+=dy;L.uploaded=false}}
    // Surpresa: o rosto pintado muda (sobrancelhas sobem); o couro cabeludo sobe um pouco junto e as mechas recebem um impulso.

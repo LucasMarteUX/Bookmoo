@@ -8,11 +8,11 @@ export async function configurarReacoes(player,boca,base){
  const files=restBank.def.frames;
  const mouths=await Promise.all(files.map(path=>new Promise((resolve,reject)=>{const i=new Image();i.onload=()=>resolve(i);i.onerror=()=>reject(new Error('Boca de reação não carregou: '+path));i.src=assetUrl(path,base)})));
  const original=p.deform.bind(p),originalRender=p.render.bind(p),state={active:null,switches:0,blinkSmile:0,blinkSmileTarget:0,lastTime:p.time};
- // Bookmoo: a piscadinha é a piscada normal num olho só, segurada: fecha tão rápido quanto a piscada (~0,07 s), segura
- // ~0,24 s e abre em ~0,14 s. Fechar/abrir devagar deixava à mostra o meio do caminho do player (olho achatado + pálpebra
+ // Bookmoo: a piscadinha é uma pequena atuação (~1 s): a bochecha e a cabeça antecipam (0,06 s), o olho fecha rápido
+ // (0,07 s), segura ~0,67 s e abre em 0,16 s; o outro olho aperta um pouco, como num sorriso (cabeça/bochecha em index.ts). Fechar/abrir devagar deixava à mostra o meio do caminho do player (olho achatado + pálpebra
  // meio transparente: uma oval maior, "fantasma"). O outro olho fica igual ao neutro.
- const WINK=.45;state.winkAt=null;
- const winkClosed=()=>{if(state.winkAt===null)return 0;const t=p.time-state.winkAt;if(t<0||t>WINK)return 0;const s=x=>x*x*(3-2*x);return t<.07?s(t/.07):t<.31?1:1-s((t-.31)/.14)};
+ const WINK=.96;state.winkAt=null;
+ const winkClosed=()=>{if(state.winkAt===null)return 0;const t=p.time-state.winkAt;if(t<0||t>WINK)return 0;const s=x=>x*x*(3-2*x);return t<.06?0:t<.13?s((t-.06)/.07):t<.8?1:1-s((t-.8)/.16)};
  state.winkClosed=winkClosed;
  function select(){
   const wantWink=(p.expr.x_wink||0)>.05;if(!wantWink)state.winkAt=null;else if(state.winkAt===null)state.winkAt=p.time;
@@ -30,7 +30,7 @@ export async function configurarReacoes(player,boca,base){
   }
   mouthLayer.frames[0]=restBank.frames[i];boca.setRestFrame(mouths[i],active==='surprised'?3:0,active);
  }
- function withClosedEyes(fn){const saved=[p.params.eyeLOpen,p.params.eyeROpen];p.params.eyeLOpen=Math.min(p.params.eyeLOpen,p.bookmooBlink??1);p.params.eyeROpen=Math.min(p.params.eyeROpen,p.bookmooBlink??1);if(state.active==='x_wink'){const c=winkClosed();p.params.eyeLOpen=1-c;p.params.eyeROpen=1;if(c>.9)p.hidden.add('iris_L');else p.hidden.delete('iris_L')}const eb=[p.params.eyeBallX,p.params.eyeBallY];/* Bookmoo: fechando a pálpebra, a íris volta ao centro (com o olhar no canto ela ficava inteira de lado dentro da fenda: o olho fechando parecia escorregar) */{const o=Math.min(p.params.eyeLOpen,p.params.eyeROpen),u=Math.max(0,Math.min(1,(o-.25)/.6)),k=u*u*(3-2*u);p.params.eyeBallX*=k;p.params.eyeBallY*=k}try{return fn()}finally{[p.params.eyeLOpen,p.params.eyeROpen]=saved;[p.params.eyeBallX,p.params.eyeBallY]=eb}}
+ function withClosedEyes(fn){const saved=[p.params.eyeLOpen,p.params.eyeROpen];p.params.eyeLOpen=Math.min(p.params.eyeLOpen,p.bookmooBlink??1);p.params.eyeROpen=Math.min(p.params.eyeROpen,p.bookmooBlink??1);if(state.active==='x_wink'){const c=winkClosed();p.params.eyeLOpen=1-c;p.params.eyeROpen=1-.07*Math.min(1,(p.time-state.winkAt)/.15);if(c>.9)p.hidden.add('iris_L');else p.hidden.delete('iris_L')}const eb=[p.params.eyeBallX,p.params.eyeBallY];/* Bookmoo: fechando a pálpebra, a íris volta ao centro (com o olhar no canto ela ficava inteira de lado dentro da fenda: o olho fechando parecia escorregar) */{const o=Math.min(p.params.eyeLOpen,p.params.eyeROpen),u=Math.max(0,Math.min(1,(o-.25)/.6)),k=u*u*(3-2*u);p.params.eyeBallX*=k;p.params.eyeBallY*=k}try{return fn()}finally{[p.params.eyeLOpen,p.params.eyeROpen]=saved;[p.params.eyeBallX,p.params.eyeBallY]=eb}}
  p.deform=function(){
   select();const dt=Math.max(0,Math.min(.05,p.time-state.lastTime));state.lastTime=p.time;
   state.blinkSmileTarget=Math.min(p.params.eyeLOpen,p.params.eyeROpen,p.bookmooBlink??1)<.65?1:0;

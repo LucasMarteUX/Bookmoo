@@ -157,6 +157,37 @@ moving holds):
   olhar ao começar uma frase.
 - Pensando: a fala-ponte ("Hmm…", "Let me think…") sai pela voz com o lip sync fechando a boca no "mm", e o olhar sobe.
 
+## 4b2. Piscadinha como atuação (todos os tutores pintados)
+
+Referências: princípios de animação de piscada (sobrancelha descendo, bochecha subindo e cabeça girando de leve dão vida à
+piscada; assimetria no rosto) e FACS (piscadinha = AU46; bochecha que sobe = AU6; sobrancelha que desce = AU4).
+Coreografia de ~1 s, com antecipação e sobreposição:
+
+1. **Antecipação (0–0,06 s):** a bochecha do olho que pisca começa a subir, a cabeça começa a inclinar (para o lado do olho que pisca) e o
+   gesto de mão entra (indicador de "segredo" ou mão levantada; `performance.ts`, `wait('wink')` e `MOOD_GESTURES.wink`).
+2. **Fecha (0,06–0,13 s):** o olho fecha rápido (rápido de propósito: devagar aparece o meio do caminho do player, olho
+   achatado + pálpebra semitransparente); a sobrancelha desse lado desce ~5 px; o outro olho aperta ~7%, como num sorriso.
+3. **Segura (até 0,8 s):** olho fechado ~0,67 s com a cabeça viva (balanço leve), sorriso de canto (canto da boca desse lado
+   sobe ~5 px, boca e pele com o mesmo campo), cabeça girando no próprio eixo: o alto vai para o lado do olho que pisca, o queixo para o outro, o rosto vira e abaixa
+   um pouco (giro −9, inclinação −6, queixo −4; medido na Bia), e o tronco acompanha só um pouco.
+4. **Abre (0,8–0,96 s):** o olho abre; cabeça, tronco e bochecha voltam depois (~0,3 s), e a mão volta ao neutro após ~2 s.
+
+Implementação: tempo do olho nos quatro `reacoes.js`; cabeça, tronco, bochecha, sobrancelha e sorriso de canto em
+`painted/index.ts` (`installFaceActing`, pela atuação `speechYaw/Pitch/Roll` e `pointerLean`, que os quatro
+`movimento_natural.js` já somam).
+
+## 4b3. Cabeça nunca parada (todos os tutores pintados)
+
+Em `painted/index.ts` (`installFaceActing`): pequenas mudanças de postura coordenadas, nunca balanço de pêndulo. Cada uma
+é uma pose leve: o rosto gira um pouco, inclina para o lado do giro, o queixo sobe ou desce e o tronco acompanha. A pose
+chega por uma mola (ω 4,5, ζ 0,75), com um assentar sutil, e continua andando devagar durante a pausa (moving hold, até
++15%). Por baixo ficam a respiração (~14/min, no queixo) e uma deriva de atenção mínima em giro e inclinação.
+
+Intervalos: parado, o comum é 3 a 5 s; 20% das vezes um descanso de 5 a 8 s, seguido de uma mudança 35% maior; 30% das
+vezes um assentar curto 1,2 a 1,8 s depois (um pedacinho a mais na mesma direção), nunca dois seguidos. Falando, mudanças
+menores a cada 2 a 3,5 s. Durante uma reação (piscadinha) a postura não muda. Medido em 40 s: intervalos 1,1 a 8 s, e a
+imagem do rosto sempre muda de um segundo para o outro.
+
 ## 4c. Seguir o mouse (todos os tutores pintados)
 
 Antes, o player quase não virava a cabeça para o cursor (angleX igual com o mouse nos dois cantos) e a íris andava ~2 px.

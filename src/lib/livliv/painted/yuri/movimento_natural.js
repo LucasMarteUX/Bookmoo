@@ -80,7 +80,7 @@ export async function configurarMovimentoNatural(player,modelBaseURL){
    originalDeform();
    {const act=reacoes.state.active||'neutro',blink=p.bookmooBlink??1;
     for(let k=0;k<2;k++){const sd=k?'R':'L',L=lids[k];if(!L?.out)continue;const D=LID_DROP[sd][act]??LID_DROP[sd].neutro;
-     let open=clamp(Math.min(k?p.params.eyeROpen:p.params.eyeLOpen,blink),0,1);if(act==='x_wink')open=k?1:1-(reacoes.state.winkClosed?.()??0);
+     let open=clamp(Math.min(k?p.params.eyeROpen:p.params.eyeLOpen,blink),0,1);if(act==='x_wink')open=k?Math.min(open,.93):1-(reacoes.state.winkClosed?.()??0);
      const dy=-D*open;if(Math.abs(dy)<.01)continue;const top=lidTop[k],lash=top+LASH_ROW[k];
      // a linha dos cílios sobe inteira; a pele acima dela comprime (o topo da textura não sai do lugar)
      for(let i=1;i<L.out.length;i+=2){const y=L.rest[i],w=clamp((y-top)/(lash-top),0,1);L.out[i]+=dy*w}L.uploaded=false}}

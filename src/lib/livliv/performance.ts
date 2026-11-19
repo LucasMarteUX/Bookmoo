@@ -40,7 +40,7 @@ const MOOD_GESTURES: Partial<Record<Mood, BodyGesture[]>> = {
   sad: ['conclusao', 'reflexao'],
   shy: ['reflexao', 'conclusao'],
   confused: ['reflexao', 'explicativo'],
-  wink: ['conclusao', 'explicativo'],
+  wink: ['enfase', 'explicativo'], // piscadinha: o indicador ("segredo") ou a mão levantada, mais perto do "OK" de cumplicidade
   angry: ['enfase'],
 }
 const STRONG: Mood[] = ['happy', 'laughing', 'excited', 'surprised', 'sad', 'confused', 'wink']
@@ -229,6 +229,16 @@ export class GestureDirector {
   wait(m: Mood) {
     if (this.speaking) return
     const hand: Mood[] = ['confused', 'sad', 'angry', 'shy']
+    // Piscadinha: é uma atuação de corpo inteiro, não só o olho. A mão entra junto com o começo da piscada (indicador de
+    // "segredo" ou a mão levantada) e volta ao neutro depois que o olho abre e a cabeça assenta.
+    if (m === 'wink') {
+      this.clear()
+      this.timer = window.setTimeout(() => {
+        this.apply(pick(MOOD_GESTURES.wink!, this.gesture))
+        this.timer = window.setTimeout(() => this.apply('neutro'), rand([2000, 2400]))
+      }, Math.max(80, this.lockLeft()))
+      return
+    }
     if (hand.includes(m)) {
       this.clear()
       this.timer = window.setTimeout(() => {
