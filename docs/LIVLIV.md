@@ -1,6 +1,6 @@
-# Personagens 2.5D do Bookmoo (LivLiv Player)
+# Personagens 2.5D do Upoonly (LivLiv Player)
 
-A tutora usa um personagem 2.5D próprio do Bookmoo, animado pelo [LivLiv Player](https://github.com/livliv-dev/player) (`@livliv-dev/player` 0.5.1, Apache-2.0). Os desenhos são nossos; não há personagem de terceiros no app.
+A tutora usa um personagem 2.5D próprio do Upoonly, animado pelo [LivLiv Player](https://github.com/livliv-dev/player) (`@livliv-dev/player` 0.5.1, Apache-2.0). Os desenhos são nossos; não há personagem de terceiros no app.
 
 ## O que está integrado
 - **Bia (mulher):** `public/characters/bookmoo/mulher/` (`model.json` + `textures/`, formato LivLiv v4, sem marca d'água). Aprovada pelo usuário em 16/11/2026, sem aceno. As texturas são cópias byte a byte do pacote aprovado (SHA-256 conferido contra `manifesto_aprovado.json`); o `model.json` é o aprovado mais as bocas das expressões (seção abaixo). O `avatar.webp` foi recortado do `00_master.png` aprovado.
@@ -62,7 +62,7 @@ O player oficial desenha as expressões como patches estáticos. As camadas do r
 
 ## Licença
 - **Código do player:** Apache-2.0 (uso comercial livre, mantendo o `LICENSE`/`NOTICE` do pacote).
-- **Personagens:** originais do Bookmoo (`meta.license`: LicenseRef-Bookmoo, sem concessão a terceiros).
+- **Personagens:** originais do Upoonly (`meta.license`: LicenseRef-Upoonly, sem concessão a terceiros).
 - Os personagens de exemplo do LivLiv foram **removidos** do app. A licença deles proíbe uso comercial por empresa sem autorização, e proíbe usá-los para gerar outros personagens.
 
 ## Limites conhecidos

@@ -120,7 +120,7 @@ export function ProfileHeader({ view, pt, asVisitor = false, onTab, onRelationCh
         </div>
         <p className="mt-1 text-[14px] flex flex-wrap items-center gap-x-3 gap-y-1" style={muted}>
           {view.handle && <span>@{view.handle}</span>}
-          {joined && <span className="inline-flex items-center gap-1"><CalendarDays className="w-3.5 h-3.5" />{pt ? `No Bookmoo desde ${joined}` : `Joined ${joined}`}</span>}
+          {joined && <span className="inline-flex items-center gap-1"><CalendarDays className="w-3.5 h-3.5" />{pt ? `No Upoonly desde ${joined}` : `Joined ${joined}`}</span>}
           {!view.isPublic && <span className="inline-flex items-center gap-1"><Lock className="w-3.5 h-3.5" />{pt ? 'Perfil fechado' : 'Closed profile'}</span>}
           {relation.followsMe && !view.isOwner && <span className="rounded-full px-2 py-0.5 text-[11.5px]" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>{pt ? 'Segue você' : 'Follows you'}</span>}
         </p>

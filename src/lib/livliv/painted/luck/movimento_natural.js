@@ -25,10 +25,10 @@ export async function configurarMovimentoNatural(player,modelBaseURL){
  const state={enabled:true,headEnabled:true,gesture:'neutro',head:[0,0,0],headPhase:'center',positiveRollGain:1.25,steps:0,maxHair:0,maxCloth:0,maxEarring:0};
  const hair=strands.map(s=>({x:spring(s.w,3.2),y:spring(s.w,1.6)})),ear=earrings.map(s=>spring(s.w,.048));
  const cloth=[spring(15,.9),spring(17,.7),spring(13,.65)];
- // Bookmoo: inclinação lenta alternando de lado e balanço do corpo pela malha (base fixa, ombros e cabeça acompanham o mouse).
+ // Upoonly: inclinação lenta alternando de lado e balanço do corpo pela malha (base fixa, ombros e cabeça acompanham o mouse).
  let tilt=0,tiltTarget=0,tiltSide=Math.random()<.5?1:-1,tiltClock=2+Math.random()*3,lean=0,leanV=0,breathT=0;
  const BASE_Y=1536,TOP_Y=260;
- // Bookmoo: a pálpebra fechada está pintada na linha de baixo do olho; ao piscar ela desce desde os cílios de cima (distância
+ // Upoonly: a pálpebra fechada está pintada na linha de baixo do olho; ao piscar ela desce desde os cílios de cima (distância
  // medida nas texturas de cada reação), em vez de aparecer já embaixo e dar a impressão de o olho pular de lugar.
  const LID_DROP={neutro:14,surprised:15,sad:7,angry:13,shy:11,smile:14,x_wink:14};
  const lids=['L','R'].map(sd=>p.byId.get('eye_'+sd+'_closed'));
@@ -63,13 +63,13 @@ export async function configurarMovimentoNatural(player,modelBaseURL){
   const originalRoll=p.rig.roll;
   if(state.headEnabled){
    // Idle still blinks and moves the eyes; gesture responses return to a stable center.
-   // Bookmoo: o olhar do mouse (angleX/Y) passa para a cabeça, como nos outros personagens; o balanço do idle em Z não.
+   // Upoonly: o olhar do mouse (angleX/Y) passa para a cabeça, como nos outros personagens; o balanço do idle em Z não.
    p.params.angleX=clamp(p.params.angleX,-14,14)+state.head[0];p.params.angleY=clamp(p.params.angleY,-15,10)+state.head[1];
    tiltClock-=dt;if(tiltClock<=0){tiltSide=tiltSide>0?-1:1;tiltTarget=tiltSide*(1.6+Math.random()*1.8);tiltClock=6+Math.random()*6}
    tilt+=(tiltTarget-tilt)*(1-Math.exp(-dt/1.4));state.tilt=tilt;
    // Atuação da fala (LivLivAvatar: pose por frase, acentos, riso) soma à cabeça; falando, a inclinação lenta do idle diminui.
    const spk=p.params.speaking?0.35:1;
-   /* Bookmoo: teto final do giro depois de somar mouse, gesto, posturas e fala: o rosto pintado é uma imagem só e, acima de
+   /* Upoonly: teto final do giro depois de somar mouse, gesto, posturas e fala: o rosto pintado é uma imagem só e, acima de
     ~11, a malha dobra na linha do cabelo (a mecha da testa virava uma borda reta, a "testa cortada") */
    p.params.angleX=clamp(p.params.angleX+(p.params.speechYaw||0),-11,11);p.params.angleY=clamp(p.params.angleY+(p.params.speechPitch||0),-14,10);
    p.params.angleZ=clamp(tilt*spk+0.18*p.params.angleX+state.head[2]+(p.params.speechRoll||0),-30,30);
@@ -89,7 +89,7 @@ export async function configurarMovimentoNatural(player,modelBaseURL){
    {const isS=reacoes.state.active==='surprised';if(isS&&!wasSurprised)for(const h of hair)h.y.v-=26;wasSurprised=isS;
     surprise+=((isS?1:0)-surprise)*(1-Math.exp(-dt/.1));state.surprise=surprise;
     if(surprise>.01){for(const i of hairVertices){let w=0;for(let j=0;j<strands.length;j++)w+=weights[i*strands.length+j];const y=face.rest[2*i+1];face.out[2*i+1]-=2.6*surprise*Math.min(1,w+(y<260?.6:0))}face.uploaded=false}}
-   // Bookmoo: o pescoço é do corpo e não seguia a cabeça (desencaixava na saudação/gestos). A parte de cima dele acompanha o
+   // Upoonly: o pescoço é do corpo e não seguia a cabeça (desencaixava na saudação/gestos). A parte de cima dele acompanha o
    // deslocamento da cabeça e o efeito some até a gola.
    {const hp=[0,0];let mx=0;for(const L of p.layers){if(L.def.group!=='body'||!L.out||!p.shown(L))continue;let any=false;
      for(let i=0;i<L.out.length/2;i++){const x=L.rest[2*i],y=L.rest[2*i+1];if(y>600)continue;const w=(1-smooth(505,595,y))*(1-smooth(58,86,Math.abs(x-516)));if(w<=0)continue;/* só a pele do pescoço: a gola (|x-516|>~90 a partir de y 500) fica com o corpo */
@@ -107,7 +107,7 @@ export async function configurarMovimentoNatural(player,modelBaseURL){
     const cv=(cuff[gesture][i]-cuePos[i])/.18;cuePos[i]+=cv*dt;cueAccel[i]+=(clamp((cv-cueVel[i])/dt,-3000,3000)-cueAccel[i])*k;cueVel[i]=cv;
    }
    previous=[...hp];
-   // Bookmoo: as mechas também sentem o balanço do corpo e um ar leve, para o cabelo não ficar parado.
+   // Upoonly: as mechas também sentem o balanço do corpo e um ar leve, para o cabelo não ficar parado.
    for(let i=0;i<strands.length;i++){const air=Math.sin(breathT*(.9+i*.17)+i*1.7)*.35;step(hair[i].x,-accel[0]*strands[i].gain*2.5-leanV*strands[i].gain*30-strands[i].w**2*(clamp(p.params.angleZ*.06,-.5,.5)-air*6),dt);step(hair[i].y,-accel[1]*strands[i].gain*.8+strands[i].w**2*air*2,dt)}
    for(let i=0;i<ear.length;i++)step(ear[i],-accel[0]*.009-ear[i].w**2*p.params.angleZ*.0009,dt);
    step(cloth[0],-cueAccel[1]*.045,dt);step(cloth[1],-cueAccel[0]*.03,dt);step(cloth[2],-cueAccel[1]*.018,dt);

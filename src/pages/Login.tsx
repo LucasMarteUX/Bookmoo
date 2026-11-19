@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useLanguage } from '@/store/useLanguage'
 import { useTranslations } from '@/lib/i18n'
 import { useReaderSettings } from '@/store/useReaderSettings'
+import { Logo } from '@/components/brand/Logo'
 
 type Mode = 'login' | 'signup'
 
@@ -131,8 +132,7 @@ export function Login({ mode = 'login' }: { mode?: Mode }) {
       <aside className="hidden lg:flex basis-[70%] shrink-0 flex-col rounded-[28px] p-10 relative overflow-hidden"
         style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
         <div className="flex items-center gap-2">
-          <span className="grid place-items-center w-8 h-8 rounded-lg text-sm font-bold" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>B</span>
-          <span className="text-lg font-semibold tracking-tight" style={{ color: 'var(--theme-text)' }}>Bookmoo</span>
+          <Logo height={44} style={{ color: 'var(--theme-text)' }} />
         </div>
         <div className="flex-1 grid place-items-center py-8">
           <AnimatePresence mode="wait">
@@ -161,8 +161,7 @@ export function Login({ mode = 'login' }: { mode?: Mode }) {
       <main className="flex-1 min-w-0 flex flex-col">
         <div className="flex justify-between items-center lg:justify-end">
           <span className="lg:hidden flex items-center gap-2">
-            <span className="grid place-items-center w-7 h-7 rounded-lg text-xs font-bold" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>B</span>
-            <span className="font-semibold" style={{ color: 'var(--theme-text)' }}>Bookmoo</span>
+            <Logo height={34} style={{ color: 'var(--theme-text)' }} />
           </span>
           <button type="button" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
             className="w-9 h-9 rounded-lg grid place-items-center transition-colors hover:bg-[var(--ui-hover)]"

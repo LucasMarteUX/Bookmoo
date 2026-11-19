@@ -274,7 +274,7 @@ Admin: `admin_overview`, `admin_version_create`, `admin_version_publish`, `admin
 ## 14. Nomes de nível, selo CEFR e telas premium (17/11/2026)
 
 **Dois sistemas que não se confundem:**
-- **Nível do aluno no Bookmoo** (teste de nível, perfil, IA): Iniciante, Aprendiz, Praticante, Experiente, Expert, Lenda
+- **Nível do aluno no Upoonly** (teste de nível, perfil, IA): Iniciante, Aprendiz, Praticante, Experiente, Expert, Lenda
   (em inglês Beginner, Apprentice, Practitioner, Seasoned, Expert, Legend). O código interno continua A1…C2
   (`src/lib/cefr.ts`: `levelName`, `levelTone`, `levelRank`). Cada nível tem uma cor pastel do tema.
 - **Livros** continuam indicados por CEFR (A1…C2), com a descrição da faixa (Iniciante…Proficiente).

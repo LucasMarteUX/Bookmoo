@@ -17,8 +17,8 @@ export default defineConfig(({mode}) => {
         includeAssets: ['favicon.ico', 'apple-touch-icon-180x180.png', 'icon.svg', 'illustrations/*.svg'],
         manifest: {
           id: '/',
-          name: 'Bookmoo',
-          short_name: 'Bookmoo',
+          name: 'Upoonly',
+          short_name: 'Upoonly',
           description: 'Leia, escute e aprenda inglês com seus livros.',
           lang: 'pt-BR',
           start_url: '/',

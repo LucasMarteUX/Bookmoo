@@ -8,6 +8,7 @@ import { useLanguage } from '@/store/useLanguage'
 import { useEntitlements } from '@/store/useEntitlements'
 import { LEVEL_HELP, levelFromHelp, SURVEY } from '@/lib/survey'
 import { useUiStore } from '@/store/useUiStore'
+import { Logo } from '@/components/brand/Logo'
 
 export function SurveyPage() {
   const pt = useLanguage().locale === 'pt-BR'
@@ -61,7 +62,7 @@ export function SurveyPage() {
       <header className="mx-auto w-full max-w-md flex items-center justify-between h-10">
         {step > 0
           ? <button type="button" onClick={() => (help ? setHelp(null) : setStep(s => s - 1))} className="inline-flex items-center gap-1.5 h-10 px-2 -ml-2 text-[13.5px]" style={{ color: 'var(--theme-text-secondary)' }}><ArrowLeft className="w-4 h-4" />{pt ? 'Voltar' : 'Back'}</button>
-          : <span className="text-[14px] font-semibold">Bookmoo</span>}
+          : <Logo height={30} />}
         <button type="button" disabled={busy} onClick={() => void finish(true)} className="h-10 px-2 text-[13.5px] underline underline-offset-4" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? 'Pular' : 'Skip'}</button>
       </header>
 

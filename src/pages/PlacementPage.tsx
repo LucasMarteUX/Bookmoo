@@ -118,7 +118,7 @@ function Intro({ status, pt, busy, onStart }: { status: Status | null; pt: boole
     ? (pt ? `Um teste curto, feito para o nível ${name}, confirma o seu nível e libera o selo verificado.` : `A short test made for ${name} confirms your level and unlocks the verified badge.`)
     : status.state === 'review' ? (pt ? 'Seu último teste ficou abaixo do esperado. Treine com os tutores e refaça quando quiser.' : 'Your last test was below expectations. Practise with the tutors and retake it.')
     : next ? (pt ? `Nível confirmado. Quando se sentir pronto, o teste de promoção leva você para ${next}.` : `Level confirmed. When you feel ready, the promotion test takes you to ${next}.`)
-    : (pt ? 'Você está no nível mais alto do Bookmoo.' : 'You are at the top Bookmoo level.')
+    : (pt ? 'Você está no nível mais alto do Upoonly.' : 'You are at the top Upoonly level.')
   const meta = [
     pt ? 'Cerca de 15 minutos' : 'About 15 minutes',
     pt ? `${status.monthUsed ?? 0} de ${status.monthLimit ?? 2} tentativas este mês` : `${status.monthUsed ?? 0} of ${status.monthLimit ?? 2} attempts this month`,
@@ -131,7 +131,7 @@ function Intro({ status, pt, busy, onStart }: { status: Status | null; pt: boole
         <div className="p-6 md:p-8 grid gap-6 sm:grid-cols-[auto_1fr]">
           <div className="sm:pt-1"><LevelAvatar src={myAvatar} name={myName} level={status.level} verified={verified} pt={pt} size={120} /></div>
           <div className="min-w-0">
-            <p className="text-[12px] font-semibold uppercase tracking-[0.1em]" style={muted}>{pt ? 'Seu nível no Bookmoo' : 'Your Bookmoo level'}</p>
+            <p className="text-[12px] font-semibold uppercase tracking-[0.1em]" style={muted}>{pt ? 'Seu nível no Upoonly' : 'Your Upoonly level'}</p>
             <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1.5">
               <h2 className="font-display text-[40px] md:text-[48px] leading-none tracking-[-0.01em]">{name}</h2>
               <span className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full text-[12.5px] font-semibold"

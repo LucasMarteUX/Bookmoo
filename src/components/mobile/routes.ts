@@ -45,7 +45,7 @@ export function screenTitle(path: string, pt: boolean): string {
     [/^\/raio-x/, 'Raio-X', 'Report'],
   ]
   const hit = map.find(([re]) => re.test(path))
-  return hit ? (pt ? hit[1] : hit[2]) : 'Bookmoo'
+  return hit ? (pt ? hit[1] : hit[2]) : 'Upoonly'
 }
 
 /** Para onde o "voltar" leva quando não há histórico (link aberto direto). */

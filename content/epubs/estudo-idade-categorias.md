@@ -1,6 +1,6 @@
 # Estudo de faixa etária e categorias dos livros da galeria
 
-Indicação editorial do Bookmoo, feita a partir do conteúdo e dos temas de cada obra. Não é classificação indicativa oficial (no Brasil, a ClassInd não classifica livros). A coluna 'Escala BR' mostra a faixa equivalente na escala L/10/12/14/16/18 para referência.
+Indicação editorial do Upoonly, feita a partir do conteúdo e dos temas de cada obra. Não é classificação indicativa oficial (no Brasil, a ClassInd não classifica livros). A coluna 'Escala BR' mostra a faixa equivalente na escala L/10/12/14/16/18 para referência.
 
 | Livro | Autor | Idade | Escala BR | Categorias | Temas |
 |---|---|---:|---|---|---|

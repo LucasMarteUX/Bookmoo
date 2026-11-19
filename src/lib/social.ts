@@ -1,4 +1,4 @@
-// Camada social do Bookmoo: relações (seguir, amizade, bloqueio), timeline, publicações, comentários,
+// Camada social do Upoonly: relações (seguir, amizade, bloqueio), timeline, publicações, comentários,
 // denúncias, notificações, avaliações, resenhas e metas. Regras de visibilidade ficam no banco
 // (RLS + funções security definer); aqui só chamamos e traduzimos os dados.
 import { supabase } from '@/lib/supabase'

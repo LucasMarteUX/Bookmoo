@@ -35,7 +35,7 @@ Limitações e trabalho restante:
 
 ## Prompt para novo master pintado
 
-> Crie [identidade e idade aparente], personagem original do universo Bookmoo, com [traços específicos]. Direção de pintura digital estilizada com volumes2.5D, pinceladas leves acompanhando rosto/cabelo/tecido e iluminação difusa coerente. Preservar a aparência da idade definida. Pose frontal ereta, cabeça sem inclinação, ombros nivelados, olhar natural, boca fechada com sorriso discreto e braços relaxados. Roupa [descrição completa], acessórios [lado da imagem]. Uma pessoa por imagem1024×1536, com cabelo e mãos completos e margem para gestos. Arquivo PNG RGBA com transparência real. Fundo externo semitransparente, fumaça, glow, texto e cenário não fazem parte do personagem. Não transformar em fotografia nem anime de cores chapadas.
+> Crie [identidade e idade aparente], personagem original do universo Upoonly, com [traços específicos]. Direção de pintura digital estilizada com volumes2.5D, pinceladas leves acompanhando rosto/cabelo/tecido e iluminação difusa coerente. Preservar a aparência da idade definida. Pose frontal ereta, cabeça sem inclinação, ombros nivelados, olhar natural, boca fechada com sorriso discreto e braços relaxados. Roupa [descrição completa], acessórios [lado da imagem]. Uma pessoa por imagem1024×1536, com cabelo e mãos completos e margem para gestos. Arquivo PNG RGBA com transparência real. Fundo externo semitransparente, fumaça, glow, texto e cenário não fazem parte do personagem. Não transformar em fotografia nem anime de cores chapadas.
 
 Se houver referências, identificar explicitamente qual fixa identidade e qual orienta estilo. A referência de estilo de uma mulher não muda o gênero ou o rosto do Yuri/Luck.
 
@@ -59,7 +59,7 @@ Medir os contornos novos e registrar o alinhamento. Se o desenho mudou a forma d
 
 ## Prompt para cenário separado
 
-> Criar cenário de [lugar/situação] em pintura digital coerente com os personagens Bookmoo. Definir [enquadramento, perspectiva, luz, profundidade e espaço reservado para o avatar]. Personagem será composto separadamente; não desenhá-lo no fundo. Elementos de interação previstos: [mesa, balcão, cadeira, espaço para prop]. Evitar conflito de escala/perspectiva e excesso de detalhe atrás do rosto. Definir [resolução e proporção de destino]. Objetos que precisam passar à frente do avatar devem ser entregues como camadas próprias conforme o plano da cena.
+> Criar cenário de [lugar/situação] em pintura digital coerente com os personagens Upoonly. Definir [enquadramento, perspectiva, luz, profundidade e espaço reservado para o avatar]. Personagem será composto separadamente; não desenhá-lo no fundo. Elementos de interação previstos: [mesa, balcão, cadeira, espaço para prop]. Evitar conflito de escala/perspectiva e excesso de detalhe atrás do rosto. Definir [resolução e proporção de destino]. Objetos que precisam passar à frente do avatar devem ser entregues como camadas próprias conforme o plano da cena.
 
 O fundo da cena pode ser opaco; isso não muda o requisito de transparência do PNG do personagem.
 

@@ -1,6 +1,6 @@
 // Exemplos em imagem (feitos pela comunidade): uma ilustração em 4 quadros (2×2) com usos da palavra.
 // Se alguém já gerou, aparece direto (sem gastar API); gerar uma nova dá pontos, porque fica
-// disponível para toda a comunidade do Bookmoo.
+// disponível para toda a comunidade do Upoonly.
 import { useEffect, useState } from 'react'
 import { ChevronLeft, ChevronRight, Heart, Loader2, Sparkles, Users, X } from 'lucide-react'
 import { AiRequestError } from '@/lib/ai'

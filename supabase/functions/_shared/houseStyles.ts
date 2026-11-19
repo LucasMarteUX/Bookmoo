@@ -5,7 +5,7 @@ import type { ArtDirection } from './comicEditorial.ts'
 export const HOUSE_FIELDS = ['styleName', 'artStyle', 'lineWork', 'anatomy', 'coloring', 'camera', 'lettering', 'fonts', 'realism', 'avoid'] as const
 
 export const MANGA_HOUSE_STYLE: Required<Pick<ArtDirection, typeof HOUSE_FIELDS[number]>> = {
-  styleName: 'Bookmoo Refined Manga',
+  styleName: 'Upoonly Refined Manga',
   artStyle: 'Original hand-drawn graphic novel illustration with refined Japanese manga sensibility: elegant, expressive and precise, with clean deliberate inking, crisp cel shading and soft painted backgrounds. Literary and sophisticated, never generic anime or mobile-game art.',
   lineWork: 'Fine, confident ink lines with tapered ends and controlled pressure variation: thin delicate strokes for hair strands, fabric folds and facial details, slightly heavier weight on outer silhouettes. Clean, intentional contours, no sketch noise, no uniform thickness.',
   anatomy: 'Refined manga anatomy: slender believable proportions, expressive eyes with clear highlights, small precise noses and mouths, strong readable emotions and hand gestures. Hair drawn in elegant flowing clumps. Faces stay consistent across panels.',

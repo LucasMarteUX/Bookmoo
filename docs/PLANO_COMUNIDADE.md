@@ -1,4 +1,4 @@
-# Plano: Galeria, Comunidade e Perfis do Bookmoo
+# Plano: Galeria, Comunidade e Perfis do Upoonly
 
 > Plano de produto + técnico. Nada aqui foi implementado ainda.
 > Base: leitura do código em 2026-11-10 (commit `8330e96` + alterações não commitadas em Gallery, Community, catalog, Admin).

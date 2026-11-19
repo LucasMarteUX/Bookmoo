@@ -34,7 +34,7 @@ O histórico detalhado da primeira integração (Bia) está em [bia-pintada.md](
    `modelBaseURL` (pasta do modelo terminada em `/`) por `assetUrl()` (`painted/asset_url.js`), que repete o `?v=` da base em
    cada arquivo. `configurarMovimentoNatural(player, modelBaseURL)` repassa a base para a boca e as reações.
    Conferir com `grep -n "rig/\|import.meta\|location\|?v=" painted/<nome>/*.js` (só pode sobrar comentário).
-3. **Aplicar os ajustes do Bookmoo** (seção 4). Os pacotes Yuno e Yuri têm a mesma estrutura; o patch da Yuno serve de modelo,
+3. **Aplicar os ajustes do Upoonly** (seção 4). Os pacotes Yuno e Yuri têm a mesma estrutura; o patch da Yuno serve de modelo,
    trocando só as medidas do personagem.
 4. **Registrar** em `index.ts` (import + `PaintedKind`) e em `characters.ts` (`folder`, `painted`, `zoomK`, `mouthGain`,
    `young`), e subir `ASSET_REV` para o navegador não misturar textura antiga com máscara nova.
@@ -120,7 +120,7 @@ mantida de propósito.
 
 ---
 
-## 4. Ajustes do Bookmoo que todo personagem pintado recebe
+## 4. Ajustes do Upoonly que todo personagem pintado recebe
 
 Estes ajustes ficam por cima da entrega e precisam ser reaplicados (e conferidos) em todo pacote novo:
 

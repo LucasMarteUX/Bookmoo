@@ -25,6 +25,6 @@ export const DEMO_RESULT: Result = {
       writing: { summary: 'Textos organizados e com tom adequado; falta variar estruturas e desenvolver exemplos.', strengths: ['Organização'], improve: ['Conectores', 'Exemplos'], next_steps: ['Escrever um parágrafo de opinião por dia'] },
       speaking: { summary: 'Fala fluida e compreensível, com boa repetição de frases.', strengths: ['Fluência'], improve: ['Aprofundar opiniões'], next_steps: ['Conversa livre com um tutor três vezes por semana'] },
     },
-    disclaimer: 'Resultado interno do Bookmoo, inspirado no formato público do TOEFL iBT. Não é um exame oficial, não é certificado pela ETS e não tem equivalência oficial com nenhuma prova ou certificação.',
+    disclaimer: 'Resultado interno do Upoonly, inspirado no formato público do TOEFL iBT. Não é um exame oficial, não é certificado pela ETS e não tem equivalência oficial com nenhuma prova ou certificação.',
   },
 }

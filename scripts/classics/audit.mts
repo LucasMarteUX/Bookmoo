@@ -23,7 +23,7 @@ const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
 const decode = (s: string) => s.replace(/&amp;/g, '&').replace(/&#39;|&apos;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#8217;/g, '’')
 
 async function listing(url: string) {
-  const res = await fetch(url, { headers: { 'User-Agent': 'BookmooAudit/1.0 (educational, sequential)' }, signal: AbortSignal.timeout(60_000) })
+  const res = await fetch(url, { headers: { 'User-Agent': 'UpoonlyAudit/1.0 (educational, sequential)' }, signal: AbortSignal.timeout(60_000) })
   if (!res.ok) return { status: res.status, items: [] as { title: string; href: string }[] }
   const html = await res.text()
   const items: { title: string; href: string }[] = []

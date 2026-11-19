@@ -1,4 +1,4 @@
-// Personagens 2.5D do Bookmoo, tocados pelo LivLiv Player (https://github.com/livliv-dev/player, Apache-2.0).
+// Personagens 2.5D do Upoonly, tocados pelo LivLiv Player (https://github.com/livliv-dev/player, Apache-2.0).
 // Os desenhos são NOSSOS: arquivos em public/characters/bookmoo/<pasta> (model.json + textures/), no formato LivLiv v4,
 // sem licença de terceiros e sem marca d'água. Para acrescentar outro (homem, menina, menino): copie a pasta do rig para
 // public/characters/bookmoo/<pasta> e inclua uma linha em CHARACTERS (a Bia, o Luck, a Yuno e o Yuri já estão).

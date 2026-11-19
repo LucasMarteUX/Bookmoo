@@ -357,7 +357,7 @@ export function Dashboard() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-10">
+    <div className="max-w-6xl mx-auto space-y-5 md:space-y-10">
       <header className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
           <p className="text-[12.5px] sm:text-[13px] capitalize" style={{ color: 'var(--theme-text-secondary)' }}>

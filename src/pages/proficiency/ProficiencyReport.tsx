@@ -82,7 +82,7 @@ function ReportView({ res, id }: { res: Result; id: string }) {
       {/* Capa */}
       <section className="prof-cover mt-5 rounded-[28px] border overflow-hidden break-inside-avoid" style={cardStyle}>
         <div className="flex items-center justify-between gap-3 px-6 md:px-10 py-4 border-b text-[12px] uppercase tracking-[0.1em] font-semibold" style={{ borderColor: 'var(--theme-border)', ...muted }}>
-          <span><span className="hidden sm:inline">Bookmoo · </span>English Proficiency Test</span>
+          <span><span className="hidden sm:inline">Upoonly · </span>English Proficiency Test</span>
           <span className="tabular-nums whitespace-nowrap">{code}</span>
         </div>
         <div className="px-6 md:px-10 py-8 md:py-10 grid gap-8 md:grid-cols-[1fr_auto] md:items-center">
@@ -164,7 +164,7 @@ function ReportView({ res, id }: { res: Result; id: string }) {
       </section>
 
       <footer className="hidden print:flex mt-10 pt-4 border-t justify-between text-[11px]" style={{ borderColor: 'var(--theme-border)', ...muted }}>
-        <span>Bookmoo · English Proficiency Test · {date}</span><span>{code}</span>
+        <span>Upoonly · English Proficiency Test · {date}</span><span>{code}</span>
       </footer>
     </div>
   )

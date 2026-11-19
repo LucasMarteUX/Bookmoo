@@ -13,7 +13,7 @@ export type TourStep = { selector?: string; route?: string; pt: [string, string]
 type Step = TourStep
 
 const STEPS: Step[] = [
-  { route: '/', pt: ['Bem-vindo ao Bookmoo', 'Você aprende inglês lendo livros de verdade. Em poucos passos mostramos onde fica cada coisa. Dá para pular quando quiser.'], en: ['Welcome to Bookmoo', 'You learn English by reading real books. In a few steps we will show where everything is. You can skip anytime.'] },
+  { route: '/', pt: ['Bem-vindo ao Upoonly', 'Você aprende inglês lendo livros de verdade. Em poucos passos mostramos onde fica cada coisa. Dá para pular quando quiser.'], en: ['Welcome to Upoonly', 'You learn English by reading real books. In a few steps we will show where everything is. You can skip anytime.'] },
   { route: '/', selector: '[data-tour="add-book"]', pt: ['Adicione seus livros', 'Envie um EPUB ou PDF com texto, ou cole um texto. Seus livros ficam só com você e nunca são compartilhados. Envie apenas conteúdo seu, em domínio público ou autorizado.'], en: ['Add your books', 'Upload an EPUB or a text PDF, or paste text. Your books stay with you and are never shared. Only upload content that is yours, public domain or authorized.'] },
   { selector: 'a[href="/gallery"]', pt: ['Galeria de livros', 'Livros de domínio público prontos para ler, por nível (A1 a C2) e por categoria. Leve um para a sua estante com um clique.'], en: ['Book gallery', 'Ready-to-read public-domain books by level (A1–C2) and category. Add one to your shelf in one click.'] },
   { selector: 'a[href="/collections"]', pt: ['Coleções', 'Séries e temas reunidos, como Sherlock Holmes, Oz e Jules Verne, em ordem de leitura.'], en: ['Collections', 'Series and themes in reading order, like Sherlock Holmes, Oz and Jules Verne.'] },

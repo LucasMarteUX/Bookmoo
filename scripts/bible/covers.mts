@@ -6,7 +6,7 @@ import { join } from 'node:path'
 import { spawnSync } from 'node:child_process'
 import sharp from 'sharp'
 import { ITEMS } from './books.mts'
-const ROOT = '/Users/lucasmarte/Desktop/BOOKMOO'
+const ROOT = '/Users/lucasmarte/Desktop/UPOONLY'
 const SRC = '/Users/lucasmarte/Downloads/Capas e banner'
 const OUT = join(ROOT, 'content/bible/covers'); const BANNER_DIR = join(ROOT, 'content/collections/bible-stories-for-beginners')
 const W = join(ROOT, 'content/bible/_work'); mkdirSync(W, { recursive: true }); mkdirSync(OUT, { recursive: true }); mkdirSync(BANNER_DIR, { recursive: true })

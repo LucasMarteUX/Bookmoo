@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Bookmoo TTS worker — roda no mesmo host/rede privada do VoiceStudio.
+// Upoonly TTS worker — roda no mesmo host/rede privada do VoiceStudio.
 // Busca jobs no Supabase (tts_claim_jobs, SKIP LOCKED + lease), chama POST /v1/audio/speech,
 // grava o MP3 no Storage (bucket privado tts-audio) e registra em tts_audio_cache.
 //

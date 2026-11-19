@@ -1,17 +1,17 @@
 {
   "format": "livliv-model",
   "version": 4,
-  "name": "Bookmoo — Bia",
+  "name": "Upoonly — Bia",
   "meta": {
     "generator": {
-      "name": "Bookmoo facial reconstruction"
+      "name": "Upoonly facial reconstruction"
     },
     "author": {
-      "name": "Bookmoo"
+      "name": "Upoonly"
     },
     "license": {
-      "id": "LicenseRef-Bookmoo",
-      "text": "Personagem original Bookmoo. Sem concessão de licença a terceiros."
+      "id": "LicenseRef-Upoonly",
+      "text": "Personagem original Upoonly. Sem concessão de licença a terceiros."
     },
     "watermark": {
       "kind": "none"

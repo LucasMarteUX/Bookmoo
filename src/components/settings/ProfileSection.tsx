@@ -275,7 +275,7 @@ export function ProfileSection({ pt }: { pt: boolean }) {
                 aria-invalid={!handleOk} onChange={e => set({ handle: cleanHandle(e.target.value) })} />
             </div>
             <span className="block mt-1 text-[11.5px]" style={{ color: handleOk ? 'var(--theme-text-secondary)' : 'var(--color-destructive)' }}>
-              {profile.handle ? `bookmoo.app/u/${profile.handle}` : (pt ? '3 a 20 caracteres: letras, números, ponto ou _' : '3 to 20 characters: letters, numbers, dot or _')}
+              {profile.handle ? `upoonly.app/u/${profile.handle}` : (pt ? '3 a 20 caracteres: letras, números, ponto ou _' : '3 to 20 characters: letters, numbers, dot or _')}
             </span>
           </label>
         </div>

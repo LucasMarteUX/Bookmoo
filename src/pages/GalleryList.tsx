@@ -247,7 +247,7 @@ export function GalleryList() {
         <div>
           <h1 className="font-display text-[30px] md:text-[44px] leading-[1.02]">{pt ? 'Galeria' : 'Gallery'}</h1>
           <p className="mt-1 text-[14px] md:text-[14.5px]" style={muted}>
-            {pt ? 'Clássicos escolhidos pelo nível, para ler e estudar no Bookmoo.' : 'Classics picked by level, to read and study on Bookmoo.'}
+            {pt ? 'Clássicos escolhidos pelo nível, para ler e estudar no Upoonly.' : 'Classics picked by level, to read and study on Upoonly.'}
           </p>
         </div>
         <label className="relative w-full sm:w-72">

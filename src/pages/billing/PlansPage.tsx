@@ -8,6 +8,7 @@ import { useLanguage } from '@/store/useLanguage'
 import { useEntitlements } from '@/store/useEntitlements'
 import { formatBRL, PLANS, planRank, type PlanId } from '@/lib/plans'
 import { billing, BILLING_ERRORS, type Quote } from '@/lib/billingApi'
+import { Logo } from '@/components/brand/Logo'
 
 function ageFrom(birth: string | null | undefined) {
   if (!birth) return null
@@ -71,7 +72,7 @@ export function PlansPage() {
     <div className="min-h-dvh px-4 pb-16" style={{ backgroundColor: 'var(--theme-bg)', color: 'var(--theme-text)', paddingTop: 'calc(var(--safe-t, 0px) + 1.25rem)' }}>
       <div className="mx-auto max-w-6xl">
         <div className="flex items-center justify-between h-10">
-          {welcome ? <span className="text-[14px] font-semibold">Bookmoo</span> : (
+          {welcome ? <Logo height={30} /> : (
             <button type="button" onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/'))} className="inline-flex items-center gap-1.5 h-10 px-2 -ml-2 rounded-md text-[13.5px]" style={{ color: 'var(--theme-text-secondary)' }}>
               <ArrowLeft className="w-4 h-4" />{pt ? 'Voltar' : 'Back'}
             </button>

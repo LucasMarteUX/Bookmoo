@@ -88,7 +88,7 @@ export const SURVEY: SurveyQuestion[] = [
   },
   {
     key: 'how_found', multi: true,
-    title: { pt: 'Como você conheceu o Bookmoo?', en: 'How did you find Bookmoo?' },
+    title: { pt: 'Como você conheceu o Upoonly?', en: 'How did you find Upoonly?' },
     options: [
       { value: 'friend', pt: 'Indicação de amigo', en: 'A friend' },
       { value: 'social', pt: 'Redes sociais', en: 'Social media' },

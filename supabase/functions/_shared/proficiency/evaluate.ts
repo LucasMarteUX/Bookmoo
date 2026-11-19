@@ -126,7 +126,7 @@ export type SectionSummary = { band: number | null; cefr: string | null; status:
 export type SkillReport = { summary: string; strengths: string[]; improve: string[]; next_steps: string[] }
 export type Report = { overall: string; skills: Record<string, SkillReport>; disclaimer: string }
 
-export const DISCLAIMER = 'Resultado interno do Bookmoo, inspirado no formato público do TOEFL iBT. Não é um exame oficial, não é certificado pela ETS e não tem equivalência oficial com nenhuma prova ou certificação.'
+export const DISCLAIMER = 'Resultado interno do Upoonly, inspirado no formato público do TOEFL iBT. Não é um exame oficial, não é certificado pela ETS e não tem equivalência oficial com nenhuma prova ou certificação.'
 
 export async function writeReport(userId: string, overall: number | null, sections: Record<string, SectionSummary>): Promise<Report> {
   try {

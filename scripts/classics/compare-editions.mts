@@ -18,7 +18,7 @@ for (const [n, info] of Object.entries<any>(found)) {
   for (const id of alts) {
     const f = join(cache, `${id}.epub`)
     if (!existsSync(f)) {
-      const r = await fetch(`https://www.gutenberg.org/ebooks/${id}.epub.noimages`, { headers: { 'User-Agent': 'BookmooCompare/1.0 (low rate)' }, signal: AbortSignal.timeout(90_000) })
+      const r = await fetch(`https://www.gutenberg.org/ebooks/${id}.epub.noimages`, { headers: { 'User-Agent': 'UpoonlyCompare/1.0 (low rate)' }, signal: AbortSignal.timeout(90_000) })
       if (!r.ok) { console.log(n, 'alt', id, 'HTTP', r.status); continue }
       writeFileSync(f, new Uint8Array(await r.arrayBuffer())); await new Promise(res => setTimeout(res, 4000))
     }

@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { useLanguage } from '@/store/useLanguage'
 import { useEntitlements } from '@/store/useEntitlements'
 import { useAuth } from '@/contexts/AuthContext'
+import { Logo } from '@/components/brand/Logo'
 
 const field = 'w-full h-12 rounded-xl border px-3.5 text-[15px] bg-transparent outline-none'
 
@@ -13,7 +14,7 @@ function Shell({ title, subtitle, children }: { title: string; subtitle?: string
   return (
     <div className="min-h-dvh grid place-items-center px-5 py-10" style={{ backgroundColor: 'var(--theme-bg)', color: 'var(--theme-text)' }}>
       <div className="w-full max-w-sm">
-        <p className="text-[14px] font-semibold">Bookmoo</p>
+        <Logo height={30} />
         <h1 className="mt-6 font-display text-[30px] leading-tight">{title}</h1>
         {subtitle && <p className="mt-2 text-[15px]" style={{ color: 'var(--theme-text-secondary)' }}>{subtitle}</p>}
         <div className="mt-6">{children}</div>

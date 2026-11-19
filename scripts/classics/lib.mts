@@ -200,7 +200,7 @@ export function buildEpub(book: Book, coverJpeg: Uint8Array): Uint8Array {
   put('OEBPS/credits.xhtml', xhtml('Credits', `<h1>Credits</h1>
 <p>Original work: <em>${esc(meta.originalTitle)}</em> by ${esc(meta.authorFull)}, first published in ${meta.originalYear}.</p>
 <p>${esc(meta.adaptationCredit)}</p>
-<p>Cover: original artwork made for Bookmoo.</p>
+<p>Cover: original artwork made for Upoonly.</p>
 <p>Rights: ${esc(meta.rights)}</p>`))
 
   const nav: [string, string][] = [
@@ -223,7 +223,7 @@ export function buildEpub(book: Book, coverJpeg: Uint8Array): Uint8Array {
 <dc:title>${esc(meta.title)}</dc:title>
 <dc:creator>${esc(meta.author)}</dc:creator>
 <dc:language>en</dc:language>
-<dc:publisher>Bookmoo</dc:publisher>
+<dc:publisher>Upoonly</dc:publisher>
 <dc:description>${esc(meta.descriptionEn)}</dc:description>
 <dc:subject>Graded reader, ${meta.level}, ${esc(meta.category)}</dc:subject>
 <dc:rights>${esc(meta.rights)}</dc:rights>

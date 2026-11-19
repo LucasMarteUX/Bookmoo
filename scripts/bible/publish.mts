@@ -5,7 +5,7 @@ import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { spawnSync } from 'node:child_process'
 import { ITEMS } from './books.mts'
-const ROOT = '/Users/lucasmarte/Desktop/BOOKMOO'
+const ROOT = '/Users/lucasmarte/Desktop/UPOONLY'
 const W = join(ROOT, 'content/bible/_work'); mkdirSync(W, { recursive: true })
 const run = process.argv.includes('--run'); const mode = process.argv[2]
 const q = (s: string) => { const t = 'bb' + Math.random().toString(36).slice(2, 8); return `$${t}$${s}$${t}$` }

@@ -153,7 +153,7 @@ export function Settings() {
           {signedIn && <SecuritySection pt={pt} />}
 
           <SettingsSection id="help" icon={CircleHelp} title={pt ? 'Ajuda' : 'Help'} description={pt ? 'Reveja os passeios guiados quando quiser.' : 'Replay the guided tours whenever you want.'}>
-            <SettingsRow inline label={pt ? 'Tutorial do app' : 'App tutorial'} hint={pt ? 'Um passeio rápido pelas principais funções do Bookmoo.' : 'A quick tour of Bookmoo’s main features.'}>
+            <SettingsRow inline label={pt ? 'Tutorial do app' : 'App tutorial'} hint={pt ? 'Um passeio rápido pelas principais funções do Upoonly.' : 'A quick tour of Upoonly’s main features.'}>
               <Button variant="outline" onClick={restartTour}>{pt ? 'Começar' : 'Start'}</Button>
             </SettingsRow>
             <SettingsRow inline label={pt ? 'Tutorial do livro' : 'Book tutorial'} hint={hasBooks ? (pt ? 'Como estudar dentro de um livro. Abre no seu último livro.' : 'How to study inside a book. Opens your latest book.') : (pt ? 'Adicione um livro para ver este tutorial.' : 'Add a book to see this tutorial.')}>

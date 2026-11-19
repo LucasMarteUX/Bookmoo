@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-	<string>Bookmoo</string>
+	<string>Upoonly</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -27,7 +27,7 @@
 			<string>app.bookmoo</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>bookmoo</string>
+				<string>upoonly</string>
 			</array>
 		</dict>
 	</array>
@@ -38,7 +38,7 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>O Bookmoo usa o microfone para você praticar a pronúncia lendo em voz alta.</string>
+	<string>O Upoonly usa o microfone para você praticar a pronúncia lendo em voz alta.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>O reconhecimento de fala compara o que você leu com o texto do livro.</string>
 	<key>UIApplicationSceneManifest</key>

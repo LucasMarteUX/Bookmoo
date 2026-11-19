@@ -6,12 +6,12 @@ const devUrl = process.env.CAP_DEV_URL
 
 const config: CapacitorConfig = {
   appId: 'app.bookmoo',
-  appName: 'Bookmoo',
+  appName: 'Upoonly',
   webDir: 'dist',
   ...(devUrl ? { server: { url: devUrl, cleartext: true } } : {}),
   ios: {
     contentInset: 'never',
-    scheme: 'Bookmoo',
+    scheme: 'Upoonly',
     backgroundColor: '#F6F3EE',
     limitsNavigationsToAppBoundDomains: false,
   },

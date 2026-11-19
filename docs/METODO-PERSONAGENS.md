@@ -1,4 +1,4 @@
-# Método Bookmoo para criar personagens (o que funcionou no Yuri)
+# Método Upoonly para criar personagens (o que funcionou no Yuri)
 
 Registro de 16/11/2026. O usuário aprovou o master e, após corrigir quatro sobrancelhas e a flutuação lateral, aprovou também a montagem final do Yuri. Este documento registra o método para novos personagens e futuras personalizações. Não é uma promessa de geração idêntica em uma única tentativa.
 

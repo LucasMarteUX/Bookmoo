@@ -1,4 +1,4 @@
-# Bookmoo × VoiceStudio — integração TTS
+# Upoonly × VoiceStudio — integração TTS
 
 ## Status (2026-11-08)
 
@@ -38,8 +38,8 @@ Browser (src/lib/tts.ts) ──JWT──▶ Edge Functions ──▶ Postgres (c
 
 ## Licenças: requisito de lançamento
 
-- O app VoiceStudio é **AGPL-3.0**. Ele roda como serviço separado, acessado só por HTTP e sem código copiado para o Bookmoo. Se o VoiceStudio for modificado e oferecido pela rede, o código modificado precisa ser disponibilizado. Vale validar com um advogado.
-- **OmniVoice** (engine padrão): pesos **não comerciais**. Não usar no Bookmoo comercial.
+- O app VoiceStudio é **AGPL-3.0**. Ele roda como serviço separado, acessado só por HTTP e sem código copiado para o Upoonly. Se o VoiceStudio for modificado e oferecido pela rede, o código modificado precisa ser disponibilizado. Vale validar com um advogado.
+- **OmniVoice** (engine padrão): pesos **não comerciais**. Não usar no Upoonly comercial.
 - Segundo o inventário do próprio VoiceStudio (`docs/licensing/model-inventory.md`), **nenhum modelo está marcado como liberado para uso comercial**. Rótulos como MIT/Apache-2.0 no model card são metadados upstream ainda não revisados.
 - Candidato recomendado: **Kokoro-82M** (o model card upstream diz Apache-2.0). Antes de produção, conferir os pesos, as vozes e o G2P/espeak (GPL) da revisão fixada, e só então marcar `commercial_use_verified = true` nas vozes.
 - Nada de clonagem de voz de terceiros sem consentimento verificável.

@@ -7,6 +7,7 @@ import { useUiStore } from '@/store/useUiStore'
 import { haptics } from '@/lib/haptics'
 import { isTabRoot, parentOf, screenTitle } from './routes'
 import { NotificationBell } from '@/components/community/NotificationBell'
+import { Logo } from '@/components/brand/Logo'
 
 export function goBack(navigate: ReturnType<typeof useNavigate>, path: string) {
   const idx = (window.history.state as { idx?: number } | null)?.idx ?? 0
@@ -46,9 +47,8 @@ export function NavBar() {
       <div className="grid grid-cols-[1fr_auto_1fr] items-center px-1.5" style={{ height: 'var(--navbar-h)' }}>
         <div className="flex items-center">
           {root ? (
-            <Link to="/" aria-label="Bookmoo" className="pressable flex items-center gap-2 h-[var(--hit)] pl-2 pr-2">
-              <span className="grid place-items-center w-7 h-7 rounded-lg text-[15px] font-semibold font-display" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>B</span>
-              <span className="text-[16px] font-semibold tracking-tight" style={{ color: 'var(--theme-text)' }}>Bookmoo</span>
+            <Link to="/" aria-label="Upoonly" className="pressable flex items-center gap-2 h-[var(--hit)] pl-2 pr-2">
+              <Logo height={30} style={{ color: 'var(--theme-text)' }} />
             </Link>
           ) : (
             <button type="button" onClick={() => { haptics.selection(); goBack(navigate, pathname) }}

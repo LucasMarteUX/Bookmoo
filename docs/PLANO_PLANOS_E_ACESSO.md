@@ -1,6 +1,6 @@
 # Plano — Planos, créditos de IA, acesso e cobrança
 
-> Data: 2026-11-14 · Status: proposta para aprovação · Nome do app/domínio: **a definir** (usado aqui como "Bookmoo")
+> Data: 2026-11-14 · Status: proposta para aprovação · Nome do app/domínio: **a definir** (usado aqui como "Upoonly")
 
 Este documento fecha a lógica de monetização: planos, créditos de IA, travas de rotas e recursos, primeiro acesso, pagamento (Zouti), Resend, login com Google, painel financeiro e as correções pendentes. A regra de ouro de tudo abaixo: **o front só mostra; quem decide é o servidor** (edge functions + RLS). Nenhuma trava pode depender só da interface.
 

@@ -1,4 +1,4 @@
-// Nível de estudo no Bookmoo. Sobe só quando os dois crescem juntos:
+// Nível de estudo no Upoonly. Sobe só quando os dois crescem juntos:
 // palavras salvas e pontos. O mais lento segura o nível.
 // A tradução em português aparece só no primeiro nível (Iniciante).
 
@@ -8,7 +8,7 @@ export interface CefrBand {
   id: CefrId
   words: number
   points: number
-  /** Nome do nível da pessoa no Bookmoo (o código CEFR fica interno; a prova de proficiência é que usa CEFR). */
+  /** Nome do nível da pessoa no Upoonly (o código CEFR fica interno; a prova de proficiência é que usa CEFR). */
   pt: string
   en: string
   /** Livros continuam com o código CEFR (A1…C2) e esta descrição da faixa. */

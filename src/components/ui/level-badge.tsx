@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils'
 
 /**
  * Selo de nível. Livros (`kind="book"`, padrão) mostram o código CEFR (A1 … C2); pessoas (`kind="person"`) mostram o
- * nível do Bookmoo (Iniciante … Lenda). `compact` é só o rótulo curto, sobre a capa ou ao lado do autor.
+ * nível do Upoonly (Iniciante … Lenda). `compact` é só o rótulo curto, sobre a capa ou ao lado do autor.
  */
 export function LevelBadge({ id, pt, variant = 'full', kind = 'book', className }: { id: CefrId; pt: boolean; variant?: 'compact' | 'full'; kind?: 'book' | 'person'; className?: string }) {
   const band = CEFR.find(item => item.id === id)

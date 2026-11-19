@@ -41,7 +41,7 @@ Depois de criar o `OPENAI_API_KEY`, defina um limite mensal de gasto no painel d
 | Secret | Exemplo |
 |---|---|
 | `RESEND_API_KEY` | `re_…` |
-| `EMAIL_FROM` | `Bookmoo <ola@SEU-DOMINIO>` |
+| `EMAIL_FROM` | `Upoonly <ola@SEU-DOMINIO>` |
 | `APP_URL` | `https://SEU-DOMINIO` |
 | `APP_NAME` | nome final do app |
 | `ADMIN_EMAIL` | e-mail que recebe os alertas de cobrança e custo |

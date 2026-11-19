@@ -1,7 +1,7 @@
 # Prompts para gerar as capas e os banners no ChatGPT (gpt-image)
-Gere cada capa **no ChatGPT com geração de imagens**, **anexando a capa de referência indicada** (os livros já cadastrados no Bookmoo servem de guia de estilo). Dá para fazer **uma capa por vez** (mais confiável para o título) ou **4 numa só imagem** (mais barato; veja a seção 'Grade de 4').
+Gere cada capa **no ChatGPT com geração de imagens**, **anexando a capa de referência indicada** (os livros já cadastrados no Upoonly servem de guia de estilo). Dá para fazer **uma capa por vez** (mais confiável para o título) ou **4 numa só imagem** (mais barato; veja a seção 'Grade de 4').
 ## Como usar
-1. Abra o ChatGPT e anexe a imagem de referência sugerida (baixe a capa no Bookmoo ou pegue de `content/epubs/<pasta>/cover-ai.jpg`).
+1. Abra o ChatGPT e anexe a imagem de referência sugerida (baixe a capa no Upoonly ou pegue de `content/epubs/<pasta>/cover-ai.jpg`).
 2. Cole o **prompt base** abaixo e depois o **prompt do livro**.
 3. Formato: retrato 2:3 (1024×1536). Peça sempre: *'não escreva nenhum outro texto além do título e do autor'*.
 4. **Confira a grafia** do título e do autor na imagem (letra por letra). Se errar, peça só para corrigir o texto.

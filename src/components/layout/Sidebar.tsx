@@ -24,6 +24,7 @@ import { Avatar } from '@/components/ui/avatar'
 import { useMyAvatar } from '@/hooks/useMyAvatar'
 import { UsageMeters } from '@/components/billing/UsageMeters'
 import { MessagesSquare, Brain } from 'lucide-react'
+import { Logo, LogoMark } from '@/components/brand/Logo'
 
 interface SidebarProps {
   isMobileDrawer?: boolean
@@ -89,7 +90,7 @@ export function Sidebar({ isMobileDrawer, onClose }: SidebarProps) {
   const isActive = (to: string) => to === '/' ? location.pathname === '/' : location.pathname.startsWith(to)
   const go = () => onClose?.()
   const avatarUrl = useMyAvatar()
-  const displayName = (user?.user_metadata?.full_name as string | undefined) || user?.email || 'Bookmoo'
+  const displayName = (user?.user_metadata?.full_name as string | undefined) || user?.email || 'Upoonly'
   const me = (size: number) => <Avatar src={avatarUrl} name={displayName} size={size} />
 
   const fmt = new Intl.NumberFormat(pt ? 'pt-BR' : 'en-US')
@@ -108,7 +109,7 @@ export function Sidebar({ isMobileDrawer, onClose }: SidebarProps) {
           className="flex items-center gap-2.5 px-2 py-2 rounded-lg transition-colors hover:bg-[var(--ui-hover)]">
           {me(32)}
           <div className="min-w-0">
-            <p className="text-[13px] font-medium truncate">{user?.email ?? 'Bookmoo'}</p>
+            <p className="text-[13px] font-medium truncate">{user?.email ?? 'Upoonly'}</p>
             <p className="text-[12px]" style={{ color: 'var(--theme-text-secondary)' }}>
               {fmt.format(total)} {pt ? 'pontos' : 'points'} · {streak} {pt ? (streak === 1 ? 'dia seguido' : 'dias seguidos') : 'day streak'}
             </p>
@@ -159,8 +160,8 @@ export function Sidebar({ isMobileDrawer, onClose }: SidebarProps) {
     return (
       <aside className="w-[64px] flex flex-col items-center py-3 gap-1 z-20 fixed left-0 top-0 bottom-0 transition-colors duration-300"
         style={{ backgroundColor: 'var(--theme-nav-bg)', color: 'var(--theme-nav-text)', borderRight: '1px solid var(--theme-border)' }}>
-        <Link to="/" title="Bookmoo" aria-label="Bookmoo" className="grid place-items-center w-8 h-8 rounded-lg text-[15px] font-semibold font-display mb-2"
-          style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>B</Link>
+        <Link to="/" title="Upoonly" aria-label="Upoonly" className="grid place-items-center w-10 h-10 rounded-lg mb-1 transition-colors hover:bg-[var(--ui-hover)]"
+          style={{ color: 'var(--theme-nav-text)' }}><LogoMark height={34} /></Link>
         <button type="button" onClick={() => setCommandOpen(true)} className={rail} title={`${pt ? 'Buscar' : 'Search'} (${MOD_KEY} K)`} aria-label={pt ? 'Buscar' : 'Search'} style={{ color: 'var(--theme-nav-text-muted)' }}>
           <Search className="w-[18px] h-[18px]" />
         </button>
@@ -191,8 +192,7 @@ export function Sidebar({ isMobileDrawer, onClose }: SidebarProps) {
       {!isMobileDrawer && (
         <div className="flex items-center justify-between gap-2 px-3 pt-3 pb-2">
           <Link to="/" className="flex items-center gap-2 min-w-0 rounded-md px-1 py-1 -mx-1 hover:bg-[var(--ui-hover)]">
-            <span className="grid place-items-center w-6 h-6 rounded-md text-[13px] font-semibold font-display" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>B</span>
-            <span className="text-[14px] font-semibold tracking-tight">Bookmoo</span>
+            <Logo height={30} style={{ color: 'var(--theme-nav-text)' }} />
           </Link>
           <button type="button" onClick={toggleSidebar} className="w-7 h-7 rounded-md grid place-items-center transition-colors hover:bg-[var(--ui-hover)]"
             title={pt ? 'Recolher menu' : 'Collapse menu'} aria-label={pt ? 'Recolher menu' : 'Collapse menu'} style={{ color: 'var(--theme-nav-text-muted)' }}>
@@ -275,7 +275,7 @@ export function Sidebar({ isMobileDrawer, onClose }: SidebarProps) {
             aria-label={pt ? 'Conta e preferências' : 'Account and preferences'}>
             {me(28)}
             <span className="flex-1 min-w-0">
-              <span className="block text-[13px] font-medium truncate" style={{ color: 'var(--theme-nav-text)' }}>{user?.email?.split('@')[0] ?? 'Bookmoo'}</span>
+              <span className="block text-[13px] font-medium truncate" style={{ color: 'var(--theme-nav-text)' }}>{user?.email?.split('@')[0] ?? 'Upoonly'}</span>
               <span className="block text-[11.5px] truncate" style={{ color: 'var(--theme-nav-text-muted)' }}>{pt ? 'Aparência, idioma e voz' : 'Appearance, language, voice'}</span>
             </span>
             <ChevronsUpDown className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--theme-nav-text-muted)' }} />

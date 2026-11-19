@@ -1,4 +1,4 @@
-// Bookmoo: corresponding lip/cavity landmarks, not a crossfade of unregistered mouths.
+// Upoonly: corresponding lip/cavity landmarks, not a crossfade of unregistered mouths.
 const IN=[
  [[123,12],[102,25],[76,33],[49,34],[32,29.5],[49,32],[76,31],[102,23]],
  [[108,29],[94,37],[75,41],[56,40],[40,35],[56,31],[75,29],[94,29]],

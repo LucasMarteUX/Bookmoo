@@ -658,7 +658,7 @@ export function NotificationsPage() {
         <aside className="space-y-4 lg:sticky lg:top-6">
           {notices.length > 0 && (
             <section className="rounded-3xl border overflow-hidden" style={card}>
-          <h2 className="px-5 pt-4 pb-2 text-[14.5px] font-semibold">{pt ? 'Avisos do Bookmoo' : 'From Bookmoo'}</h2>
+          <h2 className="px-5 pt-4 pb-2 text-[14.5px] font-semibold">{pt ? 'Avisos do Upoonly' : 'From Upoonly'}</h2>
           <div className="divide-y" style={{ borderColor: 'var(--theme-border)' }}>
                 {notices.map(n => (
               <button key={n.id} type="button" onClick={() => { if (n.link) { if (n.link.startsWith('/')) navigate(n.link); else window.open(n.link, '_blank', 'noopener') } }}

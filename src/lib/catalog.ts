@@ -14,7 +14,7 @@ export type CatalogBook = {
   category?: BookCategory
   /** Todas as categorias do livro (a primeira é a principal). */
   categories?: BookCategory[]
-  /** Idade mínima indicada (orientação editorial do Bookmoo). */
+  /** Idade mínima indicada (orientação editorial do Upoonly). */
   ageMin?: number
   ageInfo?: AgeInfo
   pages: string[]

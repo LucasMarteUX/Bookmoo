@@ -3,7 +3,7 @@
 import { copyFileSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import sharp from 'sharp'
-const ROOT = '/Users/lucasmarte/Desktop/BOOKMOO'
+const ROOT = '/Users/lucasmarte/Desktop/UPOONLY'
 const src = process.argv[2]; if (!src) throw new Error('informe o arquivo da arte')
 const raw = join(ROOT, 'content/bible/covers'); mkdirSync(raw, { recursive: true }); copyFileSync(src, join(raw, 'category-raw.webp'))
 const dir = join(ROOT, 'public/categories')

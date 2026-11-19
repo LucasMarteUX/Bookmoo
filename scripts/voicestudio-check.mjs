@@ -28,7 +28,7 @@ try {
   const r = await fetch(new URL('/v1/audio/speech', base), {
     method: 'POST',
     headers: { ...headers, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model, voice, input: 'Hello! Welcome to Bookmoo. Let us read a story together.', response_format: 'mp3', speed: 1.0 }),
+    body: JSON.stringify({ model, voice, input: 'Hello! Welcome to Upoonly. Let us read a story together.', response_format: 'mp3', speed: 1.0 }),
   })
   if (!r.ok) throw new Error(`speech -> HTTP ${r.status}: ${await r.text()}`)
   const buf = Buffer.from(await r.arrayBuffer())

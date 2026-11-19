@@ -1,4 +1,4 @@
-# Plano: Bookmoo com experiência de app iOS no mobile
+# Plano: Upoonly com experiência de app iOS no mobile
 
 > Plano de produto + técnico + acessibilidade. Nada aqui foi implementado ainda.
 > Base: leitura do código em 2026-11-11 (commit `8330e96` + alterações não commitadas).
@@ -63,7 +63,7 @@
 
 ---
 
-## 2. Princípios de design (o "idioma iOS" adaptado à identidade Bookmoo)
+## 2. Princípios de design (o "idioma iOS" adaptado à identidade Upoonly)
 
 Manter a identidade editorial (papel quente, Newsreader/Literata, pastéis). Adotar **comportamento** iOS, não copiar o visual da Apple.
 
@@ -308,7 +308,7 @@ Ver §5 (checklist completo). Entrega: relatório axe zerado em "serious/critica
 
 ## 8. Recursos nativos: matriz
 
-| Recurso | PWA (iOS) | Capacitor | Uso no Bookmoo |
+| Recurso | PWA (iOS) | Capacitor | Uso no Upoonly |
 |---|---|---|---|
 | Haptics | ✗ (sem Vibration API no Safari) | ✓ | Salvar palavra, virar página, acerto/erro no ditado, seleção de aba |
 | Status bar / safe areas | ✓ (meta + CSS) | ✓ | Estilo por tema |

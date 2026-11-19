@@ -389,7 +389,7 @@ export function PostCard({ item, covers, pt, canPost, onDeleted, standalone = fa
   const share = async () => {
     const url = postUrl(item.id)
     try {
-      if (navigator.share && window.matchMedia('(pointer: coarse)').matches) await navigator.share({ url, title: 'Bookmoo' })
+      if (navigator.share && window.matchMedia('(pointer: coarse)').matches) await navigator.share({ url, title: 'Upoonly' })
       else { await navigator.clipboard.writeText(url); setCopied(true); window.setTimeout(() => setCopied(false), 1600) }
     } catch { /* a pessoa cancelou */ }
   }

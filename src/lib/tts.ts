@@ -1,4 +1,4 @@
-// Camada centralizada de áudio do Bookmoo.
+// Camada centralizada de áudio do Upoonly.
 // 1) Pede o áudio ao Supabase (tts-generate → cache ou job → tts-status)
 // 2) Toca com HTMLAudioElement (um único player global: nunca dois áudios ao mesmo tempo)
 // 3) Se o serviço TTS falhar, cai para a voz nativa do navegador (fallback temporário).

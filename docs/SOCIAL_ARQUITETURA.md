@@ -1,4 +1,4 @@
-# Bookmoo Social — diagnóstico e plano técnico
+# Upoonly Social — diagnóstico e plano técnico
 
 > 2026-11-11. Base: código em `main` (3bcab17) + camada social já aplicada no Supabase
 > (`20261111000100`, `20261111120000`, `20261111190000`).

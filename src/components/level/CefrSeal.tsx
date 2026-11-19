@@ -1,4 +1,4 @@
-// Selo CEFR conquistado na prova de proficiência (A1 … C2). Aparece ao lado do nível do Bookmoo (Iniciante … Lenda),
+// Selo CEFR conquistado na prova de proficiência (A1 … C2). Aparece ao lado do nível do Upoonly (Iniciante … Lenda),
 // que é outra coisa: o nível do app vem do teste de nível; o selo, da prova completa.
 import { Award } from 'lucide-react'
 import { Link } from 'react-router-dom'

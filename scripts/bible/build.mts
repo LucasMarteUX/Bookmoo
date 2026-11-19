@@ -5,7 +5,7 @@ import { readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { createHash } from 'node:crypto'
 import { splitContentIntoPages, countWords } from '../../src/lib/utils.ts'
-const ROOT = '/Users/lucasmarte/Desktop/BOOKMOO/content/bible'
+const ROOT = '/Users/lucasmarte/Desktop/UPOONLY/content/bible'
 const stats: Record<string, any> = {}
 for (const id of process.argv.slice(2)) {
   let t = readFileSync(join(ROOT, id, 'text.txt'), 'utf8')

@@ -51,7 +51,7 @@ async function makeCover(book: Book) {
 <rect width="1024" height="1536" fill="url(#bg)"/>
 <rect x="24" y="24" width="976" height="1488" fill="none" stroke="${meta.cover.paper}" stroke-width="3" opacity=".9"/>
 <rect x="36" y="36" width="952" height="1464" fill="none" stroke="${meta.cover.paper}" stroke-width="1" opacity=".5"/>
-<text x="512" y="100" font-size="34" letter-spacing="10" text-anchor="middle" fill="${meta.cover.paper}" font-family="Georgia, serif" opacity=".95">BOOKMOO CLASSICS</text>
+<text x="512" y="100" font-size="34" letter-spacing="10" text-anchor="middle" fill="${meta.cover.paper}" font-family="Georgia, serif" opacity=".95">UPOONLY CLASSICS</text>
 <text x="512" y="148" font-size="26" letter-spacing="6" text-anchor="middle" fill="${meta.cover.accent === '#c8372d' ? '#f2b8b1' : meta.cover.paper}" font-family="Georgia, serif">GRADED READER · ${meta.level}</text>
 <g clip-path="url(#artclip)" transform="translate(48,0)"><svg x="0" y="190" width="928" height="760" viewBox="0 0 1024 830" preserveAspectRatio="xMidYMid slice">${art.replace(/^<svg[^>]*>/, '').replace(/<\/svg>\s*$/, '')}</svg></g>
 <rect x="48" y="190" width="928" height="760" rx="8" fill="none" stroke="${meta.cover.paper}" stroke-width="3"/>

@@ -58,7 +58,7 @@ export function InstallPrompt() {
     <Dialog open={open} onOpenChange={close}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{pt ? 'Instale o Bookmoo' : 'Install Bookmoo'}</DialogTitle>
+          <DialogTitle>{pt ? 'Instale o Upoonly' : 'Install Upoonly'}</DialogTitle>
           <DialogDescription>
             {pt ? 'Abra em tela cheia direto da Tela de Início, leia offline e receba lembretes de estudo.' : 'Open full-screen from your Home Screen, read offline and get study reminders.'}
           </DialogDescription>

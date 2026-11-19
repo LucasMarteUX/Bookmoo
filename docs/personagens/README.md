@@ -1,4 +1,4 @@
-# Personagens do Bookmoo
+# Personagens do Upoonly
 
 Ponto de entrada para criar, integrar e evoluir os tutores pintados (Bia, Luck, Yuno, Yuri).
 

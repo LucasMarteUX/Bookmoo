@@ -1,5 +1,5 @@
 import {assetUrl} from './asset_url.js';
-// Bookmoo: corresponding lip/cavity landmarks, not a crossfade of unregistered mouths.
+// Upoonly: corresponding lip/cavity landmarks, not a crossfade of unregistered mouths.
 const OUT=[
  [[125,19],[102,43],[75,51],[45,44],[20,30],[45,21],[75,20],[102,16]],
  [[117,25],[103,50],[75,61],[45,50],[27,34],[45,23],[75,19],[102,21]],

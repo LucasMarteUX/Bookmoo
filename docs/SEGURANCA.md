@@ -1,4 +1,4 @@
-# Segurança do Bookmoo: revisão de 15/11/2026
+# Segurança do Upoonly: revisão de 15/11/2026
 
 ## O que já estava bem
 - **Funções do Supabase:** todas exigem JWT e chamam `getUser` (token validado no servidor). A única sem JWT é o webhook de pagamento, que confere a assinatura HMAC e falha fechado se o segredo não existir.

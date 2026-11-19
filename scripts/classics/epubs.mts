@@ -105,7 +105,7 @@ async function download(url: string): Promise<Uint8Array> {
   for (let attempt = 0; attempt < 5; attempt++) {
     try {
       const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 90_000)
-      const res = await fetch(url, { signal: ctl.signal, redirect: 'follow', headers: { 'User-Agent': 'BookmooImporter/1.0 (educational, sequential)' } })
+      const res = await fetch(url, { signal: ctl.signal, redirect: 'follow', headers: { 'User-Agent': 'UpoonlyImporter/1.0 (educational, sequential)' } })
       clearTimeout(t)
       if (res.status === 429 || res.status === 503) { lastErr = 'HTTP ' + res.status; await sleep(5000 * 2 ** attempt); continue }
       if (!res.ok) throw new Error('HTTP ' + res.status)

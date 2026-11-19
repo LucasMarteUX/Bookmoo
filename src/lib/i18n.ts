@@ -4,7 +4,7 @@ export type TranslationKey = keyof typeof en
 
 const en = {
   // App & nav
-  appName: 'Bookmoo',
+  appName: 'Upoonly',
   home: 'Home',
   vocabulary: 'Vocabulary',
   stats: 'Statistics',
@@ -179,7 +179,7 @@ const en = {
 } as const
 
 const ptBr: Record<TranslationKey, string> = {
-  appName: 'Bookmoo',
+  appName: 'Upoonly',
   home: 'Início',
   vocabulary: 'Vocabulário',
   stats: 'Estatísticas',

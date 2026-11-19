@@ -1,4 +1,4 @@
-// Foto da pessoa com o anel do nível do Bookmoo: anel cheio e selo de verificado quando o nível foi confirmado no teste,
+// Foto da pessoa com o anel do nível do Upoonly: anel cheio e selo de verificado quando o nível foi confirmado no teste,
 // anel tracejado enquanto está pendente. O nome do nível aparece ao lado, no selo (não se repete aqui).
 import { BadgeCheck } from 'lucide-react'
 import { Avatar } from '@/components/ui/avatar'

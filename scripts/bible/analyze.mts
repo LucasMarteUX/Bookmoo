@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { validateEpubStructure, extractBook } from './epub-lib.mts'
-const ROOT = '/Users/lucasmarte/Desktop/BOOKMOO/content/bible'
+const ROOT = '/Users/lucasmarte/Desktop/UPOONLY/content/bible'
 const ids = process.argv.slice(2)
 const syl = (w: string) => { w = w.toLowerCase().replace(/[^a-z]/g, ''); if (!w) return 0; const m = w.replace(/e$/, '').match(/[aeiouy]+/g); return Math.max(1, m?.length ?? 1) }
 for (const id of ids) {

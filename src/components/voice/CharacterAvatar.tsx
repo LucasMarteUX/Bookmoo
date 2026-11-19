@@ -1,4 +1,4 @@
-// Avatar da tutora: a Bia ou o Luck do Bookmoo (personagem 2.5D, ver lib/livliv/characters) ou, se ela não puder ser mostrada
+// Avatar da tutora: a Bia ou o Luck do Upoonly (personagem 2.5D, ver lib/livliv/characters) ou, se ela não puder ser mostrada
 // (sem WebGL2, arquivos que não carregaram, contexto perdido), o desenho vetorial de sempre, sem interromper a conversa.
 import { useEffect, useState, type ComponentProps } from 'react'
 import { TutorAvatar } from '@/components/voice/TutorAvatar'

@@ -128,7 +128,7 @@ export function ProficiencyHome() {
         <ol className="mt-6 relative grid gap-4 md:grid-cols-4">
           <Step n={1} icon={<Volume2 className="w-4 h-4" />} title="Checagem" text="Você testa o som e o microfone e aceita a gravação da voz. A prova abre em tela cheia." />
           <Step n={2} icon={<Clock className="w-4 h-4" />} title="As quatro seções" text="Cerca de 90 minutos, com instruções antes de cada seção. O relógio só começa quando você toca em Começar." />
-          <Step n={3} icon={<Mic className="w-4 h-4" />} title="Entrevista" text="No Speaking, um tutor do Bookmoo conduz a entrevista: pergunta, escuta e passa para a próxima." />
+          <Step n={3} icon={<Mic className="w-4 h-4" />} title="Entrevista" text="No Speaking, um tutor do Upoonly conduz a entrevista: pergunta, escuta e passa para a próxima." />
           <Step n={4} icon={<FileText className="w-4 h-4" />} title="Relatório" text="A correção leva alguns minutos. Você pode continuar estudando: o app avisa quando o relatório ficar pronto." />
         </ol>
 
@@ -175,7 +175,7 @@ export function ProficiencyHome() {
           <H2 kicker="Resultado" title="Escala de 1 a 6, com nível CEFR" />
           <p className="mt-4 text-[14.5px] leading-relaxed" style={muted}>
             Cada habilidade recebe uma faixa de 1 a 6, em meios pontos, e a nota geral é a média das quatro. A faixa geral vira o
-            seu selo CEFR, que aparece no perfil ao lado do seu nível no Bookmoo. Reading e Listening são corrigidas
+            seu selo CEFR, que aparece no perfil ao lado do seu nível no Upoonly. Reading e Listening são corrigidas
             automaticamente; Writing e Speaking por IA, com rubricas publicadas e citando as suas próprias palavras.
           </p>
           <ul className="mt-5 space-y-2 text-[14px]">
@@ -258,7 +258,7 @@ export function ProficiencyHome() {
       )}
 
       <p className="mt-14 text-[12.5px] leading-relaxed max-w-2xl" style={muted}>
-        A English Proficiency Test é uma avaliação do Bookmoo inspirada no formato público do TOEFL iBT. Não é um exame oficial, não é
+        A English Proficiency Test é uma avaliação do Upoonly inspirada no formato público do TOEFL iBT. Não é um exame oficial, não é
         afiliada nem certificada pela ETS e não tem equivalência oficial com nenhuma prova ou certificado. As questões são originais.
       </p>
 

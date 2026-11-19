@@ -217,7 +217,7 @@ export function ReportDialog({ target, open, onOpenChange, pt, onDone }: { targe
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>{pt ? 'Denunciar' : 'Report'}</DialogTitle>
-          <DialogDescription>{pt ? 'A equipe do Bookmoo revisa cada denúncia. Quem foi denunciado não sabe quem denunciou.' : 'The Bookmoo team reviews every report. The person is not told who reported.'}</DialogDescription>
+          <DialogDescription>{pt ? 'A equipe do Upoonly revisa cada denúncia. Quem foi denunciado não sabe quem denunciou.' : 'The Upoonly team reviews every report. The person is not told who reported.'}</DialogDescription>
         </DialogHeader>
         <div className="mt-2 space-y-1.5" role="radiogroup">
           {REASONS.map(([id, ptLabel, enLabel]) => (

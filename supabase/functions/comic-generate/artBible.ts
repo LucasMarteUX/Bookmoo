@@ -56,7 +56,7 @@ Book brief (the reader's description is the primary context): ${JSON.stringify(b
 Web findings (supporting context only): ${JSON.stringify(findings)}
 Reference roles selected by the reader: ${JSON.stringify(current.references?.map(ref => ({ type: ref.type, instructions: cleanText(ref.instructions, 240) })) ?? [])}
 Rules:
-- The drawing technique comes from the Bookmoo style bank. Your job is the book-specific direction: palette, lighting, setting, costume and world.
+- The drawing technique comes from the Upoonly style bank. Your job is the book-specific direction: palette, lighting, setting, costume and world.
 - Pick "styleId" from these styles, by what the book is (genre, audience, tone), or "none" when none of them fits: ${JSON.stringify(ready.map(style => ({ id: style.id, look: style.look, use: style.use })))}
 - Never name, cite or imitate the book's original illustrator or any other artist, studio or franchise in any field. Describe visuals in your own neutral terms.
 - palette: a distinct, restrained, story-appropriate palette for this book (muted, harmonious, no neon). lighting: soft, painterly and emotionally fitting. setting: the places and period as visual instructions. costume: hair and clothing shapes for this world.

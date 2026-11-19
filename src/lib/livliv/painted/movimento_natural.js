@@ -25,7 +25,7 @@ export async function configurarMovimentoNatural(player,modelBaseURL){
  const hair=strands.map(s=>({x:spring(s.w,2.2),y:spring(s.w,1.1)})),ear=earrings.map(s=>spring(s.w,.048));
  const cloth=[spring(15,.9),spring(17,.7),spring(13,.65)];
  let tilt=0,tiltTarget=0,tiltSide=Math.random()<.5?1:-1,tiltClock=2+Math.random()*3;
- // Bookmoo: balanço do corpo pela malha (base parada, cresce até a cabeça), como nos outros: o mouse leva o corpo para o lado
+ // Upoonly: balanço do corpo pela malha (base parada, cresce até a cabeça), como nos outros: o mouse leva o corpo para o lado
  // oposto (LivLivAvatar escreve pointerLean), mais a inclinação lenta e uma respiração lateral bem leve.
  let lean=0,leanV=0,breathT=0;const BASE_Y=1536,TOP_Y=240;
  let lastTime=p.time,previous=null,velocity=[0,0],accel=[0,0],cuePos=[...cuff.neutro],cueVel=[0,0],cueAccel=[0,0];
@@ -57,14 +57,14 @@ export async function configurarMovimentoNatural(player,modelBaseURL){
   const saved=[p.params.angleX,p.params.angleY,p.params.angleZ,p.params.mouthOpen];
   const originalRoll=p.rig.roll;
   if(state.headEnabled){
-   // Bookmoo: o olhar/mouse (angleX/Y) passa, como na Yuno; o balanço do idle em Z não. A inclinação lenta troca de lado
+   // Upoonly: o olhar/mouse (angleX/Y) passa, como na Yuno; o balanço do idle em Z não. A inclinação lenta troca de lado
    // de tempos em tempos (não fica presa para um lado só).
    tiltClock-=dt;if(tiltClock<=0){tiltSide=tiltSide>0?-1:1;tiltTarget=tiltSide*(1.6+Math.random()*1.8);tiltClock=6+Math.random()*6}
    tilt+=(tiltTarget-tilt)*(1-Math.exp(-dt/1.4));state.tilt=tilt;state.angles=[p.params.angleX,p.params.angleY];
    p.params.angleX=clamp(p.params.angleX,-14,14)+state.head[0];p.params.angleY=clamp(p.params.angleY,-15,10)+state.head[1];
    // Atuação da fala (LivLivAvatar: pose por frase, acentos, riso) soma à cabeça; falando, a inclinação lenta do idle diminui.
    const spk=p.params.speaking?0.35:1;
-   /* Bookmoo: teto final do giro depois de somar mouse, gesto, posturas e fala: o rosto pintado é uma imagem só e, acima de
+   /* Upoonly: teto final do giro depois de somar mouse, gesto, posturas e fala: o rosto pintado é uma imagem só e, acima de
     ~11, a malha dobra na linha do cabelo (a mecha da testa virava uma borda reta, a "testa cortada") */
    p.params.angleX=clamp(p.params.angleX+(p.params.speechYaw||0),-11,11);p.params.angleY=clamp(p.params.angleY+(p.params.speechPitch||0),-14,10);
    p.params.angleZ=clamp(tilt*spk+0.18*p.params.angleX+state.head[2]+(p.params.speechRoll||0),-30,30);

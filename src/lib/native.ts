@@ -5,7 +5,7 @@ export const isNative = () => Capacitor.isNativePlatform()
 
 /**
  * Integra o app empacotado (Capacitor/iOS): barra de status por tema, teclado, splash,
- * deep links (bookmoo://… e Universal Links) e retomada da sessão. No navegador não faz nada.
+ * deep links (upoonly://… e Universal Links) e retomada da sessão. No navegador não faz nada.
  */
 export async function setupNative() {
   if (!isNative()) return
@@ -28,11 +28,11 @@ export async function setupNative() {
   void Keyboard.setResizeMode({ mode: KeyboardResize.Native }).catch(() => {})
   void Keyboard.setAccessoryBarVisible({ isVisible: true }).catch(() => {})
 
-  // Deep link: bookmoo://book/123 ou https://bookmoo.app/book/123 → abre a rota.
+  // Deep link: upoonly://book/123 ou https://upoonly.app/book/123 → abre a rota.
   void App.addListener('appUrlOpen', ({ url }) => {
     try {
       const u = new URL(url)
-      const path = u.protocol === 'bookmoo:' ? `/${u.host}${u.pathname}` : u.pathname
+      const path = u.protocol === 'upoonly:' ? `/${u.host}${u.pathname}` : u.pathname
       if (path && path !== window.location.pathname) {
         window.history.pushState({ idx: (window.history.state?.idx ?? 0) + 1 }, '', path + u.search)
         window.dispatchEvent(new PopStateEvent('popstate'))

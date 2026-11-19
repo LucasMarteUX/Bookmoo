@@ -66,7 +66,7 @@ export function MePage() {
   const profSeal = useLevelStore(s => s.proficiency)
   const fmt = new Intl.NumberFormat(pt ? 'pt-BR' : 'en-US')
   const [confirmOut, setConfirmOut] = useState(false)
-  const name = user?.email?.split('@')[0] ?? 'Bookmoo'
+  const name = user?.email?.split('@')[0] ?? 'Upoonly'
 
   const themes: { value: Theme; label: string; icon: LucideIcon }[] = [
     { value: 'light', label: pt ? 'Dia' : 'Day', icon: Sun },

@@ -1,4 +1,4 @@
-# Checklist de lançamento — Bookmoo
+# Checklist de lançamento — Upoonly
 
 Revisão feita em 11/11/2026 sobre o código local e o banco de produção (Supabase `ywnmeacpvmcuhzhshpwz`).
 Legenda: 🔴 bloqueia a venda · 🟠 resolver antes de abrir para muita gente · 🟢 melhoria.
@@ -7,7 +7,7 @@ Legenda: 🔴 bloqueia a venda · 🟠 resolver antes de abrir para muita gente 
 
 - [ ] **Revogar o token do GitHub que está na URL do `origin`** (`git remote get-url origin` tem um `ghp_…`). Trocar por SSH ou credencial do sistema. Quem tiver acesso à máquina/log vê o token.
 - [ ] **Cobrança não existe.** Não há Stripe, App Store/Play (IAP) nem planos no código. Decidir: assinatura web (Stripe) + IAP no app iOS (a Apple exige IAP para conteúdo digital vendido dentro do app).
-- [ ] **Modelo de IA para cliente pagante.** Hoje cada pessoa precisa colar a própria chave da OpenAI para ilustrar. Para vender, o normal é chave da Bookmoo + créditos/limite por plano (cobrar o custo de ~US$0,04–0,17 por imagem). Exige: chave do servidor, contador de uso por usuário, limite por plano.
+- [ ] **Modelo de IA para cliente pagante.** Hoje cada pessoa precisa colar a própria chave da OpenAI para ilustrar. Para vender, o normal é chave da Upoonly + créditos/limite por plano (cobrar o custo de ~US$0,04–0,17 por imagem). Exige: chave do servidor, contador de uso por usuário, limite por plano.
 - [ ] **Excluir conta não existe.** Obrigatório pela LGPD e pela App Store. Precisa: botão em Ajustes → confirmação → função que apaga auth.user + dados (livros, posts, imagens no storage, chaves no Vault).
 - [ ] **"Esqueci a senha" na tela de login.** Só existe troca de senha logado (Ajustes). Adicionar `resetPasswordForEmail` + tela de nova senha.
 - [ ] **Termos e Privacidade revisados por advogado** (as páginas `/terms` e `/privacy` existem): citar uso de IA (OpenAI/Gemini), armazenamento de chaves, imagens públicas, idade mínima (há livros infantis), LGPD (controlador, DPO, direitos).

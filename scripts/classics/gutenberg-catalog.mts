@@ -6,7 +6,7 @@ import { ROOT } from './lib.mts'
 const [csvFile, list] = process.argv.slice(2)
 const CATALOG = join(ROOT, 'content', 'epubs', '_work', 'pg_catalog.csv')
 if (!existsSync(CATALOG)) {
-  const r = await fetch('https://www.gutenberg.org/cache/epub/feeds/pg_catalog.csv', { headers: { 'User-Agent': 'BookmooCatalog/1.0 (single catalog download)' }, signal: AbortSignal.timeout(180_000) })
+  const r = await fetch('https://www.gutenberg.org/cache/epub/feeds/pg_catalog.csv', { headers: { 'User-Agent': 'UpoonlyCatalog/1.0 (single catalog download)' }, signal: AbortSignal.timeout(180_000) })
   if (!r.ok) throw new Error('catálogo: HTTP ' + r.status)
   writeFileSync(CATALOG, await r.text()); console.log('catálogo baixado')
 }

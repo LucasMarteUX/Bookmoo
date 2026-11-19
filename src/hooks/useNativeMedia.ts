@@ -47,7 +47,7 @@ export function useMediaSession(opts: {
     const ms = navigator.mediaSession
     try {
       ms.metadata = new MediaMetadata({
-        title, artist: artist ?? 'Bookmoo', album: 'Bookmoo',
+        title, artist: artist ?? 'Upoonly', album: 'Upoonly',
         artwork: artwork ? [{ src: artwork, sizes: '512x512' }] : [{ src: '/pwa-512x512.png', sizes: '512x512', type: 'image/png' }],
       })
     } catch { /* artwork inválido (data URL enorme etc.) */ }

@@ -1,7 +1,7 @@
 // E-mails transacionais via Resend. Sem RESEND_API_KEY, só registra no log (não quebra o fluxo).
 import { log } from './tts.ts'
 
-const APP_NAME = Deno.env.get('APP_NAME') ?? 'Bookmoo'
+const APP_NAME = Deno.env.get('APP_NAME') ?? 'Upoonly'
 const APP_URL = Deno.env.get('APP_URL') ?? 'https://bookmoo.vercel.app'
 const FROM = Deno.env.get('EMAIL_FROM') ?? `${APP_NAME} <onboarding@resend.dev>`
 
