@@ -3,7 +3,7 @@
 // 2) Toca com HTMLAudioElement (um único player global: nunca dois áudios ao mesmo tempo)
 // 3) Se o serviço TTS falhar, cai para a voz nativa do navegador (fallback temporário).
 import { supabase } from '@/lib/supabase'
-import { activeKokoroVoice, ensureKokoroReady, isKokoroSupported, kokoroAudioUrl, type WordTiming } from '@/lib/kokoro/engine'
+import { activeKokoroVoice, ensureKokoroReady, isKokoroSupported, kokoroAudioUrl, kokoroWarm, mobileVoiceFor, noteKokoroResult, warmUpKokoro, type WordTiming } from '@/lib/kokoro/engine'
 import { askVoiceOnce } from '@/lib/voiceGate'
 import { isTutorVoice, resolveReadingVoice } from '@/lib/tutorReadingVoices'
 import { deviceSpeak, hasDeviceVoice, isMobileDevice } from '@/lib/deviceVoice'
@@ -184,7 +184,8 @@ export async function playClip(url: string): Promise<{ done: Promise<void> }> {
 export function prefetch(text: string, opts: SpeakOptions = {}) {
   if (!text.trim()) return
   const kv = opts.kokoroVoice ?? activeKokoroVoice()
-  if (kv && activeKokoroVoice() && (opts.language ?? 'en').toLowerCase().startsWith('en')) {
+  // Celular: sem pré-carregar (duas gerações ao mesmo tempo pesam demais no aparelho).
+  if (kv && activeKokoroVoice() && !isMobileDevice() && (opts.language ?? 'en').toLowerCase().startsWith('en')) {
     // Tutor: mesmos parâmetros da fala (velocidade de geração e de-esser), para o cache servir na hora de tocar.
     const r = resolveReadingVoice(kv)
     const p = r.pitch && Math.abs(r.pitch - 1) > 0.01 ? Math.min(1.35, Math.max(0.8, r.pitch)) : 1
@@ -444,12 +445,21 @@ export async function speak(text: string, opts: SpeakOptions = {}): Promise<Spea
     if (token !== currentToken) return { done: Promise.resolve(), source: 'kokoro' }
   }
   const spVoice = sp && !opts.kokoroVoice ? resolveSpeakerVoice(sp) : undefined
-  const kokoroVoice = activeKokoroVoice() ? (opts.kokoroVoice ?? spVoice ?? activeKokoroVoice()) : null
+  const mobile = isMobileDevice()
+  // Celular: só as 2 vozes do pacote (feminina/masculina); o tom de Yuno e Yuri vem por cima.
+  const kokoroVoice = activeKokoroVoice()
+    ? (mobile ? mobileVoiceFor(opts.gender ?? sp?.gender ?? 'female') : (opts.kokoroVoice ?? spVoice ?? activeKokoroVoice()))
+    : null
   if (lang.startsWith('en') && !kokoroVoice && !isTtsConfigured()) {
     // Sem voz baixada: fala com a voz do próprio aparelho (no celular é o normal; no computador o aviso sugere baixar a melhor).
     if (!isMobileDevice()) askVoiceOnce()
     if (hasDeviceVoice()) return { ...(await speakOnDevice(trimmed, opts, token)), source: 'browser' }
     return { done: Promise.resolve(), source: 'kokoro' }
+  }
+  // Celular com o motor ainda frio: esta fala sai na voz do aparelho (sem esperar) e o motor carrega para as próximas.
+  if (mobile && kokoroVoice && !kokoroWarm() && hasDeviceVoice()) {
+    warmUpKokoro()
+    return { ...(await speakOnDevice(trimmed, opts, token)), source: 'browser' }
   }
   if (kokoroVoice && lang.startsWith('en')) {
     try {
@@ -468,6 +478,7 @@ export async function speak(text: string, opts: SpeakOptions = {}): Promise<Spea
       const clip = await kokoroAudioUrl(trimmed, kokoroVoice, g.gen, 'high', deEssOpt, pitch !== 1 ? pitch : undefined)
       opts.onLoading?.(false)
       if (token !== currentToken) return { done: Promise.resolve(), source: 'kokoro' }
+      noteKokoroResult(true)
       const starts = clip.words ? startsFromTimings(trimmed, clip.words) : undefined
       return { ...(await playUrl(clip.url, pitch !== 1 ? g.play : (opts.rate ?? 1), trimmed, opts.onWord, starts, 1, clip.phones)), source: 'kokoro' }
     } catch (e) {
@@ -475,8 +486,9 @@ export async function speak(text: string, opts: SpeakOptions = {}): Promise<Spea
       if (token !== currentToken) return { done: Promise.resolve(), source: 'kokoro' }
       console.warn('[tts] A voz baixada não respondeu:', e)
       opts.onFallback?.(String((e as Error)?.message ?? e))
-      // Nunca fica mudo: a voz do aparelho fala no lugar (menos para personagem no computador, que tenta de novo).
-      if (isKokoroSupported()) {
+      noteKokoroResult(false)
+      // Nunca fica mudo: no celular a voz do aparelho fala na hora; no computador tenta de novo a voz baixada.
+      if (!mobile && isKokoroSupported()) {
         try {
           const again = await kokoroAudioUrl(trimmed, kokoroVoice, 1, 'high')
           if (token === currentToken) return { ...(await playUrl(again.url, opts.rate ?? 1, trimmed, opts.onWord)), source: 'kokoro' }

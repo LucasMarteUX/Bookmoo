@@ -58,7 +58,7 @@ export function Layout() {
         {pt ? 'Ir para o conteúdo' : 'Skip to content'}
       </a>
       {isMobile ? <NavBar /> : null}
-      {isMobile ? <MobileVoicePackPrompt pt={pt} /> : null}
+      <MobileVoicePackPrompt pt={pt} />
 
       <div className="flex flex-1 relative">
         {isMobile ? null : <Sidebar />}

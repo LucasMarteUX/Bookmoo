@@ -29,11 +29,50 @@ export function subscribeKokoro(fn: (s: LocalState) => void) {
 }
 export function getKokoroState() { return readState() }
 
-// No celular a Kokoro fica DESLIGADA: o motor (ONNX/WASM, centenas de MB de memória) somado ao personagem animado derrubava
-// a página (iPhone e Android), e uma voz "instalada" que não conseguia gerar deixava o app mudo. No celular a fala usa
-// sempre a voz do próprio aparelho (lib/deviceVoice), que não baixa nada e funciona em qualquer navegador.
+// Celular: o pacote de voz (modelo leve + 2 vozes) só baixa quando a pessoa aceita o aviso. Até lá, e sempre que a voz
+// baixada falhar ou demorar, a fala sai na voz do próprio aparelho: o tutor nunca fica mudo.
+/** As duas vozes do pacote do celular: feminina (Bia, Yuno) e masculina (Luck, Yuri); o tom de cada tutor vem por cima. */
+export const MOBILE_VOICES = ['af_heart', 'am_michael'] as const
+export function mobileVoiceFor(gender: 'female' | 'male') { return gender === 'male' ? MOBILE_VOICES[1] : MOBILE_VOICES[0] }
+
+// Proteção contra a página cair: antes de carregar/gerar no celular marca "ocupado"; se a página morrer no meio (o
+// navegador recarrega a aba), a marca sobra e, na volta, a voz baixada fica desligada neste aparelho (cai na voz dele).
+const BUSY_KEY = 'upoonly.kokoro.busy'
+const CRASH_KEY = 'upoonly.kokoro.crashed'
+let busyCount = 0
+function markBusy(on: boolean) {
+  if (!isMobileDevice()) return
+  busyCount = Math.max(0, busyCount + (on ? 1 : -1))
+  try { if (busyCount > 0) localStorage.setItem(BUSY_KEY, String(Date.now())); else localStorage.removeItem(BUSY_KEY) } catch { /* ignore */ }
+}
+if (typeof window !== 'undefined') {
+  try {
+    const at = Number(localStorage.getItem(BUSY_KEY) || 0)
+    // A página anterior morreu enquanto a voz trabalhava (em até 3 min): desliga a voz baixada neste aparelho.
+    if (at && Date.now() - at < 3 * 60_000) localStorage.setItem(CRASH_KEY, String(Date.now()))
+    localStorage.removeItem(BUSY_KEY)
+  } catch { /* ignore */ }
+  // Saída normal da página (fechar, recarregar, trocar de site) não conta como queda: só a morte da aba deixa a marca.
+  window.addEventListener('pagehide', () => { try { localStorage.removeItem(BUSY_KEY) } catch { /* ignore */ } })
+}
+/** A voz baixada derrubou a página neste aparelho: fica desligada (a voz do aparelho fala). */
+export function kokoroCrashedHere() {
+  try { return !!localStorage.getItem(CRASH_KEY) } catch { return false }
+}
+/** Tentar de novo a voz baixada (Ajustes). */
+export function clearKokoroCrash() {
+  try { localStorage.removeItem(CRASH_KEY) } catch { /* ignore */ }
+  sessionFailures = 0
+  listeners.forEach(l => l(readState()))
+}
+// Falhas seguidas nesta sessão (celular): depois de 2, a sessão segue na voz do aparelho sem ficar esperando.
+let sessionFailures = 0
+export function noteKokoroResult(ok: boolean) { sessionFailures = ok ? 0 : sessionFailures + 1 }
+
 export function isKokoroSupported() {
-  return typeof window !== 'undefined' && typeof Worker !== 'undefined' && typeof WebAssembly !== 'undefined'
+  if (typeof window === 'undefined' || typeof Worker === 'undefined' || typeof WebAssembly === 'undefined') return false
+  if (isMobileDevice() && (kokoroCrashedHere() || sessionFailures >= 2)) return false
+  return true
 }
 
 /** Início de cada palavra falada, como fração (0–1) da duração do áudio; n = nº de fonemas. */
@@ -48,6 +87,8 @@ let lastBackend: { device: string; dtype: string } | null = null
 // true depois que este worker carregou o modelo (só então aplicamos timeout de geração)
 let workerReady = false
 export function kokoroBackend() { return lastBackend }
+/** Motor já carregado neste aparelho (gera em poucos segundos). */
+export function kokoroWarm() { return workerReady }
 let reqSeq = 0
 const pending = new Map<number, {
   resolve: (v: { blob?: Blob; ms?: number; words?: WordTiming[] | null; phones?: PhoneTiming[] | null }) => void
@@ -100,10 +141,12 @@ function send(msg: Record<string, unknown>, onProgress?: (f: number) => void, ti
   const reqId = ++reqSeq
   return new Promise<{ blob?: Blob; ms?: number; words?: WordTiming[] | null; phones?: PhoneTiming[] | null }>((resolve, reject) => {
     let timer: ReturnType<typeof setTimeout> | undefined
-    const done = <T,>(fn: (v: T) => void) => (v: T) => { if (timer) clearTimeout(timer); fn(v) }
+    markBusy(true)
+    const done = <T,>(fn: (v: T) => void) => (v: T) => { if (timer) clearTimeout(timer); markBusy(false); fn(v) }
     pending.set(reqId, { resolve: done(resolve), reject: done(reject), onProgress, files: new Map() })
-    // Sem timeout enquanto o modelo ainda baixa/carrega: reiniciar aqui recomeçaria o download.
-    if (timeoutMs && workerReady) timer = setTimeout(() => { if (pending.has(reqId)) resetWorker('kokoro_timeout') }, timeoutMs)
+    // Sem timeout enquanto o modelo ainda baixa/carrega: reiniciar aqui recomeçaria o download. No celular a fala tem prazo
+    // mesmo com o motor ainda carregando do aparelho: passou dele, a voz do aparelho fala no lugar.
+    if (timeoutMs && (workerReady || (isMobileDevice() && msg.type === 'generate'))) timer = setTimeout(() => { if (pending.has(reqId)) resetWorker('kokoro_timeout') }, timeoutMs)
     getWorker().postMessage({ ...msg, reqId })
   })
 }
@@ -115,6 +158,20 @@ export function warmUpKokoro() {
 }
 
 export const KOKORO_INSTALL_FAILED = 'bookmoo:kokoro-install-failed'
+/** Abre o aviso "pacote de voz" (celular). */
+export function requestVoicePack() { if (typeof window !== 'undefined') window.dispatchEvent(new Event(KOKORO_INSTALL_FAILED)) }
+/** Pacote do celular instalado (modelo + as 2 vozes). */
+export function mobilePackReady() {
+  const s = readState()
+  return s.modelReady && MOBILE_VOICES.every(v => s.voices.includes(v))
+}
+/** Baixa o pacote do celular: modelo leve e as duas vozes, testando cada uma com uma frase curta. */
+export async function downloadMobilePack(onProgress?: (f: number) => void) {
+  clearKokoroCrash()
+  await downloadKokoroVoice(MOBILE_VOICES[0], f => onProgress?.(f * 0.92))
+  await downloadKokoroVoice(MOBILE_VOICES[1])
+  onProgress?.(1)
+}
 /** Tamanho aproximado do pacote de voz (modelo q8 + vozes), mostrado no aviso. */
 export const KOKORO_PACKAGE_MB = 90
 let installing: Promise<unknown> | null = null
@@ -122,6 +179,8 @@ let installing: Promise<unknown> | null = null
 export function ensureKokoroReady(): Promise<boolean> {
   if (!isKokoroSupported()) return Promise.resolve(false)
   if (activeKokoroVoice()) return Promise.resolve(true)
+  // Celular: nunca baixa 90 MB no meio de uma fala. Pede o aviso do pacote e a fala segue na voz do aparelho.
+  if (isMobileDevice()) { requestVoicePack(); return Promise.resolve(false) }
   installing ??= downloadKokoroVoice(DEFAULT_KOKORO_VOICE).finally(() => { installing = null })
   return installing.then(() => !!activeKokoroVoice(), () => false).then((ok) => {
     // Não instalou sozinha: o app avisa (no celular) e oferece baixar o pacote com um toque.
@@ -149,7 +208,7 @@ export async function downloadKokoroVoice(voiceId: string, onProgress?: (f: numb
   if (!s.selected) s.selected = voiceId
   writeState(s)
   try {
-    const { blob } = await send({ type: 'generate', text: 'Hello! I will read with you.', voice: voiceId, speed: 1 })
+    const { blob } = await send({ type: 'generate', text: 'Hello! I will read with you.', voice: voiceId, speed: 1 }, undefined, isMobileDevice() ? 60_000 : undefined)
     return blob!
   } catch {
     return new Blob()
@@ -188,7 +247,9 @@ export function kokoroAudioUrl(text: string, voice: string, speed: number, prior
   const hit = audioCache.get(key)
   if (hit) return hit
   // Frase atual: se o motor não responder em 30s (após carregado), ele é reiniciado e o app cai para a voz do navegador.
-  const p = send({ type: 'generate', text, voice, speed, priority, deEss, pitch }, undefined, priority === 'high' ? 30_000 : undefined)
+  // Celular: prazo também no primeiro pedido (motor carregando do aparelho) e no pré-carregamento.
+  const limit = isMobileDevice() ? (workerReady ? 15_000 : 30_000) : (priority === 'high' ? 30_000 : undefined)
+  const p = send({ type: 'generate', text, voice, speed, priority, deEss, pitch }, undefined, limit)
     .then(({ blob, ms, words, phones }) => {
       if (import.meta.env.DEV) console.debug(`[kokoro] ${ms}ms "${text.slice(0, 40)}"`)
       return { url: URL.createObjectURL(blob!), words: words ?? null, phones: phones ?? null }
