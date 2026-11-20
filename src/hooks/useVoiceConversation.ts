@@ -107,6 +107,8 @@ async function say(text: string, rate: number, alive: () => boolean, voice?: str
 }
 
 function warm(text: string) {
+  // Celular: sem gerar a próxima frase em paralelo (pesa demais e pode derrubar a página).
+  if (MOBILE) return
   const voice = activeKokoroVoice()
   if (voice) void kokoroAudioUrl(text, voice, 1, 'low').catch(() => {})
 }

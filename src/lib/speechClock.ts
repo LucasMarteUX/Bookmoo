@@ -54,21 +54,25 @@ export function boundaryClock(text: string, rate: number) {
   let idx = 0
   let at = 0
   let playing = false
+  // Algumas vozes do aparelho (Android/Google) não mandam o aviso de cada palavra: sem eles, o relógio corre sozinho pelo
+  // texto todo no ritmo estimado, para a boca não parar depois da primeira palavra.
+  let gotBoundary = false
   const msPerChar = 68 / Math.max(0.5, rate)
   const clock: SpeechClock = {
     text,
     position: () => {
       if (!playing) return null
+      const p = idx + (performance.now() - at) / msPerChar
+      if (!gotBoundary) return p > text.length ? null : p
       const w = words.find(x => x.end > idx) ?? words[words.length - 1]
       if (!w) return null
-      const p = idx + (performance.now() - at) / msPerChar
       return p > w.end + 1 ? null : p
     },
   }
   return {
     clock,
     start: () => { playing = true; idx = 0; at = performance.now() },
-    boundary: (charIndex: number) => { idx = charIndex; at = performance.now() },
+    boundary: (charIndex: number) => { if (charIndex > 0) gotBoundary = true; idx = charIndex; at = performance.now() },
     end: () => { playing = false },
   }
 }

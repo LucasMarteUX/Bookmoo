@@ -40,6 +40,7 @@ import { ProficiencyReadyWatcher } from '@/pages/proficiency/ScoringWait'
 import { AdminFinance } from '@/pages/AdminFinance'
 import { CompleteProfilePage, ForgotPasswordPage, NewPasswordPage } from '@/pages/auth/AccountPages'
 import { SiteOnly, VisitorGate } from '@/site/SiteGate'
+import VoiceDiagnostics from './pages/VoiceDiagnostics'
 
 function ThemeToBody() {
   const { theme } = useReaderSettings()
@@ -72,6 +73,7 @@ export default function App() {
         <ProficiencyReadyWatcher />
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/diagnostico-voz" element={<VoiceDiagnostics />} />
           <Route path="/signup" element={<SignUp />} />
           <Route path="/esqueci-senha" element={<ForgotPasswordPage />} />
           <Route path="/nova-senha" element={<NewPasswordPage />} />

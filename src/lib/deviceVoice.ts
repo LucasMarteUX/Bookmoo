@@ -127,8 +127,24 @@ export async function deviceSpeak(text: string, o: { rate?: number; pitch?: numb
     const finish = () => { if (over) return; over = true; bc.end(); clearSpeechClock(bc.clock); window.clearInterval(watch); window.clearTimeout(noStart); resolve() }
     // Alguns aparelhos não avisam o fim quando a fala é cancelada: depois que começa, confere de tempos em tempos.
     // E se nunca começar (voz bloqueada), não fica preso.
-    const noStart = window.setTimeout(() => { if (!s.speaking) finish() }, 5000)
+    // A voz do aparelho às vezes trava "falando" sem nunca começar a frase nova (Android/iOS depois de um cancel): se não
+    // começou em 4 s, cancela tudo e libera (antes esperava para sempre, e o tutor ficava mudo e de boca fechada).
+    // Uma nova tentativa antes de desistir: cancela, espera um pouco e fala de novo.
+    let started = false
+    let retried = false
+    let noStart = 0
+    const arm = () => {
+      noStart = window.setTimeout(() => {
+        if (started || over) return
+        try { s.cancel() } catch { /* ignore */ }
+        if (retried) { finish(); return }
+        retried = true
+        window.setTimeout(() => { if (over || o.isStale?.()) { finish(); return } s.resume(); s.speak(u); arm() }, 150)
+      }, 4000)
+    }
+    arm()
     u.onstart = () => {
+      started = true
       window.clearTimeout(noStart)
       bc.start(); o.onWord?.(0)
       watch = window.setInterval(() => { if (!s.speaking && !s.pending) finish() }, 400)
