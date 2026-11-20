@@ -12,7 +12,11 @@ import {installAudioWarmup} from './lib/audioWarm';
 installDeviceVoiceUnlock();
 
 // Voz dos personagens já vem instalada no computador: baixa em segundo plano depois que a página abre.
-window.setTimeout(() => { void ensureKokoroReady(); }, 4000);
+// Visitante do site (sem sessão salva) não baixa o pacote de voz.
+const hasSession = (() => {
+  try { return Object.keys(localStorage).some(k => k.startsWith('sb-') && k.endsWith('-auth-token')); } catch { return true; }
+})();
+if (hasSession) window.setTimeout(() => { void ensureKokoroReady(); }, 4000);
 installAudioWarmup();
 
 createRoot(document.getElementById('root')!).render(

@@ -1,0 +1,48 @@
+// Capas da galeria do Upoonly (arte própria, obras em domínio público), salvas em public/site/covers.
+export type Cover = { slug: string; title: string; author: string; level: 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2'; category: string }
+
+export const COVERS: Cover[] = [
+  { slug: 'short-fiction', title: 'Short Fiction', author: 'Beatrix Potter', level: 'A1', category: 'Infantil' },
+  { slug: 'alices-adventures-in-wonderland', title: 'Alice’s Adventures in Wonderland', author: 'Lewis Carroll', level: 'B2', category: 'Clássico' },
+  { slug: 'pride-and-prejudice', title: 'Pride and Prejudice', author: 'Jane Austen', level: 'C1', category: 'Romance' },
+  { slug: 'the-adventures-of-sherlock-holmes', title: 'The Adventures of Sherlock Holmes', author: 'Arthur Conan Doyle', level: 'B2', category: 'Mistério' },
+  { slug: 'the-wonderful-wizard-of-oz', title: 'The Wonderful Wizard of Oz', author: 'L. Frank Baum', level: 'A2', category: 'Infantil' },
+  { slug: 'treasure-island', title: 'Treasure Island', author: 'Robert Louis Stevenson', level: 'B2', category: 'Aventura' },
+  { slug: 'dracula', title: 'Dracula', author: 'Bram Stoker', level: 'C1', category: 'Mistério' },
+  { slug: 'frankenstein', title: 'Frankenstein', author: 'Mary Shelley', level: 'C1', category: 'Mistério' },
+  { slug: 'the-great-gatsby', title: 'The Great Gatsby', author: 'F. Scott Fitzgerald', level: 'B2', category: 'Clássico' },
+  { slug: 'little-women', title: 'Little Women', author: 'Louisa May Alcott', level: 'B2', category: 'Clássico' },
+  { slug: 'jane-eyre', title: 'Jane Eyre', author: 'Charlotte Brontë', level: 'C1', category: 'Romance' },
+  { slug: 'the-secret-garden', title: 'The Secret Garden', author: 'Frances Hodgson Burnett', level: 'B1', category: 'Clássico' },
+  { slug: 'anne-of-green-gables', title: 'Anne of Green Gables', author: 'L. M. Montgomery', level: 'B1', category: 'Clássico' },
+  { slug: 'journey-to-the-center-of-the-earth', title: 'Journey to the Center of the Earth', author: 'Jules Verne', level: 'B2', category: 'Aventura' },
+  { slug: 'around-the-world-in-eighty-days', title: 'Around the World in Eighty Days', author: 'Jules Verne', level: 'B2', category: 'Aventura' },
+  { slug: 'the-time-machine', title: 'The Time Machine', author: 'H. G. Wells', level: 'B2', category: 'Fantasia' },
+  { slug: 'the-war-of-the-worlds', title: 'The War of the Worlds', author: 'H. G. Wells', level: 'B2', category: 'Fantasia' },
+  { slug: 'moby-dick', title: 'Moby Dick', author: 'Herman Melville', level: 'C2', category: 'Clássico' },
+  { slug: 'a-christmas-carol', title: 'A Christmas Carol', author: 'Charles Dickens', level: 'B2', category: 'Clássico' },
+  { slug: 'the-jungle-book', title: 'The Jungle Book', author: 'Rudyard Kipling', level: 'B2', category: 'Infantil' },
+  { slug: 'the-call-of-the-wild', title: 'The Call of the Wild', author: 'Jack London', level: 'B1', category: 'Aventura' },
+  { slug: 'the-adventures-of-tom-sawyer', title: 'The Adventures of Tom Sawyer', author: 'Mark Twain', level: 'B2', category: 'Clássico' },
+  { slug: 'the-picture-of-dorian-gray', title: 'The Picture of Dorian Gray', author: 'Oscar Wilde', level: 'C1', category: 'Clássico' },
+  { slug: 'wuthering-heights', title: 'Wuthering Heights', author: 'Emily Brontë', level: 'C1', category: 'Romance' },
+  { slug: 'the-hound-of-the-baskervilles', title: 'The Hound of the Baskervilles', author: 'Arthur Conan Doyle', level: 'B2', category: 'Mistério' },
+  { slug: 'cinderella', title: 'Cinderella', author: 'Charles Perrault', level: 'A1', category: 'Infantil' },
+  { slug: 'little-red-riding-hood', title: 'Little Red Riding Hood', author: 'Brothers Grimm', level: 'A1', category: 'Infantil' },
+  { slug: 'the-little-mermaid', title: 'The Little Mermaid', author: 'Hans Christian Andersen', level: 'A1', category: 'Infantil' },
+  { slug: 'beauty-and-the-beast', title: 'Beauty and the Beast', author: 'J.-M. Leprince de Beaumont', level: 'A1', category: 'Infantil' },
+  { slug: 'the-strange-case-of-dr-jekyll-and-mr-hyde', title: 'Dr. Jekyll and Mr. Hyde', author: 'Robert Louis Stevenson', level: 'C1', category: 'Mistério' },
+  { slug: 'the-wind-in-the-willows', title: 'The Wind in the Willows', author: 'Kenneth Grahame', level: 'B2', category: 'Infantil' },
+  { slug: 'black-beauty', title: 'Black Beauty', author: 'Anna Sewell', level: 'B1', category: 'Clássico' },
+  { slug: 'pinocchio', title: 'Pinocchio', author: 'Carlo Collodi', level: 'A2', category: 'Infantil' },
+  { slug: 'sense-and-sensibility', title: 'Sense and Sensibility', author: 'Jane Austen', level: 'C1', category: 'Romance' },
+  { slug: 'great-expectations', title: 'Great Expectations', author: 'Charles Dickens', level: 'C1', category: 'Clássico' },
+  { slug: 'the-mysterious-island', title: 'The Mysterious Island', author: 'Jules Verne', level: 'B2', category: 'Aventura' },
+  { slug: 'a-princess-of-mars', title: 'A Princess of Mars', author: 'Edgar Rice Burroughs', level: 'B2', category: 'Fantasia' },
+  { slug: 'edgar-allan-poe', title: 'Edgar Allan Poe: Short Fiction', author: 'Edgar Allan Poe', level: 'C1', category: 'Mistério' },
+  { slug: 'the-snow-queen', title: 'The Snow Queen', author: 'Hans Christian Andersen', level: 'A1', category: 'Infantil' },
+  { slug: 'through-the-looking-glass', title: 'Through the Looking-Glass', author: 'Lewis Carroll', level: 'B2', category: 'Clássico' },
+]
+
+export const coverSrc = (slug: string) => `/site/covers/${slug}.webp`
+export const coverBy = (slug: string) => COVERS.find(c => c.slug === slug)!

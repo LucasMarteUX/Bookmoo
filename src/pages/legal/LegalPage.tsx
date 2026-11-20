@@ -11,7 +11,7 @@ type Block = { h: string; p: string[]; id?: string }
 
 const UPDATED = '2026-11-15'
 
-const DOCS: Record<LegalDoc, { pt: { title: string; intro: string; blocks: Block[] }; en: { title: string; intro: string; blocks: Block[] } }> = {
+export const DOCS: Record<LegalDoc, { pt: { title: string; intro: string; blocks: Block[] }; en: { title: string; intro: string; blocks: Block[] } }> = {
   terms: {
     pt: {
       title: 'Termos de uso',

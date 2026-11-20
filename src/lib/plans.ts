@@ -68,6 +68,11 @@ export const planById = (id: string | null | undefined) => PLANS.find(p => p.id 
 export const planRank = (id: string | null | undefined) => Math.max(0, PLANS.findIndex(p => p.id === id))
 export const nextPlan = (id: string | null | undefined) => PLANS[Math.min(PLANS.length - 1, planRank(id) + 1)]
 
+/** Plano anual: 20% de desconto sobre 12 meses. Os créditos continuam liberados mês a mês (o servidor faz isso). */
+export const ANNUAL_DISCOUNT = 0.2
+export const annualCents = (monthlyCents: number) => Math.round(monthlyCents * 12 * (1 - ANNUAL_DISCOUNT))
+export const annualMonthlyCents = (monthlyCents: number) => Math.round(annualCents(monthlyCents) / 12)
+
 export function formatBRL(cents: number) {
   return (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 }

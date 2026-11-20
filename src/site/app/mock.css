@@ -1,0 +1,44 @@
+/* Telas do app reconstruídas para o site: mesmos tokens de tema do app (index.css), em escopo próprio. */
+.mk {
+  font-family: "Inter Variable", "Inter", -apple-system, system-ui, sans-serif;
+  background: var(--t-bg);
+  color: var(--t-text);
+  -webkit-font-smoothing: antialiased;
+  letter-spacing: -0.003em;
+}
+.mk .mk-display { font-family: "Newsreader Variable", "Newsreader", Georgia, serif; letter-spacing: -0.015em; font-optical-sizing: auto; }
+.mk .mk-serif { font-family: "Literata Variable", "Literata", Georgia, serif; }
+.mk-dark {
+  --t-bg: #191919; --t-bg2: #202020; --t-text: #EBEBEA; --t-muted: #9B9A97;
+  --t-nav: #202020; --t-nav-text: #D4D4D3; --t-nav-muted: #8E8E8B; --t-nav-active: #2C2C2C;
+  --t-border: #2F2F2F; --t-card: #252525; --t-primary: #EBEBEA; --t-primary-text: #191919;
+  --t-chip: #2C2C2C; --t-hi: #2E3B31; --t-hi-text: #D9EADF;
+  --g-bg: #1F2E24; --g-fg: #B5DCC1; --g-bd: #35503D;
+  --a-bg: #33291C; --a-fg: #EBCB9C; --a-bd: #5A4629;
+  --l-bg: #2A2638; --l-fg: #CEC3F0; --l-bd: #463F63;
+  --r-bg: #352321; --r-fg: #EDBDB6; --b-bg: #212A36; --b-fg: #BCCDE6;
+  color-scheme: dark;
+}
+.mk-light {
+  --t-bg: #FFFFFF; --t-bg2: #F3F4F6; --t-text: #15171C; --t-muted: #636874;
+  --t-nav: #F8F9FB; --t-nav-text: #14171C; --t-nav-muted: #5C6370; --t-nav-active: #E6E9EF;
+  --t-border: #E3E6EB; --t-card: #FFFFFF; --t-primary: #15171C; --t-primary-text: #FFFFFF;
+  --t-chip: #EEF0F4; --t-hi: #DDEFE3; --t-hi-text: #1F3A28;
+  --g-bg: #E3F1E7; --g-fg: #2D6040; --g-bd: #C4E0CD;
+  --a-bg: #FBEEDB; --a-fg: #7A5121; --a-bd: #EED6B0;
+  --l-bg: #ECE7F8; --l-fg: #4E4180; --l-bd: #D6CCEF;
+  --r-bg: #F8E4E1; --r-fg: #8A3C33; --b-bg: #E4ECF7; --b-fg: #2F4B73;
+}
+.mk-sepia {
+  --t-bg: #F4EAD8; --t-bg2: #EBDDC4; --t-text: #3A2D21; --t-muted: #7C6650;
+  --t-nav: #EFE2CA; --t-nav-text: #2E2218; --t-nav-muted: #6B563F; --t-nav-active: #E1CCA9;
+  --t-border: #E0CDAE; --t-card: #FAF2E4; --t-primary: #5A3A1F; --t-primary-text: #FBF4E7;
+  --t-chip: #EBDDC4; --t-hi: #E5EBD6; --t-hi-text: #3A2D21;
+  --g-bg: #E5EBD6; --g-fg: #3F5A2B; --g-bd: #CCD8B5;
+  --a-bg: #F6E3BC; --a-fg: #6E4826; --a-bd: #E6CC98;
+  --l-bg: #EFE3EE; --l-fg: #5C3F5A; --l-bd: #DEC8DC;
+  --r-bg: #F3DCD3; --r-fg: #7E3B2C; --b-bg: #E2E6DF; --b-fg: #3E4B3C;
+}
+.mk, .mk * { transition-property: background-color, border-color, color; transition-duration: .45s; transition-timing-function: cubic-bezier(.2,.8,.2,1); }
+.mk img { transition: none; }
+.mk .mk-scroll::-webkit-scrollbar { display: none; }

@@ -39,6 +39,7 @@ import { AdminProficiency } from '@/pages/AdminProficiency'
 import { ProficiencyReadyWatcher } from '@/pages/proficiency/ScoringWait'
 import { AdminFinance } from '@/pages/AdminFinance'
 import { CompleteProfilePage, ForgotPasswordPage, NewPasswordPage } from '@/pages/auth/AccountPages'
+import { SiteOnly, VisitorGate } from '@/site/SiteGate'
 
 function ThemeToBody() {
   const { theme } = useReaderSettings()
@@ -77,7 +78,7 @@ export default function App() {
           {/* Primeiro acesso e pagamento: telas cheias, sem a barra lateral. */}
           <Route path="/completar-cadastro" element={<ProtectedRoute><CompleteProfilePage /></ProtectedRoute>} />
           <Route path="/conhecendo-voce" element={<ProtectedRoute><SurveyPage /></ProtectedRoute>} />
-          <Route path="/planos" element={<ProtectedRoute><PlansPage /></ProtectedRoute>} />
+          <Route path="/planos" element={<VisitorGate page="planos"><ProtectedRoute><PlansPage /></ProtectedRoute></VisitorGate>} />
           <Route path="/presente" element={<ProtectedRoute><GiftPage /></ProtectedRoute>} />
           <Route path="/checkout/retorno" element={<ProtectedRoute><CheckoutReturn /></ProtectedRoute>} />
           {/* Prova de proficiência: ambiente imersivo em tela cheia. */}
@@ -85,12 +86,18 @@ export default function App() {
           <Route path="/terms" element={<LegalPage doc="terms" />} />
           <Route path="/privacy" element={<LegalPage doc="privacy" />} />
           <Route path="/faq" element={<LegalPage doc="faq" />} />
+          {/* Site institucional: visitante em / (e /planos, /prova) vê o site; estas três são só do site. */}
+          <Route path="/recursos" element={<SiteOnly page="recursos" />} />
+          <Route path="/tutores" element={<SiteOnly page="tutores" />} />
+          <Route path="/sobre" element={<SiteOnly page="sobre" />} />
           <Route
             path="/"
             element={
-              <ProtectedRoute>
-                <Layout />
-              </ProtectedRoute>
+              <VisitorGate>
+                <ProtectedRoute>
+                  <Layout />
+                </ProtectedRoute>
+              </VisitorGate>
             }
           >
             <Route index element={<Dashboard />} />

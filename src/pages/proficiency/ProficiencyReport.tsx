@@ -10,7 +10,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useMyAvatar } from '@/hooks/useMyAvatar'
 import { BAND_CEFR, fmtBand, proficiency, profErrorText, SECTION_LABEL, type Result, type Section, type SectionResult, type SkillReport } from '@/lib/proficiencyApi'
 import { ScoringWait } from './ScoringWait'
-import { ScoreDial } from './ProficiencyHome'
+import { ScoreDial } from './ReportPreview'
 
 const muted = { color: 'var(--theme-text-secondary)' }
 const cardStyle = { borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-card-bg)' }
