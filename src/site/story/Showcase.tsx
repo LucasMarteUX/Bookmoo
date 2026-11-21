@@ -149,7 +149,7 @@ export function HeroSetup() {
       </div>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1.6, ease: EASE, delay: 0.5 }}><CoverArc /></motion.div>
       <motion.p className="sc-arc-line" initial={reduce ? { opacity: 0 } : { opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1.2, ease: EASE, delay: 0.9 }}>
-        Do <Mark delay={1.2}>primeiro conto</Mark> ao <Mark delay={1.45}>Sherlock Holmes</Mark>, cada história é <Mark delay={1.7}>uma aula</Mark> que você não quer que acabe.
+        Do <Mark delay={0.5}>primeiro conto</Mark> ao <Mark delay={0.75}>Sherlock Holmes</Mark>, cada história é <Mark delay={1}>uma aula</Mark> que você não quer que acabe.
       </motion.p>
     </section>
   )
@@ -201,7 +201,7 @@ export function LaptopSection() {
 
 function Mark({ children, delay }: { children: ReactNode; delay: number }) {
   const ref = useRef<HTMLSpanElement>(null)
-  const on = useInView(ref, { once: true, margin: '-20%' })
+  const on = useInView(ref, { once: true, margin: '0px 0px -10% 0px' })
   return <span ref={ref} className="sc-mark" data-on={on} style={{ transitionDelay: `${delay}s` }}>{children}</span>
 }
 

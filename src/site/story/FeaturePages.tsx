@@ -94,7 +94,6 @@ export function SiteLeitor() {
       <Block kicker="Palavras" title="Um toque e a palavra faz sentido." text="Pronúncia, significado na frase, exemplos nas formas afirmativa, negativa e pergunta, e um clique para marcar como Aprendi, Revisar ou Importante." visual={<div className="pb-20"><VWord /></div>} />
       <Block flip kicker="Gramática" title="Decifre a página." text="A gramática da página explicada em português, trecho por trecho, sem precisar sair da história." visual={<VGrammar />} />
       <Block kicker="Notas" title="Marque o que importa." text="Destaque trechos e escreva suas notas. Elas ficam junto do livro, onde você precisa delas." visual={<VNotes />} />
-      <Block flip kicker="Conforto" title="Leia do jeito que gosta." text="Temas Dia, Tarde e Noite, fontes de livro e sons de lareira ou chuva para acompanhar a leitura." visual={<VThemes />} />
       <Next current="/leitor" />
       <FinalCta />
     </SiteLayout>
