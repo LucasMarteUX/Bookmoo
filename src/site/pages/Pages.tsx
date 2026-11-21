@@ -8,7 +8,7 @@ import { BAND_CEFR, SECTION_LABEL, SECTION_PLAN, type Section } from '@/lib/prof
 import { SiteLayout } from '../SiteLayout'
 import { useSeo } from '../ui'
 import { FaqSection, FinalCta } from '../sections'
-import { CompareTable, CreditsTable, Pricing } from '../blocks'
+import { CompareTable, Pricing } from '../blocks'
 import { LiveTutor } from '../LiveTutor'
 import { SUPPORT_EMAIL, TUTORS, tutorAvatar, tutorImg } from '../content'
 import { VMemory, VPhone, VScenes, VSpeed } from '../vignettes2'
@@ -49,10 +49,6 @@ export function SitePlanos() {
       <section className="sc-section">
         <SectionHead kicker="Comparar" title={<>Os planos, <i>lado a lado</i>.</>} text="Limites de importação, conversas com os tutores e tudo o que vem em cada plano." />
         <In><CompareTable /></In>
-      </section>
-      <section className="sc-section">
-        <SectionHead kicker="Créditos" title={<>Como funcionam <i>os créditos</i>.</>} text="Você usa créditos para criar com IA. Ler, ouvir, salvar vocabulário e praticar com o seu livro fazem parte do leitor, sem gastar nada." />
-        <In><CreditsTable /></In>
       </section>
       <FaqSection ids={['pagar', 'creditos', 'presente', 'cancelar']} />
     </SiteLayout>

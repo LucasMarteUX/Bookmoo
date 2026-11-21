@@ -143,14 +143,14 @@ function ShelfRow({ list, reverse, speed }: { list: typeof COVERS; reverse?: boo
   )
 }
 
-export function LibraryWall() {
+export function LibraryWall({ head = true }: { head?: boolean } = {}) {
   const a = COVERS.slice(0, 14), b = COVERS.slice(14, 27), c = COVERS.slice(27)
   return (
     <section id="biblioteca" className="pt-8 pb-10 md:pt-12 overflow-hidden scroll-mt-24">
-      <div className="px-5 mb-14 md:mb-16">
+      {head && <div className="px-5 mb-14 md:mb-16">
         <ChapterHead kicker="Biblioteca" title={<>Mais de 100 clássicos, <i>prontos para ler</i>.</>}
           text="Contos de fadas para quem está começando, Sherlock e Austen para quem quer ir longe. Cada livro com capa nova e nível indicado, do A1 ao C2." />
-      </div>
+      </div>}
       <div className="flex flex-col gap-2">
         <ShelfRow list={a} speed={70} />
         <ShelfRow list={b} speed={80} reverse />

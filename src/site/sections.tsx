@@ -60,7 +60,7 @@ export function CostTable() {
 export function FaqSection({ ids = FAQ_IDS, title = <>Dúvidas?<br />A gente responde.</> }: { ids?: string[]; title?: React.ReactNode }) {
   const blocks = DOCS.faq.pt.blocks.filter(b => b.id && ids.includes(b.id))
   return (
-    <section className="s-container py-28 md:py-36">
+    <section className="s-container pt-6 pb-28 md:pt-8 md:pb-36">
       <SectionHead center eyebrow="FAQ" title={title} width={460} className="mb-14" />
       <Reveal className="max-w-[648px] mx-auto"><Accordion items={blocks.map(b => ({ q: b.h, a: b.p.map((t, i) => <p key={i} className={i ? 'mt-2' : ''}>{t}</p>) }))} /></Reveal>
       <Reveal className="mt-8 text-center s-small">Ainda tem dúvidas? <a href="/faq" className="s-link" style={{ color: 'var(--site-ink)' }}>Veja todas as perguntas</a></Reveal>

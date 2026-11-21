@@ -149,8 +149,8 @@ export function SiteBiblioteca() {
   useSeo('Biblioteca · Upoonly', 'Mais de 100 clássicos em inglês com capa nova e nível indicado, e seus próprios EPUBs e PDFs.')
   return (
     <SiteLayout>
-      <Opening kicker="Biblioteca" title={<>Os clássicos que você <i>sempre quis ler</i>.</>} text="Obras em domínio público verificadas, com capa nova e nível indicado, do A1 ao C2." />
-      <LibraryWall />
+      <Opening kicker="Biblioteca" title={<>Os clássicos que você <i>sempre quis ler</i>.</>} text="Mais de 100 obras em domínio público, com capa nova e nível indicado. Contos de fadas para quem está começando, Sherlock e Austen para quem quer ir longe." />
+      <LibraryWall head={false} />
       <Block kicker="Por nível" title="Do conto de fadas ao Sherlock." text="Quem está começando encontra contos curtos. Quem quer ir longe encontra Austen, Dickens e Conan Doyle." visual={<VCovers />} />
       <Block flip kicker="Seus livros" title="Importe EPUB e PDF." text="Leia os seus próprios livros com todas as ferramentas do Upoonly. Eles ficam só na sua conta." visual={<VImport />} />
       <Block kicker="Presente" title="Um livro seu, para sempre." text="No plano Grátis você escolhe 1 livro da galeria e ele é seu para sempre." visual={<VGift />} />
