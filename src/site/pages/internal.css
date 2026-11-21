@@ -14,7 +14,7 @@
 .ip-opening-split{grid-template-columns:minmax(0,1fr) minmax(0,.9fr);align-items:center}
 .ip-opening-copy{max-width:780px}.ip-opening-split .ip-opening-copy{max-width:610px}
 .ip-label{font-size:13px;font-weight:550;color:var(--muted);margin-bottom:19px}
-.inside-upo :where(.ip-opening h1,.ip-heading h2,.ip-profile h2,.ip-editorial-grid h3,.ip-resource-pair h3,.ip-reader-body h2,.ip-levels strong){font-family:'Newsreader Variable',Georgia,serif;font-weight:400;font-optical-sizing:auto;letter-spacing:-.035em}
+.inside-upo :where(.ip-opening h1,.ip-heading h2,.ip-profile h2,.ip-editorial-grid h3,.ip-resource-pair h3,.ip-reader-body h2,.ip-levels strong){font-family:'Literata Variable',Georgia,serif;font-weight:400;font-optical-sizing:auto;letter-spacing:-.035em}
 .ip-opening h1{font-size:clamp(48px,5.65vw,82px);line-height:1.02;text-wrap:balance}
 .ip-lead,.ip-heading>p,.ip-prose p,.ip-editorial-grid p,.ip-profile p,.ip-resource-pair article>p{color:var(--muted);font-size:clamp(15px,1.4vw,17px);line-height:1.65}
 .ip-lead{margin-top:20px;max-width:56ch}

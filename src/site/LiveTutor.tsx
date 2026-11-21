@@ -98,8 +98,8 @@ export function BreathingTutor({ id, smile, className = '', style }: { id: strin
   const on = smile ?? auto
   return (
     <motion.div className={`relative ${className}`} style={{ transformOrigin: '50% 100%', ...style }}
-      animate={reduce ? undefined : { scaleY: [1, 1.012, 1], rotate: [0, 0.4, 0, -0.4, 0] }}
-      transition={{ duration: 4.2, repeat: Infinity, ease: 'easeInOut' }}>
+      animate={reduce ? undefined : { scaleY: [1, 1.006, 1] }}
+      transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}>
       <img src={tutorImg(id)} alt="" draggable={false} className="block h-full w-auto select-none" />
       <img src={tutorImg(id, true)} alt="" draggable={false} aria-hidden className="absolute inset-0 h-full w-auto select-none transition-opacity duration-500" style={{ opacity: on ? 1 : 0 }} />
     </motion.div>

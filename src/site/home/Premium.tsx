@@ -7,6 +7,7 @@ import { COVERS, coverSrc } from '../covers'
 import { Sidebar, type MockTheme } from '../app/Frame'
 import { MockDashboard } from '../app/MockDashboard'
 import { ScreenTour } from '../app/ScreenTour'
+import { ChapterHead } from '../story/Story'
 
 /* ---------------------------------------------------------------- Hero */
 
@@ -145,21 +146,18 @@ function ShelfRow({ list, reverse, speed }: { list: typeof COVERS; reverse?: boo
 export function LibraryWall() {
   const a = COVERS.slice(0, 14), b = COVERS.slice(14, 27), c = COVERS.slice(27)
   return (
-    <section id="biblioteca" className="py-24 md:py-36 overflow-hidden scroll-mt-24">
-      <div className="s-container grid gap-8 lg:grid-cols-[1.2fr_1fr] lg:items-end mb-12">
-        <SectionHead eyebrow="Biblioteca" title={<>Mais de 100 clássicos, <span className="italic">com capa nova</span> e nível indicado.</>} />
-        <Reveal delay={0.1}>
-          <p className="text-[17px] leading-relaxed" style={{ color: 'var(--site-muted)' }}>Contos de fadas para quem está começando, Sherlock e Austen para quem quer ir longe. Obras em domínio público verificadas, do A1 ao C2. E você ainda pode importar seus EPUBs e PDFs.</p>
-        </Reveal>
+    <section id="biblioteca" className="pt-8 pb-10 md:pt-12 overflow-hidden scroll-mt-24">
+      <div className="px-5 mb-14 md:mb-16">
+        <ChapterHead kicker="Biblioteca" title={<>Mais de 100 clássicos, <i>prontos para ler</i>.</>}
+          text="Contos de fadas para quem está começando, Sherlock e Austen para quem quer ir longe. Cada livro com capa nova e nível indicado, do A1 ao C2." />
       </div>
       <div className="flex flex-col gap-2">
         <ShelfRow list={a} speed={70} />
         <ShelfRow list={b} speed={80} reverse />
         <ShelfRow list={c} speed={64} />
       </div>
-      <Reveal className="mt-12 s-container flex flex-wrap justify-center gap-2">
-        <Btn to="/signup" arrow>Escolher meu livro grátis</Btn>
-        <Btn to="/planos" variant="white">Liberar a biblioteca inteira</Btn>
+      <Reveal className="mt-12 s-container flex flex-wrap justify-center gap-3">
+        <Btn to="/biblioteca" variant="white" arrow>Ver a biblioteca</Btn>
       </Reveal>
     </section>
   )

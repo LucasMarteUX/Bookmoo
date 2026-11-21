@@ -163,32 +163,28 @@ export function CycleToggle({ cycle, onChange }: { cycle: Cycle; onChange: (c: C
 
 export function PricingGrid({ cycle, compact }: { cycle: Cycle; compact?: boolean }) {
   return (
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="sc-plans">
       {PLANS.map((p, i) => {
         const hi = !!p.highlight
         const annual = cycle === 'anual' && p.priceCents > 0
         const monthly = annual ? annualMonthlyCents(p.priceCents) : p.priceCents
         const items = compact ? p.benefits.slice(0, 4) : p.benefits
         return (
-          <Reveal key={p.id} delay={i * 0.05} className="h-full">
-            <article className="site-plan" data-highlighted={hi}>
-              <div className="flex items-center justify-between"><p className="s-card-title">{p.name}</p>{hi && <span className="text-[11.5px] px-2 py-0.5 rounded-full" style={{ background: 'var(--site-ink)', color: '#fff' }}>Destaque</span>}</div>
-              <p className="s-small">{p.tagline.pt}</p>
-              <div className="mt-6 min-h-[82px]">
-                <AnimatePresence mode="wait" initial={false}>
-                  <motion.div key={`${cycle}-${p.id}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.16 }}>
-                    <p className="flex items-baseline gap-1.5"><span className="s-head text-[38px] tracking-[-0.03em]">{monthly ? formatBRL(monthly) : 'R$ 0'}</span><span className="s-small">/mês</span></p>
-                    <p className="s-small text-[13px]">{!p.priceCents ? 'Para sempre, sem cartão' : annual ? `${formatBRL(annualCents(p.priceCents))} por ano · economize ${formatBRL(p.priceCents * 12 - annualCents(p.priceCents))}` : 'Cobrado todo mês, cancele quando quiser'}</p>
-                  </motion.div>
-                </AnimatePresence>
-              </div>
-              <div className="h-px my-6" style={{ background: 'var(--site-line)' }} />
-              <p className="text-[13px] font-light" style={{ color: 'var(--site-muted)' }}>Incluído no plano</p>
-              <ul className="mt-3 flex flex-col gap-2.5 mb-8">
-                {items.map(b => <li key={b.pt} className="flex gap-2.5 text-[14px] leading-snug"><Check size={15} className="shrink-0 mt-0.5" />{b.pt}</li>)}
-              </ul>
-              <Link to={`/signup?plano=${p.id}${p.priceCents ? `&ciclo=${cycle}` : ''}`} className={`s-btn w-full mt-auto ${hi ? 's-btn-dark' : 's-btn-white'}`}>
-                {p.priceCents ? `Assinar ${p.name}${annual ? ' anual' : ''}` : 'Começar grátis'}
+          <Reveal key={p.id} delay={i * 0.06} className="sc-plan-cell">
+            <article className="sc-plan" data-hi={hi}>
+              {hi && <span className="sc-plan-badge">Mais escolhido</span>}
+              <p className="sc-plan-name">{p.name}</p>
+              <p className="sc-plan-tag">{p.tagline.pt}</p>
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.div key={`${cycle}-${p.id}`} className="sc-plan-price" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.18 }}>
+                  <p><b>{monthly ? formatBRL(monthly) : 'R$ 0'}</b><span>/mês</span></p>
+                  <small>{!p.priceCents ? 'Para sempre, sem cartão' : annual ? `${formatBRL(annualCents(p.priceCents))} por ano` : 'Cobrado todo mês'}</small>
+                </motion.div>
+              </AnimatePresence>
+              <p className="sc-plan-credits">{p.credits.toLocaleString('pt-BR')} créditos de IA por mês</p>
+              <ul>{items.map(b => <li key={b.pt}><Check size={15} strokeWidth={2} />{b.pt}</li>)}</ul>
+              <Link to={`/signup?plano=${p.id}${p.priceCents ? `&ciclo=${cycle}` : ''}`} className="sc-plan-btn" data-hi={hi}>
+                {p.priceCents ? `Assinar ${p.name}` : 'Começar grátis'}
               </Link>
             </article>
           </Reveal>

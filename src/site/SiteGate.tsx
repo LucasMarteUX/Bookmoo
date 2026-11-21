@@ -5,16 +5,22 @@ import { Capacitor } from '@capacitor/core'
 import { useAuth } from '@/contexts/AuthContext'
 
 const SiteHome = lazy(() => import('./pages/Home'))
-const SiteRecursos = lazy(() => import('./pages/Pages').then(m => ({ default: m.SiteRecursos })))
+const SiteRecursos = lazy(() => import('./story/FeaturePages').then(m => ({ default: m.SiteRecursos })))
+const SiteLeitor = lazy(() => import('./story/FeaturePages').then(m => ({ default: m.SiteLeitor })))
+const SiteIlustracoes = lazy(() => import('./story/FeaturePages').then(m => ({ default: m.SiteIlustracoes })))
+const SitePratica = lazy(() => import('./story/FeaturePages').then(m => ({ default: m.SitePratica })))
+const SiteEvolucao = lazy(() => import('./story/FeaturePages').then(m => ({ default: m.SiteEvolucao })))
+const SiteBiblioteca = lazy(() => import('./story/FeaturePages').then(m => ({ default: m.SiteBiblioteca })))
 const SiteTutores = lazy(() => import('./pages/Pages').then(m => ({ default: m.SiteTutores })))
 const SitePlanos = lazy(() => import('./pages/Pages').then(m => ({ default: m.SitePlanos })))
 const SiteProva = lazy(() => import('./pages/Pages').then(m => ({ default: m.SiteProva })))
 const SiteSobre = lazy(() => import('./pages/Pages').then(m => ({ default: m.SiteSobre })))
 
-export type SitePage = 'home' | 'recursos' | 'tutores' | 'planos' | 'prova' | 'sobre'
+export type SitePage = 'home' | 'recursos' | 'tutores' | 'planos' | 'prova' | 'sobre' | 'leitor' | 'ilustracoes' | 'pratica' | 'evolucao' | 'biblioteca'
 
 const PAGES: Record<SitePage, React.ComponentType> = {
   home: SiteHome, recursos: SiteRecursos, tutores: SiteTutores, planos: SitePlanos, prova: SiteProva, sobre: SiteSobre,
+  leitor: SiteLeitor, ilustracoes: SiteIlustracoes, pratica: SitePratica, evolucao: SiteEvolucao, biblioteca: SiteBiblioteca,
 }
 
 /** Rotas que têm versão pública (as do app com o mesmo caminho continuam para quem está logado). */

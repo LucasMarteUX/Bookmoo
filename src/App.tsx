@@ -92,6 +92,11 @@ export default function App() {
           <Route path="/recursos" element={<SiteOnly page="recursos" />} />
           <Route path="/tutores" element={<SiteOnly page="tutores" />} />
           <Route path="/sobre" element={<SiteOnly page="sobre" />} />
+          <Route path="/leitor" element={<SiteOnly page="leitor" />} />
+          <Route path="/ilustracoes" element={<SiteOnly page="ilustracoes" />} />
+          <Route path="/pratica" element={<SiteOnly page="pratica" />} />
+          <Route path="/evolucao" element={<SiteOnly page="evolucao" />} />
+          <Route path="/biblioteca" element={<SiteOnly page="biblioteca" />} />
           <Route
             path="/"
             element={

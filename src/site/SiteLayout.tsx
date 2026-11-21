@@ -7,8 +7,9 @@ import './site.css'
 import './site-shell.css'
 
 const navigation = [
-  { to: '/recursos', label: 'Recursos' },
+  { to: '/leitor', label: 'Leitor' },
   { to: '/tutores', label: 'Tutores' },
+  { to: '/biblioteca', label: 'Biblioteca' },
   { to: '/prova', label: 'Prova' },
   { to: '/planos', label: 'Planos' },
   { to: '/sobre', label: 'Sobre' },
@@ -17,10 +18,12 @@ const navigation = [
 const footerLinks = [
   { title: 'Explore', links: navigation },
   { title: 'Aprenda', links: [
-    { to: '/recursos#leitura', label: 'Leitura com áudio' },
-    { to: '/recursos#ilustracoes', label: 'Leitura ilustrada' },
-    { to: '/recursos#conversas', label: 'Conversação' },
-    { to: '/recursos#raio-x', label: 'Raio-X do inglês' },
+    { to: '/leitor', label: 'Leitor' },
+    { to: '/ilustracoes', label: 'Ilustrações' },
+    { to: '/pratica', label: 'Prática' },
+    { to: '/evolucao', label: 'Evolução e Raio-X' },
+    { to: '/biblioteca', label: 'Biblioteca' },
+    { to: '/recursos', label: 'Todos os recursos' },
   ] },
   { title: 'Ajuda', links: [
     { to: '/faq', label: 'Perguntas frequentes' },

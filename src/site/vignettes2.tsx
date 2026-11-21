@@ -8,7 +8,7 @@ import { tutorAvatar } from './content'
 
 const EASE = [0.2, 0.8, 0.2, 1] as const
 const ui = { fontFamily: '"Inter Variable", Inter, system-ui, sans-serif', color: '#15171C' } as const
-const display = { fontFamily: '"Newsreader Variable", Newsreader, Georgia, serif', letterSpacing: '-0.015em' } as const
+const display = { fontFamily: '"Literata Variable", Literata, Georgia, serif', letterSpacing: '-0.015em' } as const
 const serif = { fontFamily: '"Literata Variable", Literata, Georgia, serif' } as const
 const muted = '#636874'
 const G = { bg: '#E3F1E7', fg: '#2D6040' }, A = { bg: '#FBEEDB', fg: '#7A5121' }, B = { bg: '#E4ECF7', fg: '#2F4B73' }, Rr = { bg: '#F8E4E1', fg: '#8A3C33' }

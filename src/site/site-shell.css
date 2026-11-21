@@ -10,7 +10,7 @@
 .public-links a[aria-current=page] {color:var(--site-ink);font-weight:600;text-decoration:underline;text-underline-offset:7px}
 .public-links a:hover,.public-signin:hover,.public-menu-trigger:hover,.public-menu-top button:hover {background:var(--site-surface)}
 .public-account {justify-self:end;gap:6px}
-.public-register {display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:44px;padding:0 17px;border-radius:10px;background:var(--site-ink);color:var(--site-card);font-size:14px;font-weight:550;white-space:nowrap;transition:background-color var(--dur-fast),transform var(--dur-instant)}
+.public-register {display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:44px;padding:0 20px;border-radius:12px;background:var(--site-ink);color:var(--site-card);font-size:14px;font-weight:550;white-space:nowrap;transition:background-color var(--dur-fast),transform var(--dur-instant)}
 .public-register:hover {background:#303030}
 .public-register:active {transform:scale(.97)}
 .public-menu-trigger,.public-menu-top button {width:44px;height:44px;flex:none;align-items:center;justify-content:center;border-radius:9px}

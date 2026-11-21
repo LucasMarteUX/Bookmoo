@@ -26,7 +26,7 @@
   --site-dark-text: #EBEBEA;
   --site-dark-muted: #9B9A97;
 
-  --site-serif: 'Newsreader Variable', Georgia, serif;
+  --site-serif: 'Literata Variable', Georgia, serif;
   --site-head: 'Inter Variable', system-ui, sans-serif;
   --site-text: 'Inter Variable', system-ui, sans-serif;
 
@@ -44,7 +44,7 @@
 }
 
 .site .site-original-hero {
-  --site-serif: 'Alpha IBM Plex Serif', 'Newsreader Variable', Georgia, serif;
+  --site-serif: 'Alpha IBM Plex Serif', 'Literata Variable', Georgia, serif;
   --site-head: 'Alpha Stack Sans Headline', 'Inter Variable', system-ui, sans-serif;
   --site-text: 'Alpha Stack Sans Text', 'Inter Variable', system-ui, sans-serif;
   font-family: var(--site-text);
