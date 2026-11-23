@@ -11,8 +11,9 @@ export function ConversationPrelude() {
   const ref = useRef<HTMLElement>(null)
   const reduced = useReducedMotion()
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] })
-  const near = useTransform(scrollYProgress, [0, 1], ['30%', '-36%'])
-  const far = useTransform(scrollYProgress, [0, 1], ['-18%', '26%'])
+  // As pinturas sobem mais rápido que o texto (parallax): as próximas correm mais, as distantes menos.
+  const near = useTransform(scrollYProgress, [0, 1], [260, -320])
+  const far = useTransform(scrollYProgress, [0, 1], [140, -170])
   return (
     <section ref={ref} className="conversation-prelude" aria-label="Da leitura à conversa">
       <motion.img aria-hidden="true" alt="" loading="lazy" className="conversation-detail conversation-detail-ink" src="/site/home/margens.webp" style={reduced ? undefined : { y: far }}/>
@@ -91,8 +92,10 @@ function ShelfPrint({ index, progress }: { index: number; progress: MotionValue<
   const angle = useTransform(progress, [0, .52, 1], [offset * 6, 0, -offset * 3])
   return (
     <motion.figure className="shelf-print" style={reduced ? undefined : { y: rise, rotate: angle }}>
-      <img src={coverSrc(book.slug)} width="400" height="600" alt={book.title} loading="lazy" decoding="async"/>
-      <figcaption><cite lang="en">{book.title}</cite><span>{book.author} · {book.level}</span></figcaption>
+      <Link to={`/livro/${book.slug}`} className="shelf-link">
+        <img src={coverSrc(book.slug)} width="400" height="600" alt={book.title} loading="lazy" decoding="async"/>
+        <figcaption><cite lang="en">{book.title}</cite><span>{book.author} · {book.level}</span></figcaption>
+      </Link>
     </motion.figure>
   )
 }
@@ -104,7 +107,7 @@ export function LibraryShelf() {
     <section ref={ref} className="library-shelf" aria-labelledby="shelf-title">
       <div className="shelf-head">
         <div><p className="journey-label">Seleção da biblioteca</p><h2 id="shelf-title" className="journey-title">Que mundo você<br/>quer <i>abrir agora?</i></h2></div>
-        <Btn to="/biblioteca" arrow>Percorrer a biblioteca</Btn>
+        <Btn to="/livros" arrow>Percorrer a biblioteca</Btn>
       </div>
       <div className="shelf-prints">{shelf.map((book, i) => <ShelfPrint key={book.slug} index={i} progress={scrollYProgress}/>)}</div>
     </section>

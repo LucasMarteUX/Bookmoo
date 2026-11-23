@@ -28,6 +28,7 @@ import { PaywallHost } from '@/components/billing/Paywall'
 import { PlansPage } from '@/pages/billing/PlansPage'
 import { GiftPage } from '@/pages/billing/GiftPage'
 import { CheckoutReturn } from '@/pages/billing/CheckoutReturn'
+import { PaymentSuccess } from '@/pages/billing/PaymentSuccess'
 import { SubscriptionPage } from '@/pages/billing/SubscriptionPage'
 import { ConversePage } from '@/pages/ConversePage'
 import { InsightsPage } from '@/pages/InsightsPage'
@@ -83,6 +84,7 @@ export default function App() {
           <Route path="/planos" element={<VisitorGate page="planos"><ProtectedRoute><PlansPage /></ProtectedRoute></VisitorGate>} />
           <Route path="/presente" element={<ProtectedRoute><GiftPage /></ProtectedRoute>} />
           <Route path="/checkout/retorno" element={<ProtectedRoute><CheckoutReturn /></ProtectedRoute>} />
+          <Route path="/pagamento/sucesso" element={<PaymentSuccess />} />
           {/* Prova de proficiência: ambiente imersivo em tela cheia. */}
           <Route path="/prova/sessao" element={<ProtectedRoute><ProficiencyExam /></ProtectedRoute>} />
           <Route path="/terms" element={<LegalPage doc="terms" />} />
@@ -97,6 +99,8 @@ export default function App() {
           <Route path="/pratica" element={<SiteOnly page="pratica" />} />
           <Route path="/evolucao" element={<SiteOnly page="evolucao" />} />
           <Route path="/biblioteca" element={<SiteOnly page="biblioteca" />} />
+          <Route path="/livros" element={<SiteOnly page="livros" />} />
+          <Route path="/livro/:slug" element={<SiteOnly page="livro" />} />
           <Route
             path="/"
             element={

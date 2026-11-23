@@ -1,13 +1,10 @@
-import { Fragment, useEffect, useRef, useState } from 'react'
-import { animate, motion, useInView, useMotionValue, useMotionValueEvent, useReducedMotion, useScroll, useTransform } from 'motion/react'
+import { Fragment, useRef, useState } from 'react'
+import { motion, useMotionValueEvent, useReducedMotion, useScroll, useTransform } from 'motion/react'
 import { Link } from 'react-router-dom'
-import { Pause, Play, RotateCcw } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import { ImageDither } from '../ImageDither'
+import { QuadScreen } from '../QuadScreen'
 
 const excerpt = 'Oh dear! Oh dear! I shall be too late'.split(' ')
-const readingSeconds = 5.4
-const clock = (s: number) => `0:${String(Math.floor(s)).padStart(2, '0')}`
 
 const chapters = [
   ['Leia.', '/leitor', 'the-secret-garden', 'Cada palavra no seu contexto'],
@@ -29,74 +26,41 @@ function MosaicLine({ chapter, index }: { chapter: string[]; index: number }) {
   </div>
 }
 
-function ReadingExcerpt() {
-  const copy = useRef<HTMLDivElement>(null)
-  const inView = useInView(copy, { amount: .35 })
+/** Trecho do livro: as palavras acendem conforme a rolagem (sem áudio), no título e dentro do tablet. */
+function useScrollWord(target: React.RefObject<HTMLElement | null>, total: number) {
   const reduced = useReducedMotion()
-  const progress = useMotionValue(0)
-  const currentWord = useTransform(progress, value => Math.min(excerpt.length - 1, Math.floor(value * excerpt.length)))
-  const [tabVisible, setTabVisible] = useState(() => !document.hidden)
-  const [playback, setPlayback] = useState<'auto' | 'playing' | 'paused' | 'finished'>('auto')
-  const [word, setWord] = useState(0)
+  const { scrollYProgress } = useScroll({ target, offset: ['start 0.8', 'end 0.45'] })
+  const [word, setWord] = useState(reduced ? total - 1 : -1)
+  useMotionValueEvent(scrollYProgress, 'change', v => { if (!reduced) setWord(Math.min(total - 1, Math.floor(v * (total + 1)) - 1)) })
+  return word
+}
+
+function Excerpt({ word, open, onGloss, small }: { word: number; open?: boolean; onGloss?: () => void; small?: boolean }) {
+  return <>{excerpt.map((text, i) => <Fragment key={i}>
+    {i > 0 && ' '}
+    <span className="excerpt-word" data-read={i <= word} data-current={i === word}>
+      {i === excerpt.length - 1 && onGloss && !small
+        ? <><button type="button" aria-expanded={open} aria-controls="rabbit-gloss" onClick={onGloss}>{text}</button>!</>
+        : i === excerpt.length - 1 ? `${text}!` : text}
+    </span>
+  </Fragment>)}</>
+}
+
+function ReadingExcerpt({ word }: { word: number }) {
   const [open, setOpen] = useState(false)
-  const playing = inView && tabVisible && (playback === 'playing' || (playback === 'auto' && !reduced))
-  const highlight = playing || progress.get() > 0
+  return <div className="spread-copy">
+    <p className="journey-label">Alice's Adventures in Wonderland · Capítulo 1</p>
+    <h2 lang="en"><Excerpt word={word} open={open} onGloss={() => setOpen(!open)} /></h2>
+    <p id="rabbit-gloss" aria-live="polite">{open ? 'Atrasado · O Coelho Branco olha a hora e corre, com medo de chegar tarde.' : 'Role a página para ler junto. Toque na palavra sublinhada para descobrir o significado.'}</p>
+  </div>
+}
 
-  useEffect(() => {
-    const onVisibility = () => setTabVisible(!document.hidden)
-    document.addEventListener('visibilitychange', onVisibility)
-    return () => document.removeEventListener('visibilitychange', onVisibility)
-  }, [])
-
-  const [elapsed, setElapsed] = useState(0)
-  useMotionValueEvent(currentWord, 'change', setWord)
-  // Só o relógio da narração: a linha do tempo anda como um áudio, mas nada toca.
-  useMotionValueEvent(progress, 'change', v => setElapsed(Math.floor(v * readingSeconds)))
-  useEffect(() => {
-    if (!playing) return
-    const controls = animate(progress, 1, {
-      duration: (1 - progress.get()) * readingSeconds,
-      ease: 'linear',
-      onComplete: () => setPlayback('finished'),
-    })
-    return () => controls.stop()
-  }, [playing, progress])
-
-  function toggleReading() {
-    if (playing) {
-      setPlayback('paused')
-      return
-    }
-    if (playback === 'finished') progress.set(0)
-    setPlayback('playing')
-  }
-  function toggleGloss() {
-    if (playing) setPlayback('paused')
-    setOpen(!open)
-  }
-  const controlLabel = playing ? 'Pausar leitura guiada' : playback === 'finished' ? 'Reler o trecho' : 'Acompanhar leitura'
-
-  return <div ref={copy} className="spread-copy">
-    <h2 lang="en">{excerpt.map((text, i) => <Fragment key={i}>
-      {i > 0 && ' '}
-      <span className="excerpt-word" data-current={highlight && i === word}>
-        {i === excerpt.length - 1
-          ? <><button type="button" aria-expanded={open} aria-controls="rabbit-gloss" onClick={toggleGloss}>{text}</button>!</>
-          : text}
-      </span>
-    </Fragment>)}</h2>
-    <p id="rabbit-gloss" aria-live="polite">{open ? 'Atrasado · O Coelho Branco olha a hora e corre, com medo de chegar tarde.' : 'Toque na palavra sublinhada para descobrir o significado.'}</p>
-    <div className="excerpt-timeline">
-      <Button size="icon" variant="outline" type="button" aria-label={controlLabel} title={controlLabel} onClick={toggleReading}>
-        {playing ? <Pause size={16} aria-hidden /> : playback === 'finished' ? <RotateCcw size={16} aria-hidden /> : <Play size={16} aria-hidden />}
-      </Button>
-      <div className="excerpt-meter">
-        <div className="excerpt-meter-title"><span>Narração</span><small aria-hidden>{clock(elapsed)} / {clock(readingSeconds)}</small></div>
-        <div className="excerpt-track" role="progressbar" aria-label="Palavras acompanhadas" aria-valuenow={highlight ? word + 1 : 0} aria-valuemin={0} aria-valuemax={excerpt.length}>
-          <motion.span style={{ scaleX: progress }} />
-        </div>
-      </div>
-    </div>
+/** O que aparece na tela do tablet pintado: a mesma página no leitor, com a palavra do momento marcada. */
+function TabletPage({ word }: { word: number }) {
+  return <div className="tablet-page">
+    <p className="tablet-page-head">Alice's Adventures in Wonderland<span>Capítulo 1 · página 4</span></p>
+    <p className="tablet-page-text" lang="en">There was nothing so <i>very</i> remarkable in that; nor did Alice think it so <i>very</i> much out of the way to hear the Rabbit say to itself, “<Excerpt word={word} small />”</p>
+    <div className="tablet-page-word" data-on={word >= excerpt.length - 1}><b lang="en">late</b><span>/leɪt/</span><p>atrasado · depois da hora combinada</p></div>
   </div>
 }
 
@@ -104,12 +68,19 @@ export function StorySpread() {
   const section = useRef<HTMLElement>(null)
   const reduced = useReducedMotion()
   const { scrollYProgress } = useScroll({ target: section, offset: ['start end', 'end start'] })
-  const imageY = useTransform(scrollYProgress, [0, 1], ['-5%', '5%'])
-  const imageScale = useTransform(scrollYProgress, [0, 1], [1.21, 1.13])
+  const imageY = useTransform(scrollYProgress, [0, 1], ['-3%', '3%'])
+  const imageScale = useTransform(scrollYProgress, [0, 1], [1.08, 1.02])
+  const word = useScrollWord(section, excerpt.length)
   return <>
     <section ref={section} className="story-spread" id="primeira-pagina">
-      <ReadingExcerpt />
-      <figure className="garden-frame"><motion.img style={reduced ? undefined : { y: imageY, scale: imageScale }} src="/site/home/coelho-alice.webp" alt="O Coelho Branco, de colete vermelho, olha o celular na trilha da floresta" /><ImageDither /></figure>
+      <ReadingExcerpt word={word} />
+      <figure className="garden-frame">
+        <motion.div className="garden-art" style={reduced ? undefined : { y: imageY, scale: imageScale }}>
+          <img src="/site/home/mesa-alice.webp" alt="Pintura a óleo de uma mesa antiga com relógio de bolso, chá, cartas, uma pena e um tablet aberto na história de Alice" />
+          <QuadScreen quad={[[44.33, 34.64], [68.05, 35.33], [64.95, 57.85], [40.93, 56.3]]} w={600} h={740}><TabletPage word={word} /></QuadScreen>
+        </motion.div>
+        <ImageDither corners={['bl', 'tr']} />
+      </figure>
     </section>
     <nav className="story-verbs" aria-label="Explore as formas de aprender">{chapters.map((chapter,i)=><MosaicLine key={chapter[1]} chapter={chapter} index={i}/>)}</nav>
   </>

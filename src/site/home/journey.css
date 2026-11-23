@@ -115,9 +115,11 @@
 .practice-options button[data-state=right] b { background: #4f6a4a; color: #fff; }
 .practice-options button[data-state=wrong] { border-color: #a5584a; background: #f6ebe6; }
 .practice-options button[data-state=wrong] b { background: #a5584a; color: #fff; }
-.practice-feedback { min-height: 3.2em; margin: 16px 0 0; padding-left: 14px; border-left: 2px solid var(--journey-line); color: var(--journey-muted); font-size: 14px; line-height: 1.5; }
-.practice-feedback[data-right=true] { border-left-color: #4f6a4a; color: #33452f; }
-.practice-feedback[data-right=false] { border-left-color: #a5584a; }
+.practice-feedback { min-height: 3.2em; margin: 14px 0 0; color: var(--journey-muted); font-size: 13.5px; line-height: 1.5; }
+.practice-feedback:not([data-right]) { padding: 0 2px; }
+.practice-feedback[data-right] { padding: 12px 14px; border-radius: 8px; background: #f3f1e8; border-left: 0; }
+.practice-feedback[data-right=true] { background: #eef2e6; color: #33452f; }
+.practice-feedback[data-right=false] { background: #f6ebe6; color: #6b3a30; }
 @media (max-width: 760px) {
   .practice-head, .practice-board { grid-template-columns: 1fr; }
   .practice-plate { border-right: 0; border-bottom: 1px solid var(--journey-line); }
@@ -244,3 +246,42 @@
   .site .tutor-opening .st-tutor-index { max-width: none; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 18px; }
   .tutor-opening .chapter-options { flex-wrap: wrap; }
 }
+
+/* ============ Catálogo e perfil do livro */
+.books-levels { display: flex; flex-wrap: wrap; gap: 6px; }
+.books-levels button { min-height: 36px; padding: 0 13px; border-radius: 8px; border: 1px solid #c4c3b8; background: #faf9f4; font-size: 13px; font-weight: 550; color: #262822; cursor: pointer; }
+.books-levels button[aria-pressed=true] { background: #262822; border-color: #262822; color: #fff; }
+.books-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: clamp(18px, 2.4vw, 36px) clamp(14px, 2vw, 28px); max-width: 1380px; margin: 0 auto; padding: 0 var(--journey-gutter, 6vw) clamp(70px, 8vw, 130px); }
+.books-grid-small { grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 0; }
+.books-item { display: grid; gap: 4px; color: #292b26; text-decoration: none; }
+.books-item img { width: 100%; aspect-ratio: 2 / 3; object-fit: cover; border-radius: 3px; box-shadow: 0 18px 30px -20px rgba(60,40,20,.55); transition: transform .4s ease; margin-bottom: 8px; }
+.books-item:is(:hover, :focus-visible) img { transform: translateY(-4px) rotate(-1deg); }
+.books-item cite { font: 400 18px/1.15 var(--font-display), Georgia, serif; font-style: normal; }
+.books-item span { font-size: 12px; color: #575b4f; }
+.book-profile { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: clamp(32px, 6vw, 110px); align-items: center; max-width: 1280px; margin: 0 auto; padding: clamp(56px, 7vw, 120px) var(--journey-gutter, 6vw); }
+.book-profile-cover { margin: 0; }
+.book-profile-cover img { width: 100%; max-width: 420px; aspect-ratio: 2 / 3; object-fit: cover; display: block; margin-left: auto; box-shadow: 0 40px 60px -34px rgba(60,40,20,.6); border-radius: 3px; }
+.book-profile .journey-label a { text-decoration: underline; text-underline-offset: 3px; }
+.book-profile .journey-title { font-size: clamp(44px, 5.4vw, 92px); }
+.book-profile-author { margin: 14px 0 0; font: italic 400 22px/1.2 var(--font-display), Georgia, serif; color: #575b4f; }
+.book-profile-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 22px; }
+.book-profile-meta span { padding: 5px 10px; border-radius: 6px; background: #ebe7da; font-size: 12.5px; font-weight: 500; }
+.book-profile-synopsis { max-width: 46ch; margin: 22px 0 6px; font-size: 16.5px; line-height: 1.6; color: #3b3d36; }
+.book-profile-tools { list-style: none; padding: 0; margin: 28px 0 0; display: grid; gap: 10px; border-top: 1px solid #c9c8b9; padding-top: 18px; max-width: 46ch; }
+.book-profile-tools li { display: flex; gap: 10px; align-items: center; font-size: 14px; color: #575b4f; }
+.book-related { max-width: 1280px; margin: 0 auto; padding: 0 var(--journey-gutter, 6vw) clamp(70px, 8vw, 130px); }
+.book-related-all { display: inline-flex; align-items: center; gap: 8px; margin-top: 28px; font-size: 14px; font-weight: 550; color: #292b26; text-decoration: underline; text-underline-offset: 4px; }
+.shelf-link { color: inherit; text-decoration: none; display: block; }
+@media (max-width: 760px) {
+  .book-profile { grid-template-columns: 1fr; }
+  .book-profile-cover img { margin: 0 auto; max-width: 260px; }
+  .books-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .books-grid-small { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.book-profile .chapter-options { margin-top: 26px; }
+
+/* Sem linhas entre as seções da home: o papel corre contínuo. */
+.home-journey :is(.reading-light, .practice-passage, .illustration-atelier, .illustrated-chapter, .folio-plate, .sc-laptop-section, .conversation-prelude, .library-shelf, .st-tutors, .story-spread, .story-verbs) { border-top: 0 !important; border-bottom: 0 !important; }
+/* Footer na mesma cor do fundo, separado só pelo respiro. */
+.site .public-footer, .site.site .public-footer { background: var(--journey-paper, #f6f3eb) !important; border-top: 0 !important; }
+.site .public-colophon { border-top-color: #d8d5ca !important; }

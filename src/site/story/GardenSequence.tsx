@@ -23,7 +23,7 @@ function Fragment({ index, progress }: {index: number; progress: MotionValue<num
 export function GardenSequence() {
   const section = useRef<HTMLElement>(null)
   const reduced = useReducedMotion()
-  const {scrollYProgress} = useScroll({target:section,offset:['start start','end end']})
+  const {scrollYProgress} = useScroll({target:section,offset:['start 0.85','end end']})
   const inset = useTransform(scrollYProgress,[.78,1],['inset(48% 46% 48% 46%)','inset(0% 0% 0% 0%)'])
   const opacity = useTransform(scrollYProgress,[.79,.91],[0,1])
   return <section ref={section} className="garden-sequence" aria-label="Dentro da história">

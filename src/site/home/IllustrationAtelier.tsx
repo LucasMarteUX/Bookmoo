@@ -1,5 +1,5 @@
-import { useId, useRef, useState } from 'react'
-import { motion, useReducedMotion, useScroll, useTransform } from 'motion/react'
+import { useEffect, useId, useRef, useState } from 'react'
+import { motion, useMotionValueEvent, useReducedMotion, useScroll, useTransform } from 'motion/react'
 import { Button } from '@/components/ui/button'
 import { Btn } from '../ui'
 import { ImageDither } from '../ImageDither'
@@ -21,13 +21,20 @@ export function IllustrationAtelier() {
   const [displayed, setDisplayed] = useState<PlateId>('aquarela')
   const [requested, setRequested] = useState<PlateId[]>(['aquarela'])
   const reduce = useReducedMotion()
-  const { scrollYProgress } = useScroll({ target: section, offset: ['start end', 'end start'] })
-  const typeY = useTransform(scrollYProgress, [0, 1], [32, -30])
-  const frameY = useTransform(scrollYProgress, [0, 1], [46, -44])
-  const zoom = useTransform(scrollYProgress, [0, 0.5, 1], [1.08, 1, 1.045])
-  const reveal = useTransform(scrollYProgress, [0, 0.45, 0.76, 1], [
-    'inset(6% 9% 4% 4%)', 'inset(0% 0% 0% 0%)', 'inset(0% 0% 0% 0%)', 'inset(2% 3% 5% 4%)',
-  ])
+  // A seção "para" na tela (sticky) e os traços se trocam com a rolagem, como nos temas do leitor.
+  const { scrollYProgress } = useScroll({ target: section, offset: ['start start', 'end end'] })
+  const { scrollYProgress: enter } = useScroll({ target: section, offset: ['start end', 'start start'] })
+  const typeY = useTransform(enter, [0, 1], [32, 0])
+  const frameY = useTransform(enter, [0, 1], [46, 0])
+  const zoom = useTransform(scrollYProgress, [0, 1], [1.02, 1.1])
+  const reveal = useTransform(enter, [0, 0.8, 1], ['inset(6% 9% 4% 4%)', 'inset(0% 0% 0% 0%)', 'inset(0% 0% 0% 0%)'])
+  const [chosen, setChosen] = useState(false)
+  useEffect(() => { setRequested(plates.map(p => p.id)) }, [])
+  useMotionValueEvent(scrollYProgress, 'change', v => {
+    if (chosen || reduce) return
+    const id = plates[Math.min(plates.length - 1, Math.max(0, Math.floor(v * plates.length)))].id
+    if (id !== selected) select(id)
+  })
   const caption = plates.find(plate => plate.id === displayed)!
   const loaded = useRef(new Set<PlateId>())
 
@@ -39,8 +46,9 @@ export function IllustrationAtelier() {
 
   return (
     <section id="atelie" className="illustration-atelier" ref={section} aria-labelledby={titleId}>
+     <div className="atelier-stage">
       <motion.div className="atelier-copy" style={reduce ? undefined : { y: typeY }}>
-        <small>O ateliê de ilustrações</small>
+        <small>Escolha seu tema favorito</small>
         <h2 id={titleId}>Da tinta<br />à <i>imagem.</i></h2>
         <p>Jim avista um navio na enseada. A cena é a mesma. Escolha um traço e veja como muda a história que você imagina.</p>
       </motion.div>
@@ -70,7 +78,7 @@ export function IllustrationAtelier() {
             <div className="chapter-options atelier-options" role="group" aria-label="Técnica da ilustração">
               {plates.map(plate => (
                 <Button key={plate.id} type="button" variant={selected === plate.id ? 'default' : 'outline'}
-                  aria-pressed={selected === plate.id} aria-controls={imageId} onClick={() => select(plate.id)}>
+                  aria-pressed={selected === plate.id} aria-controls={imageId} onClick={() => { setChosen(true); select(plate.id) }}>
                   {plate.label}
                 </Button>
               ))}
@@ -79,6 +87,7 @@ export function IllustrationAtelier() {
           </div>
         </figcaption>
       </motion.figure>
+     </div>
     </section>
   )
 }

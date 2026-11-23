@@ -4,7 +4,8 @@ import { Btn } from '../ui'
 import './prologue.css'
 import { ImageDither } from '../ImageDither'
 
-const books = ['dracula', 'anne-of-green-gables', 'a-princess-of-mars', 'alices-adventures-in-wonderland']
+let introPlayed = false
+
 
 export function Prologue() {
   const hero = useRef<HTMLElement>(null)
@@ -13,20 +14,24 @@ export function Prologue() {
   const scale = useTransform(scrollYProgress,[0,1],[1,1.18])
   const y = useTransform(scrollYProgress,[0,1],['0%','16%'])
   const titleY = useTransform(scrollYProgress, [0, 1], ['0%', '-22%'])
+  // A abertura toca a cada carregamento da página (F5 / Ctrl+Shift+R), mas não ao voltar para a home navegando.
   const [intro, setIntro] = useState(() => {
-    try { return !location.hash && !sessionStorage.getItem('upo-flight-v1') && !matchMedia('(prefers-reduced-motion: reduce)').matches }
+    try { return !introPlayed && !location.hash && !matchMedia('(prefers-reduced-motion: reduce)').matches }
     catch { return false }
   })
   useEffect(() => {
+    introPlayed = true
     if (!intro) return
-    try { sessionStorage.setItem('upo-flight-v1', '1') } catch { /* private browsing */ }
-    const timer = window.setTimeout(() => setIntro(false), 4900)
+    const timer = window.setTimeout(() => setIntro(false), 4600)
     return () => clearTimeout(timer)
   }, [intro])
   return <>
     {intro && <div className="flight-intro" onClick={() => setIntro(false)}>
-      {books.map((slug, i) => <img className="flight-cover" alt="" key={slug} src={'/site/covers/' + slug + '.webp'} style={{animationDelay: i * 220 + 'ms'}} />)}
-      <div className="flight-cast" aria-hidden="true"><div className="flight-rabbit"><i/><b/></div><div className="flight-butterfly"><i/><b/></div></div>
+      <div className="flight-cast" aria-hidden="true">
+        <i className="fr fr-body"/><i className="fr fr-paw"/>
+        <span className="fr-head"><i className="fr fr-face"/><i className="fr fr-ears"/></span>
+        <div className="flight-butterfly"><i/><b/></div>
+      </div>
       <Btn variant="white" onClick={()=>setIntro(false)}>Pular abertura</Btn>
     </div>}
     <section ref={hero} data-waiting={intro} className="book-prologue">

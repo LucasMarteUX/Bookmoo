@@ -1,9 +1,13 @@
-.illustration-atelier {
+.illustration-atelier { position: relative; height: 230svh; }
+.atelier-stage {
+  position: sticky;
+  top: 64px;
+  min-height: calc(100svh - 64px);
   display: grid;
   grid-template-columns: minmax(0, .9fr) minmax(0, 1.25fr);
   align-items: center;
   column-gap: clamp(28px, 5vw, 100px);
-  padding: clamp(85px, 10vw, 175px) 5vw;
+  padding: clamp(24px, 4vh, 60px) 5vw;
   overflow: clip;
   color: #262821;
   background: #f6f3eb;
@@ -60,7 +64,8 @@
 }
 
 @media (max-width: 760px) {
-  .illustration-atelier { grid-template-columns: minmax(0, 1fr); gap: 24px; padding-block: 82px 75px; }
+  .illustration-atelier { height: 210svh; }
+  .atelier-stage { top: 58px; min-height: calc(100svh - 58px); grid-template-columns: minmax(0, 1fr); gap: 18px; padding-block: 20px; align-content: center; }
   .illustration-atelier .atelier-copy h2 { font-size: clamp(65px, 14vw, 90px); }
   .atelier-copy small { margin-bottom: 18px; }
   .atelier-plate figcaption { font-size: 12px; }
@@ -68,4 +73,9 @@
 
 @media (prefers-reduced-motion: reduce) {
   .atelier-layers img { transition: none; }
+}
+
+@media (max-height: 640px), (prefers-reduced-motion: reduce) {
+  .illustration-atelier { height: auto; }
+  .atelier-stage { position: relative; top: auto; min-height: auto; padding-block: 80px; }
 }

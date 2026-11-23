@@ -35,7 +35,8 @@ export type Quote = { kind: 'new' | 'upgrade' | 'same' | 'downgrade'; chargeCent
 
 export const billing = {
   quote: (plan: PlanId) => callFn<Quote>('billing', { action: 'quote', plan }, { paywall: false }),
-  checkout: (plan: PlanId, guardian = false) => callFn<{ url: string; intent: string }>('billing', { action: 'checkout', plan, guardian }, { paywall: false }),
+  checkout: (plan: PlanId, guardian = false, cycle: 'monthly' | 'annual' = 'monthly') => callFn<{ url: string; intent: string }>('billing', { action: 'checkout', plan, guardian, cycle }, { paywall: false }),
+  status: () => callFn<{ subscription: { plan_id: PlanId; status: string; billing_cycle: 'monthly' | 'annual'; current_period_end: string } | null; claimed: string[]; confirmed: boolean }>('billing', { action: 'status' }, { paywall: false }).finally(refreshEntitlements),
   intentStatus: (intent: string) => callFn<{ intent: { id: string; status: string; plan_id: PlanId; kind: string; bonus_credits: number } }>('billing', { action: 'intent-status', intent }, { paywall: false }),
   cancel: (reason?: string) => callFn<{ ok: true; until: string }>('billing', { action: 'cancel', reason }, { paywall: false }).finally(refreshEntitlements),
   resume: () => callFn<{ ok: true }>('billing', { action: 'resume' }, { paywall: false }).finally(refreshEntitlements),

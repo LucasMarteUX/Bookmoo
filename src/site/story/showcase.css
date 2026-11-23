@@ -248,7 +248,7 @@
 .site .sc-plan-badge { position: absolute; top: -11px; left: 50%; translate: -50% 0; font-size: 11.5px; font-weight: 500; padding: 4px 12px; border-radius: 99px; background: var(--site-ink); color: #fff; white-space: nowrap; }
 .site .sc-plan-name { font-family: var(--site-serif); font-size: 26px; letter-spacing: -.02em; }
 .site .sc-plan-tag { font-size: 13px; color: var(--site-muted); margin-top: 2px; }
-.site .sc-plan-price { margin-top: 20px; min-height: 58px; }
+.site .sc-plan-price { margin-top: 20px; min-height: 92px; display: flex; flex-direction: column; align-items: flex-start; }
 .site .sc-plan-price p { display: flex; align-items: baseline; gap: 4px; }
 .site .sc-plan-price b { font-size: 32px; font-weight: 600; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
 .site .sc-plan-price span, .site .sc-plan-price small { font-size: 13px; color: var(--site-muted); }
@@ -405,3 +405,9 @@
 .site .sc-hero .sc-arc-line { max-width: 640px; }
 .site .sc-hero .sc-arc-line { max-width: 760px; font-size: clamp(32px, 4.6vw, 62px); line-height: 1.12; }
 @media (max-width: 640px) { .site .sc-hero .sc-arc-line { font-size: 30px; } }
+
+/* Planos: economia do anual e selo dos recursos pagos. */
+.site .sc-plan-price span.sc-plan-save { display: inline-flex; align-items: center; gap: 4px; height: 24px; margin-top: 8px; padding: 0 8px; border-radius: 6px; background: #e3f1e7; color: #2d6040; font: 500 12px/1 var(--site-text); }
+.site .sc-plan-price span.sc-plan-save > span { font: inherit; color: inherit; }
+.site .premium-badge, .premium-badge { display: inline-flex; align-items: center; gap: 4px; margin-left: 8px; height: 20px; padding: 0 7px; border-radius: 6px; font: 600 10.5px/1 var(--site-text, inherit); letter-spacing: .04em; text-transform: uppercase; color: #6b4e16; background: #f3e6c4; }
+.site .sc-plan-price p b > span { font: inherit; color: inherit; }

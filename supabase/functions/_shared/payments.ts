@@ -1,20 +1,40 @@
 // Assinaturas: adaptador do gateway (Zouti hoje; Apple/Google no futuro) + máquina de estados.
 // Só o webhook muda o plano. O retorno do checkout nunca libera nada sozinho.
 //
-// Configuração (secrets das Edge Functions):
-//   ZOUTI_CHECKOUT_URL_ESSENCIAL / _PLUS / _PRO  → link de checkout de cada plano no painel da Zouti
-//   ZOUTI_PRODUCT_ESSENCIAL / _PLUS / _PRO       → id do produto/oferta (como vem no webhook), para reconhecer o plano
-//   ZOUTI_WEBHOOK_SECRET                          → segredo do webhook (HMAC-SHA256 do corpo, header x-zouti-signature)
-//   ZOUTI_REF_PARAM (opcional, padrão "src")      → parâmetro da URL que a Zouti devolve no webhook com o id da intenção
+// Modelo Zouti: DOIS links de checkout (mensal e anual). A pessoa escolhe Essencial, Plus ou Pro dentro do
+// checkout; o webhook diz quanto foi pago e é o VALOR que decide o plano (e confirma o ciclo).
 //
-// ⚠️ O formato do corpo do webhook da Zouti não é público. A leitura abaixo é tolerante (procura e-mail, status,
-// produto, valor e ids em qualquer nível do JSON). Validar com o "Testar webhook" do painel antes de vender.
+// Secrets das Edge Functions:
+//   ZOUTI_WEBHOOK_SECRET        → token do webhook (vai na URL: ?token=...) ou segredo HMAC (header x-zouti-signature)
+//   ZOUTI_CHECKOUT_URL_MONTHLY  → link mensal (padrão: o link de produção abaixo)
+//   ZOUTI_CHECKOUT_URL_ANNUAL   → link anual  (padrão: o link de produção abaixo)
+//   ZOUTI_REF_PARAM (opcional)  → parâmetro da URL que volta no webhook com o id da intenção (padrão "src")
+//
+// O corpo do webhook da Zouti não tem formato público: a leitura é tolerante (procura e-mail, valores, ids,
+// nomes e status em qualquer nível do JSON) e, quando o valor não fecha com nenhum plano, NÃO libera nada:
+// guarda o evento para revisão e avisa o admin.
 import { adminClient, log } from './tts.ts'
 import { emails } from './email.ts'
 
 export const PAID_PLANS = ['essencial', 'plus', 'pro'] as const
 export type PaidPlan = typeof PAID_PLANS[number]
-export type Plan = { id: string; name: string; price_cents: number; monthly_credits: number; monthly_minutes: number; rank: number }
+export type Cycle = 'monthly' | 'annual'
+export type Plan = { id: string; name: string; price_cents: number; annual_price_cents?: number | null; monthly_credits: number; monthly_minutes: number; rank: number }
+
+/** Preços aceitos (centavos). Anual = total do ano. Plus anual aceita 430,80 (checkout) e 431,04 (35,92 × 12). */
+export const PRICE_TABLE: Record<Cycle, Record<PaidPlan, number[]>> = {
+  monthly: { essencial: [2490], plus: [4490], pro: [8990] },
+  annual: { essencial: [23904], plus: [43080, 43104], pro: [86304] },
+}
+
+const DEFAULT_CHECKOUT: Record<Cycle, string> = {
+  monthly: 'https://pay.zouti.com.br/checkout?product_offer_id=prod_offer_v1hyuydjqi9osaghtixm78',
+  annual: 'https://pay.zouti.com.br/checkout?product_offer_id=prod_offer_dco7aoi40qrz8uhlywpd24',
+}
+const OFFER_CYCLE: Record<string, Cycle> = {
+  prod_offer_v1hyuydjqi9osaghtixm78: 'monthly',
+  prod_offer_dco7aoi40qrz8uhlywpd24: 'annual',
+}
 
 export type NormalizedEvent = {
   eventId: string
@@ -25,16 +45,18 @@ export type NormalizedEvent = {
   subscriptionRef: string | null
   chargeRef: string | null
   planId: string | null
+  cycle: Cycle | null
   amountCents: number | null
   feeCents: number | null
   method: string | null
+  /** Por que o plano não pôde ser decidido com segurança (vai para revisão manual). */
+  review: string | null
 }
 
 const env = (k: string) => (Deno.env.get(k) ?? '').trim()
 
-export function checkoutUrlFor(plan: string): string | null {
-  const url = env(`ZOUTI_CHECKOUT_URL_${plan.toUpperCase()}`)
-  return url || null
+export function checkoutUrlFor(cycle: Cycle): string {
+  return env(`ZOUTI_CHECKOUT_URL_${cycle.toUpperCase()}`) || DEFAULT_CHECKOUT[cycle]
 }
 
 export function buildCheckoutUrl(base: string, intentId: string, email: string, name?: string) {
@@ -44,6 +66,10 @@ export function buildCheckoutUrl(base: string, intentId: string, email: string, 
   u.searchParams.set('email', email)
   if (name) u.searchParams.set('name', name)
   return u.toString()
+}
+
+export function priceFor(plan: string, cycle: Cycle): number | null {
+  return (PRICE_TABLE[cycle] as Record<string, number[]>)[plan]?.[0] ?? null
 }
 
 // ---------------------------------------------------------------------------
@@ -92,53 +118,151 @@ function toCents(v: unknown): number | null {
   return Number.isInteger(n) && n > 1000 ? n : Math.round(n * 100) // valores grandes inteiros já vêm em centavos
 }
 
+/** Valor pago pelo formato real da Zouti (centavos): pagamento → amount_paid; pedido → payment_total.amount / amount_total.
+ *  Os juros do parcelamento vêm em interest_amount e são descontados para chegar ao preço do plano. */
+function zoutiAmounts(payload: Record<string, unknown>): number[] {
+  const rec = (v: unknown) => (v && typeof v === 'object' ? v as Record<string, unknown> : {})
+  // Zouti manda centavos inteiros; valor com casas decimais (24.9, "89,90") é reais.
+  const num = (v: unknown) => { const n = Number(String(v ?? '').replace(',', '.')); return Number.isFinite(n) && n > 0 ? (Number.isInteger(n) ? n : Math.round(n * 100)) : null }
+  const total = rec(payload.payment_total), pay = rec(payload.payment), plan = rec(payload.plan)
+  // Assinatura (sub_…): o preço do ciclo vem em plan.amount.
+  const paid = num(payload.amount_paid) ?? num(total.amount) ?? num(payload.amount_total) ?? num(pay.amount) ?? num(payload.amount) ?? num(plan.amount)
+  if (paid == null) return []
+  const interest = num(payload.interest_amount) ?? num(total.interest_amount) ?? num(pay.interest_amount) ?? 0
+  return [...new Set([paid - interest, paid])]
+}
+
+/** Todos os valores monetários do corpo, em centavos (um número inteiro pode estar em reais ou em centavos). */
+function amountCandidates(obj: unknown, out = new Set<number>(), depth = 0): Set<number> {
+  if (!obj || typeof obj !== 'object' || depth > 7) return out
+  for (const [k, v] of Object.entries(obj as Record<string, unknown>)) {
+    if (v && typeof v === 'object') { amountCandidates(v, out, depth + 1); continue }
+    if (!/amount|total|value|price|valor|subtotal|preco|preço/i.test(k) || /fee|tax|taxa|discount|desconto|installment_count|parcelas?$/i.test(k)) continue
+    const n = Number(String(v ?? '').replace(',', '.'))
+    if (!Number.isFinite(n) || n <= 0) continue
+    if (/cents|centavos/i.test(k)) out.add(Math.round(n))
+    else if (!Number.isInteger(n)) out.add(Math.round(n * 100))
+    else { out.add(n); out.add(n * 100) }
+  }
+  return out
+}
+
+function textOf(payload: unknown): string {
+  try { return JSON.stringify(payload).toLowerCase() } catch { return '' }
+}
+
+/** Nome do plano citado no corpo (produto, oferta, variação). Só conta se aparecer um único plano. */
+function planNameIn(text: string): PaidPlan | null {
+  const hits = PAID_PLANS.filter((p) => new RegExp(`(^|[^a-z])${p}([^a-z]|$)`).test(p === 'pro' ? text.replace(/product|produto|prod_|promo|process|profile|proof|provider/g, ' ') : text))
+  return hits.length === 1 ? hits[0] : null
+}
+
+/** Decide plano e ciclo pelo valor pago. */
+export function matchPlan(candidates: number[], installments: number | null, cycleHint: Cycle | null): { plan: PaidPlan; cycle: Cycle; exact: boolean } | { error: string } {
+  const cycles: Cycle[] = cycleHint ? [cycleHint, cycleHint === 'monthly' ? 'annual' : 'monthly'] : ['monthly', 'annual']
+  const exact = new Map<string, { plan: PaidPlan; cycle: Cycle }>()
+  for (const c of cycles) for (const p of PAID_PLANS) for (const price of PRICE_TABLE[c][p]) {
+    if (candidates.includes(price)) exact.set(`${c}:${p}`, { plan: p, cycle: c })
+  }
+  if (exact.size > 1) {
+    // Dois planos batem por valores diferentes do corpo: só aceita se a dica de ciclo desempatar num único plano.
+    const inHint = [...exact.values()].filter((m) => m.cycle === cycleHint)
+    if (inHint.length === 1) return { ...inHint[0], exact: true }
+    return { error: 'ambiguous_amount' }
+  }
+  if (exact.size === 1) return { ...[...exact.values()][0], exact: true }
+  return { error: 'amount_not_matched' }
+}
+
 function classify(type: string, status: string): NormalizedEvent['kind'] {
   const t = `${type} ${status}`.toLowerCase()
   if (/chargeback|disput|contest/.test(t)) return 'disputed'
   if (/estorn|refund|reembols/.test(t)) return 'refunded'
   if (/cancel/.test(t)) return 'canceled'
-  if (/recus|refused|declin|failed|falh|atras|overdue|unpaid|expired/.test(t)) return 'failed'
+  if (/recus|refused|declin|failed|falh|atras|overdue|unpaid|n[aã]o.pago|expired|expirad/.test(t)) return 'failed'
   if (/aprovad|approved|paid|pago|ativad|activ|renov|renew|complete/.test(t)) return 'paid'
   return 'ignored'
 }
 
-export function normalize(payload: Record<string, unknown>, headerEventId: string | null): NormalizedEvent {
-  const type = String(findValue(payload, ['event', 'type', 'event_type', 'evento']) ?? '')
-  const status = String(findValue(payload, ['status', 'payment_status', 'order_status', 'situacao']) ?? '')
+export function normalize(payload: Record<string, unknown>, headerEventId: string | null, cycleParam: string | null = null): NormalizedEvent {
+  const type = String((typeof payload.event === 'string' ? payload.event : null) ?? (typeof payload.event_type === 'string' ? payload.event_type : null) ?? findValue(payload, ['event', 'event_type', 'evento', 'event_name']) ?? '')
+  const status = String((typeof payload.status === 'string' ? payload.status : null) ?? findValue(payload, ['status', 'payment_status', 'order_status', 'situacao']) ?? '')
   const ref = env('ZOUTI_REF_PARAM') || 'src'
   const intent = String(findValue(payload, [ref, 'utm_content', 'external_reference', 'external_id', 'src']) ?? '')
-  const product = String(findValue(payload, ['product_id', 'offer_id', 'plan_id', 'productId', 'offerId']) ?? '')
-  const planId = PAID_PLANS.find((p) => env(`ZOUTI_PRODUCT_${p.toUpperCase()}`) && env(`ZOUTI_PRODUCT_${p.toUpperCase()}`) === product) ?? null
-  const chargeRef = String(findValue(payload, ['transaction_id', 'charge_id', 'order_id', 'payment_id', 'id']) ?? '') || null
-  const subRef = String(findValue(payload, ['subscription_id', 'subscriptionId', 'assinatura_id', 'contract_id']) ?? '') || null
+  const topId = typeof payload.id === 'string' ? payload.id : ''
+  const chargeRef = (typeof payload.order_id === 'string' && payload.order_id) || (topId.startsWith('ord_') ? topId : '') || String(findValue(payload, ['transaction_id', 'charge_id', 'order_id', 'payment_id', 'id']) ?? '') || null
+  const subRef = (typeof payload.id === 'string' && payload.id.startsWith('sub_') ? payload.id : '') || String(findValue(payload, ['subscription_id', 'subscriptionId', 'assinatura_id', 'contract_id']) ?? '') || null
+  const text = textOf(payload)
+  // Ciclo: parâmetro da URL do webhook (?ciclo=mensal|anual) > id da oferta no corpo > palavras no corpo.
+  const param = (cycleParam ?? '').toLowerCase()
+  let cycle: Cycle | null = /anual|annual|year/.test(param) ? 'annual' : /mensal|month/.test(param) ? 'monthly' : null
+  const interval = String((payload.plan as Record<string, unknown> | undefined)?.interval ?? '').toUpperCase()
+  if (!cycle && interval) cycle = /ANNUAL|YEAR/.test(interval) ? 'annual' : /MONTH/.test(interval) ? 'monthly' : null
+  if (!cycle) for (const [offer, c] of Object.entries(OFFER_CYCLE)) if (text.includes(offer)) { cycle = c; break }
+  if (!cycle && /\b(anual|annual|yearly)\b/.test(text)) cycle = 'annual'
+  const installments = Number(findValue(payload, ['installments', 'installment_count', 'parcelas', 'number_of_installments'])) || null
+  // Formato real da Zouti primeiro; a busca genérica só entra se ele não vier.
+  const official = zoutiAmounts(payload)
+  // Corpo da Zouti (tem account_id): só os campos oficiais. A busca genérica fica para formatos desconhecidos.
+  const fromZouti = typeof payload.account_id === 'string'
+  const candidates = official.length || fromZouti ? official : [...amountCandidates(payload)]
+  const kind = classify(type, status)
+  let planId: string | null = null
+  let review: string | null = null
+  let amountCents = official[official.length - 1] ?? toCents(findValue(payload, ['amount_paid', 'paid_amount', 'total', 'amount', 'value', 'price', 'valor']))
+  if (kind === 'paid') {
+    const m = matchPlan(candidates, installments, cycle)
+    const named = planNameIn(text)
+    if ('error' in m) review = m.error
+    else {
+      planId = m.plan
+      if (cycle && cycle !== m.cycle) review = 'cycle_mismatch'
+      cycle = m.cycle
+      if (named && named !== m.plan) review = 'plan_name_mismatch'
+      if (m.exact) amountCents = PRICE_TABLE[m.cycle][m.plan].find((p) => candidates.includes(p)) ?? amountCents
+    }
+  }
   return {
     eventId: headerEventId || String(findValue(payload, ['event_id', 'webhook_id']) ?? '') || `${type}:${chargeRef ?? ''}:${status}`,
-    kind: classify(type, status),
+    kind,
     type: `${type}|${status}`.slice(0, 120),
     email: String(findValue(payload, ['email', 'customer_email', 'buyer_email']) ?? '').toLowerCase() || null,
     intentId: /^[\da-f-]{36}$/i.test(intent) ? intent : null,
     subscriptionRef: subRef,
     chargeRef,
     planId,
-    amountCents: toCents(findValue(payload, ['amount', 'total', 'value', 'price', 'valor', 'amount_paid'])),
+    cycle,
+    amountCents,
     feeCents: toCents(findValue(payload, ['fee', 'fees', 'tax', 'taxa'])),
     method: String(findValue(payload, ['payment_method', 'method', 'forma_pagamento']) ?? '') || null,
+    review,
   }
 }
 
 // ---------------------------------------------------------------------------
 // Máquina de estados
 // ---------------------------------------------------------------------------
-const addMonth = (d: Date) => { const x = new Date(d); x.setMonth(x.getMonth() + 1); return x }
+const addMonths = (d: Date, n: number) => { const x = new Date(d); x.setMonth(x.getMonth() + n); return x }
+const periodEnd = (from: Date, cycle: Cycle) => addMonths(from, cycle === 'annual' ? 12 : 1)
 
 async function userByEmail(email: string): Promise<{ id: string; email: string } | null> {
   const { data } = await adminClient().rpc('user_id_by_email', { p_email: email })
   return data ? { id: data as string, email } : null
 }
 
-export async function applyEvent(ev: NormalizedEvent): Promise<string> {
+/** Pagamento que não dá para atribuir a um plano com segurança: nada é liberado e o admin é avisado. */
+export class NeedsReview extends Error { constructor(public reason: string) { super(reason) } }
+
+export async function applyEvent(ev: NormalizedEvent, opts: { forceUserId?: string; eventRowId?: string } = {}): Promise<string> {
   const db = adminClient()
   if (ev.kind === 'ignored') return 'ignored'
+
+  // A mesma cobrança nunca é aplicada duas vezes (a Zouti pode mandar "Pedido pago" e "Assinatura ativada" juntos).
+  if (ev.kind === 'paid' && ev.chargeRef) {
+    const { data: seen } = await db.from('payments').select('id').eq('provider', 'zouti').eq('provider_charge_id', ev.chargeRef).maybeSingle()
+    if (seen) return 'duplicate_charge'
+  }
+  if (ev.kind === 'paid' && ev.review) throw new NeedsReview(ev.review)
 
   // Quem é: pela intenção (mais seguro), pela assinatura já conhecida, ou pelo e-mail.
   const { data: intent } = ev.intentId
@@ -147,10 +271,26 @@ export async function applyEvent(ev: NormalizedEvent): Promise<string> {
   const { data: knownSub } = ev.subscriptionRef
     ? await db.from('subscriptions').select('*').eq('provider', 'zouti').eq('provider_subscription_id', ev.subscriptionRef).maybeSingle()
     : { data: null }
-  let userId: string | null = intent?.user_id ?? knownSub?.user_id ?? null
+  let userId: string | null = opts.forceUserId ?? intent?.user_id ?? knownSub?.user_id ?? null
   let email = ev.email
   if (!userId && email) userId = (await userByEmail(email))?.id ?? null
-  if (!userId) throw new Error('user_not_matched')
+  if (!userId) {
+    // Comprou antes de criar a conta: guarda e libera no primeiro login com este e-mail confirmado.
+    if (ev.kind === 'paid' && email && ev.planId && ev.cycle) {
+      const { error } = await db.from('pending_purchases').insert({
+        email, plan_id: ev.planId, billing_cycle: ev.cycle, amount_cents: ev.amountCents ?? priceFor(ev.planId, ev.cycle) ?? 0,
+        event_row_id: opts.eventRowId ?? null, provider_charge_id: ev.chargeRef, provider_subscription_id: ev.subscriptionRef,
+      })
+      if (error && !/duplicate/i.test(error.message)) throw new Error(`pending_insert: ${error.message}`)
+      return 'pending_signup'
+    }
+    if (ev.kind !== 'paid' && email) {
+      // Estorno/cancelamento de compra que ainda não foi reivindicada: some da fila.
+      if (ev.chargeRef) await db.from('pending_purchases').delete().eq('provider_charge_id', ev.chargeRef).is('claimed_at', null)
+      return 'pending_removed'
+    }
+    throw new NeedsReview('user_not_matched')
+  }
   if (!email) {
     const { data: u } = await db.auth.admin.getUserById(userId)
     email = u.user?.email ?? null
@@ -161,48 +301,69 @@ export async function applyEvent(ev: NormalizedEvent): Promise<string> {
 
   if (ev.kind === 'paid') {
     const now = new Date()
-    // Renovação de assinatura conhecida
-    if (knownSub && !intent) {
-      const start = knownSub.current_period_end && new Date(knownSub.current_period_end) > now ? new Date(knownSub.current_period_end) : now
+    // Renovação de assinatura conhecida (mesma recorrência na Zouti).
+    if (knownSub && !intent && ['active', 'past_due', 'expired'].includes(knownSub.status)) {
+      const cycle: Cycle = (knownSub.billing_cycle as Cycle) ?? 'monthly'
+      const end = knownSub.current_period_end ? new Date(knownSub.current_period_end) : now
+      // Segunda notificação da mesma renovação (eventos diferentes, mesmo ciclo): não estende duas vezes.
+      const earlyWindow = (cycle === 'annual' ? 45 : 10) * 86400_000
+      if (end.getTime() - now.getTime() > earlyWindow) {
+        await recordPayment(ev, userId, knownSub.id, null, 'renewal')
+        return 'renewal_already_applied'
+      }
+      const start = end > now ? end : now
       await db.from('subscriptions').update({
-        status: 'active', current_period_start: start.toISOString(), current_period_end: addMonth(start).toISOString(),
+        status: 'active', current_period_start: start.toISOString(), current_period_end: periodEnd(start, cycle).toISOString(),
         grace_until: null, updated_at: now.toISOString(),
       }).eq('id', knownSub.id)
       await recordPayment(ev, userId, knownSub.id, null, 'renewal')
       return 'renewed'
     }
-    const planId = intent?.plan_id ?? ev.planId ?? knownSub?.plan_id
+    const planId = ev.planId ?? intent?.plan_id ?? knownSub?.plan_id
+    const cycle: Cycle = ev.cycle ?? (intent?.billing_cycle as Cycle) ?? 'monthly'
     const plan = planOf(planId)
-    if (!plan || plan.id === 'free') throw new Error('plan_not_matched')
+    if (!plan || plan.id === 'free') throw new NeedsReview('plan_not_matched')
+    // A intenção diz um plano e o valor pago diz outro (trocou o plano dentro do checkout): vale o que foi pago.
+    if (intent && intent.plan_id !== plan.id) log('billing', 'intent_plan_differs', { intent: intent.plan_id, paid: plan.id })
     if (intent?.status === 'paid') return 'duplicate_intent'
+    const priceCents = priceFor(plan.id, cycle) ?? plan.price_cents
 
-    // Já tem outra assinatura viva paga? (dois checkouts) → mantém a mais alta e alerta para estorno.
     const { data: live } = await db.from('subscriptions').select('*').eq('user_id', userId).in('status', ['active', 'past_due']).maybeSingle()
-    if (live && live.id !== intent?.from_subscription_id && live.provider !== 'admin') {
-      await emails.adminAlert('Pagamento duplicado', `<p>${email} pagou ${plan.name} tendo assinatura ativa (${live.plan_id}). Estornar um dos pagamentos.</p>`)
-      await recordPayment(ev, userId, live.id, intent?.id ?? null, 'new')
-      return 'duplicate_subscription'
+    if (live && live.provider !== 'admin') {
+      // Mesma compra notificada de novo por outro evento (ex.: "Pedido pago" + "Assinatura ativada").
+      const fresh = now.getTime() - new Date(live.created_at).getTime() < 72 * 3600_000
+      if (live.plan_id === plan.id && live.billing_cycle === cycle && fresh) {
+        if (!live.provider_subscription_id && ev.subscriptionRef) await db.from('subscriptions').update({ provider_subscription_id: ev.subscriptionRef }).eq('id', live.id)
+        return 'duplicate_event'
+      }
+      const cur = planOf(live.plan_id)
+      const isUpgrade = !!cur && (plan.rank > cur.rank || (plan.rank === cur.rank && live.billing_cycle === 'monthly' && cycle === 'annual'))
+      if (!isUpgrade && live.id !== intent?.from_subscription_id) {
+        await emails.adminAlert('Pagamento duplicado', `<p>${email} pagou ${plan.name} (${cycle}) tendo assinatura ativa (${live.plan_id}, ${live.billing_cycle}). Estornar um dos pagamentos.</p>`)
+        await recordPayment(ev, userId, live.id, intent?.id ?? null, 'new')
+        return 'duplicate_subscription'
+      }
     }
     // Upgrade (ou cortesia do admin): encerra a anterior só agora que a nova está paga.
     if (live) {
       await db.from('subscriptions').update({ status: 'canceled', canceled_at: now.toISOString(), current_period_end: now.toISOString(), updated_at: now.toISOString() }).eq('id', live.id)
-      if (live.provider === 'zouti') await emails.adminAlert('Cancelar recorrência antiga na Zouti', `<p>${email} fez upgrade de ${live.plan_id} para ${plan.id}. Cancele a recorrência antiga (${live.provider_subscription_id ?? 'sem id'}) no painel da Zouti, se ela não for cancelada automaticamente.</p>`)
+      if (live.provider === 'zouti') await emails.adminAlert('Cancelar recorrência antiga na Zouti', `<p>${email} mudou de ${live.plan_id} (${live.billing_cycle}) para ${plan.id} (${cycle}). Cancele a recorrência antiga (${live.provider_subscription_id ?? 'sem id'}) no painel da Zouti, se ela não for cancelada automaticamente.</p>`)
     }
     const { data: sub, error } = await db.from('subscriptions').insert({
-      user_id: userId, plan_id: plan.id, status: 'active', price_cents: plan.price_cents, provider: 'zouti',
-      provider_subscription_id: ev.subscriptionRef, current_period_start: now.toISOString(), current_period_end: addMonth(now).toISOString(),
+      user_id: userId, plan_id: plan.id, status: 'active', price_cents: priceCents, provider: 'zouti', billing_cycle: cycle,
+      provider_subscription_id: ev.subscriptionRef, current_period_start: now.toISOString(), current_period_end: periodEnd(now, cycle).toISOString(),
     }).select('*').single()
     if (error) throw new Error(`subscription_insert: ${error.message}`)
     if (intent) await db.from('checkout_intents').update({ status: 'paid' }).eq('id', intent.id)
     await db.from('user_accounts').update({ onboarding_step: 'done', updated_at: now.toISOString() }).eq('user_id', userId).neq('onboarding_step', 'complete_profile')
-    // Período novo com os créditos do plano + bônus do upgrade.
+    // Período novo com os créditos do plano (no anual, mês a mês) + bônus do upgrade.
     const { data: period } = await db.rpc('ensure_period', { p_user: userId })
     if (intent?.bonus_credits && period) {
       await db.from('credit_periods').update({ bonus_credits: (period as { bonus_credits: number }).bonus_credits + intent.bonus_credits }).eq('id', (period as { id: string }).id)
       await db.from('credit_ledger').insert({ user_id: userId, period_id: (period as { id: string }).id, unit: 'credits', delta: intent.bonus_credits, kind: 'bonus', operation: 'upgrade_proration' })
     }
-    await recordPayment(ev, userId, sub.id, intent?.id ?? null, intent?.kind === 'upgrade' ? 'upgrade' : 'new')
-    if (email) await emails.paymentConfirmed(email, plan.name, ev.amountCents ?? plan.price_cents, plan.monthly_credits + (intent?.bonus_credits ?? 0))
+    await recordPayment(ev, userId, sub.id, intent?.id ?? null, intent?.kind === 'upgrade' || (live && live.provider !== 'admin') ? 'upgrade' : 'new')
+    if (email) await emails.paymentConfirmed(email, plan.name, ev.amountCents ?? priceCents, plan.monthly_credits + (intent?.bonus_credits ?? 0))
     return 'activated'
   }
 
@@ -224,10 +385,11 @@ export async function applyEvent(ev: NormalizedEvent): Promise<string> {
   const now = new Date().toISOString()
   await db.from('subscriptions').update({ status: ev.kind === 'disputed' ? 'disputed' : 'refunded', current_period_end: now, updated_at: now }).eq('id', sub.id)
   if (ev.chargeRef) await db.from('payments').update({ status: ev.kind === 'disputed' ? 'disputed' : 'refunded' }).eq('provider', 'zouti').eq('provider_charge_id', ev.chargeRef)
-  await db.from('payments').insert({
+  const { error: refundErr } = await db.from('payments').insert({
     user_id: userId, subscription_id: sub.id, provider: 'zouti', provider_charge_id: `${ev.chargeRef ?? ev.eventId}:${ev.kind}`,
     amount_cents: -(ev.amountCents ?? sub.price_cents), status: ev.kind === 'disputed' ? 'disputed' : 'refunded', kind: 'refund', paid_at: now,
   })
+  if (refundErr && /duplicate/i.test(refundErr.message)) return `${ev.kind}_duplicate`
   if (ev.kind === 'disputed') {
     await db.from('user_accounts').update({ flagged: true, flag_reason: 'chargeback', updated_at: now }).eq('user_id', userId)
     await emails.adminAlert('Chargeback', `<p>${email}: assinatura ${sub.plan_id} contestada. Conta sinalizada.</p>`)
@@ -235,6 +397,23 @@ export async function applyEvent(ev: NormalizedEvent): Promise<string> {
     await emails.refunded(email, ev.amountCents ?? sub.price_cents)
   }
   return ev.kind
+}
+
+/** Libera compras feitas antes de existir a conta (chamado no login, com o e-mail já confirmado). */
+export async function claimPending(userId: string, email: string): Promise<string[]> {
+  const db = adminClient()
+  const { data: rows } = await db.from('pending_purchases').select('*').ilike('email', email).is('claimed_at', null).order('created_at')
+  const results: string[] = []
+  for (const row of rows ?? []) {
+    const ev: NormalizedEvent = {
+      eventId: `claim:${row.id}`, kind: 'paid', type: 'claim', email, intentId: null, subscriptionRef: row.provider_subscription_id,
+      chargeRef: row.provider_charge_id, planId: row.plan_id, cycle: row.billing_cycle, amountCents: row.amount_cents, feeCents: null, method: null, review: null,
+    }
+    const r = await applyEvent(ev, { forceUserId: userId })
+    await db.from('pending_purchases').update({ claimed_by: userId, claimed_at: new Date().toISOString() }).eq('id', row.id)
+    results.push(r)
+  }
+  return results
 }
 
 async function recordPayment(ev: NormalizedEvent, userId: string, subId: string, intentId: string | null, kind: 'new' | 'renewal' | 'upgrade') {

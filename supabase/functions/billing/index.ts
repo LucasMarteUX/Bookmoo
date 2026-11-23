@@ -2,10 +2,10 @@
 // downgrade, reembolso (arrependimento) e status da intenção (tela de retorno do pagamento).
 import { adminClient, corsHeaders, getUser, json, log } from '../_shared/tts.ts'
 import { rateLimit } from '../_shared/rate.ts'
-import { buildCheckoutUrl, checkoutUrlFor, PAID_PLANS, upgradeQuote, type Plan } from '../_shared/payments.ts'
+import { buildCheckoutUrl, checkoutUrlFor, claimPending, PAID_PLANS, priceFor, upgradeQuote, type Cycle, type Plan } from '../_shared/payments.ts'
 import { emails } from '../_shared/email.ts'
 
-type Body = { action?: string; plan?: string; intent?: string; guardian?: boolean; reason?: string }
+type Body = { action?: string; plan?: string; cycle?: string; intent?: string; guardian?: boolean; reason?: string }
 
 class BillingError extends Error { constructor(public code: string, public status = 400) { super(code) } }
 
@@ -58,18 +58,32 @@ async function handle(userId: string, email: string, name: string | undefined, c
         kind = 'upgrade'
         quote = upgradeQuote(live, await currentPeriod(), next)
       }
-      const base = checkoutUrlFor(next.id)
-      if (!base) throw new BillingError('billing_not_configured', 503)
+      const cycle: Cycle = b.cycle === 'annual' ? 'annual' : 'monthly'
+      const base = checkoutUrlFor(cycle)
       // Uma intenção aberta por pessoa.
       await db.from('checkout_intents').update({ status: 'canceled' }).eq('user_id', userId).eq('status', 'open')
       const { data: intent, error } = await db.from('checkout_intents').insert({
-        user_id: userId, plan_id: next.id, kind, amount_cents: next.price_cents, proration_cents: quote.discountCents,
+        user_id: userId, plan_id: next.id, kind, billing_cycle: cycle, amount_cents: priceFor(next.id, cycle) ?? next.price_cents, proration_cents: quote.discountCents,
         bonus_credits: quote.bonusCredits, from_subscription_id: kind === 'upgrade' ? live!.id : null,
       }).select('*').single()
       if (error) throw new BillingError('intent_failed', 500)
       const url = buildCheckoutUrl(base, intent.id, email, name)
       await db.from('checkout_intents').update({ checkout_url: url }).eq('id', intent.id)
-      return { url, intent: intent.id, kind, ...quote }
+      return { url, intent: intent.id, kind, cycle, ...quote }
+    }
+
+    case 'claim': {
+      // Compra feita na Zouti antes de criar a conta (ou com a conta deslogada): libera pelo e-mail confirmado.
+      if (!confirmed) return { claimed: [], needsConfirmation: true }
+      const claimed = await claimPending(userId, email)
+      return { claimed }
+    }
+
+    case 'status': {
+      // Tela de sucesso: o plano já foi liberado pelo webhook?
+      const claimed = confirmed ? await claimPending(userId, email) : []
+      const { data: sub } = await db.from('subscriptions').select('plan_id, status, billing_cycle, current_period_end, created_at').eq('user_id', userId).in('status', ['active', 'past_due']).order('created_at', { ascending: false }).limit(1).maybeSingle()
+      return { subscription: sub, claimed, confirmed }
     }
 
     case 'intent-status': {

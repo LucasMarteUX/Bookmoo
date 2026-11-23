@@ -63,7 +63,8 @@ export function Login({ mode = 'login' }: { mode?: Mode }) {
   useEffect(() => {
     // Em desenvolvimento, ?preview mostra a tela mesmo logado (para revisar o visual).
     const preview = import.meta.env.DEV && new URLSearchParams(window.location.search).has('preview')
-    if (!authLoading && session && !preview) navigate('/', { replace: true })
+    const next = new URLSearchParams(window.location.search).get('next')
+    if (!authLoading && session && !preview) navigate(next && next.startsWith('/') && !next.startsWith('//') ? next : '/', { replace: true })
   }, [authLoading, session, navigate])
 
   useEffect(() => { setError(''); setMessage('') }, [mode])

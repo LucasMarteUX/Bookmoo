@@ -34,7 +34,7 @@ interface ReaderSettingsState {
 export const useReaderSettings = create<ReaderSettingsState>()(
   persist(
     (set) => ({
-      theme: 'light',
+      theme: 'sepia',
       fontSize: 18,
       lineHeight: 1.8,
       showHighlights: true,

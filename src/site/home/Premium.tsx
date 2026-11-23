@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 // Seções principais da Home: hero com capas, tours do app em tamanho real (home, leitor, depois da leitura) e a estante.
 import { useEffect, useRef, useState } from 'react'
 import { motion, useReducedMotion, useScroll, useSpring, useTransform, type MotionValue } from 'motion/react'
@@ -127,7 +128,7 @@ function ShelfRow({ list, reverse, speed }: { list: typeof COVERS; reverse?: boo
     <div className="s-marquee">
       <div className="s-marquee-track !gap-5 py-4" style={{ animationDuration: `${speed}s`, animationDirection: reverse ? 'reverse' : 'normal' }}>
         {[...list, ...list].map((c, i) => (
-          <figure key={c.slug + i} className="w-[150px] md:w-[170px] shrink-0 group">
+          <Link key={c.slug + i} to={`/livro/${c.slug}`} aria-hidden={i >= list.length || undefined} tabIndex={i >= list.length ? -1 : undefined} className="block w-[150px] md:w-[170px] shrink-0 group">
             <div className="relative rounded-[6px] overflow-hidden transition-transform duration-500 group-hover:-translate-y-2 group-hover:rotate-[-1deg]" style={{ boxShadow: '0 24px 40px -22px rgba(60,40,20,.6), 0 2px 6px -2px rgba(60,40,20,.2)' }}>
               <img src={coverSrc(c.slug)} alt={`Capa de ${c.title}`} className="w-full aspect-[2/3] object-cover block" loading="lazy" />
               <span className="absolute top-2 left-2 px-1.5 py-0.5 rounded text-[10.5px] s-head font-medium bg-white/90">{c.level}</span>
@@ -136,7 +137,7 @@ function ShelfRow({ list, reverse, speed }: { list: typeof COVERS; reverse?: boo
               <p className="s-head text-[13.5px] font-medium leading-tight truncate">{c.title}</p>
               <p className="text-[12px] truncate" style={{ color: 'var(--site-muted)' }}>{c.author}</p>
             </figcaption>
-          </figure>
+          </Link>
         ))}
       </div>
     </div>
@@ -157,7 +158,7 @@ export function LibraryWall({ head = true }: { head?: boolean } = {}) {
         <ShelfRow list={c} speed={64} />
       </div>
       <Reveal className="mt-12 s-container flex flex-wrap justify-center gap-3">
-        <Btn to="/biblioteca" variant="white" arrow>Ver a biblioteca</Btn>
+        <Btn to="/livros" variant="white" arrow>Ver todos os livros</Btn>
       </Reveal>
     </section>
   )

@@ -52,7 +52,7 @@ const TEEN: SpeakerVoice = { gender: 'female', pitch: 1.2, deEssDb: 4, prefer: [
 const TEEN_BOY: SpeakerVoice = { gender: 'male', pitch: 1.18, deEssDb: 3.5, prefer: ['am_liam', 'am_puck', 'am_echo'] }
 
 export const CHARACTERS: Character[] = [
-  { id: 'bookmoo-mulher', name: 'Bia', pt: 'Mulher', en: 'Woman', voice: WOMAN, folder: 'bia-pintura', tint: '#F2D5C8', zoomK: 0.86, gestures: true, painted: 'bia', baseAngleZ: 0, exprSwap: { shy: 'smile' } },
+  { id: 'bookmoo-mulher', name: 'Bia', pt: 'Mulher', en: 'Woman', voice: WOMAN, folder: 'bia-pintura', tint: '#F2D5C8', zoomK: 0.97, gestures: true, painted: 'bia', baseAngleZ: 0, exprSwap: { shy: 'smile' } },
   { id: 'bookmoo-homem', name: 'Luck', pt: 'Homem', en: 'Man', voice: MAN, folder: 'luck-pintura', tint: '#CFE3E3', zoomK: 0.89, gestures: true, painted: 'luck', baseAngleZ: 0 },
   // Yuno pintada (gola-v4). A versão anterior continua em public/characters/bookmoo/yuno/: para voltar, troque por
   // folder: 'yuno', appModel: true, baseAngleZ: -4 e tire painted.

@@ -248,7 +248,7 @@ export async function fetchReaderSettings(supabase: SupabaseClient, userId: stri
   const { data, error } = await supabase.from('reader_settings').select('*').eq('user_id', userId).maybeSingle()
   if (error || !data) return null
   return {
-    theme: (data.theme as 'light' | 'sepia' | 'dark') ?? 'dark',
+    theme: (data.theme as 'light' | 'sepia' | 'dark') ?? 'sepia',
     fontSize: typeof data.font_size === 'number' ? data.font_size : 18,
     lineHeight: typeof data.line_height === 'number' ? data.line_height : 1.8,
     showHighlights: data.show_highlights !== false,

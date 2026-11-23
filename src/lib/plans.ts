@@ -73,6 +73,15 @@ export const ANNUAL_DISCOUNT = 0.2
 export const annualCents = (monthlyCents: number) => Math.round(monthlyCents * 12 * (1 - ANNUAL_DISCOUNT))
 export const annualMonthlyCents = (monthlyCents: number) => Math.round(annualCents(monthlyCents) / 12)
 
+/** Checkout da Zouti: um link para todos os planos mensais e outro para os anuais (o valor pago define o plano). */
+export type BillingCycle = 'mensal' | 'anual'
+export const ZOUTI_CHECKOUT: Record<BillingCycle, string> = {
+  mensal: 'https://pay.zouti.com.br/checkout?product_offer_id=prod_offer_v1hyuydjqi9osaghtixm78',
+  anual: 'https://pay.zouti.com.br/checkout?product_offer_id=prod_offer_dco7aoi40qrz8uhlywpd24',
+}
+/** Quanto o anual economiza por ano em relação a 12 mensalidades. */
+export const annualSavingsCents = (monthlyCents: number) => monthlyCents * 12 - annualCents(monthlyCents)
+
 export function formatBRL(cents: number) {
   return (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 }

@@ -3,7 +3,8 @@ import { useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { Check, Minus, Mic, BookOpen, Sparkles, Library, MessagesSquare, TrendingUp, Wand2, Dumbbell, Crown, Clock, FileUp, Gift, Brain, Award, Image as ImageIcon, Repeat } from 'lucide-react'
-import { PLANS, COST_TABLE, formatBRL, annualCents, annualMonthlyCents, type PlanId } from '@/lib/plans'
+import { PLANS, COST_TABLE, formatBRL, annualCents, annualMonthlyCents, annualSavingsCents, ZOUTI_CHECKOUT, type PlanId } from '@/lib/plans'
+import { CountUp } from '@/components/ui/count-up'
 import { Fit } from './vignettes2'
 import { VBalloon, VGift, VGoal, VGrammar, VImport, VMemory, VMosaic, VNotes, VPhone, VQuiz, VScenes, VSpeed, VStats, VStory, VStylesGrid, VThemes } from './vignettes2'
 import { VComic, VCovers, VDictation, VLevels, VPost, VProva, VRaioX, VReader, VSpeak, VTutorChat, VVocab, VWord } from './vignettes'
@@ -147,16 +148,22 @@ export function TutorStage() {
 
 type Cycle = 'mensal' | 'anual'
 
+/** Mensal/Anual no mesmo desenho do controle segmentado do app. */
 export function CycleToggle({ cycle, onChange }: { cycle: Cycle; onChange: (c: Cycle) => void }) {
   return (
-    <div role="radiogroup" aria-label="Ciclo de cobrança" className="inline-flex items-center p-1 rounded-full" style={{ background: 'var(--site-surface)' }}>
-      {(['mensal', 'anual'] as Cycle[]).map(c => (
-        <button key={c} type="button" role="radio" aria-checked={cycle === c} onClick={() => onChange(c)} className="relative min-h-11 px-4 rounded-full text-[14px] flex items-center gap-2">
-          {cycle === c && <motion.span layoutId="cycle-pill" className="absolute inset-0 rounded-full" style={{ background: 'var(--site-card)', boxShadow: '0 1px 3px rgba(25,25,25,.1)' }} transition={{ type: 'spring', stiffness: 420, damping: 34 }} />}
-          <span className="relative">{c === 'mensal' ? 'Mensal' : 'Anual'}</span>
-          {c === 'anual' && <span className="relative text-[11.5px] px-1.5 py-0.5 rounded-full" style={{ background: '#E3F1E7', color: '#2D6040' }}>−20%</span>}
-        </button>
-      ))}
+    <div role="radiogroup" aria-label="Ciclo de cobrança" className="inline-flex p-0.5 rounded-[10px] gap-0.5 w-[280px]" style={{ background: '#e8e4d8' }}>
+      {(['mensal', 'anual'] as Cycle[]).map(c => {
+        const on = cycle === c
+        return (
+          <button key={c} type="button" role="radio" aria-checked={on} onClick={() => onChange(c)}
+            className="relative flex-1 min-h-[2.5rem] px-3 rounded-[8px] text-[13.5px] font-medium whitespace-nowrap flex items-center justify-center gap-1.5 transition-colors"
+            style={{ color: on ? '#262822' : '#6a6c62' }}>
+            {on && <motion.span layoutId="cycle-pill" className="absolute inset-0 rounded-[8px]" style={{ background: '#fffcf6', boxShadow: '0 1px 3px rgba(0,0,0,.10), 0 1px 1px rgba(0,0,0,.04)' }} transition={{ type: 'spring', stiffness: 420, damping: 34 }} />}
+            <span className="relative">{c === 'mensal' ? 'Mensal' : 'Anual'}</span>
+            {c === 'anual' && <span className="relative text-[11px] px-1.5 py-0.5 rounded-md" style={{ background: '#E3F1E7', color: '#2D6040' }}>−20%</span>}
+          </button>
+        )
+      })}
     </div>
   )
 }
@@ -175,17 +182,16 @@ export function PricingGrid({ cycle, compact }: { cycle: Cycle; compact?: boolea
               {hi && <span className="sc-plan-badge">Mais escolhido</span>}
               <p className="sc-plan-name">{p.name}</p>
               <p className="sc-plan-tag">{p.tagline.pt}</p>
-              <AnimatePresence mode="wait" initial={false}>
-                <motion.div key={`${cycle}-${p.id}`} className="sc-plan-price" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.18 }}>
-                  <p><b>{monthly ? formatBRL(monthly) : 'R$ 0'}</b><span>/mês</span></p>
+              <div className="sc-plan-price">
+                  <p><b>{monthly ? <CountUp value={monthly} format={formatBRL} /> : 'R$ 0'}</b><span>/mês</span></p>
                   <small>{!p.priceCents ? 'Para sempre, sem cartão' : annual ? `${formatBRL(annualCents(p.priceCents))} por ano` : 'Cobrado todo mês'}</small>
-                </motion.div>
-              </AnimatePresence>
+                  {annual && <span className="sc-plan-save">Você economiza <CountUp value={annualSavingsCents(p.priceCents)} format={formatBRL} /> por ano</span>}
+              </div>
               <p className="sc-plan-credits">{p.credits.toLocaleString('pt-BR')} créditos de IA por mês</p>
               <ul>{items.map(b => <li key={b.pt}><Check size={15} strokeWidth={2} />{b.pt}</li>)}</ul>
-              <Link to={`/signup?plano=${p.id}${p.priceCents ? `&ciclo=${cycle}` : ''}`} className="sc-plan-btn" data-hi={hi}>
-                {p.priceCents ? `Assinar ${p.name}` : 'Começar grátis'}
-              </Link>
+              {p.priceCents
+                ? <a href={ZOUTI_CHECKOUT[cycle]} className="sc-plan-btn" data-hi={hi}>Assinar {p.name}</a>
+                : <Link to="/signup?plano=free" className="sc-plan-btn" data-hi={hi}>Começar grátis</Link>}
             </article>
           </Reveal>
         )
@@ -236,7 +242,7 @@ export function CompareTable() {
           <tbody>
             {ROWS.map(r => (
               <tr key={r.label} style={{ borderTop: '1px solid var(--site-line)' }}>
-                <td className="px-6 md:px-8 py-4 text-[15px]"><span className="flex items-center gap-3"><r.icon size={16} style={{ color: 'var(--site-muted)' }} />{r.label}</span></td>
+                <td className="px-6 md:px-8 py-4 text-[15px]"><span className="flex items-center gap-3"><r.icon size={16} style={{ color: 'var(--site-muted)' }} />{r.label}{r.v[0] === false && <span className="premium-badge">Premium</span>}</span></td>
                 {r.v.map((c, i) => <td key={i} className="py-4 px-3 text-center">{cell(c)}</td>)}
               </tr>
             ))}

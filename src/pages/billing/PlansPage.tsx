@@ -6,7 +6,9 @@ import { ArrowLeft, Check, Loader2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useLanguage } from '@/store/useLanguage'
 import { useEntitlements } from '@/store/useEntitlements'
-import { formatBRL, PLANS, planRank, type PlanId } from '@/lib/plans'
+import { annualCents, annualMonthlyCents, annualSavingsCents, formatBRL, PLANS, planRank, type BillingCycle, type PlanId } from '@/lib/plans'
+import { SegmentedControl } from '@/components/ui/segmented-control'
+import { CountUp } from '@/components/ui/count-up'
 import { billing, BILLING_ERRORS, type Quote } from '@/lib/billingApi'
 import { Logo } from '@/components/brand/Logo'
 
@@ -29,6 +31,7 @@ export function PlansPage() {
   const [busy, setBusy] = useState<PlanId | null>(null)
   const [error, setError] = useState('')
   const [guardian, setGuardian] = useState(false)
+  const [cycle, setCycle] = useState<BillingCycle>(params.get('ciclo') === 'mensal' ? 'mensal' : 'anual')
   const [quotes, setQuotes] = useState<Partial<Record<PlanId, Quote>>>({})
   const current = ent?.plan ?? 'free'
   const age = ageFrom(ent?.birth_date)
@@ -56,7 +59,7 @@ export function PlansPage() {
     if (minor && !guardian) { setError(BILLING_ERRORS.guardian_required[pt ? 'pt' : 'en']); return }
     setBusy(plan)
     try {
-      const { url } = await billing.checkout(plan, guardian)
+      const { url } = await billing.checkout(plan, guardian, cycle === 'anual' ? 'annual' : 'monthly')
       window.location.href = url
     } catch (e) {
       const code = (e as { code?: string }).code ?? ''
@@ -89,6 +92,11 @@ export function PlansPage() {
           </p>
         </motion.header>
 
+        <div className="mt-7 flex justify-center">
+          <SegmentedControl<BillingCycle> label={pt ? 'Ciclo de cobrança' : 'Billing cycle'} value={cycle} onChange={setCycle} className="w-[260px]"
+            options={[{ value: 'mensal', label: pt ? 'Mensal' : 'Monthly' }, { value: 'anual', label: pt ? 'Anual · −20%' : 'Yearly · −20%' }]} />
+        </div>
+
         {minor && (
           <label className="mt-6 mx-auto max-w-xl flex items-start gap-2.5 rounded-xl border p-3 text-[13.5px]" style={{ borderColor: 'var(--theme-border)' }}>
             <input type="checkbox" checked={guardian} onChange={e => setGuardian(e.target.checked)} className="mt-0.5 w-4 h-4 accent-[var(--theme-text)]" />
@@ -111,8 +119,15 @@ export function PlansPage() {
                 <h2 className="text-[18px] font-semibold">{plan.name}</h2>
                 <p className="text-[13px] mt-0.5" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? plan.tagline.pt : plan.tagline.en}</p>
                 <p className="mt-4 text-[32px] font-semibold tabular-nums leading-none">
-                  {plan.priceCents ? formatBRL(plan.priceCents) : 'R$ 0'}<span className="text-[13px] font-normal" style={{ color: 'var(--theme-text-secondary)' }}>/{pt ? 'mês' : 'mo'}</span>
+                  {plan.priceCents ? <CountUp value={cycle === 'anual' ? annualMonthlyCents(plan.priceCents) : plan.priceCents} format={formatBRL} /> : 'R$ 0'}<span className="text-[13px] font-normal" style={{ color: 'var(--theme-text-secondary)' }}>/{pt ? 'mês' : 'mo'}</span>
                 </p>
+                {plan.priceCents > 0 && (
+                  <p className="mt-1.5 text-[12.5px] min-h-[1.25rem]" style={{ color: 'var(--theme-text-secondary)' }}>
+                    {cycle === 'anual'
+                      ? <>{formatBRL(annualCents(plan.priceCents))} {pt ? 'por ano' : 'a year'}<span className="mt-1.5 flex w-fit items-center h-6 px-2 rounded-md text-[12px] font-medium" style={{ backgroundColor: 'var(--pastel-green-bg, #e3f1e7)', color: 'var(--pastel-green-fg, #2d6040)' }}>{pt ? 'Você economiza ' : 'You save '}<CountUp value={annualSavingsCents(plan.priceCents)} format={formatBRL} />{pt ? ' por ano' : ' a year'}</span></>
+                      : (pt ? 'Cobrado todo mês' : 'Billed monthly')}
+                  </p>
+                )}
                 <p className="mt-2 text-[12.5px]" style={{ color: 'var(--theme-text-secondary)' }}>{plan.credits.toLocaleString(pt ? 'pt-BR' : 'en-US')} {pt ? 'créditos de IA por mês' : 'AI credits a month'}</p>
                 <ul className="mt-4 space-y-2 flex-1">
                   {plan.benefits.map(b => (

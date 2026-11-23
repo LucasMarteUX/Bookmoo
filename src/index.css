@@ -127,35 +127,35 @@
     --theme-tts-hand: #3B5B8C;
   }
 
-  /* Tarde: papel creme e tons de âmbar, como a luz dourada do fim da tarde. */
+  /* Tarde (padrão): o mesmo papel, tinta e verde da home do site, para o app e o site parecerem um só. */
   .theme-sepia {
-    --theme-bg: #F4EAD8;
-    --theme-bg-secondary: #EBDDC4;
-    --theme-text: #3A2D21;
-    --theme-text-secondary: #7C6650;
-    --theme-nav-bg: #EFE2CA;
-    --theme-nav-text: #2E2218;
-    --theme-nav-text-muted: #6B563F;
-    --theme-nav-hover: #E7D6B9;
-    --theme-nav-active: #E1CCA9;
-    --theme-border: #E0CDAE;
-    --theme-border-subtle: #E8D9BF;
-    --theme-primary: #5A3A1F;
-    --theme-primary-text: #FBF4E7;
-    --theme-primary-hover: #6E4826;
-    --theme-card-bg: #FAF2E4;
-    --theme-pastel-1: #EFE3EE;
-    --theme-pastel-2: #E5EBD6;
-    --theme-pastel-3: #F6E3BC;
-    --theme-pastel-4: #E2E6DF;
-    --theme-pastel-text: #3A2D21;
-    --theme-postit-bg: #EFE2CA;
-    --theme-postit-border: #E0CDAE;
-    --theme-postit-text: #7C6650;
-    --theme-postit-title: #3A2D21;
-    --theme-accent: #9A6531;
-    --theme-tts-ring: #9A6531;
-    --theme-tts-hand: #9A6531;
+    --theme-bg: #F6F3EB;
+    --theme-bg-secondary: #EBE7DA;
+    --theme-text: #292B26;
+    --theme-text-secondary: #5E6354;
+    --theme-nav-bg: #EFEBE0;
+    --theme-nav-text: #262822;
+    --theme-nav-text-muted: #6A6C62;
+    --theme-nav-hover: #E6E1D3;
+    --theme-nav-active: #DEDACB;
+    --theme-border: #D8D5CA;
+    --theme-border-subtle: #E4E0D4;
+    --theme-primary: #262822;
+    --theme-primary-text: #FFFFFF;
+    --theme-primary-hover: #3A3C35;
+    --theme-card-bg: #FFFCF6;
+    --theme-pastel-1: #EFE7EA;
+    --theme-pastel-2: #E4E8DB;
+    --theme-pastel-3: #F1E6CC;
+    --theme-pastel-4: #E3E6E0;
+    --theme-pastel-text: #292B26;
+    --theme-postit-bg: #EFEBE0;
+    --theme-postit-border: #D8D5CA;
+    --theme-postit-text: #5E6354;
+    --theme-postit-title: #292B26;
+    --theme-accent: #526A49;
+    --theme-tts-ring: #526A49;
+    --theme-tts-hand: #526A49;
   }
 
   .theme-dark {
@@ -302,6 +302,9 @@
 
   /* Títulos editoriais (cara de livro): serifada de exibição. */
   .font-display { font-family: var(--font-display); font-optical-sizing: auto; letter-spacing: -0.015em; }
+  /* Toque da home no app: títulos de exibição mais fechados e o itálico em verde, como no site. */
+  .theme-sepia .font-display { letter-spacing: -0.035em; }
+  .theme-sepia .font-display i, .theme-sepia .font-display em { color: #526A49; }
   /* Superfície elevada (menus, paletas, popovers). */
   .elevated {
     background-color: var(--theme-card-bg);
@@ -338,9 +341,9 @@
   .theme-light.bg-tone-dark { --theme-bg: #EEF0F3; --theme-bg-secondary: #E4E7EC; }
   .theme-light.bg-tone-medium { --theme-bg: #FFFFFF; --theme-bg-secondary: #F3F4F6; }
   .theme-light.bg-tone-light { --theme-bg: #FAFBFC; --theme-bg-secondary: #F3F4F6; }
-  .theme-sepia.bg-tone-dark { --theme-bg: #EBDDC4; --theme-bg-secondary: #E1CFB0; }
-  .theme-sepia.bg-tone-medium { --theme-bg: #F4EAD8; --theme-bg-secondary: #EBDDC4; }
-  .theme-sepia.bg-tone-light { --theme-bg: #F8F1E3; --theme-bg-secondary: #EFE4CF; }
+  .theme-sepia.bg-tone-dark { --theme-bg: #EBE7DA; --theme-bg-secondary: #E1DCCC; }
+  .theme-sepia.bg-tone-medium { --theme-bg: #F6F3EB; --theme-bg-secondary: #EBE7DA; }
+  .theme-sepia.bg-tone-light { --theme-bg: #FAF8F2; --theme-bg-secondary: #EFEBE0; }
   .theme-dark.bg-tone-dark { --theme-bg: #0A0A0A; --theme-bg-secondary: #111111; }
   .theme-dark.bg-tone-medium { --theme-bg: #111111; --theme-bg-secondary: #1E1E1E; }
   .theme-dark.bg-tone-light { --theme-bg: #1E1E1E; --theme-bg-secondary: #2A2A2A; }
