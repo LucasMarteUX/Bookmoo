@@ -174,7 +174,7 @@ export async function normalizeAbacate(payload: Obj, lookup: (productId: string)
   else if (event === 'subscription.payment_failed') kind = 'failed'
   else if (event === 'subscription.cancelled') kind = /reembolso|refund/i.test(cancelledDueTo) ? 'refunded' : /max_payment_retries/i.test(cancelledDueTo) ? 'failed' : 'canceled'
   else if (event === 'checkout.refunded' && String(checkout.frequency ?? '') === 'SUBSCRIPTION') kind = 'refunded'
-  else if (event === 'checkout.disputed' || event === 'checkout.chargeback') kind = 'disputed'
+  else if (event === 'checkout.disputed' || event === 'checkout.lost' || event === 'checkout.chargeback') kind = 'disputed'
   // checkout.completed (frequency SUBSCRIPTION) repete o mesmo pagamento: tratamos só pelos subscription.*
   if (kind === 'paid' && event === 'subscription.completed' && !mapped) review = 'product_not_mapped'
   const amountCents = Number(payment.paidAmount ?? payment.amount ?? sub.amount) || null
