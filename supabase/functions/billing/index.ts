@@ -2,10 +2,11 @@
 // downgrade, reembolso (arrependimento) e status da intenção (tela de retorno do pagamento).
 import { adminClient, corsHeaders, getUser, json, log } from '../_shared/tts.ts'
 import { rateLimit } from '../_shared/rate.ts'
-import { buildCheckoutUrl, checkoutUrlFor, claimPending, PAID_PLANS, priceFor, upgradeQuote, type Cycle, type Plan } from '../_shared/payments.ts'
+import { buildCheckoutUrl, checkoutUrlFor, claimPending, PAID_PLANS, priceFor, switchCredit, type Cycle, type Plan } from '../_shared/payments.ts'
 import { emails } from '../_shared/email.ts'
+import { abacateEnabled, cancelSubscription, changePlan, createSubscriptionCheckout, ensureCustomer, productFor, setupProducts } from '../_shared/abacate.ts'
 
-type Body = { action?: string; plan?: string; cycle?: string; intent?: string; guardian?: boolean; reason?: string }
+type Body = { origin?: string; action?: string; plan?: string; cycle?: string; intent?: string; guardian?: boolean; reason?: string; email?: string; order?: string }
 
 class BillingError extends Error { constructor(public code: string, public status = 400) { super(code) } }
 
@@ -19,10 +20,32 @@ function ageFrom(birth: string | null | undefined): number | null {
   return age
 }
 
+/** Mensal → anual (mesmo plano ou maior) e plano maior no mesmo ciclo são upgrade. Anual → mensal espera o fim do ano. */
+function switchKind(live: { plan_id: string; billing_cycle?: string | null }, next: Plan, cycle: Cycle, plans?: Plan[]): 'upgrade' | 'same' | 'downgrade' {
+  const curRank = (plans ?? CURRENT_PLANS).find(p => p.id === live.plan_id)?.rank ?? 0
+  const curCycle = (live.billing_cycle ?? 'monthly') as Cycle
+  if (next.rank === curRank && curCycle === cycle) return 'same'
+  if (curCycle === 'annual' && cycle === 'monthly') return 'downgrade'
+  if (next.rank < curRank) return 'downgrade'
+  return 'upgrade'
+}
+let CURRENT_PLANS: Plan[] = []
+
+/** Origem do site para as URLs de retorno do checkout (só https ou localhost). */
+function safeOrigin(o?: string): string {
+  const fallback = (Deno.env.get('APP_URL') ?? 'https://upoonly.com').replace(/\/+$/, '')
+  try {
+    const u = new URL(String(o ?? ''))
+    if (u.protocol === 'https:' || u.hostname === 'localhost' || u.hostname === '127.0.0.1') return u.origin
+  } catch { /* usa o padrão */ }
+  return fallback
+}
+
 async function handle(userId: string, email: string, name: string | undefined, confirmed: boolean, b: Body) {
   const db = adminClient()
   const { data: plans } = await db.from('plans').select('*').order('rank')
   const planOf = (id?: string | null) => (plans ?? []).find((p: Plan) => p.id === id) as Plan | undefined
+  CURRENT_PLANS = (plans ?? []) as Plan[]
   const { data: liveRow } = await db.from('subscriptions').select('*').eq('user_id', userId).in('status', ['active', 'past_due']).order('created_at', { ascending: false }).limit(1).maybeSingle()
   const live = liveRow && new Date(liveRow.status === 'past_due' ? (liveRow.grace_until ?? liveRow.current_period_end) : liveRow.current_period_end) > new Date() ? liveRow : null
   const currentPeriod = async () => (await db.rpc('ensure_period', { p_user: userId })).data as {
@@ -32,11 +55,13 @@ async function handle(userId: string, email: string, name: string | undefined, c
   switch (b.action) {
     case 'quote': {
       const next = planOf(b.plan)
+      const cycle: Cycle = b.cycle === 'annual' ? 'annual' : 'monthly'
       if (!next || next.id === 'free') throw new BillingError('invalid_plan')
-      if (!live || live.provider === 'admin') return { kind: 'new', chargeCents: next.price_cents, discountCents: 0, bonusCredits: 0 }
-      const cur = planOf(live.plan_id)!
-      if (next.rank <= cur.rank) return { kind: next.rank === cur.rank ? 'same' : 'downgrade' }
-      return { kind: 'upgrade', ...upgradeQuote(live, await currentPeriod(), next) }
+      const chargeCents = priceFor(next.id, cycle) ?? next.price_cents
+      if (!live || live.provider === 'admin') return { kind: 'new', chargeCents, extraDays: 0, remainingCents: 0 }
+      const kind = switchKind(live, next, cycle)
+      if (kind !== 'upgrade') return { kind }
+      return { kind, chargeCents, ...switchCredit(live, await currentPeriod(), chargeCents, cycle) }
     }
 
     case 'checkout': {
@@ -48,42 +73,41 @@ async function handle(userId: string, email: string, name: string | undefined, c
       const age = ageFrom(acc?.birth_date)
       if (age !== null && age < 12) throw new BillingError('minor_blocked', 403)
       if (age !== null && age < 18 && !b.guardian) throw new BillingError('guardian_required', 403)
+      const cycle: Cycle = b.cycle === 'annual' ? 'annual' : 'monthly'
       let kind: 'new' | 'upgrade' = 'new'
-      let quote = { discountCents: 0, bonusCredits: 0 }
       if (live && live.provider !== 'admin') {
         if (live.status === 'past_due') throw new BillingError('past_due')
-        const cur = planOf(live.plan_id)!
-        if (next.rank === cur.rank) throw new BillingError('same_plan')
-        if (next.rank < cur.rank) throw new BillingError('use_downgrade')
+        const k = switchKind(live, next, cycle)
+        if (k === 'same') throw new BillingError('same_plan')
+        if (k === 'downgrade') throw new BillingError('use_downgrade')
         kind = 'upgrade'
-        quote = upgradeQuote(live, await currentPeriod(), next)
       }
-      const cycle: Cycle = b.cycle === 'annual' ? 'annual' : 'monthly'
-      const base = checkoutUrlFor(cycle)
       // Uma intenção aberta por pessoa.
       await db.from('checkout_intents').update({ status: 'canceled' }).eq('user_id', userId).eq('status', 'open')
       const { data: intent, error } = await db.from('checkout_intents').insert({
-        user_id: userId, plan_id: next.id, kind, billing_cycle: cycle, amount_cents: priceFor(next.id, cycle) ?? next.price_cents, proration_cents: quote.discountCents,
-        bonus_credits: quote.bonusCredits, from_subscription_id: kind === 'upgrade' ? live!.id : null,
+        user_id: userId, plan_id: next.id, kind, billing_cycle: cycle, amount_cents: priceFor(next.id, cycle) ?? next.price_cents,
+        from_subscription_id: kind === 'upgrade' ? live!.id : null,
       }).select('*').single()
       if (error) throw new BillingError('intent_failed', 500)
-      const url = buildCheckoutUrl(base, intent.id, email, name)
-      await db.from('checkout_intents').update({ checkout_url: url }).eq('id', intent.id)
-      return { url, intent: intent.id, kind, cycle, ...quote }
-    }
-
-    case 'claim': {
-      // Compra feita na Zouti antes de criar a conta (ou com a conta deslogada): libera pelo e-mail confirmado.
-      if (!confirmed) return { claimed: [], needsConfirmation: true }
-      const claimed = await claimPending(userId, email)
-      return { claimed }
-    }
-
-    case 'status': {
-      // Tela de sucesso: o plano já foi liberado pelo webhook?
-      const claimed = confirmed ? await claimPending(userId, email) : []
-      const { data: sub } = await db.from('subscriptions').select('plan_id, status, billing_cycle, current_period_end, created_at').eq('user_id', userId).in('status', ['active', 'past_due']).order('created_at', { ascending: false }).limit(1).maybeSingle()
-      return { subscription: sub, claimed, confirmed }
+      let url: string
+      if (abacateEnabled()) {
+        // AbacatePay: checkout de assinatura criado pela API, já ligado a esta conta (externalId = intenção).
+        const origin = safeOrigin(b.origin)
+        const customerId = await ensureCustomer(userId, email, name)
+        const productId = await productFor(next.id, cycle)
+        const bill = await createSubscriptionCheckout({ productId, customerId, intentId: intent.id, cycle,
+          completionUrl: `${origin}/pagamento/sucesso?ciclo=${cycle === 'annual' ? 'anual' : 'mensal'}`, returnUrl: `${origin}/planos` })
+        url = bill.url
+        await db.from('checkout_intents').update({ checkout_url: url, provider: 'abacatepay', provider_ref: bill.id }).eq('id', intent.id)
+        if (bill.dropped.length) {
+          const label: Record<string, string> = { pix_automatico: 'Pix Automático', repasse_juros: 'repasse dos juros ao cliente', parcelamento: 'parcelamento' }
+          await emails.adminAlert('Recurso da AbacatePay não liberado', `<p>O checkout saiu sem: ${bill.dropped.map(d => label[d] ?? d).join(', ')}. Peça a liberação ao suporte da AbacatePay.</p>`)
+        }
+      } else {
+        url = buildCheckoutUrl(checkoutUrlFor(cycle), intent.id, email, name)
+        await db.from('checkout_intents').update({ checkout_url: url }).eq('id', intent.id)
+      }
+      return { url, intent: intent.id, kind, cycle }
     }
 
     case 'intent-status': {
@@ -94,15 +118,19 @@ async function handle(userId: string, email: string, name: string | undefined, c
 
     case 'cancel': {
       if (!live || live.provider === 'admin') throw new BillingError('no_subscription')
+      // AbacatePay: para a recorrência na hora pela API; o acesso continua aqui até o fim do período já pago.
+      if (live.provider === 'abacatepay' && live.provider_subscription_id) await cancelSubscription(live.provider_subscription_id)
       await db.from('subscriptions').update({ cancel_at_period_end: true, canceled_at: new Date().toISOString(), pending_plan_id: null, updated_at: new Date().toISOString() }).eq('id', live.id)
       await db.from('payment_events').insert({ provider: 'app', provider_event_id: `cancel:${live.id}:${Date.now()}`, type: 'cancel_request', payload: { user: userId, subscription: live.id, provider_subscription_id: live.provider_subscription_id, reason: String(b.reason ?? '').slice(0, 300) } })
-      await emails.adminAlert('Cancelamento pedido no app', `<p>${email} cancelou o plano ${live.plan_id}. Garanta que a recorrência ${live.provider_subscription_id ?? ''} esteja cancelada na Zouti.</p>`)
+      if (live.provider === 'zouti') await emails.adminAlert('Cancelamento pedido no app', `<p>${email} cancelou o plano ${live.plan_id}. Garanta que a recorrência ${live.provider_subscription_id ?? ''} esteja cancelada na Zouti.</p>`)
       await emails.canceled(email, planOf(live.plan_id)?.name ?? live.plan_id, new Date(live.current_period_end).toLocaleDateString('pt-BR'))
       return { ok: true, until: live.current_period_end }
     }
 
     case 'resume': {
       if (!live || !live.cancel_at_period_end) throw new BillingError('nothing_to_resume')
+      // Na AbacatePay o cancelamento é definitivo: para voltar, assina de novo no fim do período.
+      if (live.provider === 'abacatepay') throw new BillingError('resubscribe_required')
       await db.from('subscriptions').update({ cancel_at_period_end: false, canceled_at: null, pending_plan_id: null, updated_at: new Date().toISOString() }).eq('id', live.id)
       await emails.adminAlert('Assinatura reativada no app', `<p>${email} desfez o cancelamento do plano ${live.plan_id}. Confira se a recorrência continua ativa na Zouti.</p>`)
       return { ok: true }
@@ -114,6 +142,17 @@ async function handle(userId: string, email: string, name: string | undefined, c
       if (!live || live.provider === 'admin') throw new BillingError('no_subscription')
       const cur = planOf(live.plan_id)!
       if (!next || next.rank >= cur.rank) throw new BillingError('invalid_plan')
+      if (live.provider === 'abacatepay' && live.provider_subscription_id) {
+        if (next.id === 'free') {
+          await cancelSubscription(live.provider_subscription_id)
+          await db.from('subscriptions').update({ cancel_at_period_end: true, canceled_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('id', live.id)
+        } else {
+          // Troca agendada para a próxima cobrança: a AbacatePay já cobra o valor novo; o webhook aplica o plano.
+          await changePlan(live.provider_subscription_id, await productFor(next.id, (live.billing_cycle ?? 'monthly') as Cycle))
+          await db.from('subscriptions').update({ pending_plan_id: next.id, updated_at: new Date().toISOString() }).eq('id', live.id)
+        }
+        return { ok: true, until: live.current_period_end, next: next.id }
+      }
       await db.from('subscriptions').update({ cancel_at_period_end: true, pending_plan_id: next.id === 'free' ? null : next.id, updated_at: new Date().toISOString() }).eq('id', live.id)
       await emails.adminAlert('Downgrade agendado', `<p>${email}: ${cur.id} → ${next.id} no fim do ciclo. Cancele a recorrência atual na Zouti.</p>`)
       return { ok: true, until: live.current_period_end, next: next.id }
@@ -147,8 +186,11 @@ Deno.serve(async (req) => {
   try {
     return json(await handle(user.id, user.email, (user.user_metadata as { full_name?: string })?.full_name, !!user.email_confirmed_at, body))
   } catch (e) {
-    const code = e instanceof BillingError ? e.code : 'billing_failed'
-    const status = e instanceof BillingError ? e.status : 500
+    const ab = e as { status?: number; message?: string; name?: string }
+    const isAbacate = e instanceof Error && e.constructor.name === 'AbacateError'
+    const code = e instanceof BillingError ? e.code : isAbacate ? (ab.message === 'abacate_products_missing' || ab.message === 'abacate_not_configured' ? 'billing_not_configured' : 'gateway_error') : 'billing_failed'
+    const status = e instanceof BillingError ? e.status : isAbacate ? 502 : 500
+    if (isAbacate) log('billing', 'abacate_error', { action: body.action, msg: String(ab.message).slice(0, 200) })
     if (!(e instanceof BillingError)) log('billing', 'error', { action: body.action, msg: String((e as Error)?.message ?? e).slice(0, 200) })
     return json({ error: code }, status)
   }

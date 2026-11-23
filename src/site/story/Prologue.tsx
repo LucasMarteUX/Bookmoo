@@ -32,7 +32,6 @@ export function Prologue() {
         <span className="fr-head"><i className="fr fr-face"/><i className="fr fr-ears"/></span>
         <div className="flight-butterfly"><i/><b/></div>
       </div>
-      <Btn variant="white" onClick={()=>setIntro(false)}>Pular abertura</Btn>
     </div>}
     <section ref={hero} data-waiting={intro} className="book-prologue">
       <ImageDither corners={['br', 'tr']} z={0} />

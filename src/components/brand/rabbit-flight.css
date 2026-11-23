@@ -1,0 +1,24 @@
+/* Coelho e borboleta animados (abertura do site e tela de sucesso). Gerado a partir da abertura do site. */
+.rabbit-flight{position:relative;width:var(--rf-w,120px);aspect-ratio:362/505}
+.rabbit-flight .fr,.fr-head{position:absolute;inset:0}
+.rabbit-flight .fr{background:url('/site/coelho.svg') center/contain no-repeat}
+/* O coelho em partes (a mesma silhueta recortada): corpo, patinha, cabeça e orelhas. */
+.fr-body{clip-path:polygon(0 36%,100% 36%,100% 60.5%,87.5% 60.5%,87.5% 71%,100% 71%,100% 100%,0 100%)}
+.fr-paw{clip-path:polygon(86% 59.5%,100% 59.5%,100% 72%,86% 72%);transform-origin:92% 59.5%;animation:fr-paw 3.4s .35s ease-in-out both}
+.fr-head{transform-origin:70% 35%;animation:fr-head 3.4s .35s ease-in-out both}
+.fr-face{clip-path:polygon(53% 0,100% 0,100% 38%,37% 38%,37% 23.5%,53% 23.5%)}
+.fr-ears{clip-path:polygon(0 0,55.5% 0,55.5% 25%,0 25%);transform-origin:54% 16%;animation:fr-ears 3.4s .35s ease-in-out both}
+/* olha a borboleta: ergue o focinho, acompanha, inclina */
+@keyframes fr-head{0%{transform:none}22%{transform:rotate(-6deg)}42%{transform:rotate(-2deg)}62%{transform:rotate(-7deg)}82%{transform:rotate(-3deg)}100%{transform:rotate(-5deg)}}
+/* orelhas: duas mexidinhas */
+@keyframes fr-ears{0%,30%,40%,66%,76%,100%{transform:none}35%{transform:rotate(7deg)}71%{transform:rotate(-5deg)}}
+/* patinha: tenta tocar a borboleta */
+@keyframes fr-paw{0%,45%{transform:none}62%{transform:rotate(-14deg)}74%{transform:rotate(-7deg)}88%{transform:rotate(-16deg)}100%{transform:rotate(-6deg)}}
+/* A borboleta chega pela direita e fica voando na frente do focinho. */
+.flight-butterfly{position:absolute;width:34%;aspect-ratio:139/121;top:-16%;left:96%;animation:flight-arc 3.4s .35s ease-in-out both}
+@keyframes flight-arc{0%{transform:translate(150%,-80%) rotate(14deg);opacity:0}12%{opacity:1}26%{transform:translate(10%,6%) rotate(-6deg)}44%{transform:translate(-22%,26%) rotate(8deg)}62%{transform:translate(4%,46%) rotate(-10deg)}80%{transform:translate(-14%,18%) rotate(6deg)}100%{transform:translate(0,10%) rotate(-4deg)}}
+.flight-butterfly>*{position:absolute;inset:0;background:url('/site/borboleta.svg') center/contain no-repeat;transform-origin:center;animation:flight-wing .18s infinite alternate ease-in-out}.flight-butterfly i{clip-path:inset(0 50% 0 0)}.flight-butterfly b{clip-path:inset(0 0 0 50%);animation-direction:alternate-reverse}@keyframes flight-wing{to{transform:scaleX(.42)}}
+.rabbit-flight[data-loop=true] .fr-head,.rabbit-flight[data-loop=true] .fr-ears,.rabbit-flight[data-loop=true] .fr-paw{animation-iteration-count:infinite;animation-direction:alternate}
+.rabbit-flight[data-loop=true] .flight-butterfly{animation:rf-hover 2.6s ease-in-out infinite alternate}
+@keyframes rf-hover{0%{transform:translate(0,10%) rotate(-4deg)}50%{transform:translate(-16%,26%) rotate(8deg)}100%{transform:translate(6%,40%) rotate(-8deg)}}
+@media (prefers-reduced-motion:reduce){.rabbit-flight *{animation:none!important}}

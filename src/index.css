@@ -956,3 +956,8 @@ html.reader-immersive:not(.reader-chrome-hidden) [data-chrome="footer"] { pointe
 @keyframes prof-fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 .prof-fade { animation: prof-fade 0.35s ease-out; }
 @media (prefers-reduced-motion: reduce) { .prof-fade { animation: none; } }
+
+/* Selo Premium: dourado, discreto, ao lado do logotipo. */
+.premium-pill { color: #5b3f0c; background: linear-gradient(135deg, #f6e2a8, #e9c46a 55%, #f3d98f); box-shadow: inset 0 0 0 1px rgba(120,84,20,.18); transition: filter .2s; }
+.premium-pill:hover { filter: brightness(1.04) saturate(1.08); }
+.theme-dark .premium-pill { color: #2b2006; }

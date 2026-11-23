@@ -5,6 +5,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { Eye, EyeOff, Moon, Sun } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
+import { rememberWantedPlan } from '@/lib/billingApi'
 import { useLanguage } from '@/store/useLanguage'
 import { useTranslations } from '@/lib/i18n'
 import { useReaderSettings } from '@/store/useReaderSettings'
@@ -59,6 +60,11 @@ export function Login({ mode = 'login' }: { mode?: Mode }) {
   const [loading, setLoading] = useState<'email' | 'google' | null>(null)
   const [slide, setSlide] = useState(0)
   const signup = mode === 'signup'
+
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search)
+    rememberWantedPlan(q.get('plano'), q.get('ciclo'))
+  }, [])
 
   useEffect(() => {
     // Em desenvolvimento, ?preview mostra a tela mesmo logado (para revisar o visual).

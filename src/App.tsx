@@ -29,6 +29,7 @@ import { PlansPage } from '@/pages/billing/PlansPage'
 import { GiftPage } from '@/pages/billing/GiftPage'
 import { CheckoutReturn } from '@/pages/billing/CheckoutReturn'
 import { PaymentSuccess } from '@/pages/billing/PaymentSuccess'
+import { ReceiptsPage } from '@/pages/billing/ReceiptsPage'
 import { SubscriptionPage } from '@/pages/billing/SubscriptionPage'
 import { ConversePage } from '@/pages/ConversePage'
 import { InsightsPage } from '@/pages/InsightsPage'
@@ -131,6 +132,7 @@ export default function App() {
             <Route path="admin/books/:id" element={<AdminBookEdit />} />
             <Route path="me" element={<MePage />} />
             <Route path="assinatura" element={<SubscriptionPage />} />
+            <Route path="recibos" element={<ReceiptsPage />} />
             <Route path="conversar" element={<ConversePage />} />
             <Route path="raio-x" element={<InsightsPage />} />
             <Route path="teste-de-nivel" element={<PlacementPage />} />

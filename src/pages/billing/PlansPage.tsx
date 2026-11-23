@@ -1,5 +1,5 @@
 // Tela de planos: primeiro acesso (welcome) e troca de plano. Mobile-first.
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { motion } from 'motion/react'
 import { ArrowLeft, Check, Loader2 } from 'lucide-react'
@@ -9,7 +9,7 @@ import { useEntitlements } from '@/store/useEntitlements'
 import { annualCents, annualMonthlyCents, annualSavingsCents, formatBRL, PLANS, planRank, type BillingCycle, type PlanId } from '@/lib/plans'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import { CountUp } from '@/components/ui/count-up'
-import { billing, BILLING_ERRORS, type Quote } from '@/lib/billingApi'
+import { billing, BILLING_ERRORS, clearWantedPlan, takeWantedPlan, type Quote } from '@/lib/billingApi'
 import { Logo } from '@/components/brand/Logo'
 
 function ageFrom(birth: string | null | undefined) {
@@ -26,21 +26,29 @@ export function PlansPage() {
   const navigate = useNavigate()
   const [params] = useSearchParams()
   const welcome = params.get('welcome') === '1'
-  const wanted = params.get('plan') as PlanId | null
+  const stored = useMemo(() => takeWantedPlan(), [])
+  const wanted = (params.get('plan') as PlanId | null) ?? stored?.plan ?? null
   const { data: ent, load } = useEntitlements()
   const [busy, setBusy] = useState<PlanId | null>(null)
   const [error, setError] = useState('')
   const [guardian, setGuardian] = useState(false)
-  const [cycle, setCycle] = useState<BillingCycle>(params.get('ciclo') === 'mensal' ? 'mensal' : 'anual')
+  const [cycle, setCycle] = useState<BillingCycle>((params.get('ciclo') ?? stored?.cycle) === 'mensal' ? 'mensal' : 'anual')
   const [quotes, setQuotes] = useState<Partial<Record<PlanId, Quote>>>({})
   const current = ent?.plan ?? 'free'
   const age = ageFrom(ent?.birth_date)
   const minor = age !== null && age < 18
 
+  const apiCycle = cycle === 'anual' ? 'annual' : 'monthly'
+  const [curCycle, setCurCycle] = useState<'monthly' | 'annual' | null>(null)
   useEffect(() => {
+    if (!ent?.subscription) { setCurCycle(null); return }
+    void billing.status().then(r => setCurCycle(r.subscription?.billing_cycle ?? 'monthly')).catch(() => setCurCycle('monthly'))
+  }, [ent?.subscription?.id])
+  useEffect(() => {
+    setQuotes({})
     if (!ent?.subscription || ent.subscription.provider === 'admin') return
-    for (const p of PLANS) if (planRank(p.id) > planRank(current)) void billing.quote(p.id).then(q => setQuotes(prev => ({ ...prev, [p.id]: q }))).catch(() => {})
-  }, [ent?.subscription?.id, current])
+    for (const p of PLANS) if (p.id !== 'free') void billing.quote(p.id, apiCycle).then(q => setQuotes(prev => ({ ...prev, [p.id]: q }))).catch(() => {})
+  }, [ent?.subscription?.id, current, apiCycle])
 
   useEffect(() => {
     if (wanted) document.getElementById(`plan-${wanted}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -67,6 +75,18 @@ export function PlansPage() {
       setBusy(null)
     }
   }
+
+  // Veio do site com um plano escolhido: abre o checkout direto (uma vez), se a conta já pode assinar.
+  const autoStarted = useRef(false)
+  useEffect(() => {
+    if (autoStarted.current || !ent || !wanted || wanted === 'free' || ent.plan !== 'free') return
+    if (!(params.get('go') === '1' || stored)) return
+    if (!ent.email_confirmed || minor) return
+    autoStarted.current = true
+    clearWantedPlan()
+    void subscribe(wanted)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ent?.plan, ent?.email_confirmed, wanted])
 
   const cards = useMemo(() => PLANS, [])
   const highlight = wanted ?? 'plus'
@@ -107,8 +127,9 @@ export function PlansPage() {
 
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {cards.map((plan, i) => {
-            const isCurrent = plan.id === current && (plan.id !== 'free' || !welcome)
-            const lower = planRank(plan.id) < planRank(current)
+            const isCurrent = plan.id === current && (plan.id !== 'free' ? (curCycle ?? 'monthly') === apiCycle : !welcome)
+            const sameDifferentCycle = plan.id === current && plan.id !== 'free' && !isCurrent
+            const lower = planRank(plan.id) < planRank(current) || (plan.id !== 'free' && curCycle === 'annual' && apiCycle === 'monthly')
             const best = plan.id === highlight && plan.id !== 'free'
             const q = quotes[plan.id]
             return (
@@ -134,9 +155,9 @@ export function PlansPage() {
                     <li key={b.pt} className="flex gap-2 text-[13.5px] leading-snug"><Check className="w-4 h-4 shrink-0 mt-0.5" strokeWidth={2} />{pt ? b.pt : b.en}</li>
                   ))}
                 </ul>
-                {q?.kind === 'upgrade' && (q.bonusCredits ?? 0) > 0 && (
-                  <p className="mt-3 text-[12.5px] rounded-lg px-3 py-2" style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
-                    {pt ? `Upgrade hoje: ${formatBRL(q.chargeCents ?? plan.priceCents)} e você ganha +${q.bonusCredits} créditos bônus pelo que sobrou do plano atual. Novo ciclo começa hoje.` : `Upgrade today: ${formatBRL(q.chargeCents ?? plan.priceCents)} plus ${q.bonusCredits} bonus credits for what's left on your current plan. New cycle starts today.`}
+                {q?.kind === 'upgrade' && !lower && (q.extraDays ?? 0) > 0 && (
+                  <p className="mt-3 text-[12.5px] rounded-lg px-3 py-2 leading-snug" style={{ backgroundColor: 'var(--pastel-green-bg, #e3f1e7)', color: 'var(--pastel-green-fg, #2d6040)' }}>
+                    {pt ? `Você paga ${formatBRL(q.chargeCents ?? plan.priceCents)} hoje e ganha +${q.extraDays} ${q.extraDays === 1 ? 'dia' : 'dias'} no novo plano pelo que sobrou do atual (${formatBRL(q.remainingCents ?? 0)}).` : `You pay ${formatBRL(q.chargeCents ?? plan.priceCents)} today and get +${q.extraDays} days on the new plan for what's left of your current one.`}
                   </p>
                 )}
                 <div className="mt-5">
@@ -155,7 +176,7 @@ export function PlansPage() {
                     <motion.button whileTap={{ scale: 0.97 }} type="button" onClick={() => subscribe(plan.id)} disabled={busy !== null}
                       className="h-12 w-full rounded-2xl text-[15px] font-semibold disabled:opacity-60"
                       style={{ backgroundColor: best ? 'var(--theme-primary)' : 'var(--theme-bg-secondary)', color: best ? 'var(--theme-primary-text)' : 'var(--theme-text)' }}>
-                      {busy === plan.id ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : current !== 'free' ? (pt ? `Fazer upgrade para ${plan.name}` : `Upgrade to ${plan.name}`) : (pt ? `Assinar ${plan.name}` : `Get ${plan.name}`)}
+                      {busy === plan.id ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : sameDifferentCycle ? (pt ? 'Mudar para o anual' : 'Switch to yearly') : current !== 'free' ? (pt ? `Fazer upgrade para ${plan.name}` : `Upgrade to ${plan.name}`) : (pt ? `Assinar ${plan.name}` : `Get ${plan.name}`)}
                     </motion.button>
                   )}
                 </div>

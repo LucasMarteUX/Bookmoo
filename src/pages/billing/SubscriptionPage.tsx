@@ -132,7 +132,10 @@ export function SubscriptionPage() {
 
       {payments.length > 0 && (
         <section>
-          <h2 className="text-[16px] font-semibold">{pt ? 'Pagamentos' : 'Payments'}</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-[16px] font-semibold">{pt ? 'Pagamentos' : 'Payments'}</h2>
+            <Link to="/recibos" className="text-[13.5px] underline underline-offset-4" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? 'Ver recibos' : 'See receipts'}</Link>
+          </div>
           <ul className="mt-3 divide-y rounded-2xl border" style={{ borderColor: 'var(--theme-border)' }}>
             {payments.map(p => (
               <li key={p.id} className="flex items-center justify-between px-4 py-2.5 text-[13.5px]" style={{ borderColor: 'var(--theme-border)' }}>

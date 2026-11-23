@@ -31,11 +31,11 @@ export async function callFn<T>(fn: string, body: Record<string, unknown>, opts:
 // ---------------------------------------------------------------------------
 // Assinatura
 // ---------------------------------------------------------------------------
-export type Quote = { kind: 'new' | 'upgrade' | 'same' | 'downgrade'; chargeCents?: number; discountCents?: number; bonusCredits?: number }
+export type Quote = { kind: 'new' | 'upgrade' | 'same' | 'downgrade'; chargeCents?: number; remainingCents?: number; extraDays?: number }
 
 export const billing = {
-  quote: (plan: PlanId) => callFn<Quote>('billing', { action: 'quote', plan }, { paywall: false }),
-  checkout: (plan: PlanId, guardian = false, cycle: 'monthly' | 'annual' = 'monthly') => callFn<{ url: string; intent: string }>('billing', { action: 'checkout', plan, guardian, cycle }, { paywall: false }),
+  quote: (plan: PlanId, cycle: 'monthly' | 'annual' = 'monthly') => callFn<Quote>('billing', { action: 'quote', plan, cycle }, { paywall: false }),
+  checkout: (plan: PlanId, guardian = false, cycle: 'monthly' | 'annual' = 'monthly') => callFn<{ url: string; intent: string }>('billing', { action: 'checkout', plan, guardian, cycle, origin: window.location.origin }, { paywall: false }),
   status: () => callFn<{ subscription: { plan_id: PlanId; status: string; billing_cycle: 'monthly' | 'annual'; current_period_end: string } | null; claimed: string[]; confirmed: boolean }>('billing', { action: 'status' }, { paywall: false }).finally(refreshEntitlements),
   intentStatus: (intent: string) => callFn<{ intent: { id: string; status: string; plan_id: PlanId; kind: string; bonus_credits: number } }>('billing', { action: 'intent-status', intent }, { paywall: false }),
   cancel: (reason?: string) => callFn<{ ok: true; until: string }>('billing', { action: 'cancel', reason }, { paywall: false }).finally(refreshEntitlements),
@@ -55,6 +55,8 @@ export const BILLING_ERRORS: Record<string, { pt: string; en: string }> = {
   use_downgrade: { pt: 'Para um plano menor, use "Mudar para plano menor" em Minha assinatura.', en: 'To move to a smaller plan, use “Downgrade” in My subscription.' },
   refund_window_closed: { pt: 'O prazo de 7 dias para reembolso já passou.', en: 'The 7-day refund window has passed.' },
   no_subscription: { pt: 'Você não tem uma assinatura ativa.', en: 'You have no active subscription.' },
+  gateway_error: { pt: 'O pagamento está instável agora. Tente de novo em instantes.', en: 'Payments are unstable right now. Try again shortly.' },
+  resubscribe_required: { pt: 'A assinatura já foi cancelada no pagamento. Para continuar depois do fim do período, assine de novo.', en: 'The subscription was already canceled. Subscribe again after the period ends.' },
 }
 
 // ---------------------------------------------------------------------------
@@ -150,3 +152,19 @@ export const grammar = {
   history: (bookId: string) =>
     callFn<{ results: { correct: number; total: number; tier: number; page: number }[] }>('grammar', { action: 'quiz-history', bookId }, { paywall: false }),
 }
+
+/** Plano escolhido no site antes do login: guardado para abrir o checkout assim que a conta estiver pronta. */
+export const WANTED_PLAN_KEY = 'upo-wanted-plan'
+export function rememberWantedPlan(plan: string | null, cycle: string | null) {
+  try { if (plan && plan !== 'free') localStorage.setItem(WANTED_PLAN_KEY, JSON.stringify({ plan, cycle: cycle === 'mensal' ? 'mensal' : 'anual', at: Date.now() })) } catch { /* sem storage */ }
+}
+export function takeWantedPlan(): { plan: PlanId; cycle: 'mensal' | 'anual' } | null {
+  try {
+    const raw = localStorage.getItem(WANTED_PLAN_KEY)
+    if (!raw) return null
+    const v = JSON.parse(raw) as { plan: PlanId; cycle: 'mensal' | 'anual'; at: number }
+    if (Date.now() - v.at > 3 * 86400_000) { localStorage.removeItem(WANTED_PLAN_KEY); return null }
+    return v
+  } catch { return null }
+}
+export function clearWantedPlan() { try { localStorage.removeItem(WANTED_PLAN_KEY) } catch { /* sem storage */ } }

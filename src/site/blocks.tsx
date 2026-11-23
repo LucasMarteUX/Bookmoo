@@ -3,7 +3,7 @@ import { useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { Check, Minus, Mic, BookOpen, Sparkles, Library, MessagesSquare, TrendingUp, Wand2, Dumbbell, Crown, Clock, FileUp, Gift, Brain, Award, Image as ImageIcon, Repeat } from 'lucide-react'
-import { PLANS, COST_TABLE, formatBRL, annualCents, annualMonthlyCents, annualSavingsCents, ZOUTI_CHECKOUT, type PlanId } from '@/lib/plans'
+import { PLANS, COST_TABLE, formatBRL, annualCents, annualMonthlyCents, annualSavingsCents, type PlanId } from '@/lib/plans'
 import { CountUp } from '@/components/ui/count-up'
 import { Fit } from './vignettes2'
 import { VBalloon, VGift, VGoal, VGrammar, VImport, VMemory, VMosaic, VNotes, VPhone, VQuiz, VScenes, VSpeed, VStats, VStory, VStylesGrid, VThemes } from './vignettes2'
@@ -190,7 +190,7 @@ export function PricingGrid({ cycle, compact }: { cycle: Cycle; compact?: boolea
               <p className="sc-plan-credits">{p.credits.toLocaleString('pt-BR')} créditos de IA por mês</p>
               <ul>{items.map(b => <li key={b.pt}><Check size={15} strokeWidth={2} />{b.pt}</li>)}</ul>
               {p.priceCents
-                ? <a href={ZOUTI_CHECKOUT[cycle]} className="sc-plan-btn" data-hi={hi}>Assinar {p.name}</a>
+                ? <Link to={`/signup?plano=${p.id}&ciclo=${cycle}`} className="sc-plan-btn" data-hi={hi}>Assinar {p.name}</Link>
                 : <Link to="/signup?plano=free" className="sc-plan-btn" data-hi={hi}>Começar grátis</Link>}
             </article>
           </Reveal>

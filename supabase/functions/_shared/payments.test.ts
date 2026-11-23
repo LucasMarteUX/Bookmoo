@@ -81,3 +81,27 @@ Deno.test('evento de assinatura (plan.amount + interval)', () => {
   const sample = normalize({ id: 'sub_x', status: 'ACTIVE', account_id: 'acc', plan: { amount: 119700, interval: 'ANNUALLY' }, line_items: [{ amount: 9975, full_amount: 119700 }], customer: { email: 'j@x.com' } }, null, 'anual')
   assertEquals([sample.planId, sample.review], [null, 'amount_not_matched'])
 })
+
+import { switchCredit } from './payments.ts'
+const daysAgo = (d: number) => new Date(Date.now() - d * 86400_000).toISOString()
+const inDays = (d: number) => new Date(Date.now() + d * 86400_000).toISOString()
+
+Deno.test('upgrade Plus mensal → Plus anual na metade do mês: metade da mensalidade vira dias no anual', () => {
+  const r = switchCredit({ price_cents: 4490, billing_cycle: 'monthly', current_period_start: daysAgo(15), current_period_end: inDays(15) },
+    { credits_granted: 550, bonus_credits: 0, credits_used: 100, credits_reserved: 0 }, 43104, 'annual')
+  assertEquals(Math.abs(r.remainingCents - 2245) <= 1, true)
+  assertEquals(r.extraDays, 19) // R$ 22,45 ÷ (R$ 431,04 / 365)
+})
+
+Deno.test('upgrade mensal com quase todos os créditos usados: vale o menor (créditos)', () => {
+  const r = switchCredit({ price_cents: 2490, billing_cycle: 'monthly', current_period_start: daysAgo(3), current_period_end: inDays(27) },
+    { credits_granted: 230, bonus_credits: 0, credits_used: 207, credits_reserved: 0 }, 4490, 'monthly')
+  assertEquals(r.remainingCents, 249) // 10% dos créditos sobrando
+  assertEquals(r.extraDays, 1)
+})
+
+Deno.test('upgrade anual Essencial → anual Pro com 6 meses sobrando', () => {
+  const r = switchCredit({ price_cents: 23904, billing_cycle: 'annual', current_period_start: daysAgo(182), current_period_end: inDays(183) },
+    { credits_granted: 230, bonus_credits: 0, credits_used: 230, credits_reserved: 0 }, 86304, 'annual')
+  assertEquals(r.extraDays, 50) // ~R$ 119,85 ÷ (R$ 863,04 / 365)
+})

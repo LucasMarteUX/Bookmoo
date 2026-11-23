@@ -23,6 +23,7 @@ import { useUnreadNotifications } from '@/components/community/NotificationBell'
 import { Avatar } from '@/components/ui/avatar'
 import { useMyAvatar } from '@/hooks/useMyAvatar'
 import { UsageMeters } from '@/components/billing/UsageMeters'
+import { BillingAlert, PremiumBadge } from '@/components/billing/PlanStatus'
 import { MessagesSquare, Brain } from 'lucide-react'
 import { Logo, LogoMark } from '@/components/brand/Logo'
 
@@ -194,6 +195,8 @@ export function Sidebar({ isMobileDrawer, onClose }: SidebarProps) {
           <Link to="/" className="flex items-center gap-2 min-w-0 rounded-md px-1 py-1 -mx-1 hover:bg-[var(--ui-hover)]">
             <Logo height={38} style={{ color: 'var(--theme-nav-text)' }} />
           </Link>
+          <PremiumBadge />
+          <span className="flex-1" />
           <button type="button" onClick={toggleSidebar} className="w-7 h-7 rounded-md grid place-items-center transition-colors hover:bg-[var(--ui-hover)]"
             title={pt ? 'Recolher menu' : 'Collapse menu'} aria-label={pt ? 'Recolher menu' : 'Collapse menu'} style={{ color: 'var(--theme-nav-text-muted)' }}>
             <PanelLeftClose className="w-4 h-4" />
@@ -257,6 +260,7 @@ export function Sidebar({ isMobileDrawer, onClose }: SidebarProps) {
       </div>
 
       <div className={isMobileDrawer ? 'flex flex-col gap-2' : 'px-2 pb-2 pt-2 flex flex-col gap-1.5 border-t'} style={{ borderColor: 'var(--theme-border)' }}>
+        <BillingAlert onClick={go} compact />
         <UsageMeters compact />
         <Link to="/stats" onClick={go} className="flex items-center gap-3 h-8 px-2 rounded-md text-[12.5px] tabular-nums hover:bg-[var(--ui-hover)]"
           style={{ color: 'var(--theme-nav-text-muted)' }} title={pt ? 'Sequência e pontos' : 'Streak and points'}>

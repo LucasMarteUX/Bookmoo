@@ -51,6 +51,14 @@ export type NormalizedEvent = {
   method: string | null
   /** Por que o plano não pôde ser decidido com segurança (vai para revisão manual). */
   review: string | null
+  provider?: 'zouti' | 'abacatepay'
+  /** O gateway diz explicitamente que é renovação (AbacatePay: subscription.renewed). */
+  renewal?: boolean
+  /** Cancelamento que mantém o acesso até o fim do ciclo pago. */
+  cancelAtPeriodEnd?: boolean
+  /** Recibo do gateway e número de parcelas (para o painel de recibos). */
+  receiptUrl?: string | null
+  installments?: number | null
 }
 
 const env = (k: string) => (Deno.env.get(k) ?? '').trim()
@@ -236,6 +244,7 @@ export function normalize(payload: Record<string, unknown>, headerEventId: strin
     feeCents: toCents(findValue(payload, ['fee', 'fees', 'tax', 'taxa'])),
     method: String(findValue(payload, ['payment_method', 'method', 'forma_pagamento']) ?? '') || null,
     review,
+    provider: 'zouti',
   }
 }
 
@@ -255,11 +264,12 @@ export class NeedsReview extends Error { constructor(public reason: string) { su
 
 export async function applyEvent(ev: NormalizedEvent, opts: { forceUserId?: string; eventRowId?: string } = {}): Promise<string> {
   const db = adminClient()
+  const provider = ev.provider ?? 'zouti'
   if (ev.kind === 'ignored') return 'ignored'
 
   // A mesma cobrança nunca é aplicada duas vezes (a Zouti pode mandar "Pedido pago" e "Assinatura ativada" juntos).
   if (ev.kind === 'paid' && ev.chargeRef) {
-    const { data: seen } = await db.from('payments').select('id').eq('provider', 'zouti').eq('provider_charge_id', ev.chargeRef).maybeSingle()
+    const { data: seen } = await db.from('payments').select('id').eq('provider', provider).eq('provider_charge_id', ev.chargeRef).maybeSingle()
     if (seen) return 'duplicate_charge'
   }
   if (ev.kind === 'paid' && ev.review) throw new NeedsReview(ev.review)
@@ -269,7 +279,7 @@ export async function applyEvent(ev: NormalizedEvent, opts: { forceUserId?: stri
     ? await db.from('checkout_intents').select('*').eq('id', ev.intentId).maybeSingle()
     : { data: null }
   const { data: knownSub } = ev.subscriptionRef
-    ? await db.from('subscriptions').select('*').eq('provider', 'zouti').eq('provider_subscription_id', ev.subscriptionRef).maybeSingle()
+    ? await db.from('subscriptions').select('*').eq('provider', provider).eq('provider_subscription_id', ev.subscriptionRef).maybeSingle()
     : { data: null }
   let userId: string | null = opts.forceUserId ?? intent?.user_id ?? knownSub?.user_id ?? null
   let email = ev.email
@@ -302,19 +312,21 @@ export async function applyEvent(ev: NormalizedEvent, opts: { forceUserId?: stri
   if (ev.kind === 'paid') {
     const now = new Date()
     // Renovação de assinatura conhecida (mesma recorrência na Zouti).
-    if (knownSub && !intent && ['active', 'past_due', 'expired'].includes(knownSub.status)) {
+    // Na AbacatePay o checkout (e a intenção) é o mesmo em todas as renovações: vale o sinal explícito de renovação.
+    if (knownSub && (ev.renewal || !intent) && ['active', 'past_due', 'expired'].includes(knownSub.status)) {
       const cycle: Cycle = (knownSub.billing_cycle as Cycle) ?? 'monthly'
       const end = knownSub.current_period_end ? new Date(knownSub.current_period_end) : now
-      // Segunda notificação da mesma renovação (eventos diferentes, mesmo ciclo): não estende duas vezes.
-      const earlyWindow = (cycle === 'annual' ? 45 : 10) * 86400_000
-      if (end.getTime() - now.getTime() > earlyWindow) {
-        await recordPayment(ev, userId, knownSub.id, null, 'renewal')
-        return 'renewal_already_applied'
-      }
+      // Segunda notificação da mesma cobrança sem id de pedido: não estende duas vezes (a mesma cobrança com
+      // id já foi barrada no começo). Uma renovação de verdade nunca chega 2 dias depois da compra/renovação anterior.
+      const { data: recent } = await db.from('payments').select('id').eq('subscription_id', knownSub.id).eq('status', 'paid')
+        .gte('paid_at', new Date(now.getTime() - 48 * 3600_000).toISOString()).limit(1)
+      if (recent?.length) return 'renewal_already_applied'
       const start = end > now ? end : now
+      // Troca de plano agendada (downgrade pela API) aplicada nesta cobrança: o produto novo vem no evento.
+      const switched = ev.planId && ev.planId !== knownSub.plan_id ? { plan_id: ev.planId, billing_cycle: ev.cycle ?? cycle, price_cents: priceFor(ev.planId, ev.cycle ?? cycle) ?? knownSub.price_cents, pending_plan_id: null } : {}
       await db.from('subscriptions').update({
-        status: 'active', current_period_start: start.toISOString(), current_period_end: periodEnd(start, cycle).toISOString(),
-        grace_until: null, updated_at: now.toISOString(),
+        status: 'active', current_period_start: start.toISOString(), current_period_end: periodEnd(start, (ev.cycle ?? cycle) as Cycle).toISOString(),
+        grace_until: null, updated_at: now.toISOString(), ...switched,
       }).eq('id', knownSub.id)
       await recordPayment(ev, userId, knownSub.id, null, 'renewal')
       return 'renewed'
@@ -344,16 +356,32 @@ export async function applyEvent(ev: NormalizedEvent, opts: { forceUserId?: stri
         return 'duplicate_subscription'
       }
     }
-    // Upgrade (ou cortesia do admin): encerra a anterior só agora que a nova está paga.
+    // Upgrade (ou cortesia do admin): o que sobrou vira dias a mais; encerra a anterior só agora que a nova está paga.
+    let extraDays = 0
+    if (live && (live.provider === 'zouti' || live.provider === 'abacatepay')) {
+      const { data: curPeriod } = await db.rpc('ensure_period', { p_user: userId })
+      extraDays = switchCredit(live, curPeriod as never, priceCents, cycle).extraDays
+    }
     if (live) {
       await db.from('subscriptions').update({ status: 'canceled', canceled_at: now.toISOString(), current_period_end: now.toISOString(), updated_at: now.toISOString() }).eq('id', live.id)
-      if (live.provider === 'zouti') await emails.adminAlert('Cancelar recorrência antiga na Zouti', `<p>${email} mudou de ${live.plan_id} (${live.billing_cycle}) para ${plan.id} (${cycle}). Cancele a recorrência antiga (${live.provider_subscription_id ?? 'sem id'}) no painel da Zouti, se ela não for cancelada automaticamente.</p>`)
+      if (live.provider === 'abacatepay' && live.provider_subscription_id) {
+        try { await (await import('./abacate.ts')).cancelSubscription(live.provider_subscription_id) }
+        catch (e) { await emails.adminAlert('Falha ao cancelar recorrência antiga na AbacatePay', `<p>${email}: cancele ${live.provider_subscription_id} no painel (${String((e as Error).message)}).</p>`) }
+      } else if (live.provider === 'zouti') await emails.adminAlert('Cancelar recorrência antiga na Zouti', `<p>${email} mudou de ${live.plan_id} (${live.billing_cycle}) para ${plan.id} (${cycle}). Cancele a recorrência antiga (${live.provider_subscription_id ?? 'sem id'}) no painel da Zouti, se ela não for cancelada automaticamente.</p>`)
     }
     const { data: sub, error } = await db.from('subscriptions').insert({
-      user_id: userId, plan_id: plan.id, status: 'active', price_cents: priceCents, provider: 'zouti', billing_cycle: cycle,
-      provider_subscription_id: ev.subscriptionRef, current_period_start: now.toISOString(), current_period_end: periodEnd(now, cycle).toISOString(),
+      user_id: userId, plan_id: plan.id, status: 'active', price_cents: priceCents, provider: provider, billing_cycle: cycle,
+      provider_subscription_id: ev.subscriptionRef, current_period_start: now.toISOString(),
+      current_period_end: new Date(periodEnd(now, cycle).getTime() + extraDays * 86400_000).toISOString(),
     }).select('*').single()
-    if (error) throw new Error(`subscription_insert: ${error.message}`)
+    if (error) {
+      // Dois avisos da mesma compra ao mesmo tempo ("pedido pago" + "assinatura ativada"): o outro já liberou.
+      if (/subscriptions_one_live|duplicate key/i.test(error.message)) {
+        const { data: other } = await db.from('subscriptions').select('id, plan_id, billing_cycle').eq('user_id', userId).in('status', ['active', 'past_due']).maybeSingle()
+        if (other && other.plan_id === plan.id && other.billing_cycle === cycle) return 'duplicate_event_race'
+      }
+      throw new Error(`subscription_insert: ${error.message}`)
+    }
     if (intent) await db.from('checkout_intents').update({ status: 'paid' }).eq('id', intent.id)
     await db.from('user_accounts').update({ onboarding_step: 'done', updated_at: now.toISOString() }).eq('user_id', userId).neq('onboarding_step', 'complete_profile')
     // Período novo com os créditos do plano (no anual, mês a mês) + bônus do upgrade.
@@ -378,15 +406,16 @@ export async function applyEvent(ev: NormalizedEvent, opts: { forceUserId?: stri
     return 'past_due'
   }
   if (ev.kind === 'canceled') {
+    if (['canceled', 'refunded', 'disputed', 'expired'].includes(sub.status)) return 'already_closed'
     await db.from('subscriptions').update({ cancel_at_period_end: true, canceled_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('id', sub.id)
     return 'cancel_scheduled'
   }
   // Reembolso ou chargeback: acesso cai na hora.
   const now = new Date().toISOString()
   await db.from('subscriptions').update({ status: ev.kind === 'disputed' ? 'disputed' : 'refunded', current_period_end: now, updated_at: now }).eq('id', sub.id)
-  if (ev.chargeRef) await db.from('payments').update({ status: ev.kind === 'disputed' ? 'disputed' : 'refunded' }).eq('provider', 'zouti').eq('provider_charge_id', ev.chargeRef)
+  if (ev.chargeRef) await db.from('payments').update({ status: ev.kind === 'disputed' ? 'disputed' : 'refunded' }).eq('provider', provider).eq('provider_charge_id', ev.chargeRef)
   const { error: refundErr } = await db.from('payments').insert({
-    user_id: userId, subscription_id: sub.id, provider: 'zouti', provider_charge_id: `${ev.chargeRef ?? ev.eventId}:${ev.kind}`,
+    user_id: userId, subscription_id: sub.id, provider: provider, provider_charge_id: `${ev.chargeRef ?? ev.eventId}:${ev.kind}`,
     amount_cents: -(ev.amountCents ?? sub.price_cents), status: ev.kind === 'disputed' ? 'disputed' : 'refunded', kind: 'refund', paid_at: now,
   })
   if (refundErr && /duplicate/i.test(refundErr.message)) return `${ev.kind}_duplicate`
@@ -400,9 +429,11 @@ export async function applyEvent(ev: NormalizedEvent, opts: { forceUserId?: stri
 }
 
 /** Libera compras feitas antes de existir a conta (chamado no login, com o e-mail já confirmado). */
-export async function claimPending(userId: string, email: string): Promise<string[]> {
+export async function claimPending(userId: string, email: string, onlyId?: string): Promise<string[]> {
   const db = adminClient()
-  const { data: rows } = await db.from('pending_purchases').select('*').ilike('email', email).is('claimed_at', null).order('created_at')
+  let q = db.from('pending_purchases').select('*').ilike('email', email).is('claimed_at', null)
+  if (onlyId) q = q.eq('id', onlyId)
+  const { data: rows } = await q.order('created_at')
   const results: string[] = []
   for (const row of rows ?? []) {
     const ev: NormalizedEvent = {
@@ -418,11 +449,36 @@ export async function claimPending(userId: string, email: string): Promise<strin
 
 async function recordPayment(ev: NormalizedEvent, userId: string, subId: string, intentId: string | null, kind: 'new' | 'renewal' | 'upgrade') {
   const { error } = await adminClient().from('payments').insert({
-    user_id: userId, subscription_id: subId, intent_id: intentId, provider: 'zouti',
+    user_id: userId, subscription_id: subId, intent_id: intentId, provider: ev.provider ?? 'zouti',
     provider_charge_id: ev.chargeRef ?? ev.eventId, amount_cents: ev.amountCents ?? 0, fee_cents: ev.feeCents ?? 0,
     method: ev.method, status: 'paid', kind, paid_at: new Date().toISOString(),
+    invoice_url: ev.receiptUrl ?? null,
+    raw: { cycle: ev.cycle, plan: ev.planId, installments: ev.installments ?? null },
   })
   if (error && !/duplicate/i.test(error.message)) log('billing', 'payment_insert_failed', { msg: error.message })
+}
+
+// ---------------------------------------------------------------------------
+// Troca de plano/ciclo: o que sobra do plano atual vira DIAS A MAIS no plano novo.
+// A Zouti cobra o valor cheio do link; a compensação é dar mais tempo no plano novo, proporcional ao que sobrou.
+//   sobra = preço pago no ciclo atual × fração não usada (no mensal: o menor entre dias e créditos que sobraram)
+//   dias a mais = sobra ÷ preço diário do plano novo
+// ---------------------------------------------------------------------------
+export function switchCredit(current: { price_cents: number; billing_cycle?: string | null; current_period_start: string; current_period_end: string },
+  period: { credits_granted: number; bonus_credits: number; credits_used: number; credits_reserved: number } | null,
+  nextPriceCents: number, nextCycle: Cycle) {
+  const start = new Date(current.current_period_start).getTime()
+  const end = new Date(current.current_period_end).getTime()
+  const daysRatio = Math.max(0, Math.min(1, (end - Date.now()) / Math.max(1, end - start)))
+  const granted = (period?.credits_granted ?? 0) + (period?.bonus_credits ?? 0)
+  const left = Math.max(0, granted - (period?.credits_used ?? 0) - (period?.credits_reserved ?? 0))
+  const creditRatio = granted > 0 ? Math.max(0, Math.min(1, left / granted)) : 1
+  // No anual os créditos são do mês corrente: vale só o tempo.
+  const ratio = current.billing_cycle === 'annual' ? daysRatio : Math.min(daysRatio, creditRatio)
+  const remainingCents = Math.floor(current.price_cents * ratio)
+  const nextDays = nextCycle === 'annual' ? 365 : 30
+  const extraDays = nextPriceCents > 0 ? Math.floor(remainingCents / (nextPriceCents / nextDays)) : 0
+  return { remainingCents, extraDays: Math.min(extraDays, 366) }
 }
 
 // ---------------------------------------------------------------------------
