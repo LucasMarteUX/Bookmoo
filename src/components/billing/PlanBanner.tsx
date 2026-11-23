@@ -32,19 +32,19 @@ export function PlanBanner({ pt }: { pt: boolean }) {
     return box('warn', <>
       <p className="text-[14px]">{pt ? 'Confirme seu e-mail para liberar seus créditos de IA grátis.' : 'Confirm your email to unlock your free AI credits.'}</p>
       <button type="button" disabled={resent} onClick={async () => { if (supabase && user?.email) await supabase.auth.resend({ type: 'signup', email: user.email, options: { emailRedirectTo: window.location.origin } }); setResent(true) }}
-        className="h-9 px-4 rounded-full text-[13px] font-semibold border disabled:opacity-60" style={{ borderColor: 'var(--theme-border)' }}>{resent ? (pt ? 'Link reenviado' : 'Link sent') : (pt ? 'Reenviar link' : 'Resend link')}</button>
+        className="h-9 px-4 rounded-lg text-[13px] font-medium border disabled:opacity-60" style={{ borderColor: 'var(--theme-border)' }}>{resent ? (pt ? 'Link reenviado' : 'Link sent') : (pt ? 'Reenviar link' : 'Resend link')}</button>
     </>)
   }
   if (ent.subscription?.status === 'past_due') {
     return box('warn', <>
       <p className="text-[14px]">{pt ? 'Não conseguimos renovar sua assinatura. Atualize o pagamento para não perder a biblioteca.' : 'We could not renew your subscription. Update your payment to keep the library.'}</p>
-      <Link to="/assinatura" className="h-9 px-4 rounded-full text-[13px] font-semibold inline-flex items-center" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>{pt ? 'Resolver' : 'Fix it'}</Link>
+      <Link to="/assinatura" className="h-9 px-4 rounded-lg text-[13px] font-medium inline-flex items-center" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>{pt ? 'Resolver' : 'Fix it'}</Link>
     </>)
   }
   if (ent.plan === 'free' && !ent.gift) {
     return box('gift', <>
       <p className="text-[14px]">{pt ? 'Você tem um livro de presente esperando. Escolha qualquer um da galeria!' : 'You have a gift book waiting. Pick any from the gallery!'}</p>
-      <Link to="/gallery?presente=1" className="h-9 px-4 rounded-full text-[13px] font-semibold inline-flex items-center" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>{pt ? 'Escolher meu livro' : 'Choose my book'}</Link>
+      <Link to="/gallery?presente=1" className="h-9 px-4 rounded-lg text-[13px] font-medium inline-flex items-center" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>{pt ? 'Escolher meu livro' : 'Choose my book'}</Link>
     </>)
   }
   if (ent.plan === 'free' && !dismissed) {
@@ -53,7 +53,7 @@ export function PlanBanner({ pt }: { pt: boolean }) {
         <p className="text-[15px] font-semibold">{pt ? 'Liberte a biblioteca inteira' : 'Unlock the whole library'}</p>
         <p className="text-[13px]" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? 'Todos os livros da galeria, importação de EPUB/PDF, mais ilustrações e conversas por voz.' : 'Every gallery book, EPUB/PDF import, more illustrations and voice conversations.'}</p>
       </div>
-      <Link to="/planos" className="h-9 px-4 rounded-full text-[13px] font-semibold inline-flex items-center" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>{pt ? 'Ver planos' : 'See plans'}</Link>
+      <Link to="/planos" className="h-9 px-4 rounded-lg text-[13px] font-medium inline-flex items-center" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>{pt ? 'Ver planos' : 'See plans'}</Link>
     </>, () => { try { localStorage.setItem(KEY, String(Date.now())) } catch { /* ignore */ } setDismissed(true) })
   }
   return null

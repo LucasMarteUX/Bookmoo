@@ -1,7 +1,7 @@
 // Moldura das telas reconstruídas: desenha em tamanho real (1280 px) e escala para caber, então o texto continua nítido.
 import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { Award, AudioLines, Bell, BookMarked, Brain, ChartNoAxesColumn, ChevronsUpDown, Flame, GraduationCap, House, Layers, Library, MessagesSquare, PanelLeft, PenLine, Search, Sparkles, Star, Users, BadgeCheck } from 'lucide-react'
-import { Logo } from '@/components/brand/Logo'
+import { Logo } from '../SiteLogo'
 import { coverSrc } from '../covers'
 import './mock.css'
 

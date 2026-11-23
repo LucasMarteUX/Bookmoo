@@ -28,9 +28,9 @@ export function ConfirmHost() {
           {ask?.detail && <DialogDescription>{ask.detail}</DialogDescription>}
         </DialogHeader>
         <div className="mt-2 flex justify-end gap-2">
-          <button type="button" onClick={() => close(false)} className="h-10 px-4 rounded-full text-[14px] font-medium"
+          <button type="button" onClick={() => close(false)} className="h-10 px-4 rounded-lg text-[14px] font-medium max-md:h-11 max-md:text-[15px]"
             style={{ color: 'var(--theme-text-secondary)' }}>{pt ? 'Cancelar' : 'Cancel'}</button>
-          <button type="button" autoFocus onClick={() => close(true)} className="h-10 px-5 rounded-full text-[14px] font-semibold"
+          <button type="button" autoFocus onClick={() => close(true)} className="h-10 px-4 rounded-lg text-[14px] font-medium max-md:h-11 max-md:text-[15px]"
             style={ask?.danger ? { backgroundColor: 'var(--color-destructive, #c0392b)', color: '#fff' } : { backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
             {ask?.confirmLabel ?? (pt ? 'Confirmar' : 'Confirm')}
           </button>

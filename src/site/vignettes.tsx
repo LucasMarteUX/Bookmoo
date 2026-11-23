@@ -70,7 +70,7 @@ export function VWord() {
           …once or twice she had <span className="rounded px-0.5" style={{ background: '#F5C451', color: '#15171C', boxShadow: '0 0 0 2px #B07B12' }}>peeped</span> into the book her sister was reading…
         </p>
       </UiCard>
-      <UiCard className="p-4 absolute left-[18%] right-[-6%] top-[78%]" delay={0.2}>
+      <UiCard className="p-4 relative -mt-6 ml-[18%]" delay={0.2}>
         <div className="flex items-baseline gap-2"><span className="text-[24px]" style={display}>peeped</span><span className="text-[12px]" style={{ color: muted }}>/piːpt/</span><Volume2 size={14} className="ml-auto" style={{ color: muted }} /></div>
         <p className="text-[13px] mt-1 leading-snug"><b className="font-semibold">espiou</b><span style={{ color: muted }}> · deu uma olhadinha rápida e meio escondida.</span></p>
         <div className="flex gap-1.5 mt-3 text-[11.5px] font-medium">

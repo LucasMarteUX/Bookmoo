@@ -394,7 +394,7 @@ export function GalleryList() {
       )}
       {books && books.length > 0 && shown.length === 0 && (
         <EmptyState illustration="reading" title={pt ? 'Nenhum livro com esses filtros.' : 'No books match these filters.'}
-          action={<button type="button" onClick={clear} className="h-9 px-4 rounded-full border text-[13px]" style={{ borderColor: 'var(--theme-border)' }}>{pt ? 'Limpar filtros' : 'Clear filters'}</button>} />
+          action={<button type="button" onClick={clear} className="h-9 px-4 rounded-lg border text-[13px]" style={{ borderColor: 'var(--theme-border)' }}>{pt ? 'Limpar filtros' : 'Clear filters'}</button>} />
       )}
 
       {books && shown.length > 0 && (
@@ -463,7 +463,7 @@ function Featured({ book, social, pt }: { book: CatalogBook; social: CatalogSoci
             )}
           </div>
           {book.description && <p className="mt-5 max-w-xl text-[15px] leading-relaxed line-clamp-3 hidden sm:block">{book.description}</p>}
-          <Link to={`/gallery/${book.id}`} className="mt-4 sm:mt-6 h-10 sm:h-11 px-4 sm:px-5 inline-flex items-center gap-2 rounded-full text-[13.5px] sm:text-[14px] font-medium" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
+          <Link to={`/gallery/${book.id}`} className="mt-4 sm:mt-6 h-10 sm:h-11 px-4 sm:px-5 inline-flex items-center gap-2 rounded-lg text-[13.5px] sm:text-[14px] font-medium" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
             <BookOpen className="w-4 h-4" />{pt ? 'Conhecer o livro' : 'See the book'}
           </Link>
         </div>

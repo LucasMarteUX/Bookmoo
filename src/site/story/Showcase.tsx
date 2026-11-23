@@ -10,6 +10,7 @@ import { Fit } from '../vignettes2'
 import { VDictation, VProva, VRaioX, VReader, VSpeak, VVocab, VWord } from '../vignettes'
 import { VGrammar } from '../vignettes2'
 import './showcase.css'
+import { ImageDither } from '../ImageDither'
 
 const EASE = [0.2, 0.8, 0.2, 1] as const
 
@@ -57,33 +58,35 @@ function useTick(n: number, ms: number, on = true) {
 
 /* ================================================================ Tela do leitor (notebook) */
 
-const PAGE = 'Once upon a time there were four little Rabbits, and their names were Flopsy, Mopsy, Cotton-tail, and Peter. They lived with their Mother in a sand-bank, underneath the root of a very big fir-tree.'.split(' ')
+const PAGE = 'Mr. Darcy soon drew the attention of the room by his fine, tall person, handsome features, noble mien, and the report which was in general circulation within five minutes after his entrance.'.split(' ')
 
 function ReaderScreen() {
-  const i = useTick(PAGE.length + 8, 320)
-  const showWord = i > 14 && i < PAGE.length + 6
+  const reader = useRef<HTMLDivElement>(null)
+  const visible = useInView(reader)
+  const i = useTick(PAGE.length + 8, 320, visible)
+  const showWord = i > 19 && i < PAGE.length + 6
   return (
-    <div className="sc-reader">
+    <div className="sc-reader" ref={reader}>
       <div className="sc-reader-top">
-        <span className="sc-reader-back"><ChevronLeft size={18} />The Tale of Peter Rabbit</span>
-        <span className="sc-reader-chap">Capítulo 1 · página 3 de 24</span>
+        <span className="sc-reader-back"><ChevronLeft size={18} />Pride and Prejudice</span>
+        <span className="sc-reader-chap">Capítulo 3 · página 12 de 290</span>
         <span className="sc-reader-tools"><Type size={17} /><Sparkles size={17} /><BookOpen size={17} /></span>
       </div>
       <div className="sc-reader-body">
-        <div className="sc-reader-art"><img src="/site/reader/peter-rabbit-page.webp" alt="" /></div>
+        <div className="sc-reader-art"><img src="/site/reader/pride-and-prejudice-page.webp" alt="" /></div>
         <div className="sc-reader-text" lang="en">
           <p>
             {PAGE.map((w, k) => (
               <span key={k}>
-                <span className={k === i ? 'is-now' : k < i ? 'is-read' : ''} data-word={w === 'sand-bank,' ? 'y' : undefined}>{w}</span>{' '}
+                <span className={k === i ? 'is-now' : k < i ? 'is-read' : ''} data-word={w === 'mien,' ? 'y' : undefined}>{w}</span>{' '}
               </span>
             ))}
           </p>
           <AnimatePresence>
             {showWord && (
               <motion.div className="sc-reader-pop" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 6 }} transition={{ duration: 0.5, ease: EASE }}>
-                <p><b>sand-bank</b><span>/ˈsænd bæŋk/</span><Volume2 size={15} /></p>
-                <p className="sc-reader-pop-d"><b>banco de areia</b> · um monte de areia na margem de um rio.</p>
+                <p><b>mien</b><span>/miːn/</span><Volume2 size={15} /></p>
+                <p className="sc-reader-pop-d"><b>porte</b> · o jeito elegante de alguém se apresentar e se portar.</p>
                 <div><span data-k="g"><Check size={12} />Aprendi</span><span data-k="a"><RotateCcw size={12} />Revisar</span><span data-k="s"><Star size={12} />Importante</span></div>
               </motion.div>
             )}
@@ -175,24 +178,32 @@ export function CoverArc() {
 /* ================================================================ O leitor no notebook (meio da Home) */
 
 export function LaptopSection() {
+  const ref = useRef<HTMLElement>(null)
+  const reduced = useReducedMotion()
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] })
+  const frameScale = useTransform(scrollYProgress, [0, .48, 1], [.91, 1, .97])
+  const frameY = useTransform(scrollYProgress, [0, 1], [48, -35])
+  const wordY = useTransform(scrollYProgress, [0, 1], [30, -25])
+  const tutorY = useTransform(scrollYProgress, [0, 1], [-26, 30])
   return (
-    <section className="sc-section">
+    <section className="sc-section sc-laptop-section" ref={ref}>
       <SectionHead kicker="No computador" title={<>Uma tela, <i>tudo o que você precisa</i>.</>}
         text="A página com ilustração, a narração com karaokê, o significado de cada palavra e um tutor pronto para conversar. Tudo junto, sem abrir outra aba." />
-      <In className="sc-hero-photo sc-laptop-mid">
-              <img src="/site/home/setup.webp" alt="Uma jovem sorrindo enquanto lê um livro em inglês no Upoonly, no notebook" />
-        <Screen box={[31.101, 40.691, 36.979, 40.426]} w={1000} h={611}><ReaderScreen /></Screen>
-        <motion.div className="sc-float sc-float-word" initial={{ opacity: 0, y: 14 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-15%' }} transition={{ duration: 1, ease: EASE, delay: 0.5 }}>
+      <motion.div className="sc-hero-photo sc-laptop-mid" style={reduced ? undefined : { y: frameY, scale: frameScale }}>
+        <img loading="lazy" src="/site/home/setup.webp" alt="Um coelho de colete vermelho lê Pride and Prejudice no notebook, numa escrivaninha ao sol." />
+        <Screen box={[34.43, 27.734, 31.213, 35.938]} w={1000} h={646}><ReaderScreen /></Screen>
+        <ImageDither corners={['bl', 'br', 'tl']} />
+        <motion.div className="sc-float sc-float-word" style={reduced ? undefined : {y: wordY}}>
           <p className="sc-float-k">Palavra salva</p>
-          <p className="sc-float-w" lang="en">sand-bank</p>
-          <p className="sc-float-d">banco de areia</p>
+          <p className="sc-float-w" lang="en">mien</p>
+          <p className="sc-float-d">porte, postura</p>
           <div><span data-k="g"><Check size={11} />Aprendi</span><span data-k="a"><RotateCcw size={11} />Revisar</span></div>
         </motion.div>
-        <motion.div className="sc-float sc-float-tutor" initial={{ opacity: 0, y: 14 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-15%' }} transition={{ duration: 1, ease: EASE, delay: 0.8 }}>
+        <motion.div className="sc-float sc-float-tutor" style={reduced ? undefined : {y: tutorY}}>
           <img src={tutorAvatar('bia')} alt="" />
-          <p lang="en">Great reading! Want to talk about Peter?</p>
+          <p lang="en">Great reading! What did you think of Mr. Darcy?</p>
         </motion.div>
-      </In>
+      </motion.div>
     </section>
   )
 }
@@ -258,7 +269,7 @@ export function ReadFeatures() {
         text="Mais de 100 clássicos com narração natural. A palavra acende no momento em que é dita, e um toque explica qualquer uma no contexto da história." />
       <Tiles tiles={[
         { title: 'Narração com karaokê', text: 'Ouça e acompanhe. Escolha a voz e a velocidade.', to: '/leitor', tone: 'sage', span: 7, visual: <VReader /> },
-        { title: 'Toque na palavra', text: 'Pronúncia, tradução e exemplo, sem sair da página.', to: '/leitor', tone: 'sand', span: 5, visual: <div className="pb-24"><VWord /></div> },
+        { title: 'Toque na palavra', text: 'Pronúncia, tradução e exemplo, sem sair da página.', to: '/leitor', tone: 'sand', span: 5, visual: <VWord /> },
         { title: 'Decifrar a página', text: 'A gramática da página explicada em português.', to: '/leitor', tone: 'blush', span: 5, visual: <VGrammar /> },
         { title: 'Leitura confortável', text: 'Temas Dia, Tarde e Noite, fontes e sons ambientes.', to: '/leitor', tone: 'sky', span: 7, visual: <ThemesVisual /> },
       ]} />
@@ -335,7 +346,7 @@ function StyleRow({ items, reverse }: { items: typeof STYLES; reverse?: boolean 
     <div className="sc-gal-row">
       <div className="sc-gal-track" data-rev={reverse ? 'y' : undefined}>
         {list.map((s, k) => (
-          <figure key={k} className="sc-gal-item">
+          <figure key={k} className="sc-gal-item" aria-hidden={k >= items.length || undefined}>
             <img src={`/styles/${s.id}.webp`} alt={k < items.length ? `Ilustração no estilo ${s.name}` : ''} loading="lazy" />
             <figcaption>{s.name}</figcaption>
           </figure>
@@ -345,18 +356,24 @@ function StyleRow({ items, reverse }: { items: typeof STYLES; reverse?: boolean 
   )
 }
 
-export function StylesGallery() {
+export function StylesGallery({ head = true }: { head?: boolean } = {}) {
+  const ref = useRef<HTMLElement>(null)
+  const reduced = useReducedMotion()
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] })
+  const forward = useTransform(scrollYProgress, [0, 1], ['3%', '-3%'])
+  const back = useTransform(scrollYProgress, [0, 1], ['-3%', '3%'])
   return (
-    <section className="sc-gal">
-      <div className="sc-section sc-gal-head">
+    <section ref={ref} className="sc-gal" aria-label="Galeria de estilos de ilustração">
+      {head && <div className="sc-section sc-gal-head">
         <div className="sc-head">
           <In><p className="sc-kicker">Ilustrações com IA</p><h2 className="sc-title">Cada página pode virar <i>uma obra de arte</i>.</h2></In>
           <In delay={0.08}><p className="sc-head-text">Escolha entre 16 estilos e veja a cena que você está lendo ganhar forma, em ilustração ou quadrinho. O que a comunidade já ilustrou é grátis para todos.</p>
             <Link to="/ilustracoes" className="sc-textlink">Ver os estilos <ArrowRight size={15} /></Link></In>
         </div>
       </div>
-      <StyleRow items={STYLES.slice(0, 8)} />
-      <StyleRow items={STYLES.slice(8)} reverse />
+      }
+      <motion.div className="sc-gal-plane" style={head || reduced ? undefined : { x: forward }}><StyleRow items={STYLES.slice(0, 8)} /></motion.div>
+      <motion.div className="sc-gal-plane" style={head || reduced ? undefined : { x: back }}><StyleRow items={STYLES.slice(8)} reverse /></motion.div>
     </section>
   )
 }
@@ -398,7 +415,7 @@ const DAY = [
   { time: '07:40 · no trem', title: 'Ouça a história a caminho do trabalho.', text: 'A narração lê para você e a palavra acende no momento em que é dita.', img: 'ouvir', to: '/leitor',
     ui: <div className="sc-day-chip sc-day-karaoke" lang="en"><span>Once upon a</span> <b>time</b> <span>there were…</span></div> },
   { time: '12:30 · no almoço', title: 'Toque na palavra e ela faz sentido.', text: 'Tradução, pronúncia e exemplo, no contexto da frase. A palavra vai para o seu vocabulário.', img: 'celular', to: '/leitor', screen: 'phone' as const },
-  { time: '19:00 · em casa', title: 'Leia no computador, com calma.', text: 'A mesma página continua de onde parou, com ilustrações, temas e tudo sincronizado.', img: 'setup', to: '/leitor', screen: 'laptop' as const },
+  { time: '19:00 · em casa', title: 'Leia no computador, com calma.', text: 'A mesma página continua de onde parou, com ilustrações, temas e tudo sincronizado.', img: 'noite', to: '/leitor', screen: 'desk' as const },
   { time: '22:10 · antes de dormir', title: 'Converse sobre o que você leu.', text: 'Fale em voz alta com a Bia, o Luck, o Yuno ou o Yuri. Eles corrigem com carinho.', img: 'conversar', to: '/tutores',
     ui: <div className="sc-day-chip sc-day-chat"><img src={tutorAvatar('bia')} alt="" /><p lang="en">Great sentence! Just one tip…</p></div> },
 ]
@@ -434,7 +451,7 @@ export function DayStory() {
                 <motion.div className="sc-day-img" style={{ scale: reduce ? 1 : scale }} data-kind={d.screen ?? 'photo'}>
                   <img src={`/site/home/${d.img}.webp`} alt="" />
                   {d.screen === 'phone' && <Screen box={[32.143, 14.732, 35.826, 63.125]} w={360} h={793} radius={40}><PhoneReader /></Screen>}
-                  {d.screen === 'laptop' && <Screen box={[31.101, 40.691, 36.979, 40.426]} w={1000} h={611}><ReaderScreen /></Screen>}
+                  {d.screen === 'desk' && <Screen box={[31.494, 49.265, 37.061, 33.309]} w={1000} h={597}><ReaderScreen /></Screen>}
                 </motion.div>
                 <AnimatePresence>{d.ui && k === i && <motion.div className="sc-day-ui" initial={{ opacity: 0, y: -14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.7, ease: EASE, delay: 0.3 }}>{d.ui}</motion.div>}</AnimatePresence>
               </motion.div>
@@ -451,8 +468,9 @@ export function DayStory() {
 export function LaptopShot() {
   return (
     <div className="sc-hero-photo sc-laptop-shot">
-      <img src="/site/home/setup.webp" alt="Uma jovem sorrindo enquanto lê em inglês no Upoonly, no notebook" />
-      <Screen box={[31.101, 40.691, 36.979, 40.426]} w={1000} h={611}><ReaderScreen /></Screen>
+      <img src="/site/home/setup.webp" alt="Um coelho de colete vermelho lê em inglês no Upoonly, no notebook" />
+      <Screen box={[34.43, 27.734, 31.213, 35.938]} w={1000} h={646}><ReaderScreen /></Screen>
+      <ImageDither corners={['bl', 'br', 'tl']} />
     </div>
   )
 }

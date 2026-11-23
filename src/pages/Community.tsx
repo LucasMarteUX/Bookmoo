@@ -385,7 +385,7 @@ export function PublicProfile() {
             ? (pt ? 'Você ainda não criou seu perfil. Escolha um @, uma foto e o que quer mostrar.' : 'You have not created your profile yet. Pick a handle, a photo and what to show.')
             : (pt ? 'Este perfil não existe ou não está disponível.' : 'This profile does not exist or is not available.')}
           action={isMe
-            ? <Link to="/settings#profile" className="h-9 px-4 inline-flex items-center rounded-full text-[13.5px] font-medium" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>{pt ? 'Criar perfil' : 'Create profile'}</Link>
+            ? <Link to="/settings#profile" className="h-9 px-4 inline-flex items-center rounded-lg text-[13.5px] font-medium" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>{pt ? 'Criar perfil' : 'Create profile'}</Link>
             : <Link to="/community" className="text-[13.5px] underline">{pt ? 'Voltar para a comunidade' : 'Back to the community'}</Link>} />
       </div>
     )
@@ -640,7 +640,7 @@ export function NotificationsPage() {
           <div className="flex gap-1.5 overflow-x-auto no-scrollbar" role="tablist">
             {FILTERS.map(([id, label]) => (
               <button key={id} type="button" role="tab" aria-selected={filter === id} onClick={() => setFilter(id)}
-                className="shrink-0 h-9 px-3.5 rounded-full text-[13px] font-medium border transition-colors"
+                className="shrink-0 h-9 px-3.5 rounded-lg text-[13px] font-medium border transition-colors"
                 style={filter === id ? { backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)', borderColor: 'var(--theme-primary)' } : { borderColor: 'var(--theme-border)' }}>{label}</button>
             ))}
           </div>

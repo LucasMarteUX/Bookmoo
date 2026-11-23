@@ -11,6 +11,7 @@ import { useVocabularyStore, type VocabStatus } from '@/store/useVocabularyStore
 import { upsertVocabulary } from '@/lib/supabaseSync'
 import { WordTooltip, type WordTooltipState, type ScoreBurst } from './WordTooltip'
 import { FloatingAction } from './FloatingAction'
+import { MobileReadDock } from './MobileReadDock'
 import { NoteDialog } from './NoteDialog'
 import { deletePin, loadPins, savePin, usePinStore, type StoryPin } from '@/store/usePinStore'
 import { fetchSharedImages, publishSharedImage } from '@/lib/catalog'
@@ -160,7 +161,12 @@ export function Reader({ book, autoPlay = false, headerSlot, headerEndSlot, head
   // Celular: leitura imersiva (as barras somem; um toque traz de volta). Ver useReaderChrome.
   const immersive = useIsMobile()
   const edgeTap = useReaderChrome(s => s.edgeTap)
-  const [appearanceOpen, setAppearanceOpen] = useState(false)
+  // Celular: Aa (aparência) e o menu ⋯ abrem pelo topo do livro (BookPage); o estado fica no useReaderChrome.
+  const appearanceOpen = useReaderChrome(s => s.sheet === 'appearance')
+  const setAppearanceOpen = useCallback((open: boolean) => useReaderChrome.getState().setSheet(open ? 'appearance' : null), [])
+  // Celular: "Ler" (só o texto) ou "Ouvir" (player flutuante embaixo).
+  const [listenDock, setListenDock] = useState(autoPlay)
+  useEffect(() => { if (autoPlay) setListenDock(true) }, [autoPlay])
   useEffect(() => {
     const chrome = useReaderChrome.getState()
     chrome.setImmersive(immersive)
@@ -221,6 +227,8 @@ export function Reader({ book, autoPlay = false, headerSlot, headerEndSlot, head
   
   // TTS State — native browser SpeechSynthesis only
   const [isPlaying, setIsPlaying] = useState(false)
+  // Narração começou por outro caminho (tocar numa linha, fones, tela de bloqueio): o player aparece.
+  useEffect(() => { if (immersive && isPlaying) setListenDock(true) }, [immersive, isPlaying])
   const [isPaused, setIsPaused] = useState(false)
   const [isLoadingTts, setIsLoadingTts] = useState(false)
   const isPlayingRef = useRef(false)
@@ -1604,7 +1612,7 @@ export function Reader({ book, autoPlay = false, headerSlot, headerEndSlot, head
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button type="button" onClick={() => { void openComicMode().then(() => handleGenerateComic()) }} className="h-9 px-4 rounded-full text-[13px] font-medium" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>{locale === 'pt-BR' ? 'Ilustrar esta página' : 'Illustrate this page'}</button>
+                  <button type="button" onClick={() => { void openComicMode().then(() => handleGenerateComic()) }} className="h-9 px-4 rounded-lg text-[13px] font-medium" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>{locale === 'pt-BR' ? 'Ilustrar esta página' : 'Illustrate this page'}</button>
                   <button type="button" onClick={() => { try { sessionStorage.setItem(`illustrate-nudge:${book.id}`, '1') } catch { /* sem armazenamento */ } setNudgeHidden(true) }} className="h-9 px-3 rounded-full text-[13px]" style={{ color: 'var(--theme-text-secondary)' }}>{locale === 'pt-BR' ? 'Agora não' : 'Not now'}</button>
                 </div>
               </div>
@@ -1732,7 +1740,8 @@ export function Reader({ book, autoPlay = false, headerSlot, headerEndSlot, head
 
       </div>
 
-      {/* Floating Toolbar — no livro no mobile fica embaixo (BottomNav escondido) */}
+      {/* Barra de ferramentas flutuante: computador e tablet. No celular, o controle é a pílula Ler/Ouvir (MobileReadDock). */}
+      {!immersive && (
       <div data-reader-bar data-chrome="bottom" className="fixed left-2 right-2 md:left-[var(--sidebar-w,16rem)] md:right-8 md:bottom-8 z-40 flex flex-col items-center" style={{ bottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
         <div 
           className="backdrop-blur-md border p-1.5 rounded-2xl shadow-[0_1px_2px_rgba(15,15,15,0.06),0_18px_44px_-14px_rgba(15,15,15,0.38)] flex items-center justify-between md:justify-center gap-0.5 md:gap-1.5 transition-colors w-full flex-nowrap md:w-auto"
@@ -1993,22 +2002,27 @@ export function Reader({ book, autoPlay = false, headerSlot, headerEndSlot, head
         </div>
       </div>
 
+      )}
+
       {immersive && (
         <>
-          {/* Rodapé discreto, como no Kindle: só com os controles escondidos. */}
-          <div data-chrome="footer" aria-hidden className="fixed inset-x-0 z-30 flex justify-between px-6 text-[11px] font-medium tabular-nums pointer-events-none transition-opacity duration-200"
-            style={{ bottom: 'calc(var(--safe-b) + 0.7rem)', color: 'color-mix(in srgb, var(--theme-text-secondary) 80%, transparent)', fontFamily: 'var(--font-sans)' }}>
-            <span>{locale === 'pt-BR' ? `Página ${currentPage + 1} de ${pages.length}` : `Page ${currentPage + 1} of ${pages.length}`}</span>
-            <span>{Math.round(((currentPage + 1) / Math.max(1, pages.length)) * 100)}%</span>
-          </div>
           <p className="sr-only" aria-live="polite">{locale === 'pt-BR' ? `Página ${currentPage + 1} de ${pages.length}` : `Page ${currentPage + 1} of ${pages.length}`}</p>
-          {/* Play/pause sempre à mão: com os controles escondidos, o botão continua flutuando embaixo, no centro. */}
-          <button type="button" data-chrome="footer" onClick={togglePlayback}
-            aria-label={isPlaying ? t('pause') : t('listen')}
-            className="fixed left-1/2 -translate-x-1/2 z-40 w-12 h-12 rounded-full grid place-items-center active:scale-95 transition-transform"
-            style={{ bottom: 'calc(var(--safe-b) + 0.35rem)', backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)', boxShadow: '0 6px 18px rgba(0,0,0,0.22), 0 0 0 1px color-mix(in srgb, var(--theme-text) 8%, transparent)' }}>
-            {isLoadingTts ? <Loader2 className="w-5 h-5 animate-spin" /> : isPlaying ? <Pause className="w-5 h-5" fill="currentColor" /> : <Play className="w-5 h-5 ml-0.5" fill="currentColor" />}
-          </button>
+          <MobileReadDock
+            listening={listenDock}
+            playing={isPlaying}
+            loading={isLoadingTts}
+            rate={playbackRate}
+            speeds={PLAYBACK_SPEEDS}
+            page={currentPage}
+            total={pages.length}
+            pt={locale === 'pt-BR'}
+            onRead={() => { setListenDock(false); if (isPlaying || isPaused) stopPlayback() }}
+            onListen={() => { setListenDock(true); if (!isPlaying) togglePlayback() }}
+            onToggle={togglePlayback}
+            onPrev={() => changePage(-1)}
+            onNext={() => changePage(1)}
+            onRate={handleRateChange}
+          />
           <ReaderAppearanceSheet open={appearanceOpen} onOpenChange={setAppearanceOpen} pt={locale === 'pt-BR'} />
         </>
       )}

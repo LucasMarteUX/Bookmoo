@@ -5,33 +5,22 @@ import { Link } from 'react-router-dom'
 import { motion, useReducedMotion } from 'motion/react'
 import { ArrowRight } from 'lucide-react'
 import { SiteLayout } from '../SiteLayout'
+import { PageOpening } from '../PageOpening'
 import { Btn, useSeo } from '../ui'
 import { FinalCta } from '../sections'
 import { LibraryWall } from '../home/Premium'
 import { Fit, VGoal, VGrammar, VImport, VGift, VMosaic, VNotes, VStats, VStory, VStylesGrid, VThemes, VBalloon, VQuiz } from '../vignettes2'
 import { VComic, VCovers, VDictation, VLevels, VProva, VRaioX, VReader, VSpeak, VTutorChat, VVocab, VWord } from '../vignettes'
-import { LaptopShot, Tiles } from './Showcase'
+import { LaptopShot } from './Showcase'
 import { GrowthVisual, Kicker, PracticeVisual, StylesVisual } from './Story'
 import './story.css'
 
 const EASE = [0.2, 0.8, 0.2, 1] as const
 
 function Opening({ kicker, title, text, children }: { kicker: string; title: ReactNode; text: string; children?: ReactNode }) {
-  const reduce = useReducedMotion()
-  const a = (d: number) => ({ initial: reduce ? { opacity: 0 } : { opacity: 0, y: 18, filter: 'blur(8px)' }, animate: { opacity: 1, y: 0, filter: 'blur(0px)' }, transition: { duration: 1, ease: EASE, delay: d } })
   return (
-    <section className="st-chapter" style={{ paddingTop: 'clamp(80px, 10vw, 140px)' }}>
-      <div className="st-head">
-        <motion.div {...a(0.08)}><Kicker>{kicker}</Kicker></motion.div>
-        <motion.h1 {...a(0.16)} className="st-title" style={{ fontSize: 'clamp(42px, 6vw, 80px)' }}>{title}</motion.h1>
-        <motion.p {...a(0.24)} className="st-text">{text}</motion.p>
-        <motion.div {...a(0.32)} className="st-actions" style={{ marginTop: 14 }}>
-          <Btn to="/signup" arrow>Começar grátis</Btn>
-          <Btn to="/planos" variant="white">Ver planos</Btn>
-        </motion.div>
-      </div>
-      {children && <div className="st-visual">{children}</div>}
-    </section>
+    <PageOpening kicker={kicker} title={title} text={text}
+      actions={<><Btn to="/signup" arrow>Começar grátis</Btn><Btn to="/planos" variant="white">Ver planos</Btn></>}>{children}</PageOpening>
   )
 }
 
@@ -68,18 +57,17 @@ const ALL = [
 
 function Next({ current }: { current: string }) {
   return (
-    <section className="px-5 pt-[clamp(80px,10vw,140px)]">
-      <div className="mx-auto max-w-[1240px]">
-        <Kicker>Continue explorando</Kicker>
-        <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {ALL.filter(x => x.to !== current).slice(0, 6).map(x => (
-            <Link key={x.to} to={x.to} className="group flex items-center justify-between gap-4 rounded-[20px] px-6 py-5 transition-transform duration-300 hover:-translate-y-1" style={{ background: 'var(--site-card)', boxShadow: '0 0 0 1px var(--site-line)' }}>
-              <span><span className="block s-serif text-[26px] tracking-[-0.03em]">{x.name}</span><span className="block text-[14px] font-light" style={{ color: 'var(--site-muted)' }}>{x.d}</span></span>
-              <ArrowRight size={18} className="transition-transform duration-300 group-hover:translate-x-1" />
-            </Link>
-          ))}
-        </div>
-      </div>
+    <section className="next-index">
+      <p className="journey-label">Continue explorando</p>
+      <nav aria-label="Outras páginas">
+        {ALL.filter(x => x.to !== current).slice(0, 6).map((x, k) => (
+          <Link key={x.to} to={x.to}>
+            <small>{String(k + 1).padStart(2, '0')}</small>
+            <span><b>{x.name}</b><em>{x.d}</em></span>
+            <ArrowRight size={18} aria-hidden />
+          </Link>
+        ))}
+      </nav>
     </section>
   )
 }
@@ -91,7 +79,7 @@ export function SiteLeitor() {
   return (
     <SiteLayout>
       <Opening kicker="O leitor" title={<>Cada página vira <i>uma aula</i>.</>} text="Ouça a página com vozes naturais, acompanhe a palavra que está sendo dita e toque em qualquer termo para entender o que ele significa ali."><LaptopShot /></Opening>
-      <Block kicker="Palavras" title="Um toque e a palavra faz sentido." text="Pronúncia, significado na frase, exemplos nas formas afirmativa, negativa e pergunta, e um clique para marcar como Aprendi, Revisar ou Importante." visual={<div className="pb-20"><VWord /></div>} />
+      <Block kicker="Palavras" title="Um toque e a palavra faz sentido." text="Pronúncia, significado na frase, exemplos nas formas afirmativa, negativa e pergunta, e um clique para marcar como Aprendi, Revisar ou Importante." visual={<VWord />} />
       <Block flip kicker="Gramática" title="Decifre a página." text="A gramática da página explicada em português, trecho por trecho, sem precisar sair da história." visual={<VGrammar />} />
       <Block kicker="Notas" title="Marque o que importa." text="Destaque trechos e escreva suas notas. Elas ficam junto do livro, onde você precisa delas." visual={<VNotes />} />
       <Next current="/leitor" />
@@ -164,17 +152,12 @@ export function SiteRecursos() {
   return (
     <SiteLayout>
       <Opening kicker="Recursos" title={<>Tudo o que o Upoonly <i>faz por você</i>.</>} text="Um leitor completo para aprender inglês com livros de verdade. Escolha por onde começar." />
-      <section className="sc-section">
-        <Tiles tiles={[
-          { title: 'Leitor', text: 'Narração com karaokê e cada palavra explicada no contexto.', to: '/leitor', tone: 'sage', span: 7, visual: <VReader /> },
-          { title: 'Ilustrações', text: 'Páginas que viram ilustração e quadrinho, em 16 estilos.', to: '/ilustracoes', tone: 'blush', span: 5, visual: <VStylesGrid /> },
-          { title: 'Tutores', text: 'Converse por voz com Bia, Luck, Yuno e Yuri.', to: '/tutores', tone: 'sand', span: 5, visual: <VTutorChat /> },
-          { title: 'Prática', text: 'Fala palavra por palavra, ditado e vocabulário.', to: '/pratica', tone: 'sky', span: 7, visual: <VSpeak /> },
-          { title: 'Evolução', text: 'Raio-X semanal, metas e estatísticas.', to: '/evolucao', tone: 'sage', span: 4, visual: <VRaioX /> },
-          { title: 'Biblioteca', text: 'Mais de 100 clássicos e seus próprios livros.', to: '/biblioteca', tone: 'sand', span: 4, visual: <VCovers /> },
-          { title: 'Prova', text: 'Seu nível nas 4 habilidades, com relatório.', to: '/prova', tone: 'blush', span: 4, visual: <VProva /> },
-        ]} />
-      </section>
+      <nav className="folio-index" aria-label="Índice de recursos">
+        {ALL.map((item, index) => <Link key={item.to} to={item.to}>
+          <span>{item.name}</span><small>{item.d}</small><b aria-hidden="true">↗</b>
+          <img loading="lazy" alt="" src={'/site/covers/' + ['the-secret-garden','through-the-looking-glass','little-women','the-call-of-the-wild','great-expectations','treasure-island','the-adventures-of-sherlock-holmes'][index] + '.webp'} />
+        </Link>)}
+      </nav>
       <FinalCta />
     </SiteLayout>
   )

@@ -63,7 +63,7 @@ export function StyleBankAdmin({ pt }: { pt: boolean }) {
                     className="w-full rounded-xl border px-3 py-2 text-[13px] leading-relaxed font-mono bg-transparent outline-none resize-y" style={{ borderColor: 'var(--theme-border)' }} />
                   <div className="flex items-center gap-3">
                     <button type="button" disabled={busy || value === (prompts[style.id] ?? '')} onClick={() => { void save(style.id) }}
-                      className="h-9 px-4 rounded-full text-[13px] font-medium disabled:opacity-50" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
+                      className="h-9 px-4 rounded-lg text-[13px] font-medium disabled:opacity-50" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
                       {pt ? 'Salvar prompt' : 'Save prompt'}
                     </button>
                     <span className="text-[12px] tabular-nums" style={{ color: 'var(--theme-text-secondary)' }}>{value.length.toLocaleString()} {pt ? 'caracteres' : 'characters'}{value && value.length < 400 ? (pt ? ' · mínimo 400' : ' · min 400') : ''}</span>

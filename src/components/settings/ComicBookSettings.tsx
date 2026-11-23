@@ -215,7 +215,7 @@ function BookStyleSection({ book, userId, pt }: { book: Book; userId?: string; p
               ? `${current.look}. ${current.use}.`
               : (pt ? 'Escolhido pelo tipo do livro na primeira geração. Livros da galeria seguem o estilo de quem gerou primeiro.' : 'Picked from the book type on first generation. Gallery books follow whoever generated first.')}
           </p>
-          <button type="button" disabled={busy || !userId} onClick={() => setOpen(true)} className="mt-3 h-9 px-3.5 rounded-full border text-[13px] font-medium disabled:opacity-60" style={{ borderColor: 'var(--theme-border)' }}>
+          <button type="button" disabled={busy || !userId} onClick={() => setOpen(true)} className="mt-3 h-9 px-3.5 rounded-lg border text-[13px] font-medium disabled:opacity-60" style={{ borderColor: 'var(--theme-border)' }}>
             {pt ? 'Trocar estilo' : 'Change style'}
           </button>
         </div>

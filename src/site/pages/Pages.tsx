@@ -6,6 +6,7 @@ import { ArrowRight, BookOpen, Clock, Headphones, Mic, PenLine } from 'lucide-re
 import { ReportPreview } from '@/pages/proficiency/ReportPreview'
 import { BAND_CEFR, SECTION_LABEL, SECTION_PLAN, type Section } from '@/lib/proficiencyApi'
 import { SiteLayout } from '../SiteLayout'
+import { PageOpening } from '../PageOpening'
 import { useSeo } from '../ui'
 import { FaqSection, FinalCta } from '../sections'
 import { CompareTable, Pricing } from '../blocks'
@@ -14,24 +15,13 @@ import { SUPPORT_EMAIL, TUTORS, tutorAvatar, tutorImg } from '../content'
 import { VMemory, VPhone, VScenes, VSpeed } from '../vignettes2'
 import { VTutorChat } from '../vignettes'
 import { In, SectionHead, Tiles } from '../story/Showcase'
+import '../story/story.css'
 
 const EASE = [0.2, 0.8, 0.2, 1] as const
 
-/** Abertura das páginas: igual ao topo da Home. */
+/** Abertura das páginas: o mesmo padrão editorial da home. */
 function PageHero({ kicker, title, text, actions, children }: { kicker: string; title: ReactNode; text: string; actions?: ReactNode; children?: ReactNode }) {
-  const reduce = useReducedMotion()
-  const a = (d: number) => ({ initial: reduce ? { opacity: 0 } : { opacity: 0, y: 20, filter: 'blur(8px)' }, animate: { opacity: 1, y: 0, filter: 'blur(0px)' }, transition: { duration: 1.1, ease: EASE, delay: d } })
-  return (
-    <section className="sc-hero sc-page-hero">
-      <div className="sc-hero-copy">
-        <motion.p {...a(0.08)} className="sc-kicker">{kicker}</motion.p>
-        <motion.h1 {...a(0.16)} className="sc-hero-title sc-page-title">{title}</motion.h1>
-        <motion.p {...a(0.26)} className="sc-hero-lead">{text}</motion.p>
-        {actions && <motion.div {...a(0.36)} className="sc-hero-actions">{actions}</motion.div>}
-      </div>
-      {children && <motion.div className="sc-page-media" initial={reduce ? { opacity: 0 } : { opacity: 0, y: 36 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1.3, ease: EASE, delay: 0.45 }}>{children}</motion.div>}
-    </section>
-  )
+  return <PageOpening kicker={kicker} title={title} text={text} actions={actions}>{children}</PageOpening>
 }
 
 const Primary = ({ to, children }: { to: string; children: ReactNode }) => <Link to={to} className="sc-btn sc-btn-dark">{children} <ArrowRight size={16} /></Link>
@@ -61,29 +51,25 @@ function TutorHero() {
   const [i, setI] = useState(0)
   const t = TUTORS[i]
   return (
-    <section className="sc-thero">
-      <div className="sc-thero-grid">
-        <div className="sc-thero-copy">
-          <In><p className="sc-kicker">Tutores de IA</p><h1 className="sc-hero-title sc-page-title">Vamos conversar <i>em inglês</i>?</h1></In>
-          <In delay={0.08}><p className="sc-lead">Quatro tutores, cada um com sua voz e seu jeito. Passe o mouse, toque neles e veja como reagem.</p></In>
-          <In delay={0.12}>
-            <div className="sc-thero-picks" role="group" aria-label="Escolher tutor">
-              {TUTORS.map((x, k) => <button type="button" key={x.id} aria-pressed={k === i} onClick={() => setI(k)}><img src={tutorAvatar(x.id)} alt="" />{x.name}</button>)}
-            </div>
-          </In>
+    <section className="page-opening tutor-opening">
+      <div className="st-tutors-grid">
+        <motion.figure className="st-tutor-plate" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1.1, ease: EASE, delay: 0.2 }}>
+          <div className="st-tutor-stage"><LiveTutor id={t.id} bubble="head" /></div>
+          <figcaption><i>{t.name}</i><span>{t.role}</span><span aria-hidden>{String(i + 1).padStart(2, '0')} / {String(TUTORS.length).padStart(2, '0')}</span></figcaption>
+        </motion.figure>
+        <div className="st-tutor-copy">
+          <p className="journey-label">Tutores de IA</p>
+          <h1 className="journey-title">Vamos conversar <i>em inglês?</i></h1>
+          <div className="st-tutor-index" role="group" aria-label="Escolher tutor">
+            {TUTORS.map((x, k) => <button type="button" key={x.id} aria-pressed={k === i} onClick={() => setI(k)}><small>{String(k + 1).padStart(2, '0')}</small>{x.name}</button>)}
+          </div>
           <AnimatePresence mode="wait">
-            <motion.div key={t.id} className="sc-thero-about" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.45, ease: EASE }}>
-              <p className="sc-thero-role">{t.name}, {t.role.toLowerCase()}</p>
-              <p>{t.about}</p>
-              <p className="sc-thero-voice">{t.voice}</p>
+            <motion.div key={t.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.45, ease: EASE }}>
+              <p className="st-tutor-about">{t.about} <span className="tutor-voice">{t.voice}</span></p>
             </motion.div>
           </AnimatePresence>
-          <In delay={0.16}><div className="sc-hero-actions" style={{ justifyContent: 'flex-start' }}><Primary to="/signup">Experimentar uma conversa</Primary><Secondary to="/planos">Ver planos</Secondary></div></In>
+          <div className="chapter-options"><Primary to="/signup">Experimentar uma conversa</Primary><Secondary to="/planos">Ver planos</Secondary></div>
         </div>
-        <motion.div className="sc-thero-stage" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1.2, ease: EASE, delay: 0.2 }}
-          style={{ background: `radial-gradient(70% 60% at 50% 32%, #fff 0%, ${t.tint} 78%)` }}>
-          <LiveTutor id={t.id} bubble="head" />
-        </motion.div>
       </div>
     </section>
   )

@@ -150,7 +150,7 @@ function GalleryBook({ id }: { id: string }) {
       <div className="max-w-3xl mx-auto py-16 text-center">
         <img src="/illustrations/reading.svg" alt="" className="illo w-40 mx-auto" />
         <p className="mt-4 font-display text-[24px]">{pt ? 'Este livro não está na galeria.' : 'This book is not in the gallery.'}</p>
-        <Link to="/gallery" className="mt-4 inline-flex h-10 px-4 items-center rounded-full border text-[13.5px]" style={{ borderColor: 'var(--theme-border)' }}>{pt ? 'Voltar para a Galeria' : 'Back to the Gallery'}</Link>
+        <Link to="/gallery" className="mt-4 inline-flex h-10 px-4 items-center rounded-lg border text-[13.5px]" style={{ borderColor: 'var(--theme-border)' }}>{pt ? 'Voltar para a Galeria' : 'Back to the Gallery'}</Link>
       </div>
     )
   }
@@ -168,7 +168,7 @@ function GalleryBook({ id }: { id: string }) {
   const longAbout = (book.description?.length ?? 0) > 420
   const backTo = gallerySearch ? `/gallery?${gallerySearch}` : giftMode ? '/gallery?presente=1' : '/gallery'
   const toReviews = () => document.getElementById('reviews')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  const primary = 'w-full sm:w-auto h-12 px-6 rounded-full text-[15px] font-semibold inline-flex items-center justify-center gap-2 transition-transform active:scale-[0.98] disabled:opacity-60'
+  const primary = 'w-full sm:w-auto h-12 px-6 rounded-lg text-[15px] font-semibold inline-flex items-center justify-center gap-2 transition-transform active:scale-[0.98] disabled:opacity-60'
   const primaryStyle = { backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }
 
   const saveMeta = async () => {
@@ -298,7 +298,7 @@ function GalleryBook({ id }: { id: string }) {
                     : <><Plus className="w-4 h-4" />{pt ? 'Levar para a minha estante' : 'Add to my shelf'}</>}
                 </button>
                 {book.locked && canGift && (
-                  <button type="button" onClick={() => openPaywall('book')} className="ui-hover h-12 px-4 rounded-full text-[14px]" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? 'Ou libere todos os livros' : 'Or unlock all books'}</button>
+                  <button type="button" onClick={() => openPaywall('book')} className="ui-hover h-12 px-4 rounded-lg text-[14px]" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? 'Ou libere todos os livros' : 'Or unlock all books'}</button>
                 )}
               </div>
             )}
@@ -365,7 +365,7 @@ function GalleryBook({ id }: { id: string }) {
                           onClick={() => { if (!user) return; void rateVersion(version.id, user.id, star).then(reload) }}>★</button>
                       ))}
                     </div>
-                    <button type="button" className="ui-hover h-9 px-3.5 rounded-full border text-[13px]" style={{ borderColor: 'var(--theme-border)' }} onClick={() => { void adopt(version) }}>
+                    <button type="button" className="ui-hover h-9 px-3.5 rounded-lg border text-[13px]" style={{ borderColor: 'var(--theme-border)' }} onClick={() => { void adopt(version) }}>
                       {pt ? 'Usar só para mim' : 'Use just for me'}
                     </button>
                   </li>
@@ -385,7 +385,7 @@ function GalleryBook({ id }: { id: string }) {
             }}>
               <input value={comment} onChange={e => setComment(e.target.value)} placeholder={pt ? 'Escreva um comentário' : 'Write a comment'}
                 className="flex-1 min-w-0 h-11 rounded-full border px-4 text-[14px] bg-transparent outline-none focus:border-[var(--theme-text-secondary)]" style={{ borderColor: 'var(--theme-border)' }} />
-              <button type="submit" disabled={!comment.trim() || !user} className="h-11 px-5 rounded-full text-[14px] font-medium disabled:opacity-40" style={primaryStyle}>{pt ? 'Enviar' : 'Send'}</button>
+              <button type="submit" disabled={!comment.trim() || !user} className="h-11 px-5 rounded-lg text-[14px] font-medium disabled:opacity-40" style={primaryStyle}>{pt ? 'Enviar' : 'Send'}</button>
             </form>
             {feedback.length > 0 && (
               <ul className="mt-5 space-y-4">
@@ -460,12 +460,12 @@ function GalleryBook({ id }: { id: string }) {
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
-                  <button type="button" onClick={() => { void saveMeta() }} className="h-9 px-4 rounded-full text-[13.5px] font-medium" style={primaryStyle}>{pt ? 'Salvar' : 'Save'}</button>
+                  <button type="button" onClick={() => { void saveMeta() }} className="h-9 px-4 rounded-lg text-[13.5px] font-medium" style={primaryStyle}>{pt ? 'Salvar' : 'Save'}</button>
                   {metaNote && <p className="text-[12.5px]" style={{ color: 'var(--theme-text-secondary)' }}>{metaNote}</p>}
                 </div>
                 <div className="pt-4 border-t" style={{ borderColor: 'var(--theme-border)' }}>
                   <button type="button" onClick={() => { void removeFromGallery() }}
-                    className="ui-hover w-full h-9 px-4 rounded-full border text-[13px] font-medium inline-flex items-center justify-center gap-1.5"
+                    className="ui-hover w-full h-9 px-4 rounded-lg border text-[13px] font-medium inline-flex items-center justify-center gap-1.5"
                     style={{ borderColor: 'color-mix(in srgb, var(--color-destructive) 45%, transparent)', color: 'var(--color-destructive)' }}>
                     <Trash2 className="w-4 h-4" />{pt ? 'Remover da galeria' : 'Remove from gallery'}
                   </button>
@@ -483,8 +483,8 @@ function GalleryBook({ id }: { id: string }) {
             <DialogDescription>{pt ? `“${book.title}” fica na sua estante para sempre, mesmo no plano Grátis. A escolha é definitiva e não pode ser trocada.` : `“${book.title}” stays on your shelf forever, even on Free. The choice is final and cannot be changed.`}</DialogDescription>
           </DialogHeader>
           <div className="mt-2 flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
-            <button type="button" onClick={() => setGiftAsk(false)} className="h-11 px-4 rounded-full text-[14px] border" style={{ borderColor: 'var(--theme-border)' }}>{pt ? 'Escolher outro' : 'Pick another'}</button>
-            <button type="button" disabled={busy} onClick={redeemGift} className="h-11 px-5 rounded-full text-[14.5px] font-semibold disabled:opacity-60" style={primaryStyle}>{pt ? 'Sim, é este' : 'Yes, this one'}</button>
+            <button type="button" onClick={() => setGiftAsk(false)} className="h-11 px-4 rounded-lg text-[14px] border" style={{ borderColor: 'var(--theme-border)' }}>{pt ? 'Escolher outro' : 'Pick another'}</button>
+            <button type="button" disabled={busy} onClick={redeemGift} className="h-11 px-5 rounded-lg text-[14.5px] font-semibold disabled:opacity-60" style={primaryStyle}>{pt ? 'Sim, é este' : 'Yes, this one'}</button>
           </div>
         </DialogContent>
       </Dialog>

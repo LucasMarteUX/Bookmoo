@@ -201,11 +201,11 @@ export function StylePickerDialog({ open, onOpenChange, value, initial, onPick, 
                   </span>
                 </>
               : <span className="flex-1 text-[13px]" style={muted}>{pt ? 'Toque num estilo para ver aqui.' : 'Tap a style to select it.'}</span>}
-            <button type="button" onClick={() => asking ? setAsking(false) : onOpenChange(false)} className={cn(asking ? 'inline-flex' : 'hidden sm:inline-flex', 'h-10 px-4 shrink-0 items-center rounded-full text-[13.5px]')} style={muted}>
+            <button type="button" onClick={() => asking ? setAsking(false) : onOpenChange(false)} className={cn(asking ? 'inline-flex' : 'hidden sm:inline-flex', 'h-10 px-4 shrink-0 items-center rounded-lg text-[13.5px]')} style={muted}>
               {asking ? (pt ? 'Voltar' : 'Back') : (pt ? 'Cancelar' : 'Cancel')}
             </button>
             <button type="button" disabled={!changed || busy} onClick={() => { if (!draft) return; if (warning && !asking) { setAsking(true); return } onPick(draft) }}
-              className="h-11 sm:h-10 px-5 shrink-0 inline-flex items-center rounded-full text-[14px] font-medium transition-opacity disabled:opacity-40"
+              className="h-11 sm:h-10 px-5 shrink-0 inline-flex items-center rounded-lg text-[14px] font-medium transition-opacity disabled:opacity-40"
               style={asking ? { backgroundColor: 'var(--pastel-rose-fg)', color: '#fff' } : { backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
               {asking ? (pt ? 'Apagar e usar' : 'Delete and use') : !changed && draft && draft === value ? (pt ? 'Já é o estilo atual' : 'Already in use') : confirmLabel ?? (pt ? 'Usar este estilo' : 'Use this style')}
             </button>

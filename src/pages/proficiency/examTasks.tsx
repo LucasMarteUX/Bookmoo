@@ -381,7 +381,7 @@ export function Interview({ sessionId, item, saved, onSave, onDone, onError }: T
           {phase === 'recording' ? 'Gravando' : 'Entrevistadora · Bia'}
         </div>
         <div className="absolute bottom-3 inset-x-3 flex justify-center">
-          <span className="rounded-full px-3.5 h-9 inline-flex items-center text-[13.5px] font-medium" style={{ backgroundColor: 'var(--theme-card-bg)' }}>{caption}</span>
+          <span className="rounded-lg px-3.5 h-9 inline-flex items-center text-[13.5px] font-medium" style={{ backgroundColor: 'var(--theme-card-bg)' }}>{caption}</span>
         </div>
       </div>
 

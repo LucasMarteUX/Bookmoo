@@ -132,7 +132,7 @@ export function Login({ mode = 'login' }: { mode?: Mode }) {
       <aside className="hidden lg:flex basis-[70%] shrink-0 flex-col rounded-[28px] p-10 relative overflow-hidden"
         style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
         <div className="flex items-center gap-2">
-          <Link to="/" aria-label="Voltar para o site do Upoonly" className="inline-block"><Logo height={44} style={{ color: 'var(--theme-text)' }} /></Link>
+          <Link to="/" aria-label="Voltar para o site do Upoonly" className="inline-block"><Logo height={56} style={{ color: 'var(--theme-text)' }} /></Link>
         </div>
         <div className="flex-1 grid place-items-center py-8">
           <AnimatePresence mode="wait">
@@ -161,7 +161,7 @@ export function Login({ mode = 'login' }: { mode?: Mode }) {
       <main className="flex-1 min-w-0 flex flex-col">
         <div className="flex justify-between items-center lg:justify-end">
           <span className="lg:hidden flex items-center gap-2">
-            <Link to="/" aria-label="Voltar para o site do Upoonly" className="inline-block"><Logo height={34} style={{ color: 'var(--theme-text)' }} /></Link>
+            <Link to="/" aria-label="Voltar para o site do Upoonly" className="inline-block"><Logo height={44} style={{ color: 'var(--theme-text)' }} /></Link>
           </span>
           <button type="button" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
             className="w-9 h-9 rounded-lg grid place-items-center transition-colors hover:bg-[var(--ui-hover)]"

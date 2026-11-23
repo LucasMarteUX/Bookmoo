@@ -671,7 +671,7 @@ export function Dashboard() {
           {/* Cabeçalho e rodapé fixos; só o formulário rola. */}
           <div className="shrink-0 flex gap-3 border-t px-5 py-4 sm:px-6" style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-border)' }}>
             <Button variant="outline" className="flex-1 rounded-full h-11 font-semibold" style={{ borderColor: 'var(--theme-border)' }} onClick={() => setIsAddModalOpen(false)}>{t('cancel')}</Button>
-            <Button className="flex-[2] rounded-full h-11 px-8 font-semibold" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }} onClick={handleAddBook} disabled={!newTitle.trim() || !rightsOk || savingBook || epubStatus.busy}>
+            <Button className="flex-[2] rounded-lg h-11 px-8 font-semibold" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }} onClick={handleAddBook} disabled={!newTitle.trim() || !rightsOk || savingBook || epubStatus.busy}>
               {savingBook ? (pt ? 'Salvando…' : 'Saving…') : t('saveBook')}
             </Button>
           </div>

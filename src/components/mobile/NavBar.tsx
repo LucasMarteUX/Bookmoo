@@ -48,7 +48,7 @@ export function NavBar() {
         <div className="flex items-center">
           {root ? (
             <Link to="/" aria-label="Upoonly" className="pressable flex items-center gap-2 h-[var(--hit)] pl-2 pr-2">
-              <Logo height={30} style={{ color: 'var(--theme-text)' }} />
+              <Logo height={36} style={{ color: 'var(--theme-text)' }} />
             </Link>
           ) : (
             <button type="button" onClick={() => { haptics.selection(); goBack(navigate, pathname) }}

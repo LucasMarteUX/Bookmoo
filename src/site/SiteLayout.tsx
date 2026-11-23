@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import { ArrowRight, Menu, X } from 'lucide-react'
-import { Logo } from '@/components/brand/Logo'
+import { Logo } from './SiteLogo'
 import { SUPPORT_EMAIL } from './content'
 import './site.css'
 import './site-shell.css'
+import './dither.css'
+import './home/journey.css'
+import './pages/editorial-pages.css'
 
 const navigation = [
   { to: '/leitor', label: 'Leitor' },
@@ -57,7 +60,7 @@ function Nav() {
   return <header className="public-header">
     <a className="public-skip" href="#conteudo">Pular para o conteúdo</a>
     <div className="public-bar">
-      <Link to="/" aria-label="Upoonly, início" className="public-logo"><Logo height={24}/></Link>
+      <Link to="/" aria-label="Upoonly, início" className="public-logo"><Logo height={32}/></Link>
       <nav className="public-links" aria-label="Navegação principal">
         {navigation.map(item => <NavLink key={item.to} to={item.to}>{item.label}</NavLink>)}
       </nav>
@@ -71,7 +74,7 @@ function Nav() {
       </div>
     </div>
     <dialog ref={dialog} id="site-menu" aria-label="Menu do Upoonly" className="public-menu" onClose={() => setOpen(false)}>
-      <div className="public-menu-top"><Logo height={24}/><button type="button" aria-label="Fechar menu" onClick={() => dialog.current?.close()}><X size={21}/></button></div>
+      <div className="public-menu-top"><Logo height={30}/><button type="button" aria-label="Fechar menu" onClick={() => dialog.current?.close()}><X size={21}/></button></div>
       <nav aria-label="Navegação no celular">
         {[{to:'/',label:'Início'}, ...navigation].map(item => <NavLink key={item.to} end to={item.to} onClick={() => dialog.current?.close()}>{item.label}<ArrowRight size={19}/></NavLink>)}
       </nav>
@@ -87,7 +90,7 @@ function Footer() {
   return <footer className="public-footer">
     <div className="public-footer-grid">
       <div className="public-brand">
-        <Link to="/" aria-label="Upoonly, início"><Logo height={32}/></Link>
+        <Link to="/" aria-label="Upoonly, início"><Logo height={40}/></Link>
         <p>Livros em inglês, áudio e conversas sobre o que você lê.</p>
         <a href={'mailto:' + SUPPORT_EMAIL}>{SUPPORT_EMAIL}</a>
       </div>
@@ -113,7 +116,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
   }, [pathname, hash])
   return <div className="site">
     <Nav/>
-    <main id="conteudo">{children}</main>
+    <main id="conteudo" className="home-journey">{children}</main>
     <Footer/>
   </div>
 }

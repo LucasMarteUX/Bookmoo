@@ -380,10 +380,18 @@ export function useVoiceConversation(opts: {
   /** Começa a sessão mãos-livres (precisa de um toque por causa do microfone). */
   const start = useCallback(async (opening?: string) => {
     active.current = true
+    // Celular: a saudação sai antes de abrir o microfone. Abrir e fechar o microfone logo antes da primeira fala troca a
+    // sessão de áudio do iPhone no meio do caminho, e a saudação saía muda ou baixinha.
+    const greetFirst = MOBILE && !!opening
+    if (greetFirst) {
+      push({ role: 'ai', text: opening! })
+      const finished = await speakReply(opening!)
+      if (!finished && !active.current) return
+    }
     try { await openMic() } catch (e) {
       setError(e instanceof DOMException && e.name === 'NotAllowedError' ? 'mic_denied' : 'mic_failed'); set('error'); active.current = false; return
     }
-    if (opening) {
+    if (opening && !greetFirst) {
       push({ role: 'ai', text: opening })
       const finished = await speakReply(opening)
       if (!finished && !active.current) return

@@ -24,7 +24,7 @@ export const CATALOG: { id: string; label: string; icon: typeof BookOpen; title:
     { t: 'Notas e destaques', d: 'Marque trechos e escreva suas notas direto no livro.', v: <VNotes /> },
   ] },
   { id: 'entender', label: 'Entender', icon: Sparkles, title: 'Cada palavra explicada no contexto', items: [
-    { t: 'Toque em qualquer palavra', d: 'Pronúncia, significado na frase e exemplos nas formas afirmativa, negativa e pergunta.', v: <div className="pb-20"><VWord /></div> },
+    { t: 'Toque em qualquer palavra', d: 'Pronúncia, significado na frase e exemplos nas formas afirmativa, negativa e pergunta.', v: <VWord /> },
     { t: 'Decifrar a página', d: 'A gramática da página explicada em português, trecho por trecho.', v: <VGrammar /> },
     { t: 'Mosaico da comunidade', d: 'Imagens criadas pelos leitores para você memorizar cada palavra.', v: <VMosaic /> },
     { t: 'Histórias de reforço', d: 'Pequenas histórias escritas para as suas dificuldades.', v: <VStory /> },
@@ -268,7 +268,7 @@ type Tile = { t: string; d: string; v: ReactNode; span: string; h: string; tone?
 
 const TILES: Tile[] = [
   { t: 'A página lê para você', d: 'Vozes naturais com karaokê, palavra por palavra.', v: <VReader />, span: 'md:col-span-7', h: 'h-[440px] md:h-[500px]', tone: 'warm' },
-  { t: 'Toque em qualquer palavra', d: 'Pronúncia, significado e exemplos no contexto.', v: <div className="pb-20"><VWord /></div>, span: 'md:col-span-5', h: 'h-[440px] md:h-[500px]' },
+  { t: 'Toque em qualquer palavra', d: 'Pronúncia, significado e exemplos no contexto.', v: <VWord />, span: 'md:col-span-5', h: 'h-[440px] md:h-[500px]' },
   { t: 'Cada página vira ilustração', d: '16 estilos, balões e narrador.', v: <VComic />, span: 'md:col-span-5', h: 'h-[460px] md:h-[520px]' },
   { t: 'Converse com um tutor', d: 'Bia, Luck, Yuno e Yuri escutam e corrigem.', v: <VTutorChat />, span: 'md:col-span-4', h: 'h-[460px] md:h-[520px]', tone: 'warm' },
   { t: 'Seu nível, do A1 ao C2', d: 'Teste de nível e livros na medida.', v: <VLevels />, span: 'md:col-span-3', h: 'h-[360px] md:h-[520px]', tone: 'card' },

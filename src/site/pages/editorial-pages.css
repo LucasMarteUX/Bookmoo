@@ -1,0 +1,67 @@
+/* Páginas internas com a identidade da home: papel quente, pranchas com cantos de 4px, contorno fino em vez de
+   tons pastel, rótulos em caixa alta e títulos serifados grandes. Só vale fora da home (que tem .book-story). */
+.site main.home-journey:not(:has(.book-story)) {
+  --ed-card: #fffcf6;
+  --ed-line: #57574730;
+  --ed-plate: #ebe7da;
+}
+
+/* Rótulos: caixa alta, sem a bolinha. */
+.site main.home-journey:not(:has(.book-story)) :is(.sc-kicker, .st-kicker, .s-eyebrow) {
+  font: 500 12px/1.45 var(--site-text);
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: #575b4f;
+}
+.site main.home-journey:not(:has(.book-story)) .sc-kicker::before,
+.site main.home-journey:not(:has(.book-story)) .s-eyebrow > i { display: none; }
+
+/* Títulos de seção no corpo da display da home. */
+.site main.home-journey:not(:has(.book-story)) :is(.sc-title, .st-title, .s-h2) {
+  font-family: var(--font-display), Georgia, serif;
+  font-weight: 400;
+  font-size: clamp(40px, 4.4vw, 76px) !important;
+  line-height: .98;
+  letter-spacing: -.055em;
+  color: #292b26;
+}
+.site main.home-journey:not(:has(.book-story)) :is(.sc-title, .st-title, .sc-hero-title) i { color: inherit; }
+
+/* Pranchas e cards: cantos discretos, papel e contorno fino. */
+.site main.home-journey:not(:has(.book-story)) :is(.sc-tile, .sc-tstage, .sc-photo-band, .sc-report-band, .sc-cast-card, .sc-story-photo, .sc-fblock, .sc-thero-stage, .s-card, .about-cast, .sc-levels > div, .sc-phone-photo, .sc-day-frame) {
+  border-radius: 4px;
+}
+.site main.home-journey:not(:has(.book-story)) :is(.sc-tile, .sc-fblock) {
+  background: var(--ed-plate);
+  outline: 1px solid var(--ed-line);
+}
+.site main.home-journey:not(:has(.book-story)) .sc-report-band { background: var(--ed-plate); }
+.site main.home-journey:not(:has(.book-story)) :is(.sc-plan, .sc-levels > div, .s-card, .sc-tstage) {
+  background: var(--ed-card);
+  box-shadow: none;
+  outline: 1px solid var(--ed-line);
+}
+.site main.home-journey:not(:has(.book-story)) .sc-plan { border-radius: 6px; }
+.site main.home-journey:not(:has(.book-story)) .sc-cast-card { background: var(--ed-plate) !important; }
+.site main.home-journey:not(:has(.book-story)) .sc-cast-card img { background: var(--ed-plate) !important; }
+.site main.home-journey:not(:has(.book-story)) .sc-tile:hover,
+.site main.home-journey:not(:has(.book-story)) .sc-cast-card:hover { transform: translateY(-3px); }
+
+/* Pinturas internas recebem o mesmo dither discreto. */
+.site main.home-journey:not(:has(.book-story)) :is(.sc-photo-band, .sc-story-photo) { position: relative; }
+.site main.home-journey:not(:has(.book-story)) :is(.sc-photo-band, .sc-story-photo)::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background-image: var(--grain);
+  background-size: 220px 220px;
+  mix-blend-mode: soft-light;
+  opacity: .5;
+  animation: site-grain 1.1s steps(1, end) infinite;
+}
+.site main.home-journey:not(:has(.book-story)) .sc-photo-band > :not(img) { z-index: 2; }
+@media (prefers-reduced-motion: reduce) {
+  .site main.home-journey:not(:has(.book-story)) :is(.sc-photo-band, .sc-story-photo)::after { animation: none; }
+}

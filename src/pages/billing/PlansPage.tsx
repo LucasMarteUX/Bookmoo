@@ -72,7 +72,7 @@ export function PlansPage() {
     <div className="min-h-dvh px-4 pb-16" style={{ backgroundColor: 'var(--theme-bg)', color: 'var(--theme-text)', paddingTop: 'calc(var(--safe-t, 0px) + 1.25rem)' }}>
       <div className="mx-auto max-w-6xl">
         <div className="flex items-center justify-between h-10">
-          {welcome ? <Logo height={30} /> : (
+          {welcome ? <Logo height={38} /> : (
             <button type="button" onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/'))} className="inline-flex items-center gap-1.5 h-10 px-2 -ml-2 rounded-md text-[13.5px]" style={{ color: 'var(--theme-text-secondary)' }}>
               <ArrowLeft className="w-4 h-4" />{pt ? 'Voltar' : 'Back'}
             </button>

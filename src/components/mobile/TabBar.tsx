@@ -18,7 +18,7 @@ export function TabBar() {
   return (
     <nav aria-label={pt ? 'Navegação principal' : 'Main navigation'}
       className="ios-bar fixed bottom-0 inset-x-0 z-50 border-t"
-      style={{ borderColor: 'var(--theme-border)', paddingBottom: 'var(--safe-b)', paddingLeft: 'var(--safe-l)', paddingRight: 'var(--safe-r)' }}>
+      style={{ borderColor: 'var(--theme-border)', paddingBottom: 'max(var(--safe-b), 6px)', paddingLeft: 'var(--safe-l)', paddingRight: 'var(--safe-r)' }}>
       <ul className="mx-auto max-w-md grid grid-cols-5" style={{ height: 'var(--tabbar-h)' }}>
         {TABS.map(tab => {
           const active = tab.match(pathname)

@@ -282,7 +282,7 @@ export function AdminBookEdit() {
           <button type="button" disabled={saving} onClick={() => { if (original) { setDraft(original); coverChanged.current = false } }}
             className="ui-hover h-9 px-3 rounded-full inline-flex items-center gap-1.5 text-[13.5px]"><Undo2 className="w-4 h-4" />{pt ? 'Descartar' : 'Discard'}</button>
           <button type="button" disabled={saving} onClick={() => { void save() }}
-            className="h-9 px-5 rounded-full text-[13.5px] font-medium disabled:opacity-60" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
+            className="h-9 px-5 rounded-lg text-[13.5px] font-medium disabled:opacity-60" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
             {saving ? (pt ? 'Salvando…' : 'Saving…') : (pt ? 'Salvar' : 'Save')}
           </button>
         </div>

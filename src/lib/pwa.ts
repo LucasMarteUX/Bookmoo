@@ -8,6 +8,9 @@ export function setupPwa() {
   const pt = () => useLanguage.getState().locale === 'pt-BR'
   const update = registerSW({
     onNeedRefresh() {
+      // Versão nova pronta: aplica na hora (antes só com o toque em "Atualizar", e quem não tocava ficava preso na versão
+      // velha em toda visita). Só no leitor e na conversa pergunta, para não recarregar no meio da leitura ou da fala.
+      if (!/^\/(book\/|conversar)/.test(window.location.pathname)) { void update(true); return }
       toast(pt() ? 'Nova versão disponível' : 'New version available', {
         tone: 'info',
         duration: 60_000,

@@ -123,7 +123,7 @@ export function BookPicker({ open, onOpenChange, books: given, value, onChange, 
                   </span>
                 ))}
           </div>
-          <button type="button" onClick={() => { onChange(picked); onOpenChange(false) }} className="shrink-0 h-10 px-4 rounded-full text-[13.5px] font-semibold" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
+          <button type="button" onClick={() => { onChange(picked); onOpenChange(false) }} className="shrink-0 h-10 px-4 rounded-lg text-[13.5px] font-semibold" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
             {picked.length ? (pt ? `Marcar ${picked.length}` : `Tag ${picked.length}`) : (pt ? 'Concluir' : 'Done')}
           </button>
         </div>

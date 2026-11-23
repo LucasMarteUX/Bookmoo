@@ -1,0 +1,71 @@
+.illustration-atelier {
+  display: grid;
+  grid-template-columns: minmax(0, .9fr) minmax(0, 1.25fr);
+  align-items: center;
+  column-gap: clamp(28px, 5vw, 100px);
+  padding: clamp(85px, 10vw, 175px) 5vw;
+  overflow: clip;
+  color: #262821;
+  background: #f6f3eb;
+  border-top: 1px solid #d8d5ca;
+}
+
+.illustration-atelier .atelier-copy h2 {
+  font-size: clamp(52px, 6vw, 112px);
+}
+/* "Da tinta" / "à imagem." sempre em duas linhas. */
+@media (min-width: 761px) { .illustration-atelier .atelier-copy h2 { white-space: nowrap; } }
+
+.illustration-atelier .atelier-copy p {
+  max-width: 32ch;
+  text-wrap: pretty;
+}
+
+.atelier-commands .atelier-options {
+  gap: 6px;
+  margin: 0;
+}
+
+.atelier-plate { min-width: 0; margin: 0; }
+.atelier-aperture { overflow: hidden; aspect-ratio: 3 / 2; background: #e5e1d4; }
+.atelier-layers { display: grid; width: 100%; height: 100%; }
+.atelier-layers img {
+  grid-area: 1 / 1;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity .55s ease, transform 1.15s cubic-bezier(.2,.75,.2,1);
+}
+.atelier-layers img[data-active="true"] { opacity: 1; }
+
+.atelier-credit, .atelier-commands {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 5px 20px;
+}
+.atelier-commands { align-items: center; gap: 10px 16px; margin-top: 18px; }
+.atelier-plate figcaption {
+  margin-top: 12px;
+  color: #4e5047;
+  font: 400 13px/1.45 var(--font-sans), sans-serif;
+}
+.atelier-plate cite { color: #282a24; font: italic 17px/1.2 var(--font-display), Georgia, serif; }
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .atelier-aperture:hover img[data-active="true"] { transform: scale(1.025); }
+}
+
+@media (max-width: 760px) {
+  .illustration-atelier { grid-template-columns: minmax(0, 1fr); gap: 24px; padding-block: 82px 75px; }
+  .illustration-atelier .atelier-copy h2 { font-size: clamp(65px, 14vw, 90px); }
+  .atelier-copy small { margin-bottom: 18px; }
+  .atelier-plate figcaption { font-size: 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .atelier-layers img { transition: none; }
+}

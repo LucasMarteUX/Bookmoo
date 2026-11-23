@@ -45,7 +45,7 @@ export function BookReviews({ catalogId, cover, pt }: { catalogId: string; cover
           )}
         </div>
         {data?.mine && !editing && (
-          <button type="button" onClick={() => setEditing(true)} className="h-9 px-3.5 inline-flex items-center gap-1.5 rounded-full border text-[13px]" style={{ borderColor: 'var(--theme-border)' }}>
+          <button type="button" onClick={() => setEditing(true)} className="h-9 px-3.5 inline-flex items-center gap-1.5 rounded-lg border text-[13px]" style={{ borderColor: 'var(--theme-border)' }}>
             <Pencil className="w-3.5 h-3.5" />{pt ? 'Editar minha avaliação' : 'Edit my review'}
           </button>
         )}
@@ -55,7 +55,7 @@ export function BookReviews({ catalogId, cover, pt }: { catalogId: string; cover
         {user && hasHandle === false && (
           <div className="rounded-3xl border p-5 flex flex-wrap items-center justify-between gap-3" style={cardStyle}>
             <p className="text-[14px]" style={muted}>{pt ? 'Crie seu perfil para avaliar e escrever resenhas.' : 'Create your profile to rate and review.'}</p>
-            <Link to="/settings#profile" className="h-9 px-4 inline-flex items-center rounded-full text-[13.5px] font-medium" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>{pt ? 'Criar perfil' : 'Create profile'}</Link>
+            <Link to="/settings#profile" className="h-9 px-4 inline-flex items-center rounded-lg text-[13.5px] font-medium" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>{pt ? 'Criar perfil' : 'Create profile'}</Link>
           </div>
         )}
         {user && hasHandle && data && (!data.mine || editing) && (
@@ -119,8 +119,8 @@ function ReviewEditor({ catalogId, initial, pt, onSaved, onCancel }: { catalogId
         <AudienceSelect<ReviewVisibility> value={visibility} onChange={setVisibility} options={VISIBILITY} pt={pt} />
         <span className="flex-1" />
         {initial && <button type="button" onClick={() => { void remove() }} aria-label={pt ? 'Apagar avaliação' : 'Delete review'} className="h-9 w-9 grid place-items-center rounded-full border" style={{ borderColor: 'var(--theme-border)', color: 'var(--color-destructive)' }}><Trash2 className="w-4 h-4" /></button>}
-        {onCancel && <button type="button" onClick={onCancel} className="h-9 px-3.5 rounded-full border text-[13px]" style={{ borderColor: 'var(--theme-border)' }}>{pt ? 'Cancelar' : 'Cancel'}</button>}
-        <button type="button" disabled={!rating || busy} onClick={() => { void save() }} className="h-9 px-4 inline-flex items-center gap-1.5 rounded-full text-[13.5px] font-medium disabled:opacity-50"
+        {onCancel && <button type="button" onClick={onCancel} className="h-9 px-3.5 rounded-lg border text-[13px]" style={{ borderColor: 'var(--theme-border)' }}>{pt ? 'Cancelar' : 'Cancel'}</button>}
+        <button type="button" disabled={!rating || busy} onClick={() => { void save() }} className="h-9 px-4 inline-flex items-center gap-1.5 rounded-lg text-[13.5px] font-medium disabled:opacity-50"
           style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
           {busy && <Loader2 className="w-4 h-4 animate-spin" />}{pt ? 'Salvar avaliação' : 'Save review'}
         </button>

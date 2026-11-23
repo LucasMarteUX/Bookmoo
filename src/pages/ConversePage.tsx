@@ -584,7 +584,7 @@ function Session({ choice, pt, level, rate, captions, minutes, title, subtitle, 
             <div className="text-center">
               <p className="text-[13.5px] inline-flex items-center gap-1.5" style={muted}><Lock className="w-3.5 h-3.5" />{scene ? (pt ? 'Esta cena faz parte dos planos pagos' : 'This scene is part of the paid plans') : (pt ? 'A conversa livre faz parte do plano Plus' : 'Free talk is part of the Plus plan')}</p>
               <motion.button type="button" whileTap={{ scale: 0.97 }} onClick={() => openPaywall(scene ? 'scenes' : 'free_talk')}
-                className="mt-3 w-full h-14 rounded-full text-[16px] font-semibold inline-flex items-center justify-center gap-2"
+                className="mt-3 w-full h-12 rounded-lg text-[15px] font-medium active:scale-[0.97] transition-transform inline-flex items-center justify-center gap-2"
                 style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
                 {pt ? 'Assinar para liberar' : 'Subscribe to unlock'}
               </motion.button>
@@ -592,7 +592,7 @@ function Session({ choice, pt, level, rate, captions, minutes, title, subtitle, 
           ) : (
           <>
           <motion.button type="button" whileTap={{ scale: 0.97 }} onClick={begin} disabled={phase === 'starting'}
-            className="w-full h-14 rounded-full text-[16px] font-semibold inline-flex items-center justify-center gap-2 disabled:opacity-60"
+            className="w-full h-12 rounded-lg text-[15px] font-medium active:scale-[0.97] transition-transform inline-flex items-center justify-center gap-2 disabled:opacity-60"
             style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
             <Mic className="w-5 h-5" />{phase === 'starting' ? (pt ? 'Preparando…' : 'Getting ready…') : (pt ? 'Começar a conversar' : 'Start talking')}
           </motion.button>
@@ -639,7 +639,7 @@ function FeedbackView({ feedback, pt, goals, onExit }: { feedback: Feedback | 'l
     <div className="max-w-md mx-auto py-24 text-center">
       <h1 className="font-display text-[26px]">{pt ? 'Conversa curta demais para avaliar' : 'Too short to score'}</h1>
       <p className="mt-2 text-[14.5px]" style={muted}>{pt ? 'Fale pelo menos duas vezes para receber nota e correções.' : 'Speak at least twice to get a score and corrections.'}</p>
-      <button type="button" onClick={onExit} className="mt-6 h-11 px-6 rounded-full font-medium" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>{pt ? 'Voltar' : 'Back'}</button>
+      <button type="button" onClick={onExit} className="mt-6 h-11 px-5 rounded-lg font-medium" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>{pt ? 'Voltar' : 'Back'}</button>
     </div>
   )
   const labels: Record<string, [string, string]> = { communication: ['Comunicação', 'Communication'], grammar: ['Gramática', 'Grammar'], vocabulary: ['Vocabulário', 'Vocabulary'], fluency: ['Fluência', 'Fluency'], pronunciation: ['Pronúncia', 'Pronunciation'] }
@@ -701,7 +701,7 @@ function FeedbackView({ feedback, pt, goals, onExit }: { feedback: Feedback | 'l
         <section><h2 className="text-[14px] font-semibold">{pt ? 'Palavras úteis' : 'Useful words'}</h2>
           <ul className="mt-2 flex flex-wrap gap-2">{feedback.new_words.map(w => <li key={w.word} className="text-[13px] px-3 py-1.5 rounded-full border" style={{ borderColor: 'var(--theme-border)' }}><b>{w.word}</b> · {w.meaning}</li>)}</ul></section>
       )}
-      <button type="button" onClick={onExit} className="h-12 w-full rounded-full text-[15px] font-semibold" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>{pt ? 'Conversar de novo' : 'Talk again'}</button>
+      <button type="button" onClick={onExit} className="h-12 w-full rounded-lg text-[15px] font-medium active:scale-[0.97] transition-transform" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>{pt ? 'Conversar de novo' : 'Talk again'}</button>
     </div>
   )
 }
@@ -742,7 +742,7 @@ function CreateScene({ pt, level, onDone }: { pt: boolean; level: string; onDone
         <label className="block text-[13px] font-medium">{pt ? 'Título (opcional)' : 'Title (optional)'}<input value={form.title} onChange={set('title')} className={field} style={{ borderColor: 'var(--theme-border)' }} /></label>
       </div>
       {msg && <p role="alert" className="text-[14px]" style={{ color: '#b42318' }}>{msg}</p>}
-      <button type="button" disabled={busy} onClick={save} className="h-12 w-full rounded-full text-[15px] font-semibold disabled:opacity-60" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
+      <button type="button" disabled={busy} onClick={save} className="h-12 w-full rounded-lg text-[15px] font-medium active:scale-[0.97] transition-transform disabled:opacity-60" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
         {busy ? (pt ? 'Montando a cena…' : 'Building the scene…') : (pt ? 'Criar cena' : 'Create scene')}
       </button>
     </div>

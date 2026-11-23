@@ -1,28 +1,48 @@
-// Home do site: o Upoonly como ele é (leitura no computador e no celular), com fotos humanas e a interface real nas telas.
-// Referências: Mindara, Studio Think, claude.com/product/overview. Sem planos e sem áudio: cada bloco leva à página da função.
 import { SiteLayout } from '../SiteLayout'
-import { useSeo } from '../ui'
-import { FaqSection, FinalCta } from '../sections'
-import { LibraryWall } from '../home/Premium'
+import { IllustratedChapter } from '../home/IllustratedChapters'
+import { IllustrationAtelier } from '../home/IllustrationAtelier'
+import { ConversationPrelude, LastPage, LibraryShelf, PracticePassage } from '../home/ReadingJourney'
+import { ReadingLight } from '../home/ReadingLight'
+import { GardenSequence } from '../story/GardenSequence'
+import { Prologue } from '../story/Prologue'
+import { LaptopSection, StylesGallery } from '../story/Showcase'
 import { TutorScroll } from '../story/Story'
-import { DayStory, GrowFeatures, HeroSetup, LaptopSection, Manifesto, ReadFeatures, StylesGallery } from '../story/Showcase'
+import { StorySpread } from '../story/StorySpread'
+import { useSeo } from '../ui'
+import './edition.css'
+import '../home/journey.css'
 
 export default function SiteHome() {
-  useSeo('Upoonly · Aprenda inglês lendo as histórias que você ama',
-    'Clássicos em inglês com áudio, cada palavra explicada, páginas ilustradas e tutores para conversar. Comece grátis e ganhe um livro de presente.')
+  useSeo('Upoonly · Aprenda inglês dentro dos livros', 'Leia clássicos, ouça a narração e converse em inglês sobre a história.')
+
   return (
     <SiteLayout>
-      <HeroSetup />
-      <DayStory />
-      <Manifesto />
-      <ReadFeatures />
-      <StylesGallery />
-      <LaptopSection />
-      <TutorScroll />
-      <GrowFeatures />
-      <LibraryWall />
-      <FaqSection />
-      <FinalCta />
+      <div className="home-journey">
+        <div className="book-story">
+          <Prologue />
+          <GardenSequence />
+          <StorySpread />
+        </div>
+        <div className="edition">
+          <IllustratedChapter name="narracao" />
+          <IllustratedChapter name="palavras" reverse />
+          <IllustratedChapter name="margens" />
+        </div>
+        <LaptopSection />
+        <ReadingLight />
+        <div className="edition"><IllustrationAtelier /></div>
+        <StylesGallery head={false} />
+        <ConversationPrelude />
+        <TutorScroll />
+        <div className="edition"><IllustratedChapter name="fala" reverse /></div>
+        <PracticePassage />
+        <div className="edition">
+          <IllustratedChapter name="percurso" />
+          <IllustratedChapter name="aventura" reverse />
+        </div>
+        <LibraryShelf />
+        <LastPage />
+      </div>
     </SiteLayout>
   )
 }

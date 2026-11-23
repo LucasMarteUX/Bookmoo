@@ -312,7 +312,7 @@ export function DictationPractice({ book }: { book: Book }) {
                   if (e.key === 'Enter') { e.preventDefault(); check() }
                   else if (e.key === 'Escape') { e.preventDefault(); play(current) }
                 }}
-                className="h-11 min-w-0 flex-1 md:w-72 rounded-full border px-4 text-base outline-none focus:ring-2 focus:ring-[var(--theme-accent,#55534E)]"
+                className="h-11 min-w-0 flex-1 md:w-72 rounded-lg border px-4 text-base outline-none focus:ring-2 focus:ring-[var(--theme-accent,#55534E)]"
                 style={{ backgroundColor: 'var(--theme-bg)', borderColor: secondTry ? 'var(--pastel-amber-bd)' : 'var(--theme-border-subtle)', color: 'var(--theme-text)' }} />
               <button type="button" onClick={() => giveUp(true)} disabled={feedback?.kind === 'answer' || feedback?.kind === 'spelling'} title={t.skip}
                 className="h-10 px-3 rounded-full inline-flex items-center gap-1 text-xs font-semibold hover:bg-[var(--ui-hover)] disabled:opacity-40" style={{ color: 'var(--theme-nav-text)' }}>

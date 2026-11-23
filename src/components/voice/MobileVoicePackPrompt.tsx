@@ -63,8 +63,9 @@ export function MobileVoicePackPrompt({ pt }: { pt: boolean }) {
   }
 
   const busy = progress !== null
-  const primary = 'h-11 px-5 rounded-full text-[14.5px] font-semibold disabled:opacity-60'
-  const secondary = 'h-11 px-4 rounded-full text-[14.5px] font-medium hover:bg-[var(--ui-hover)]'
+  // Mesmo botão do sistema (ui/button): cantos rounded-lg, 44 px de altura no celular.
+  const primary = 'h-11 px-4 rounded-lg text-[15px] font-medium active:scale-[0.96] transition-transform disabled:opacity-50'
+  const secondary = 'h-11 px-4 rounded-lg text-[15px] font-medium active:scale-[0.96] transition-transform hover:bg-[var(--ui-hover)]'
   return (
     <Dialog open={open} onOpenChange={o => { if (!busy) (o ? setOpen(true) : close()) }}>
       <DialogContent className="max-w-md" style={{ padding: '32px 24px 24px' }}>

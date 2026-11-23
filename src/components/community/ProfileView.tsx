@@ -98,7 +98,7 @@ export function ProfileHeader({ view, pt, asVisitor = false, onTab, onRelationCh
           </span>
           <div className="pb-1 flex flex-wrap justify-end items-center gap-2">
             {ownerSees
-              ? <Link to="/settings#profile" className="h-9 px-4 inline-flex items-center gap-1.5 rounded-full border text-[13px] font-medium" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-card-bg)' }}>
+              ? <Link to="/settings#profile" className="h-9 px-4 inline-flex items-center gap-1.5 rounded-lg border text-[13px] font-medium" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-card-bg)' }}>
                   <Pencil className="w-3.5 h-3.5" />{pt ? 'Editar perfil' : 'Edit profile'}
                 </Link>
               : !view.isOwner && !relation.blockedByMe && (
@@ -462,7 +462,7 @@ export function ReadingGoalCard({ view, pt, compact = false, onChanged }: { view
         <div className="flex flex-wrap items-center gap-2">
           <input id="goal-target" type="number" min={1} max={500} value={target} onChange={e => setTarget(Number(e.target.value) || 1)}
             className="w-24 h-10 rounded-xl border px-3 text-[15px] tabular-nums bg-transparent outline-none" style={{ borderColor: 'var(--theme-border)' }} />
-          <button type="button" disabled={busy} onClick={() => { void save() }} className="h-10 px-4 rounded-full text-[13.5px] font-medium disabled:opacity-60" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>{pt ? 'Salvar meta' : 'Save goal'}</button>
+          <button type="button" disabled={busy} onClick={() => { void save() }} className="h-10 px-4 rounded-lg text-[13.5px] font-medium disabled:opacity-60" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>{pt ? 'Salvar meta' : 'Save goal'}</button>
           <button type="button" onClick={() => setEditing(false)} className="h-10 px-3 rounded-full text-[13.5px]" style={muted}>{pt ? 'Cancelar' : 'Cancel'}</button>
         </div>
       </div>
@@ -473,7 +473,7 @@ export function ReadingGoalCard({ view, pt, compact = false, onChanged }: { view
     return view.isOwner
       ? <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-[14px]" style={muted}>{pt ? `Você terminou ${doneThisYear} ${doneThisYear === 1 ? 'livro' : 'livros'} em ${year}. Que tal uma meta?` : `You finished ${doneThisYear} books in ${year}. Set a goal?`}</p>
-          <button type="button" onClick={() => setEditing(true)} className="h-9 px-4 rounded-full border text-[13px] font-medium" style={{ borderColor: 'var(--theme-border)' }}>{pt ? 'Definir meta' : 'Set a goal'}</button>
+          <button type="button" onClick={() => setEditing(true)} className="h-9 px-4 rounded-lg border text-[13px] font-medium" style={{ borderColor: 'var(--theme-border)' }}>{pt ? 'Definir meta' : 'Set a goal'}</button>
         </div>
       : <p className="text-[13.5px]" style={muted}>{pt ? `Sem meta para ${year}.` : `No goal for ${year}.`}</p>
   }

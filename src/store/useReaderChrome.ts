@@ -23,6 +23,9 @@ interface ReaderChromeState {
   hide: () => void
   toggle: () => void
   setEdgeTap: (on: boolean) => void
+  /** Folha aberta no celular: aparência do texto (Aa) ou o menu ⋯ do livro. */
+  sheet: 'appearance' | 'more' | null
+  setSheet: (sheet: 'appearance' | 'more' | null) => void
 }
 
 function apply(immersive: boolean, visible: boolean) {
@@ -36,6 +39,8 @@ export const useReaderChrome = create<ReaderChromeState>((set, get) => ({
   immersive: false,
   visible: true,
   edgeTap: readEdge(),
+  sheet: null,
+  setSheet: (sheet) => set({ sheet }),
   setImmersive: (on) => {
     // Ao entrar, começa mostrando os controles por um instante (a pessoa vê onde estão).
     set({ immersive: on, visible: true })

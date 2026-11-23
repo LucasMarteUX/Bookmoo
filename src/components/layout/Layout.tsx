@@ -57,7 +57,8 @@ export function Layout() {
         style={{ backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-text)' }}>
         {pt ? 'Ir para o conteúdo' : 'Skip to content'}
       </a>
-      {isMobile ? <NavBar /> : null}
+      {/* No livro o topo é do próprio leitor (MobileBookChrome): uma barra só. */}
+      {isMobile && !isBookPage ? <NavBar /> : null}
       <MobileVoicePackPrompt pt={pt} />
 
       <div className="flex flex-1 relative">
@@ -67,9 +68,9 @@ export function Layout() {
           className={`flex-1 min-w-0 overflow-x-clip md:ml-[var(--sidebar-w)] transition-[margin] duration-300 md:px-10 outline-none ${isBookPage ? 'md:pt-0 md:pb-8' : 'md:pt-8 md:pb-12'}`}
           style={isMobile ? {
             // Leitura imersiva: as barras flutuam por cima; o texto começa logo abaixo da área segura.
-            paddingTop: immersive ? 'calc(var(--safe-t) + 0.75rem)' : 'calc(var(--safe-t) + var(--navbar-h) + 0.75rem)',
+            paddingTop: isBookPage ? 'calc(var(--safe-t) + 2.75rem + 0.5rem)' : immersive ? 'calc(var(--safe-t) + 0.75rem)' : 'calc(var(--safe-t) + var(--navbar-h) + 0.75rem)',
             // No leitor a barra de ferramentas própria fica embaixo; nas outras telas, a tab bar.
-            paddingBottom: immersive ? 'calc(var(--safe-b) + 3.5rem)' : isBookPage ? 'calc(var(--safe-b) + 6.5rem)' : tutorChatOpen ? 'calc(var(--safe-b) + 1.5rem)' : 'calc(var(--safe-b) + var(--tabbar-h) + 1.5rem)',
+            paddingBottom: isBookPage ? 'calc(var(--safe-b) + 4.5rem)' : immersive ? 'calc(var(--safe-b) + 3.5rem)' : isBookPage ? 'calc(var(--safe-b) + 6.5rem)' : tutorChatOpen ? 'calc(var(--safe-b) + 1.5rem)' : 'calc(var(--safe-b) + var(--tabbar-h) + 1.5rem)',
             paddingLeft: 'calc(1rem + var(--safe-l))',
             paddingRight: 'calc(1rem + var(--safe-r))',
           } : undefined}>

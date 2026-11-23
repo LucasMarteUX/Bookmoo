@@ -105,7 +105,11 @@ function TutorPanel() {
     : (pt ? 'Chat com os tutores, disponível no Plus' : 'Chat with the tutors, Plus plan')
   // No leitor a barra de ferramentas fica embaixo; nas outras telas do celular, a tab bar.
   const onBook = /^\/book\//.test(pathname)
-  const bottom = onBook
+  // Celular no livro: a bolinha sai (o tutor abre pelo menu ⋯); o painel abre acima da pílula Ler/Ouvir.
+  const bookMobile = onBook && isMobile
+  const bottom = bookMobile
+    ? 'calc(var(--safe-b, 0px) + 5rem)'
+    : onBook
     ? 'calc(var(--safe-b, 0px) + var(--tutor-bottom, 1.5rem) + 4.5rem)'
     : isMobile ? 'calc(var(--safe-b, 0px) + var(--tabbar-h, 4rem) + 1rem)' : '1.5rem'
 
@@ -143,7 +147,7 @@ function TutorPanel() {
           </motion.div>
         )}
 
-        {!open && (
+        {!open && !bookMobile && (
           <motion.button key="fab" data-tour="tutor-fab" type="button" onClick={() => (allowed ? (setOpen(true), setView('chat')) : openPaywall('tutor'))}
             initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.6 }} transition={{ type: 'spring', stiffness: 420, damping: 30 }}
             whileTap={{ scale: 0.92 }} whileHover={{ scale: 1.06 }}

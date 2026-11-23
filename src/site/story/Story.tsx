@@ -1,8 +1,8 @@
 // Home como história visual (referência: claude.com/product/overview). Nada toca e nada pede para operar:
 // só representação, movimento suave e frases curtas. Cada capítulo leva à página da função.
-import { useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { AnimatePresence, motion, useMotionValueEvent, useReducedMotion, useScroll, useTransform } from 'motion/react'
+import { AnimatePresence, motion, useInView, useMotionValueEvent, useReducedMotion, useScroll, useTransform } from 'motion/react'
 import { ArrowRight, Check, RotateCcw, Star, Volume2 } from 'lucide-react'
 import { COVERS, coverSrc } from '../covers'
 import { TUTORS, tutorImg } from '../content'
@@ -138,31 +138,55 @@ const TUTOR_LINES: Record<string, string> = {
 }
 
 export function TutorScroll() {
-  const ref = useRef<HTMLDivElement>(null)
+  const ref = useRef<HTMLElement>(null)
+  const reduce = useReducedMotion()
   const [i, setI] = useState(0)
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end end'] })
-  useMotionValueEvent(scrollYProgress, 'change', v => setI(Math.min(TUTORS.length - 1, Math.max(0, Math.floor(v * TUTORS.length * 0.999)))))
+  const stageVisible = useInView(ref, { margin: '350px 0px' })
+  const portraitScale = useTransform(scrollYProgress, [0, .5, 1], [.94, 1, 1.04])
+  // No celular os tutores ficam empilhados e se trocam pelo sumário; o scroll fixo só no computador.
+  const [compact, setCompact] = useState(() => typeof matchMedia !== 'undefined' && matchMedia('(max-width: 768px)').matches)
+  useEffect(() => {
+    const mq = matchMedia('(max-width: 768px)')
+    const on = () => setCompact(mq.matches)
+    mq.addEventListener('change', on)
+    return () => mq.removeEventListener('change', on)
+  }, [])
+  const pinned = !reduce && !compact
+  useMotionValueEvent(scrollYProgress, 'change', v => pinned && setI(Math.min(TUTORS.length - 1, Math.max(0, Math.floor(v * TUTORS.length * 0.999)))))
+  function selectTutor(index: number) {
+    const section = ref.current
+    if (pinned && section) {
+      const top = window.scrollY + section.getBoundingClientRect().top
+      window.scrollTo({top: top + (section.offsetHeight - window.innerHeight) * (index + .5) / TUTORS.length, behavior: 'instant'})
+    }
+    setI(index)
+  }
   const t = TUTORS[i]
   return (
-    <section ref={ref} className="st-tutors" style={{ height: `${TUTORS.length * 90 + 40}vh` }}>
+    <section ref={ref} className="st-tutors" data-pinned={pinned} style={{ height: pinned ? `${TUTORS.length * 90 + 40}vh` : 'auto' }}>
       <div className="st-tutors-pin">
         <div className="st-tutors-grid">
-          <div className="st-tutor-stage" style={{ background: t.tint }}>
-            <LiveTutor id={t.id} bubble="head" />
-          </div>
+          <figure className="st-tutor-plate">
+            <div className="st-tutor-stage" style={{ background: t.tint }}>
+              {stageVisible && <motion.div className="absolute inset-0" style={pinned ? { scale: portraitScale } : undefined}>
+                <LiveTutor id={t.id} bubble="head" />
+              </motion.div>}
+            </div>
+            <figcaption><i>{t.name}</i><span>{t.role}</span><span aria-hidden>{String(i + 1).padStart(2, '0')} / {String(TUTORS.length).padStart(2, '0')}</span></figcaption>
+          </figure>
           <div className="st-tutor-copy">
-            <Kicker>Tutores</Kicker>
-            <h2 className="st-title st-title-left">Converse em inglês com quem tem paciência.</h2>
-            <div className="st-tutor-names" role="list">
-              {TUTORS.map((x, k) => <span key={x.id} role="listitem" data-on={k === i}>{x.name}</span>)}
+            <p className="journey-label">Tutores</p>
+            <h2 className="journey-title">Converse com quem tem <i>paciência.</i></h2>
+            <div className="st-tutor-index" role="group" aria-label="Escolher tutor">
+              {TUTORS.map((x, k) => <button type="button" key={x.id} aria-pressed={k === i} onClick={() => selectTutor(k)}><small>{String(k + 1).padStart(2, '0')}</small>{x.name}</button>)}
             </div>
             <AnimatePresence mode="wait">
               <motion.div key={t.id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.5, ease: EASE }}>
-                <p className="st-tutor-role">{t.name}, {t.role.toLowerCase()}</p>
-                <p className="st-text st-text-left">{t.about}</p>
+                <p className="st-tutor-about">{t.about}</p>
               </motion.div>
             </AnimatePresence>
-            <Link to="/tutores" className="st-link">Conhecer os tutores<ArrowRight size={16} /></Link>
+            <Btn to="/tutores" arrow>Conhecer os tutores</Btn>
           </div>
         </div>
       </div>

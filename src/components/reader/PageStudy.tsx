@@ -89,7 +89,7 @@ function Unit({ unit, n, pt }: { unit: LessonUnit; n: number; pt: boolean }) {
             <p className="mt-2 text-[15px] leading-snug">{unit.practice.prompt}</p>
             {show
               ? <motion.p initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="mt-2 text-[15px] font-medium" style={{ color: '#059669' }}>{unit.practice.answer}</motion.p>
-              : <button type="button" onClick={() => setShow(true)} className="mt-3 h-9 px-4 rounded-full border text-[13px]" style={{ borderColor: 'var(--theme-border)' }}>{pt ? 'Ver resposta' : 'Show answer'}</button>}
+              : <button type="button" onClick={() => setShow(true)} className="mt-3 h-9 px-4 rounded-lg border text-[13px]" style={{ borderColor: 'var(--theme-border)' }}>{pt ? 'Ver resposta' : 'Show answer'}</button>}
           </div>
         )}
       </div>
@@ -289,7 +289,7 @@ export function PageStudyDialog({ open, onOpenChange, book, section, autoGenerat
                     <Eyebrow>{pt ? `Página ${page + 1}` : `Page ${page + 1}`}</Eyebrow>
                     <h2 className="mt-2 font-display text-[34px] leading-tight">{pt ? 'Transforme esta página numa aula' : 'Turn this page into a lesson'}</h2>
                     <p className="mt-4 text-[16px] leading-relaxed" style={muted}>{pt ? 'Uma lição como a de um livro de inglês: vocabulário da página, cada regra explicada com exemplos do livro e de outras situações, erros comuns, exercícios e pronúncia. Fica salva e vale para todos os leitores deste livro.' : 'A lesson like an English course book: page vocabulary, each rule explained with examples from the book and other situations, common mistakes, exercises and pronunciation. Saved for every reader of this book.'}</p>
-                    <button type="button" onClick={generate} className="mt-7 h-12 px-6 rounded-full text-[15px] font-semibold inline-flex items-center gap-2" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
+                    <button type="button" onClick={generate} className="mt-7 h-12 px-6 rounded-lg text-[15px] font-semibold inline-flex items-center gap-2" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
                       <Sparkles className="w-4 h-4" />{pt ? 'Criar a lição' : 'Create the lesson'}
                     </button>
                     <div className="mt-8"><HideHelp pt={pt} onDone={() => onOpenChange(false)} /></div>
@@ -299,7 +299,7 @@ export function PageStudyDialog({ open, onOpenChange, book, section, autoGenerat
                 {state === 'error' && (
                   <motion.div key="error" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-xl mx-auto px-5 py-20">
                     <p className="text-[16px]" style={muted}>{pt ? 'Não foi possível abrir a lição agora.' : 'Could not open the lesson right now.'}</p>
-                    <button type="button" onClick={() => void load()} className="mt-4 h-10 px-5 rounded-full border text-[14px]" style={{ borderColor: 'var(--theme-border)' }}>{pt ? 'Tentar de novo' : 'Try again'}</button>
+                    <button type="button" onClick={() => void load()} className="mt-4 h-10 px-5 rounded-lg border text-[14px]" style={{ borderColor: 'var(--theme-border)' }}>{pt ? 'Tentar de novo' : 'Try again'}</button>
                   </motion.div>
                 )}
 
@@ -319,7 +319,7 @@ export function PageStudyDialog({ open, onOpenChange, book, section, autoGenerat
                       <Lesson c={content} pt={pt} page={page} shared={shared} />
                       <div className="mt-14 pt-8 border-t flex flex-wrap items-center gap-3" style={{ borderColor: 'var(--theme-border)' }}>
                         {page >= 1 && <button type="button" onClick={() => { onOpenChange(false); window.setTimeout(openQuiz, 200) }} className="h-12 px-6 rounded-full text-[15px] font-semibold inline-flex items-center gap-2" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}><Dices className="w-4 h-4" />{pt ? 'Fazer o desafio' : 'Take the challenge'}</button>}
-                        <button type="button" onClick={() => onOpenChange(false)} className="h-12 px-6 rounded-full border text-[15px]" style={{ borderColor: 'var(--theme-border)' }}>{pt ? 'Voltar à leitura' : 'Back to reading'}</button>
+                        <button type="button" onClick={() => onOpenChange(false)} className="h-12 px-6 rounded-lg border text-[15px]" style={{ borderColor: 'var(--theme-border)' }}>{pt ? 'Voltar à leitura' : 'Back to reading'}</button>
                         <span className="ml-auto"><HideHelp pt={pt} onDone={() => onOpenChange(false)} /></span>
                       </div>
                     </div>

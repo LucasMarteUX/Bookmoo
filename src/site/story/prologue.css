@@ -1,0 +1,119 @@
+.book-prologue{position:relative;isolation:isolate;display:grid;align-content:end;min-height:88svh;background:#1d241e url('/site/home/noite.webp') center 46%/cover;color:#fff7e6;padding:clamp(36px,7vw,110px);overflow:hidden}
+.book-prologue::before{content:'';position:absolute;inset:0;z-index:-1;background:linear-gradient(90deg,#111912e8,transparent 85%),linear-gradient(0deg,#10140fc9,transparent 65%)}
+.book-copy h1{font:400 clamp(86px,11vw,190px)/.79 Georgia,serif;letter-spacing:-.075em;color:inherit;margin:0}
+.book-copy h1 i{color:#eed09f}.book-copy p{max-width:39ch;margin:2rem 0 1.5rem;line-height:1.55}.book-start{display:inline-block;background:#fff4da;color:#23261e;border-radius:99px;padding:14px 25px}
+.book-intro{position:fixed;inset:0;z-index:10000;display:grid;place-items:center;background:#ede5d6;color:#24251e;transform-origin:left;animation:intro-turn .55s ease-in 1.75s both}
+.book-intro img{grid-area:1/1;width:min(38vw,210px);aspect-ratio:2/3;object-fit:cover;box-shadow:8px 14px 35px #24150833;opacity:0;animation:cover-cut .24s steps(1,end)}
+.intro-brand{grid-area:1/1;animation:brand-in .4s .88s both}.book-intro button{position:absolute;bottom:6%;right:6%;padding:12px}
+@keyframes cover-cut{0%,99%{opacity:1;transform:rotate(-3deg)}}
+@keyframes brand-in{from{opacity:0;transform:translateY(12px)}}
+@keyframes intro-turn{to{transform:perspective(1200px) rotateY(-94deg)}}
+@media(max-width:600px){.book-prologue{background-position:62% center;padding:30px 24px 85px}}
+@supports(animation-timeline:view()){ @media(prefers-reduced-motion:no-preference){.book-story>section:not(.sc-day,.st-tutors,.book-prologue,.garden-sequence){animation:chapter-open linear both;animation-timeline:view();animation-range:entry 0% entry 80%}@keyframes chapter-open{from{clip-path:inset(0 0 10% 0);transform:perspective(1800px) rotateX(3deg) translateY(26px);transform-origin:top}to{clip-path:inset(0);transform:none}}}}
+.book-prologue{background:#f6f2e8;color:#25271e;min-height:calc(100svh - 72px);align-content:center;text-align:center}
+.book-prologue::before{display:none}.book-copy{position:relative;z-index:1;margin:auto;max-width:76vw}.book-copy h1{font-family:var(--font-display),Georgia,serif}.book-copy h1 i{color:#566749}.book-copy p{margin:2rem auto 1.5rem}.book-start{background:#2c382a;color:#fff8e8}
+.book-fragments{position:absolute;inset:0;pointer-events:none}.book-fragments i{position:absolute;object-fit:cover;object-position:center 35%;height:27%;width:16%}.book-fragments i:nth-child(1){left:-2%;top:12%}.book-fragments i:nth-child(2){right:6%;top:-5%;width:12%;height:22%}.book-fragments i:nth-child(3){left:14%;bottom:-3%;height:23%;width:10%}.book-fragments i:nth-child(4){right:-2%;bottom:16%}
+.story-spread{display:grid;grid-template-columns:1.1fr 1fr;gap:6vw;align-items:center;background:#e8e8d8;padding:clamp(45px,8vw,140px) 7vw}.story-spread>img{width:100%;max-height:76svh;object-fit:contain}.spread-copy h2{font:400 clamp(40px,5.4vw,90px)/1.03 var(--font-display),Georgia,serif;letter-spacing:-.05em;margin:1.5rem 0}.spread-copy h2 button{font:inherit;color:#43613e;border-bottom:2px dotted}.story-verbs{padding:6vw;background:#f7f4ec}.story-verbs a{display:flex;align-items:center;gap:3vw;border-bottom:1px solid #c8c6b9;padding:1.5vw 0}.story-verbs a:nth-child(2){padding-left:12vw}.story-verbs img{width:clamp(44px,7vw,120px);aspect-ratio:4/5;object-fit:cover}.story-verbs span{font:400 clamp(45px,9vw,160px)/1 var(--font-display),Georgia,serif;letter-spacing:-.06em}.story-verbs small{margin-left:auto;max-width:16ch}.story-verbs a:is(:hover,:focus-visible) span{color:#526a49}
+@supports(animation-timeline:view()){ @media(prefers-reduced-motion:no-preference){.book-fragments i{animation:drift linear both;animation-timeline:view();animation-range:exit 0% exit 100%}@keyframes drift{to{transform:translateY(-22%) scale(1.12)}}}}
+@media(max-width:700px){.story-spread{grid-template-columns:1fr}.book-fragments i{height:14%;width:17%}.book-fragments i:nth-child(2){top:1%;height:12%}.book-fragments i:nth-child(3){bottom:1%;height:13%}.book-fragments i:nth-child(4){bottom:9%}.book-copy h1{font-size:clamp(66px,14vw,90px)}.story-verbs small{font-size:11px}.story-verbs a{padding-block:14px}}
+.book-fragments i{background-image:url('/site/home/jardim.webp');background-size:auto 310%;background-position:3% 67%}.book-fragments [data-detail=portao]{background-position:94% 14%}.book-fragments [data-detail=rabanetes]{background-position:91% 95%}.book-fragments [data-detail=peter]{background-position:52% 26%}
+.garden-frame{overflow:hidden;margin:0;aspect-ratio:4/5}.garden-frame img{width:100%;height:100%;object-fit:cover}
+
+
+/* The night reader opens the book. The garden sequence takes over on paper. */
+.book-story .book-prologue{background:#132421;text-align:left;align-content:end;color:#fff8df;padding:clamp(38px,6vw,110px);min-height:calc(100svh - 70px)}
+.night-reader{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 55%;z-index:-2}
+.book-story .book-prologue::before{display:block;z-index:-1;background:linear-gradient(90deg,#091813ba,transparent 78%),linear-gradient(0deg,#101a15a3,transparent 55%)}
+.book-story .book-copy{margin:0;max-width:min(640px,80%)}.book-story .book-copy h1{font-size:clamp(82px,11.8vw,205px);line-height:.84}.book-story .book-copy h1 i{color:#ecdab4}.book-story .book-copy p{margin:24px 0;max-width:39ch}.book-story .book-start{background:#f5eddb;color:#1b2923;transition:transform .3s,background .3s}.book-start:is(:hover,:focus-visible){transform:translateY(-3px);background:white}
+.book-story .garden-sequence{height:335svh;position:relative;background:#f4f1e9;animation:none;transform:none;clip-path:none}
+.garden-stage{height:calc(100svh - 70px);position:sticky;top:70px;overflow:hidden;isolation:isolate;display:grid;place-items:center}
+.garden-captions{position:relative;z-index:1;width:72%;text-align:center;display:grid;place-items:center}.garden-captions p{grid-area:1/1;margin:0;max-width:13ch;color:#282a23;font:400 clamp(43px,6.4vw,116px)/.97 var(--font-display),Georgia,serif;letter-spacing:-.06em;text-wrap:balance}
+.garden-pieces{position:absolute;inset:0}.garden-pieces i{position:absolute;background-image:url('/site/home/jardim.webp');background-size:auto 320%;width:20%;height:35%}.garden-pieces i:nth-child(1){left:3%;top:2%}.garden-pieces i:nth-child(2){right:13%;top:-6%;width:13%;height:27%}.garden-pieces i:nth-child(3){left:17%;bottom:-6%;width:13%}.garden-pieces i:nth-child(4){right:0;bottom:8%}
+.garden-reveal{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:2}
+.book-story .story-verbs{background:#e4e8db}.story-verbs a{position:relative}.story-verbs a:nth-child(3){justify-content:center}.story-verbs a img{transition:transform .45s ease}.story-verbs a:is(:hover,:focus-visible) img{transform:rotate(-6deg) scale(1.12)}
+.book-story .sc-gal{background:#182923;color:#fff4dc}.book-story .sc-gal :is(.sc-title,.sc-kicker,.sc-head-text,.sc-textlink){color:inherit}.book-story .sc-gal-row:hover .sc-gal-track{animation-play-state:paused}
+
+@supports(animation-timeline:view()){@media(prefers-reduced-motion:no-preference){.book-story .story-verbs a{animation:verse-shift linear both;animation-timeline:view();animation-range:entry 0% exit 100%}.story-verbs a:nth-child(2){animation-direction:reverse}@keyframes verse-shift{from{translate:-3vw 0}to{translate:3vw 0}}}}
+@media(max-width:700px){.book-story .garden-sequence{height:245svh}.garden-stage{top:62px;height:calc(100svh - 62px)}.book-story .book-prologue{padding:28px 24px 78px}.night-reader{object-position:67% center}.book-story .book-prologue::before{background:linear-gradient(0deg,#0c1714ed,transparent 90%)}.book-story .book-copy{max-width:100%}.book-story .book-copy h1{font-size:clamp(73px,18vw,108px)}}
+@media(prefers-reduced-motion:reduce){.book-story .garden-sequence{height:auto}.garden-stage{position:relative;top:0;height:auto;display:block}.garden-captions{margin:auto;padding:60px 0;gap:20px}.garden-captions p{grid-area:auto}.garden-reveal{position:static;height:auto}.book-story :is(.sc-gal-track,.s-marquee-track){animation:none}}
+.flight-intro{position:fixed;inset:0;z-index:10000;display:grid;place-items:center;background:#f5f1e7;mask-image:linear-gradient(black,black),linear-gradient(black,black);mask-size:100% 50.1%;mask-repeat:no-repeat;mask-position:center top,center bottom;animation:flight-open .85s 4s cubic-bezier(.65,0,.2,1) both}
+@keyframes flight-open{to{mask-position:center -101%,center 201%}}
+.flight-intro .flight-cover{grid-area:1/1;width:min(38vw,190px);aspect-ratio:2/3;object-fit:cover;opacity:0;animation:cover-cut .24s steps(1,end)}
+.flight-intro>.s-btn{position:absolute;bottom:5%;right:5%}
+.flight-cast{grid-area:1/1;position:relative;width:clamp(82px,10vw,145px);aspect-ratio:362/505;animation:flight-arrive .35s .9s both}
+@keyframes flight-arrive{from{opacity:0}}
+.flight-rabbit,.flight-rabbit>*{position:absolute;inset:0}.flight-rabbit>*{background:url('/site/coelho.svg') center/contain no-repeat}
+.flight-rabbit i{clip-path:inset(53% 0 0)}.flight-rabbit b{clip-path:inset(0 0 46%);transform-origin:50% 54%;animation:flight-look 2.8s 1s ease-in-out both}
+@keyframes flight-look{30%{transform:rotate(-3deg)}75%{transform:rotate(3deg)}}
+.flight-butterfly{position:absolute;width:37%;aspect-ratio:139/121;top:-25%;left:106%;animation:flight-arc 3s .95s ease-in-out both}
+/* Voa em volta do coelho e pousa no alto, à direita, como no logotipo. */
+@keyframes flight-arc{0%{transform:translate(-420%,190%) rotate(-20deg)}30%{transform:translate(-330%,-40%) rotate(-16deg)}62%{transform:translate(-90%,-110%) rotate(18deg)}84%{transform:translate(25%,40%) rotate(-8deg)}100%{transform:none}}
+.flight-butterfly>*{position:absolute;inset:0;background:url('/site/borboleta.svg') center/contain no-repeat;transform-origin:center;animation:flight-wing .18s infinite alternate ease-in-out}.flight-butterfly i{clip-path:inset(0 50% 0 0)}.flight-butterfly b{clip-path:inset(0 0 0 50%);animation-direction:alternate-reverse}@keyframes flight-wing{to{transform:scaleX(.42)}}
+
+.book-copy h1 > * { display: block; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .book-prologue[data-waiting=false] .book-copy h1 > *,
+  .book-prologue[data-waiting=false] .book-copy > :is(p, .s-btn) {
+    animation: hero-type-in .95s cubic-bezier(.18,.68,.22,1) backwards;
+  }
+  .book-prologue[data-waiting=false] .book-copy h1 i { animation-delay: .12s; }
+  .book-prologue[data-waiting=false] .book-copy p { animation-delay: .2s; }
+  .book-prologue[data-waiting=false] .book-copy .s-btn { animation-delay: .28s; }
+  @keyframes hero-type-in {
+    from { opacity: 0; transform: translateY(.28em); clip-path: inset(0 0 72%); }
+    to { opacity: 1; transform: none; clip-path: inset(-20%); }
+  }
+}
+
+.excerpt-word {
+  border-radius: .09em;
+  transition: background-color .18s ease, color .18s ease;
+}
+.excerpt-word[data-current=true] {
+  background-color: #dce1c9;
+  color: #283e27;
+}
+.spread-copy h2 button {
+  cursor: pointer;
+  border: 0;
+  text-decoration: underline dotted;
+  text-decoration-thickness: .035em;
+  text-underline-offset: .08em;
+}
+.spread-copy h2 button:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+.excerpt-timeline {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 24px;
+  max-width: 320px;
+}
+.excerpt-meter { flex: 1; }
+.excerpt-meter-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  color: #455240;
+  font-size: .8rem;
+}
+.excerpt-meter-title small { font-variant-numeric: tabular-nums; }
+.excerpt-track {
+  height: 3px;
+  margin-top: 7px;
+  overflow: hidden;
+  background-color: #cbd0bf;
+}
+.excerpt-track > span {
+  display: block;
+  height: 100%;
+  background-color: #506149;
+  transform-origin: left;
+}
+@media (prefers-reduced-motion: reduce) {
+  .excerpt-word { transition: none; }
+}

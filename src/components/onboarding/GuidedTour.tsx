@@ -136,8 +136,8 @@ export function TourOverlay({ steps, step, rect, pt, onStep, onClose, doneLabel 
             ? <button type="button" onClick={onClose} className="h-9 -ml-1 px-1 text-[13px] underline-offset-2 hover:underline shrink-0" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? 'Pular' : 'Skip'}</button>
             : <span />}
           <div className="flex items-center gap-2 min-w-0">
-            {step > 0 && <button type="button" onClick={() => onStep(step - 1)} aria-label={pt ? 'Voltar' : 'Back'} className="h-9 px-3 inline-flex items-center gap-1 rounded-full border text-[13px] shrink-0" style={{ borderColor: 'var(--theme-border)' }}><ArrowLeft className="w-3.5 h-3.5" /><span className="max-[360px]:hidden">{pt ? 'Voltar' : 'Back'}</span></button>}
-            <button type="button" onClick={() => (last ? onClose() : onStep(step + 1))} className="h-9 px-4 inline-flex items-center gap-1.5 rounded-full text-[13px] font-medium shrink-0" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
+            {step > 0 && <button type="button" onClick={() => onStep(step - 1)} aria-label={pt ? 'Voltar' : 'Back'} className="h-9 px-3 inline-flex items-center gap-1 rounded-lg border text-[13px] shrink-0" style={{ borderColor: 'var(--theme-border)' }}><ArrowLeft className="w-3.5 h-3.5" /><span className="max-[360px]:hidden">{pt ? 'Voltar' : 'Back'}</span></button>}
+            <button type="button" onClick={() => (last ? onClose() : onStep(step + 1))} className="h-9 px-4 inline-flex items-center gap-1.5 rounded-lg text-[13px] font-medium shrink-0" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
               {last ? (doneLabel ?? (pt ? 'Começar' : 'Start')) : (pt ? 'Próximo' : 'Next')}{!last && <ArrowRight className="w-3.5 h-3.5" />}
             </button>
           </div>

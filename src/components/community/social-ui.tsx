@@ -232,8 +232,8 @@ export function ReportDialog({ target, open, onOpenChange, pt, onDone }: { targe
           placeholder={pt ? 'Detalhes (opcional)' : 'Details (optional)'}
           className="mt-3 w-full rounded-xl border px-3 py-2 text-[14px] bg-transparent outline-none resize-none" style={{ borderColor: 'var(--theme-border)' }} />
         <div className="mt-4 flex justify-end gap-2">
-          <button type="button" onClick={() => onOpenChange(false)} className="h-9 px-4 rounded-full border text-[13.5px]" style={{ borderColor: 'var(--theme-border)' }}>{pt ? 'Cancelar' : 'Cancel'}</button>
-          <button type="button" disabled={busy} onClick={() => { void send() }} className="h-9 px-4 rounded-full text-[13.5px] font-medium disabled:opacity-60"
+          <button type="button" onClick={() => onOpenChange(false)} className="h-9 px-4 rounded-lg border text-[13.5px]" style={{ borderColor: 'var(--theme-border)' }}>{pt ? 'Cancelar' : 'Cancel'}</button>
+          <button type="button" disabled={busy} onClick={() => { void send() }} className="h-9 px-4 rounded-lg text-[13.5px] font-medium disabled:opacity-60"
             style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>{pt ? 'Enviar denúncia' : 'Send report'}</button>
         </div>
       </DialogContent>

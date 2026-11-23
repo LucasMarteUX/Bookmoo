@@ -376,9 +376,10 @@ export function LivLivAvatar({ characterId, state, speakingText = '', onHead, on
     const removeBrowserVoice = p.use({
       order: 11,
       update(frame) {
-        const synth = typeof window !== 'undefined' ? window.speechSynthesis : undefined
-        if (!speakingRef.current || !synth?.speaking) { open = 0; vowel = 0; return }
+        // Segue só o relógio da fala (ele já diz "sem som" quando a voz não toca). No Safari do iPhone o
+        // speechSynthesis.speaking às vezes fica falso durante a fala, e a boca ficava fechada.
         const clock = getSpeechClock()
+        if (!speakingRef.current || clock?.kind !== 'device') { open = 0; vowel = 0; return }
         const pos = clock?.position() ?? null
         const target = clock && pos !== null ? mouthForChar(clock.text[Math.floor(pos)] ?? ' ') : { open: 0, vowel: 0 }
         open += (target.open - open) * 0.45

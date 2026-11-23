@@ -29,6 +29,10 @@ import { canOpenCatalog, useEntitlements } from '@/store/useEntitlements'
 import { openPaywall } from '@/components/billing/Paywall'
 import { useTutorDock } from '@/store/useTutorDock'
 import { BookTour } from '@/components/onboarding/BookTour'
+import { MobileBookChrome } from '@/components/book/MobileBookChrome'
+import { goBack } from '@/components/mobile/NavBar'
+import { useIsMobile } from '@/hooks/useIsMobile'
+import { MessageCircle } from 'lucide-react'
 
 export function BookPage() {
   const { id } = useParams<{ id: string }>()
@@ -39,6 +43,7 @@ export function BookPage() {
   const { updateBookAndSync, updateBookAndSyncAsync } = useBookSync()
   const { hasSupabase, session } = useAuth()
   const [mode, setMode] = useState<'read' | 'edit' | 'listen' | 'speak'>('read')
+  const isMobile = useIsMobile()
   const [saveFeedback, setSaveFeedback] = useState<'success' | 'error' | null>(null)
   const [saveError, setSaveError] = useState('')
   const [artOpen, setArtOpen] = useState(false)
@@ -142,7 +147,27 @@ export function BookPage() {
     <div className="relative min-h-full flex flex-col" style={{ '--reader-sticky-top': `${headerH}px` } as CSSProperties}>
       {/* Topo fixo numa faixa só, como um editor: atividades, ferramentas da atividade e ajustes.
           O título do livro fica no conteúdo, sem disputar espaço com as barras. */}
-      <div ref={headerRef} data-chrome="top" className={`sticky top-[calc(var(--safe-t,0px)+var(--navbar-h,0px))] md:top-0 z-40 -mx-4 md:-mx-10 mb-4 md:mb-6 ${mode === 'read' || mode === 'listen' ? 'book-header-chrome' : ''}`}
+      {isMobile && (
+        <MobileBookChrome
+          title={book.title}
+          page={book.currentPage ?? 0}
+          total={book.pages?.length || 1}
+          mode={mode}
+          pt={pt}
+          onBack={() => goBack(navigate, `/book/${book.id}`)}
+          onMode={setMode}
+          onStyle={() => setStyleOpen(true)}
+          onVoices={() => setCastOpen(true)}
+          onPageSize={() => setPageSizeOpen(true)}
+          onTutor={() => window.dispatchEvent(new Event('bookmoo:tutor-open'))}
+          tutorFace={<MessageCircle className="w-[18px] h-[18px]" />}
+          styleThumb={book.comicStyleDoc?.styleId ? <img src={stylePreview(book.comicStyleDoc.styleId)} alt="" className="w-9 h-9 rounded-xl object-cover" /> : undefined}
+          voiceFace={<VoiceFace voice={narratorVoice} size={36} square />}
+          slotRef={setHeaderMobileSlot}
+        />
+      )}
+      {/* Celular: o topo é o MobileBookChrome; este cabeçalho fica montado (o Reader usa os encaixes dele) mas fora da tela. */}
+      <div ref={headerRef} data-chrome={isMobile ? undefined : 'top'} hidden={isMobile} className={`sticky top-[calc(var(--safe-t,0px)+var(--navbar-h,0px))] md:top-0 z-40 -mx-4 md:-mx-10 mb-4 md:mb-6 ${mode === 'read' || mode === 'listen' ? 'book-header-chrome' : ''}`}
         style={{ backgroundColor: 'var(--theme-bg)' }}>
         <div className="book-headerbar h-12 px-2 md:px-6 flex items-stretch gap-1 border-b" style={{ borderColor: 'var(--theme-border)' }}>
           <nav role="tablist" aria-label={pt ? 'Atividade' : 'Activity'} className="flex items-stretch gap-0.5 min-w-0 overflow-x-auto overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -196,10 +221,6 @@ export function BookPage() {
             <div ref={setHeaderEndSlot} className="flex items-center empty:hidden" />
           </div>
         </div>
-        {(mode === 'read' || mode === 'listen') && (
-          <div ref={setHeaderMobileSlot} className="md:hidden h-12 px-2 flex items-center border-b overflow-x-auto overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden empty:hidden"
-            style={{ borderColor: 'var(--theme-border)' }} />
-        )}
       </div>
 
       <div className="flex-1">

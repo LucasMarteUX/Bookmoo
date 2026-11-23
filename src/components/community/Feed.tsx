@@ -109,7 +109,7 @@ export function Composer({ me, books, pt, onPosted }: { me: ProfileView | null; 
           <p className="font-medium">{pt ? 'Crie seu perfil para publicar' : 'Create your profile to post'}</p>
           <p className="mt-0.5 text-[13.5px]" style={muted}>{pt ? 'Escolha um @ e conte o que está lendo.' : 'Pick a handle and share what you are reading.'}</p>
         </div>
-        <Link to="/settings#profile" className="shrink-0 h-9 px-4 inline-flex items-center rounded-full text-[13.5px] font-medium" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
+        <Link to="/settings#profile" className="shrink-0 h-9 px-4 inline-flex items-center rounded-lg text-[13.5px] font-medium" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
           {pt ? 'Criar perfil' : 'Create profile'}
         </Link>
       </div>
@@ -216,7 +216,7 @@ export function Composer({ me, books, pt, onPosted }: { me: ProfileView | null; 
           {body.length > POST_MAX - 120 ? POST_MAX - body.length : ''}
         </span>
         <button type="button" disabled={!ready} onClick={() => { void submit() }}
-          className="h-9 px-4 shrink-0 inline-flex items-center gap-1.5 rounded-full text-[13.5px] font-semibold transition-opacity disabled:opacity-40"
+          className="h-9 px-4 shrink-0 inline-flex items-center gap-1.5 rounded-lg text-[13.5px] font-semibold transition-opacity disabled:opacity-40"
           style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
           {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
           {pt ? 'Publicar' : 'Post'}

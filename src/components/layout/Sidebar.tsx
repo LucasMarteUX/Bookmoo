@@ -192,7 +192,7 @@ export function Sidebar({ isMobileDrawer, onClose }: SidebarProps) {
       {!isMobileDrawer && (
         <div className="flex items-center justify-between gap-2 px-3 pt-3 pb-2">
           <Link to="/" className="flex items-center gap-2 min-w-0 rounded-md px-1 py-1 -mx-1 hover:bg-[var(--ui-hover)]">
-            <Logo height={30} style={{ color: 'var(--theme-nav-text)' }} />
+            <Logo height={38} style={{ color: 'var(--theme-nav-text)' }} />
           </Link>
           <button type="button" onClick={toggleSidebar} className="w-7 h-7 rounded-md grid place-items-center transition-colors hover:bg-[var(--ui-hover)]"
             title={pt ? 'Recolher menu' : 'Collapse menu'} aria-label={pt ? 'Recolher menu' : 'Collapse menu'} style={{ color: 'var(--theme-nav-text-muted)' }}>

@@ -44,7 +44,7 @@ function CollectionDetail({ slug }: { slug: string }) {
 
   if (data === 'error') return <EmptyState illustration="reading" title={pt ? 'Não foi possível carregar esta coleção.' : 'Could not load this collection.'} />
   if (data === null) return <EmptyState illustration="reading" title={pt ? 'Esta coleção não existe ou não está publicada.' : 'This collection does not exist or is not published.'}
-    action={<Link to="/gallery" className="h-9 px-4 rounded-full border text-[13px] inline-flex items-center" style={{ borderColor: 'var(--theme-border)' }}>{pt ? 'Voltar à galeria' : 'Back to the gallery'}</Link>} />
+    action={<Link to="/gallery" className="h-9 px-4 rounded-lg border text-[13px] inline-flex items-center" style={{ borderColor: 'var(--theme-border)' }}>{pt ? 'Voltar à galeria' : 'Back to the gallery'}</Link>} />
   const loaded = data ?? undefined
 
   return (

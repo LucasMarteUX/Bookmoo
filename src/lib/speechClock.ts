@@ -7,6 +7,8 @@ export type SpeechClock = {
   text: string
   /** Posição (em letras, fracionária) do que está sendo dito agora; null = sem som neste instante. */
   position: () => number | null
+  /** 'device' = voz do aparelho (speechSynthesis): a boca do personagem segue este relógio, sem áudio para analisar. */
+  kind?: 'audio' | 'device'
 }
 
 let current: SpeechClock | null = null
@@ -60,6 +62,7 @@ export function boundaryClock(text: string, rate: number) {
   const msPerChar = 68 / Math.max(0.5, rate)
   const clock: SpeechClock = {
     text,
+    kind: 'device',
     position: () => {
       if (!playing) return null
       const p = idx + (performance.now() - at) / msPerChar

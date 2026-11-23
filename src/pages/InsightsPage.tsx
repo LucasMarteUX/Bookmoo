@@ -106,7 +106,7 @@ export function InsightsPage() {
         </div>
         <div className="flex items-center gap-2">
           <span className="h-9 px-3 rounded-full inline-flex items-center text-[13px] border" style={{ borderColor: 'var(--theme-border)' }}>{pt ? 'Seu nível' : 'Your level'} · <b className="ml-1">{levelName(level.id, pt)}</b></span>
-          <button type="button" onClick={generate} disabled={busy !== null} className="h-9 px-4 rounded-full text-[13.5px] font-semibold inline-flex items-center gap-2 disabled:opacity-60" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
+          <button type="button" onClick={generate} disabled={busy !== null} className="h-9 px-4 rounded-lg text-[13.5px] font-semibold inline-flex items-center gap-2 disabled:opacity-60" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
             {busy === 'insight' ? <Loader2 className="w-4 h-4 animate-spin" /> : !allowed ? <Lock className="w-4 h-4" /> : null}
             {withScores.length ? (pt ? 'Nova avaliação' : 'New assessment') : (pt ? 'Gerar avaliação' : 'Generate assessment')}
           </button>
@@ -208,7 +208,7 @@ export function InsightsPage() {
             <h2 className="text-[16px] font-semibold">{pt ? 'Histórias de reforço' : 'Reinforcement stories'}</h2>
             <p className="text-[13.5px]" style={muted}>{pt ? 'Histórias curtas no seu nível, com as palavras e a gramática que você mais erra.' : 'Short stories at your level with your trickiest words and grammar.'}{storiesLeft != null && ent?.limits.stories ? ` ${pt ? `Restam ${storiesLeft} este mês.` : `${storiesLeft} left this month.`}` : ''}</p>
           </div>
-          <button type="button" onClick={newStory} disabled={busy !== null} className="h-9 px-4 rounded-full text-[13.5px] font-semibold inline-flex items-center gap-2 border disabled:opacity-60" style={{ borderColor: 'var(--theme-border)' }}>
+          <button type="button" onClick={newStory} disabled={busy !== null} className="h-9 px-4 rounded-lg text-[13.5px] font-semibold inline-flex items-center gap-2 border disabled:opacity-60" style={{ borderColor: 'var(--theme-border)' }}>
             {busy === 'story' ? <Loader2 className="w-4 h-4 animate-spin" /> : !(ent?.is_admin || ent?.limits.stories !== 0) ? <Lock className="w-4 h-4" /> : null}{pt ? 'Nova história' : 'New story'}
           </button>
         </div>

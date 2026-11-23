@@ -51,7 +51,30 @@
 }
 @media(max-width:480px) {
   .public-register {padding-inline:13px;font-size:13px;gap:6px}
-  .public-bar .public-logo svg {height:21px;width:auto}
+  .public-bar .public-logo img {height:28px;width:auto}
   .public-footer-grid {grid-template-columns:repeat(2,minmax(0,1fr));gap:28px 16px}
   .public-colophon>div {gap:14px}
 }
+.site .public-header{background:#f6f2e9}.public-logo::before{content:'';align-self:flex-start;width:13px;height:32px;margin-right:10px;background:#628276;clip-path:polygon(0 0,100% 0,100% 100%,50% 79%,0 100%)}.site .public-register{border-radius:40px}.site .public-footer{background:#e3e4d5}.site .public-colophon{border-top-color:#adb29d}
+@media(prefers-reduced-motion:no-preference){.site main{animation:folio-enter .48s ease-out}@keyframes folio-enter{from{opacity:.4;translate:0 8px}}}
+.folio-index{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;padding:0 6vw 8vw}.folio-index a{position:relative;isolation:isolate;overflow:hidden;display:flex;flex-direction:column;min-height:clamp(225px,25vw,400px);padding:24px;background:#e8e5d7;border-radius:5px}.folio-index a:nth-child(3n+2){background:#dbe4dd}.folio-index a:nth-child(4){grid-column:2}.folio-index span{font:400 clamp(32px,4vw,68px)/1.04 var(--font-display),Georgia,serif;letter-spacing:-.05em}.folio-index small{margin-top:12px;max-width:22ch}.folio-index b{margin-top:auto}.folio-index img{position:absolute;bottom:-18%;right:-4%;height:69%;width:42%;object-fit:cover;transform:rotate(6deg);transition:transform .5s}.folio-index a:is(:hover,:focus-visible) img{transform:translate(-8%,-18%) rotate(0)}@media(max-width:720px){.folio-index{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.folio-index a{padding:13px}.folio-index a:nth-child(4){grid-column:auto}.folio-index span{font-size:28px}}@media(prefers-reduced-motion:reduce){.folio-index img{transition:none}}
+.site .public-logo::before{content:none}
+/* Shared public action treatments, including navigation and chapter selectors. */
+.site.site :is(.s-btn,.sc-btn,.public-register,.public-signin,.chapter-options button,.public-menu-trigger,.public-menu-top button){border-radius:8px!important;min-height:44px;font-size:14px;font-weight:550;line-height:1.2;text-decoration:none}
+.site.site :is(.s-btn,.sc-btn,.public-register,.public-signin){height:44px;padding-inline:17px}
+.site.site :is(.s-btn-dark,.sc-btn-dark,.public-register,.chapter-options button[aria-pressed=true]){background:#262822!important;color:#fff!important;border:1px solid #262822;box-shadow:none}
+.site.site :is(.s-btn-light,.s-btn-white,.sc-btn-line,.public-signin,.public-menu-trigger,.public-menu-top button,.chapter-options button[aria-pressed=false]){background:#faf9f4!important;color:#262822!important;border:1px solid #c4c3b8!important;box-shadow:none}
+.site.site :is(.s-btn,.sc-btn,.public-register,.public-signin,.chapter-options button):hover{filter:brightness(.93);text-decoration:none}
+
+/* O último bloco da página (banner do presente) encosta no footer. */
+.site main:has(> .home-journey) + .public-footer { margin-top: 0; }
+
+/* Fundos escuros (banner do presente, hero): o secundário vira contorno claro, para não sumir no fundo. */
+.site.site.site :is(.last-page, .book-prologue) a.s-btn-dark {
+  background: transparent !important;
+  color: #fff9e9 !important;
+  border: 1px solid rgba(255, 249, 233, .55) !important;
+}
+.site.site.site :is(.last-page, .book-prologue) a.s-btn-dark:hover { background: rgba(255, 249, 233, .1) !important; filter: none; }
+.site.site :is(.last-page, .book-prologue) .s-btn-white { border-color: transparent !important; }
+.site main:has(> .last-page:last-child) + .public-footer { margin-top: 0; }

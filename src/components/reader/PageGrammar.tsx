@@ -126,7 +126,7 @@ export function PageQuizDialog({ open, onOpenChange, book }: { open: boolean; on
             </div>
             <p className="mt-2 text-[14px] font-medium">{pt ? 'Nível' : 'Level'}: {TIER_NAME[tier][pt ? 0 : 1]}</p>
             <p className="mt-3 text-[14px] leading-relaxed" style={muted}>{pt ? '6 perguntas com as regras da página, a página anterior e as suas palavras salvas.' : '6 questions using the page rules, the previous page and your saved words.'}</p>
-            <button type="button" onClick={start} className="mt-5 h-12 px-8 rounded-full text-[15px] font-semibold" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
+            <button type="button" onClick={start} className="mt-5 h-12 px-8 rounded-lg text-[15px] font-semibold" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
               {pt ? 'Começar' : 'Start'}
             </button>
             <div className="mt-4"><HideHelp pt={pt} onDone={() => onOpenChange(false)} /></div>
@@ -134,7 +134,7 @@ export function PageQuizDialog({ open, onOpenChange, book }: { open: boolean; on
         )}
 
         {phase === 'loading' && <div className="py-10 text-center"><Loader2 className="w-6 h-6 mx-auto animate-spin" style={muted} /><p className="mt-3 text-[14px]" style={muted}>{pt ? 'Montando o desafio…' : 'Building the challenge…'}</p></div>}
-        {phase === 'error' && <div className="py-8 text-center"><p className="text-[14.5px]" style={muted}>{pt ? 'Não foi possível montar o desafio agora.' : 'Could not build the challenge right now.'}</p><button type="button" onClick={() => setPhase('intro')} className="mt-3 h-10 px-5 rounded-full border text-[14px]" style={{ borderColor: 'var(--theme-border)' }}>{pt ? 'Voltar' : 'Back'}</button></div>}
+        {phase === 'error' && <div className="py-8 text-center"><p className="text-[14.5px]" style={muted}>{pt ? 'Não foi possível montar o desafio agora.' : 'Could not build the challenge right now.'}</p><button type="button" onClick={() => setPhase('intro')} className="mt-3 h-10 px-5 rounded-lg border text-[14px]" style={{ borderColor: 'var(--theme-border)' }}>{pt ? 'Voltar' : 'Back'}</button></div>}
 
         {phase === 'play' && quiz && q && (
           <div>
@@ -180,7 +180,7 @@ export function PageQuizDialog({ open, onOpenChange, book }: { open: boolean; on
                       })}
                     </div>
                     {checked === null && <button type="button" disabled={built.length !== q.words.length} onClick={() => answer(built.join(' ').replace(/\s+([.,!?;:])/g, '$1').toLowerCase() === q.answer.replace(/\s+/g, ' ').trim().toLowerCase())}
-                      className="mt-4 h-11 px-6 rounded-full text-[14.5px] font-semibold disabled:opacity-40" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>{pt ? 'Verificar' : 'Check'}</button>}
+                      className="mt-4 h-11 px-6 rounded-lg text-[14.5px] font-semibold disabled:opacity-40" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>{pt ? 'Verificar' : 'Check'}</button>}
                     {checked === false && <p className="mt-3 text-[14px]"><span style={muted}>{pt ? 'Resposta' : 'Answer'}: </span><b>{q.answer}</b></p>}
                   </div>
                 )}
@@ -188,7 +188,7 @@ export function PageQuizDialog({ open, onOpenChange, book }: { open: boolean; on
                 {checked !== null && (
                   <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="mt-4">
                     <p className="text-[14px] leading-relaxed"><b style={{ color: checked ? '#059669' : '#dc2626' }}>{checked ? (pt ? 'Certo! ' : 'Correct! ') : (pt ? 'Quase. ' : 'Not quite. ')}</b><span style={muted}>{q.explain}</span></p>
-                    <button type="button" onClick={next} className="mt-3 h-11 px-6 rounded-full text-[14.5px] font-semibold" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>{idx + 1 >= quiz.questions.length ? (pt ? 'Ver resultado' : 'See result') : (pt ? 'Continuar' : 'Continue')}</button>
+                    <button type="button" onClick={next} className="mt-3 h-11 px-6 rounded-lg text-[14.5px] font-semibold" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>{idx + 1 >= quiz.questions.length ? (pt ? 'Ver resultado' : 'See result') : (pt ? 'Continuar' : 'Continue')}</button>
                   </motion.div>
                 )}
               </motion.div>
@@ -212,7 +212,7 @@ export function PageQuizDialog({ open, onOpenChange, book }: { open: boolean; on
             <p className="mt-2 text-[13px]" style={muted}>{gained > 0 ? `+${gained} ${pt ? 'pontos' : 'points'}` : (pt ? 'Pontos já contados para este desafio.' : 'Points already counted for this challenge.')}{best >= 3 ? ` · ${pt ? 'melhor sequência' : 'best streak'}: ${best}` : ''}</p>
             <div className="mt-5 flex justify-center gap-2">
               <button type="button" onClick={() => { setPhase('play'); setIdx(0); setPicked(null); setBuilt([]); setChecked(null); setCorrect(0); setStreak(0); setBest(0); setGained(0) }} className="h-11 px-5 rounded-full border text-[14px] inline-flex items-center gap-2" style={{ borderColor: 'var(--theme-border)' }}><RotateCcw className="w-4 h-4" />{pt ? 'Refazer' : 'Retry'}</button>
-              <button type="button" onClick={() => onOpenChange(false)} className="h-11 px-6 rounded-full text-[14px] font-semibold" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>{pt ? 'Continuar lendo' : 'Keep reading'}</button>
+              <button type="button" onClick={() => onOpenChange(false)} className="h-11 px-6 rounded-lg text-[14px] font-semibold" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>{pt ? 'Continuar lendo' : 'Keep reading'}</button>
             </div>
           </div>
         )}

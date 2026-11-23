@@ -1,3 +1,4 @@
+import { LastPage } from './home/ReadingJourney'
 // Seções reutilizadas entre as páginas do site (planos, FAQ, CTA final, tutores).
 import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -68,19 +69,9 @@ export function FaqSection({ ids = FAQ_IDS, title = <>Dúvidas?<br />A gente res
   )
 }
 
+/** Chamada final de todas as páginas: o mesmo banner do presente que fecha a home. */
 export function FinalCta() {
-  return (
-    <section className="s-container py-10">
-      <div className="relative rounded-[28px] overflow-hidden px-6 py-24 md:py-32 text-center flex flex-col items-center" style={{ background: 'radial-gradient(60% 80% at 15% 20%, #F5E1D6 0%, transparent 60%), radial-gradient(60% 80% at 85% 80%, #E3ECDF 0%, transparent 62%), radial-gradient(50% 60% at 80% 10%, #E2E9F2 0%, transparent 60%), #F6EEE4' }}>
-        <Reveal><h2 className="s-serif s-h2 max-w-[640px]">Comece hoje. Ganhe um livro de presente.</h2></Reveal>
-        <Reveal delay={0.06}><p className="s-lead mt-5 max-w-[470px]">No plano Grátis você escolhe 1 livro da galeria e ele é seu para sempre. Sem cartão de crédito.</p></Reveal>
-        <Reveal delay={0.12} className="mt-9 flex flex-wrap justify-center gap-3">
-          <Btn to="/signup" arrow>Começar grátis</Btn>
-          <Btn to="/planos" variant="white">Ver planos</Btn>
-        </Reveal>
-      </div>
-    </section>
-  )
+  return <LastPage />
 }
 
 /** Imagem fixa do tutor à esquerda enquanto os textos rolam à direita (como a seção sticky do template). */

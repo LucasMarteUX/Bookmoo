@@ -227,6 +227,13 @@
   html, body { margin: 0; padding: 0; min-height: 100%; }
   /* Sem "elástico" do documento inteiro: a rolagem acontece nas telas, como num app. */
   body { overscroll-behavior-y: none; }
+  /* A tela nunca escorrega para o lado: nada passa da largura do aparelho (clip não quebra o sticky). */
+  html, body { overflow-x: clip; max-width: 100%; }
+  body { overscroll-behavior-x: none; }
+  /* iPhone dá zoom ao focar campos com letra menor que 16 px (e a tela fica torta): no toque, mínimo de 16 px. */
+  @media (pointer: coarse) {
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), textarea, select { font-size: max(16px, 1em) !important; }
+  }
   /* Controles de interface não abrem o menu de "copiar/procurar" do iOS num toque longo. */
   button, [role="button"], [role="tab"], nav a, img { -webkit-touch-callout: none; }
   button, [role="button"], [role="tab"] { -webkit-user-select: none; user-select: none; }
@@ -904,6 +911,9 @@ html.reader-immersive.reader-chrome-hidden [data-chrome="top"] * { pointer-event
 .reader-range::-webkit-slider-thumb { -webkit-appearance: none; width: 26px; height: 26px; margin-top: -11px; border-radius: 999px; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.3), 0 0 0 0.5px rgba(0,0,0,0.08); }
 .reader-range::-moz-range-thumb { width: 26px; height: 26px; border: 0; border-radius: 999px; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
 .reader-range:focus-visible { outline: 2px solid var(--theme-accent); outline-offset: 4px; border-radius: 999px; }
+/* Menu ⋯ do livro no celular: as ferramentas mostram o nome (Texto, Ilustrado, Estudar), não só o ícone. */
+.mobile-book-tools [data-tool-label] { display: inline !important; }
+.mobile-book-tools > [role="group"] { flex-wrap: wrap; row-gap: 4px; }
 /* Barra de baixo no celular: alvos de 44 pt. */
 html.reader-immersive [data-reader-bar] button { min-height: 44px; min-width: 44px; }
 /* Linhas do topo no celular: botões com área de toque confortável. */

@@ -156,3 +156,39 @@
 @media (prefers-reduced-motion: reduce) {
   .site .st-col-track, .site .st-wave i { animation: none; }
 }
+
+/* ============ Tutores no padrão editorial da home: prancha sem cantos, legenda, sumário numerado */
+.site .st-tutors { background: #f6f3eb; color: #292b26; }
+.site .st-tutors-grid { max-width: 1380px; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(36px, 7vw, 120px); padding-inline: clamp(0px, 3vw, 40px); }
+.site .st-tutor-plate { margin: 0; min-width: 0; }
+.site .st-tutor-stage { height: min(640px, calc(100svh - 190px)); border-radius: 0; background: #e8e3d4 !important; outline: 1px solid #57574720; }
+.site .st-tutor-plate figcaption { display: flex; align-items: baseline; gap: 10px; padding-top: 12px; font-size: 12px; color: #575b4f; border-bottom: 1px solid #c9c8b9; padding-bottom: 10px; }
+.site .st-tutor-plate figcaption i { font: italic 400 19px/1 var(--font-display), Georgia, serif; color: #292b26; }
+.site .st-tutor-plate figcaption span:last-child { margin-left: auto; font-variant-numeric: tabular-nums; }
+.site .st-tutor-copy { gap: 0; }
+.site .st-tutor-copy .journey-title { font-size: clamp(48px, 5.6vw, 100px); max-width: 11ch; }
+.site .st-tutor-index { display: grid; width: 100%; max-width: 420px; margin: clamp(26px, 3.4vw, 48px) 0 22px; border-top: 1px solid #c9c8b9; }
+.site .st-tutor-index button { display: flex; align-items: baseline; gap: 16px; padding: 12px 0; border-bottom: 1px solid #c9c8b9; font: 400 clamp(26px, 2.4vw, 38px)/1.05 var(--font-display), Georgia, serif; letter-spacing: -.035em; color: #9a9b90; text-align: left; transition: color .35s ease, padding .35s ease; cursor: pointer; }
+.site .st-tutor-index button small { font: 500 11px/1 var(--site-text); letter-spacing: .08em; color: inherit; }
+.site .st-tutor-index button:hover { color: #575b4f; }
+.site .st-tutor-index button[aria-pressed=true] { color: #292b26; padding-left: 10px; }
+.site .st-tutor-index button[aria-pressed=true]::after { content: '↗'; margin-left: auto; font-size: .6em; }
+.site .st-tutor-index button:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+.site .st-tutor-about { max-width: 36ch; margin: 0 0 24px; font-size: clamp(15px, 1.1vw, 18px); line-height: 1.55; color: #575b4f; min-height: 4.7em; }
+@media (max-width: 768px) {
+  .site .st-tutor-plate { order: 2; }
+  .site .st-tutor-stage { height: 40svh; }
+  .site .st-tutor-copy .journey-title { font-size: clamp(36px, 9vw, 52px); }
+  .site .st-tutor-index { margin: 14px 0 10px; }
+  .site .st-tutor-index button { font-size: 22px; padding: 7px 0; }
+  .site .st-tutor-about { min-height: 0; margin-bottom: 12px; font-size: 14px; }
+}
+
+/* Celular: tutores empilhados (texto, sumário, retrato), sem a seção alta do scroll fixo. */
+@media (max-width: 768px) {
+  .site .st-tutors[data-pinned=false] .st-tutors-pin { position: static; height: auto; padding: 56px 20px 48px; }
+  .site .st-tutors .st-tutors-grid { grid-template-columns: minmax(0, 1fr); gap: 22px; padding-inline: 0; }
+  .site .st-tutors .st-tutor-plate { order: 2; }
+  .site .st-tutors .st-tutor-stage { height: auto; aspect-ratio: 4 / 5; max-height: 62svh; }
+  .site .st-tutors .st-tutor-index { max-width: none; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 18px; }
+}
