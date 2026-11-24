@@ -109,7 +109,7 @@ export function BreathingTutor({ id, smile, className = '', style }: { id: strin
 type Layer = { id: string; ready: boolean; key: number }
 
 /** Palco do tutor: animado no computador; foto que respira no celular. Balão com o roteiro automático. */
-export function LiveTutor({ id, playing = true, bubble = 'top-left', script }: { id: string; playing?: boolean; bubble?: 'top-left' | 'head' | 'none'; script?: Beat[] }) {
+export function LiveTutor({ id, playing = true, bubble = 'top-left', script, name, portrait = true }: { id: string; playing?: boolean; bubble?: 'top-left' | 'head' | 'none'; script?: Beat[]; name?: string; portrait?: boolean }) {
   const live = useMemo(canRunLive, [])
   const [failed, setFailed] = useState(false)
   const [layers, setLayers] = useState<Layer[]>(() => [{ id, ready: false, key: 0 }])
@@ -148,11 +148,17 @@ export function LiveTutor({ id, playing = true, bubble = 'top-left', script }: {
           </motion.div>
         )
       })}
-      {(!showLive || !top?.ready) && (
+      {portrait && (!showLive || !top?.ready) && (
         <motion.div key={id} className="absolute inset-0 flex items-end justify-center pointer-events-none"
           initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, ease: EASE }}>
           <BreathingTutor id={id} className={bubble === "head" ? "h-[76%]" : "h-[88%]"} smile={beat.mood !== 'neutral' && beat.mood !== 'confused' ? true : undefined} />
         </motion.div>
+      )}
+      {showLive && !top?.ready && name && (
+        <motion.p className="site-live-calling" initial={{ opacity: 0 }} animate={{ opacity: [0.45, 1, 0.45] }}
+          transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}>
+          chamando {name}…
+        </motion.p>
       )}
       {bubble === 'top-left' && <div className="absolute top-6 left-6 right-6 flex pointer-events-none"><Bubble text={beat.line} className="max-w-[78%]" /></div>}
       {bubble === 'head' && <div className="absolute top-[7%] inset-x-0 flex justify-center pointer-events-none"><Bubble text={beat.line} tail="center" className="max-w-[60%] text-center" /></div>}

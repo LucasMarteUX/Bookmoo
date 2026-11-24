@@ -1,7 +1,8 @@
 // AbacatePay: cliente da API v2 + leitura dos webhooks.
 // Secrets:  ABACATEPAY_API_KEY (Bearer)  ·  ABACATEPAY_WEBHOOK_SECRET (o "secret" cadastrado no webhook)
-// Opcional: ABACATEPAY_PIX_AUTOMATICO = "1" quando o Pix Automático estiver liberado na conta. Sem ele, o Pix é
-// cobrado como fatura avulsa a cada ciclo (checkout ONE_TIME), e a função billing-cycle gera e lembra as próximas.
+// O Pix Automático está liberado nesta conta: o Pix entra como débito recorrente na assinatura.
+// Opcional: ABACATEPAY_PIX_AUTOMATICO = "0" volta ao Pix por fatura avulsa a cada ciclo (checkout ONE_TIME),
+// com a função billing-cycle gerando e lembrando as próximas. As assinaturas já criadas por fatura seguem assim.
 // Os produtos ficam em plans.provider_refs: abacate_monthly/abacate_annual (recorrentes) e abacate_monthly_once/abacate_annual_once (Pix avulso).
 import { adminClient } from './tts.ts'
 import { PRICE_TABLE, type Cycle, type NormalizedEvent } from './payments.ts'
@@ -109,7 +110,7 @@ export async function ensureCustomer(userId: string, email: string, name?: strin
  * Se a conta ainda não tiver Pix Automático, repasse ou parcelamento liberados, tenta de novo sem o recurso que faltou
  * (a venda não trava) e avisa o admin.
  */
-export const pixAutomaticoEnabled = () => env('ABACATEPAY_PIX_AUTOMATICO') === '1'
+export const pixAutomaticoEnabled = () => env('ABACATEPAY_PIX_AUTOMATICO') !== '0'
 
 export async function createSubscriptionCheckout(opts: { productId: string; customerId: string; intentId: string; cycle: Cycle; completionUrl: string; returnUrl: string; methods?: ('CARD' | 'PIX')[] }) {
   let methods: string[] = opts.methods?.length ? [...opts.methods] : pixAutomaticoEnabled() ? ['CARD', 'PIX'] : ['CARD']

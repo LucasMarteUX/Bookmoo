@@ -6,7 +6,7 @@ import { AnimatePresence, motion, useInView, useMotionValueEvent, useReducedMoti
 import { ArrowRight, Check, RotateCcw, Star, Volume2 } from 'lucide-react'
 import { COVERS, coverSrc } from '../covers'
 import { TUTORS, tutorImg } from '../content'
-import { BreathingTutor, Bubble } from '../LiveTutor'
+import { BreathingTutor, LiveTutor } from '../LiveTutor'
 import { Btn } from '../ui'
 import './story.css'
 
@@ -130,13 +130,6 @@ export function StylesVisual() {
 
 /* ================================================================ Tutores: um de cada vez, trocando com a rolagem */
 
-const TUTOR_LINES: Record<string, string> = {
-  bia: 'Oi! Me conta o que você está lendo?',
-  luck: 'Bora conversar sobre o seu dia?',
-  yuno: 'Vamos praticar? Sem pressão!',
-  yuri: 'E aí! Eu ajudo com as palavras.',
-}
-
 export function TutorScroll() {
   const ref = useRef<HTMLElement>(null)
   const reduce = useReducedMotion()
@@ -163,6 +156,12 @@ export function TutorScroll() {
     setI(index)
   }
   const t = TUTORS[i]
+  // Tutor que o palco animado vai carregar: só muda quando a rolagem para por um instante.
+  const [settled, setSettled] = useState(t.id)
+  useEffect(() => {
+    const d = window.setTimeout(() => setSettled(t.id), 260)
+    return () => window.clearTimeout(d)
+  }, [t.id])
   return (
     <section ref={ref} className="st-tutors" data-pinned={pinned} style={{ height: pinned ? `${TUTORS.length * 90 + 40}vh` : 'auto' }}>
       <div className="st-tutors-pin">
@@ -170,15 +169,18 @@ export function TutorScroll() {
           <figure className="st-tutor-plate">
             <div className="st-tutor-stage" style={{ background: t.tint }}>
               {stageVisible && <motion.div className="absolute inset-0" style={pinned ? { scale: portraitScale } : undefined}>
+                {/* O retrato pintado acompanha a rolagem na hora; o tutor animado entra por cima quando
+                    o personagem do momento termina de carregar (e some se a pessoa já passou para o próximo). */}
                 {TUTORS.map((x, k) => (
                   <motion.div key={x.id} className="absolute inset-0 flex items-end justify-center pointer-events-none"
-                    initial={false} animate={{ opacity: k === i ? 1 : 0 }} transition={{ duration: 0.4, ease: EASE }}>
+                    initial={false} animate={{ opacity: k === i ? 1 : 0 }} transition={{ duration: 0.35, ease: EASE }}>
                     <BreathingTutor id={x.id} className="h-[84%]" />
                   </motion.div>
                 ))}
-                <div className="absolute top-[7%] inset-x-0 flex justify-center pointer-events-none">
-                  <Bubble text={TUTOR_LINES[t.id]} tail="center" className="max-w-[60%] text-center" />
-                </div>
+                <motion.div className="absolute inset-0" initial={false}
+                  animate={{ opacity: settled === t.id ? 1 : 0 }} transition={{ duration: 0.3, ease: EASE }}>
+                  <LiveTutor id={settled} portrait={false} bubble="head" name={t.name} />
+                </motion.div>
               </motion.div>}
             </div>
             <figcaption><i>{t.name}</i><span>{t.role}</span><span aria-hidden>{String(i + 1).padStart(2, '0')} / {String(TUTORS.length).padStart(2, '0')}</span></figcaption>

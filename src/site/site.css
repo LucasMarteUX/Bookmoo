@@ -238,3 +238,14 @@
   .site .tutor-select { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 5px; }
   .site .tutor-select button { flex-direction: column; gap: 3px; padding: 5px; font-size: 13px; }
 }
+
+/* Enquanto o tutor animado carrega (o modelo tem alguns MB), o retrato pintado fica na tela
+   e este aviso explica a espera. Sai sozinho assim que o personagem entra. */
+.site .site-live-calling {
+  position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); margin: 0;
+  padding: 7px 14px; border-radius: 999px; pointer-events: none; white-space: nowrap;
+  background: color-mix(in srgb, var(--site-bg, #f6f3eb) 82%, transparent);
+  backdrop-filter: blur(6px); border: 1px solid var(--site-line, #c9c8b9);
+  font: 500 12.5px/1 var(--font-sans), system-ui, sans-serif; letter-spacing: .02em; color: var(--site-muted, #575b4f);
+}
+@media (prefers-reduced-motion: reduce) { .site .site-live-calling { animation: none; } }
