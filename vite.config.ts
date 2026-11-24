@@ -48,7 +48,7 @@ export default defineConfig(({mode}) => {
           // Chunks gigantes (WASM do TTS) ficam fora do precache; vão para o cache em tempo de uso.
           maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
           navigateFallback: '/index.html',
-          navigateFallbackDenylist: [/^\/api\//],
+          navigateFallbackDenylist: [/^\/api\//, /^\/sitemap\.xml$/, /^\/robots\.txt$/],
           cleanupOutdatedCaches: true,
           runtimeCaching: [
             {

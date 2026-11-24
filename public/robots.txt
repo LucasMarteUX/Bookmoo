@@ -1,0 +1,17 @@
+# Upoonly — https://www.upoonly.com
+User-agent: *
+Allow: /
+
+# Áreas de conta e de pagamento não entram na busca.
+Disallow: /me
+Disallow: /settings
+Disallow: /assinatura
+Disallow: /recibos
+Disallow: /pagamento/
+Disallow: /checkout/
+Disallow: /nova-senha
+Disallow: /completar-cadastro
+Disallow: /conhecendo-voce
+Disallow: /admin
+
+Sitemap: https://www.upoonly.com/sitemap.xml
