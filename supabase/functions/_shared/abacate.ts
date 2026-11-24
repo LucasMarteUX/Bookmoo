@@ -1,7 +1,8 @@
 // AbacatePay: cliente da API v2 + leitura dos webhooks.
 // Secrets:  ABACATEPAY_API_KEY (Bearer)  ·  ABACATEPAY_WEBHOOK_SECRET (o "secret" cadastrado no webhook)
-// Opcional: ABACATEPAY_METHODS = "CARD" (padrão) ou "CARD,PIX" (quando o Pix Automático estiver liberado na conta)
-// Os produtos (um por plano e ciclo) ficam em plans.provider_refs: { abacate_monthly: "prod_…", abacate_annual: "prod_…" }.
+// Opcional: ABACATEPAY_PIX_AUTOMATICO = "1" quando o Pix Automático estiver liberado na conta. Sem ele, o Pix é
+// cobrado como fatura avulsa a cada ciclo (checkout ONE_TIME), e a função billing-cycle gera e lembra as próximas.
+// Os produtos ficam em plans.provider_refs: abacate_monthly/abacate_annual (recorrentes) e abacate_monthly_once/abacate_annual_once (Pix avulso).
 import { adminClient } from './tts.ts'
 import { PRICE_TABLE, type Cycle, type NormalizedEvent } from './payments.ts'
 
@@ -49,6 +50,14 @@ export async function setupProducts(): Promise<Record<string, Record<string, str
         })
       }
       refs[`abacate_${cycle}`] = product.id
+      // Produto sem ciclo, mesmo preço: usado nas faturas Pix avulsas (enquanto o Pix Automático não estiver liberado).
+      const onceId = `${externalId}-pix`
+      let once = await abacate<{ id: string } | null>(`/products/get?externalId=${encodeURIComponent(onceId)}`, undefined, 'GET').catch(() => null)
+      if (!once) once = await abacate<{ id: string }>('/products/create', {
+        externalId: onceId, name: `Upoonly ${NAMES[plan]} ${cycle === 'annual' ? 'Anual' : 'Mensal'} (Pix)`, price, currency: 'BRL',
+        description: `Plano ${NAMES[plan]} do Upoonly, ${cycle === 'annual' ? '12 meses' : '1 mês'} de acesso, pago por Pix.`,
+      })
+      refs[`abacate_${cycle}_once`] = once.id
     }
     const { data: row } = await db.from('plans').select('provider_refs').eq('id', plan).single()
     await db.from('plans').update({ provider_refs: { ...(row?.provider_refs ?? {}), ...refs } }).eq('id', plan)
@@ -58,11 +67,12 @@ export async function setupProducts(): Promise<Record<string, Record<string, str
 }
 
 /** Produto do plano no ciclo (lido de plans.provider_refs). */
-export async function productFor(plan: string, cycle: Cycle): Promise<string> {
+export async function productFor(plan: string, cycle: Cycle, once = false): Promise<string> {
+  const key = `abacate_${cycle}${once ? '_once' : ''}`
   const { data } = await adminClient().from('plans').select('provider_refs').eq('id', plan).single()
-  let id = (data?.provider_refs as Record<string, string> | null)?.[`abacate_${cycle}`]
-  // Primeiro checkout sem produtos cadastrados: cria os seis na loja (idempotente pelo externalId).
-  if (!id) id = (await setupProducts())[plan]?.[`abacate_${cycle}`]
+  let id = (data?.provider_refs as Record<string, string> | null)?.[key]
+  // Primeiro checkout sem produtos cadastrados: cria todos na loja (idempotente pelo externalId).
+  if (!id) id = (await setupProducts())[plan]?.[key]
   if (!id) throw new AbacateError(503, 'abacate_products_missing')
   return id
 }
@@ -74,6 +84,8 @@ async function planOfProduct(productId: string): Promise<{ plan: string; cycle: 
     const refs = (p.provider_refs ?? {}) as Record<string, string>
     if (refs.abacate_monthly === productId) return { plan: p.id, cycle: 'monthly' }
     if (refs.abacate_annual === productId) return { plan: p.id, cycle: 'annual' }
+    if (refs.abacate_monthly_once === productId) return { plan: p.id, cycle: 'monthly' }
+    if (refs.abacate_annual_once === productId) return { plan: p.id, cycle: 'annual' }
   }
   return null
 }
@@ -97,9 +109,10 @@ export async function ensureCustomer(userId: string, email: string, name?: strin
  * Se a conta ainda não tiver Pix Automático, repasse ou parcelamento liberados, tenta de novo sem o recurso que faltou
  * (a venda não trava) e avisa o admin.
  */
-export async function createSubscriptionCheckout(opts: { productId: string; customerId: string; intentId: string; cycle: Cycle; completionUrl: string; returnUrl: string }) {
-  const wanted = (env('ABACATEPAY_METHODS') || 'CARD,PIX').split(',').map(s => s.trim().toUpperCase()).filter(m => m === 'CARD' || m === 'PIX')
-  let methods = wanted.length ? wanted : ['CARD']
+export const pixAutomaticoEnabled = () => env('ABACATEPAY_PIX_AUTOMATICO') === '1'
+
+export async function createSubscriptionCheckout(opts: { productId: string; customerId: string; intentId: string; cycle: Cycle; completionUrl: string; returnUrl: string; methods?: ('CARD' | 'PIX')[] }) {
+  let methods: string[] = opts.methods?.length ? [...opts.methods] : pixAutomaticoEnabled() ? ['CARD', 'PIX'] : ['CARD']
   let card: Record<string, unknown> | undefined = opts.cycle === 'annual' ? { maxInstallments: 12, passFeesToCustomer: true } : undefined
   const dropped: string[] = []
   for (let attempt = 0; attempt < 4; attempt++) {
@@ -125,6 +138,22 @@ export async function createSubscriptionCheckout(opts: { productId: string; cust
     }
   }
   throw new AbacateError(502, 'checkout_failed')
+}
+
+/** Fatura avulsa (uma cobrança, um ciclo de acesso): Pix, e cartão como segunda opção quando `withCard`. */
+export async function createOneTimeCheckout(opts: { productId: string; customerId: string; intentId: string; cycle: Cycle; completionUrl: string; returnUrl: string; withCard?: boolean }) {
+  const methods = opts.withCard ? ['PIX', 'CARD'] : ['PIX']
+  const body: Record<string, unknown> = {
+    items: [{ id: opts.productId, quantity: 1 }], customerId: opts.customerId, externalId: opts.intentId,
+    completionUrl: opts.completionUrl, returnUrl: opts.returnUrl, methods, metadata: { intentId: opts.intentId },
+    ...(opts.withCard && opts.cycle === 'annual' ? { card: { maxInstallments: 12 } } : {}),
+  }
+  try { return await abacate<{ id: string; url: string }>('/checkouts/create', body) }
+  catch (e) {
+    if (!/installment|minimum/i.test(String((e as Error).message)) || !body.card) throw e
+    delete body.card
+    return await abacate<{ id: string; url: string }>('/checkouts/create', body)
+  }
 }
 
 export const cancelSubscription = (subsId: string) => abacate('/subscriptions/cancel', { id: subsId })
@@ -173,11 +202,14 @@ export async function normalizeAbacate(payload: Obj, lookup: (productId: string)
   if (event === 'subscription.completed' || event === 'subscription.renewed') kind = 'paid'
   else if (event === 'subscription.payment_failed') kind = 'failed'
   else if (event === 'subscription.cancelled') kind = /reembolso|refund/i.test(cancelledDueTo) ? 'refunded' : /max_payment_retries/i.test(cancelledDueTo) ? 'failed' : 'canceled'
-  else if (event === 'checkout.refunded' && String(checkout.frequency ?? '') === 'SUBSCRIPTION') kind = 'refunded'
+  else if (event === 'checkout.refunded' && ['SUBSCRIPTION', 'ONE_TIME'].includes(String(checkout.frequency ?? ''))) kind = 'refunded'
+  // Fatura avulsa (Pix por ciclo) paga: o checkout ONE_TIME é a única notificação desse pagamento.
+  else if (event === 'checkout.completed' && String(checkout.frequency ?? '') === 'ONE_TIME') kind = 'paid'
   else if (event === 'checkout.disputed' || event === 'checkout.lost' || event === 'checkout.chargeback') kind = 'disputed'
   // checkout.completed (frequency SUBSCRIPTION) repete o mesmo pagamento: tratamos só pelos subscription.*
-  if (kind === 'paid' && event === 'subscription.completed' && !mapped) review = 'product_not_mapped'
-  const amountCents = Number(payment.paidAmount ?? payment.amount ?? sub.amount) || null
+  if (kind === 'paid' && (event === 'subscription.completed' || event === 'checkout.completed') && !mapped) review = 'product_not_mapped'
+  const oneTime = String(checkout.frequency ?? '') === 'ONE_TIME'
+  const amountCents = Number(payment.paidAmount ?? payment.amount ?? sub.amount ?? (oneTime ? (checkout.paidAmount ?? checkout.amount) : undefined)) || null
   return {
     eventId: str(payload.id) ?? `${event}:${str(payment.id) ?? ''}`,
     kind,
@@ -185,15 +217,16 @@ export async function normalizeAbacate(payload: Obj, lookup: (productId: string)
     email: str(customer.email)?.toLowerCase() ?? null,
     intentId: (() => { const x = str(checkout.externalId) ?? str(o(checkout.metadata).intentId); return x && /^[\da-f-]{36}$/i.test(x) ? x : null })(),
     subscriptionRef: str(sub.id),
-    chargeRef: str(payment.id),
+    chargeRef: str(payment.id) ?? (oneTime ? str(checkout.id) : null),
     planId: mapped?.plan ?? null,
     cycle,
     amountCents,
     feeCents: Number(payment.platformFee ?? checkout.platformFee) || null,
-    method: str(sub.method),
+    method: str(sub.method) ?? str(o(data.payerInformation).method),
     review,
     provider: 'abacatepay',
     renewal: event === 'subscription.renewed',
+    oneTime,
     cancelAtPeriodEnd: event === 'subscription.cancelled' ? String(sub.cancelPolicy ?? '') !== 'NOW' : undefined,
     receiptUrl: str(payment.receiptUrl) ?? str(checkout.receiptUrl),
     installments: Number(payment.installmentsCount ?? checkout.installmentsCount ?? o(data.payerInformation).installments) || null,

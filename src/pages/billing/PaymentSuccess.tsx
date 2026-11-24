@@ -12,6 +12,7 @@ import { annualCents, formatBRL, planById } from '@/lib/plans'
 import { Logo } from '@/components/brand/Logo'
 import { RabbitFlight } from '@/components/brand/RabbitFlight'
 import { refreshEntitlements } from '@/store/useEntitlements'
+import { Confetti } from '@/components/billing/Confetti'
 
 type State = 'waiting' | 'paid' | 'pending' | 'unconfirmed'
 type Sub = { plan_id: string; billing_cycle: 'monthly' | 'annual'; current_period_end: string }
@@ -26,31 +27,40 @@ const ink = 'var(--theme-text)'
 const muted = 'var(--theme-text-secondary)'
 const line = 'var(--theme-border)'
 
+/**
+ * "Paguei com outro e-mail". O plano fica na conta do e-mail que pagou, e não vinculamos nada
+ * pelo que a pessoa digita aqui (qualquer um poderia pedir a compra alheia): mandamos um link
+ * de acesso para aquele endereço. A resposta é a mesma exista ou não compra, de propósito.
+ */
 function OtherEmail() {
   const [open, setOpen] = useState(false)
   const [email, setEmail] = useState('')
-  const [order, setOrder] = useState('')
   const [state, setState] = useState<'idle' | 'busy' | 'ok' | 'error'>('idle')
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     setState('busy')
     try {
-      const r = await callFn<{ claimed: string[] }>('billing', { action: 'claim-other', email, order }, { paywall: false })
-      setState(r.claimed.length ? 'ok' : 'error')
+      await callFn('billing', { action: 'claim-other', email, origin: window.location.origin }, { paywall: false })
+      setState('ok')
       refreshEntitlements()
     } catch { setState('error') }
   }
   if (!open) return <button type="button" onClick={() => setOpen(true)} className="mt-6 text-[14px] underline underline-offset-4" style={{ color: muted }}>Paguei com outro e-mail</button>
+  if (state === 'ok') {
+    return (
+      <div className="mt-6 max-w-md rounded-[6px] border p-4" style={{ borderColor: line, backgroundColor: 'var(--theme-card-bg)' }}>
+        <p className="text-[14.5px] leading-relaxed">Se houver uma compra em <b>{email}</b>, enviamos para lá um link de acesso. Abra o e-mail e entre por ele: o plano está nessa conta.</p>
+      </div>
+    )
+  }
   return (
     <form onSubmit={submit} className="mt-6 grid gap-2.5 max-w-md rounded-[6px] border p-4" style={{ borderColor: line, backgroundColor: 'var(--theme-card-bg)' }}>
-      <p className="text-[14px] leading-relaxed" style={{ color: muted }}>Informe o e-mail usado no pagamento e o código do pedido que está no recibo.</p>
-      <input required type="email" placeholder="E-mail do pagamento" value={email} onChange={e => setEmail(e.target.value)} className="h-11 px-3 rounded-lg border bg-transparent text-[15px]" style={{ borderColor: line }} />
-      <input required placeholder="Código do pedido" value={order} onChange={e => setOrder(e.target.value)} className="h-11 px-3 rounded-lg border bg-transparent text-[15px]" style={{ borderColor: line }} />
+      <p className="text-[14px] leading-relaxed" style={{ color: muted }}>Informe o e-mail usado no pagamento. Enviamos para ele um link de acesso à conta que tem o plano.</p>
+      <input required type="email" autoComplete="email" placeholder="E-mail do pagamento" value={email} onChange={e => setEmail(e.target.value)} className="h-11 px-3 rounded-lg border bg-transparent text-[15px]" style={{ borderColor: line }} />
       <button type="submit" disabled={state === 'busy'} className="h-11 rounded-lg text-[14.5px] font-semibold" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
-        {state === 'busy' ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Vincular à minha conta'}
+        {state === 'busy' ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Enviar link de acesso'}
       </button>
-      {state === 'ok' && <p className="text-[13.5px]" style={{ color: 'var(--pastel-green-fg, #2d6040)' }}>Pronto! O plano foi vinculado a esta conta.</p>}
-      {state === 'error' && <p className="text-[13.5px]" style={{ color: 'var(--pastel-red-fg, #b42318)' }}>Não encontramos uma compra com esses dados. Confira o e-mail e o código, ou fale com contato@upoonly.com.</p>}
+      {state === 'error' && <p className="text-[13.5px]" style={{ color: 'var(--pastel-red-fg, #b42318)' }}>Não conseguimos enviar agora. Confira o endereço ou escreva para contato@upoonly.com.</p>}
     </form>
   )
 }
@@ -75,19 +85,22 @@ export function PaymentSuccess() {
   useEffect(() => {
     if (loading || !session) return
     let stop = false
+    let timer: number | undefined
+    // A consulta nunca para: Pix e cartão podem demorar, e parar deixaria a pessoa presa em "confirmando".
+    // Depois de ~30s a tela passa a explicar a espera, mas continua checando a cada 15s.
     const tick = async () => {
       if (stop) return
       try {
         const r = await billing.status()
         if (!r.confirmed) { setState('unconfirmed'); return }
         if (r.subscription && r.subscription.plan_id !== 'free') { setSub(r.subscription); setState('paid'); return }
-      } catch { /* tenta de novo */ }
+      } catch { /* instabilidade ou limite de requisições: tenta de novo mais devagar */ }
       tries.current++
-      if (tries.current >= 40) { setState('pending'); return }
-      setTimeout(tick, 2500)
+      if (tries.current >= 10) setState(s => (s === 'waiting' ? 'pending' : s))
+      timer = window.setTimeout(tick, tries.current < 6 ? 2500 : tries.current < 12 ? 5000 : 15000)
     }
     void tick()
-    return () => { stop = true }
+    return () => { stop = true; window.clearTimeout(timer) }
   }, [session, loading])
 
   const p = planById(sub?.plan_id)
@@ -115,7 +128,7 @@ export function PaymentSuccess() {
         </header>
 
         {!intro && (
-          <main className="grid gap-10 lg:grid-cols-[1fr_0.92fr] lg:gap-16 items-center pt-4 lg:pt-10">
+          <main className={`grid gap-10 lg:grid-cols-[1fr_0.92fr] lg:gap-16 pt-4 lg:pt-10 ${state === 'paid' ? 'items-start' : 'items-center'}`}>
             <div>
               <motion.div {...fade()}><RabbitFlight width={58} loop /></motion.div>
 
@@ -161,6 +174,7 @@ export function PaymentSuccess() {
 
               {session && state === 'paid' && (
                 <>
+                  <Confetti pieces={110} />
                   <motion.p {...fade(0.05)} className="mt-6 text-[12px] font-medium uppercase tracking-[0.1em] flex items-center gap-2" style={{ color: 'var(--pastel-green-fg, #2d6040)' }}><Check className="w-4 h-4" />Pagamento aprovado</motion.p>
                   <motion.h1 {...fade(0.1)} className="font-display text-[50px] sm:text-[76px] leading-[0.96] mt-3">Bem-vindo(a) <br />ao <i>{p.name}.</i></motion.h1>
                   <motion.dl {...fade(0.18)} className="mt-8 grid grid-cols-2 sm:grid-cols-4 border-y max-w-xl" style={{ borderColor: line }}>

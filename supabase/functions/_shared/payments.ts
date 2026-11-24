@@ -54,6 +54,8 @@ export type NormalizedEvent = {
   provider?: 'zouti' | 'abacatepay'
   /** O gateway diz explicitamente que é renovação (AbacatePay: subscription.renewed). */
   renewal?: boolean
+  /** Fatura avulsa (Pix por ciclo, AbacatePay checkout ONE_TIME). */
+  oneTime?: boolean
   /** Cancelamento que mantém o acesso até o fim do ciclo pago. */
   cancelAtPeriodEnd?: boolean
   /** Recibo do gateway e número de parcelas (para o painel de recibos). */
@@ -342,10 +344,25 @@ export async function applyEvent(ev: NormalizedEvent, opts: { forceUserId?: stri
     const priceCents = priceFor(plan.id, cycle) ?? plan.price_cents
 
     const { data: live } = await db.from('subscriptions').select('*').eq('user_id', userId).in('status', ['active', 'past_due']).maybeSingle()
+    // Fatura Pix do próximo ciclo paga: estende a mesma assinatura (a partir do fim do período, ou de hoje se já venceu).
+    if (intent?.kind === 'renewal' && live && live.id === intent.from_subscription_id) {
+      const end = live.current_period_end ? new Date(live.current_period_end) : now
+      const start = end > now ? end : now
+      const until = periodEnd(start, cycle)
+      await db.from('subscriptions').update({
+        status: 'active', plan_id: plan.id, billing_cycle: cycle, price_cents: priceCents, pending_plan_id: null, grace_until: null,
+        current_period_start: start.toISOString(), current_period_end: until.toISOString(), updated_at: now.toISOString(),
+      }).eq('id', live.id)
+      await db.from('checkout_intents').update({ status: 'paid' }).eq('id', intent.id)
+      await recordPayment(ev, userId, live.id, intent.id, 'renewal')
+      if (email) await emails.renewed(email, plan.name, ev.amountCents ?? priceCents, until.toISOString())
+      return 'renewed_invoice'
+    }
+    const sameLine = !!live && live.id === intent?.from_subscription_id
     if (live && live.provider !== 'admin') {
       // Mesma compra notificada de novo por outro evento (ex.: "Pedido pago" + "Assinatura ativada").
       const fresh = now.getTime() - new Date(live.created_at).getTime() < 72 * 3600_000
-      if (live.plan_id === plan.id && live.billing_cycle === cycle && fresh) {
+      if (live.plan_id === plan.id && live.billing_cycle === cycle && fresh && !sameLine) {
         if (!live.provider_subscription_id && ev.subscriptionRef) await db.from('subscriptions').update({ provider_subscription_id: ev.subscriptionRef }).eq('id', live.id)
         return 'duplicate_event'
       }
@@ -359,7 +376,7 @@ export async function applyEvent(ev: NormalizedEvent, opts: { forceUserId?: stri
     }
     // Upgrade (ou cortesia do admin): o que sobrou vira dias a mais; encerra a anterior só agora que a nova está paga.
     let extraDays = 0
-    if (live && (live.provider === 'zouti' || live.provider === 'abacatepay')) {
+    if (live && (live.provider === 'zouti' || live.provider === 'abacatepay' || live.provider === 'abacatepay_pix')) {
       const { data: curPeriod } = await db.rpc('ensure_period', { p_user: userId })
       extraDays = switchCredit(live, curPeriod as never, priceCents, cycle).extraDays
     }
@@ -371,7 +388,9 @@ export async function applyEvent(ev: NormalizedEvent, opts: { forceUserId?: stri
       } else if (live.provider === 'zouti') await emails.adminAlert('Cancelar recorrência antiga na Zouti', `<p>${email} mudou de ${live.plan_id} (${live.billing_cycle}) para ${plan.id} (${cycle}). Cancele a recorrência antiga (${live.provider_subscription_id ?? 'sem id'}) no painel da Zouti, se ela não for cancelada automaticamente.</p>`)
     }
     const { data: sub, error } = await db.from('subscriptions').insert({
-      user_id: userId, plan_id: plan.id, status: 'active', price_cents: priceCents, provider: provider, billing_cycle: cycle,
+      user_id: userId, plan_id: plan.id, status: 'active', price_cents: priceCents, billing_cycle: cycle,
+      // Pago por fatura avulsa: sem recorrência no gateway; a função billing-cycle gera a próxima fatura.
+      provider: ev.oneTime && provider === 'abacatepay' ? 'abacatepay_pix' : provider,
       provider_subscription_id: ev.subscriptionRef, current_period_start: now.toISOString(),
       current_period_end: new Date(periodEnd(now, cycle).getTime() + extraDays * 86400_000).toISOString(),
     }).select('*').single()

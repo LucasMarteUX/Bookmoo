@@ -195,7 +195,8 @@ export function Sidebar({ isMobileDrawer, onClose }: SidebarProps) {
           <Link to="/" className="flex items-center gap-2 min-w-0 rounded-md px-1 py-1 -mx-1 hover:bg-[var(--ui-hover)]">
             <Logo height={38} style={{ color: 'var(--theme-nav-text)' }} />
           </Link>
-          <PremiumBadge />
+          {/* A orelha do coelho sobe acima da palavra "upoonly": sem o empurrão o selo fica alto demais. */}
+          <span className="translate-y-[3px]"><PremiumBadge /></span>
           <span className="flex-1" />
           <button type="button" onClick={toggleSidebar} className="w-7 h-7 rounded-md grid place-items-center transition-colors hover:bg-[var(--ui-hover)]"
             title={pt ? 'Recolher menu' : 'Collapse menu'} aria-label={pt ? 'Recolher menu' : 'Collapse menu'} style={{ color: 'var(--theme-nav-text-muted)' }}>

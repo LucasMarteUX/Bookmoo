@@ -120,6 +120,33 @@ export const emails = {
       body: `<p style="margin:0">O valor de <b>${brl(cents)}</b> foi estornado e a conta voltou para o plano Grátis. No cartão, o estorno aparece na fatura em até dois ciclos; no Pix, na conta em alguns minutos.</p>`,
       cta: { label: 'Ver recibos', href: `${APP_URL}/recibos` } })),
 
+  /** "Paguei com outro e-mail": link de acesso mandado para o endereço usado no pagamento. */
+  accessLink: (to: string, url: string) => sendEmail(to, 'Seu link de acesso ao Upoonly',
+    layout({ kicker: 'Acesso', title: 'Entre com um toque.', preheader: 'O plano pago está nesta conta.',
+      body: '<p style="margin:0">Alguém pediu o link de acesso da conta ligada a este e-mail, que é o endereço usado no pagamento. O link vale por 1 hora e só funciona uma vez.</p>',
+      cta: { label: 'Entrar no Upoonly', href: url }, note: 'Se não foi você, ignore este e-mail: nada muda na sua conta.' })),
+
+  /** Pagou antes de ter conta: o plano espera o cadastro com o mesmo e-mail. */
+  purchaseNeedsAccount: (to: string, url: string) => sendEmail(to, 'Falta criar sua conta no Upoonly',
+    layout({ kicker: 'Sua compra está guardada', title: 'Crie sua conta para começar.', preheader: 'O plano é liberado assim que você confirmar o e-mail.',
+      body: '<p style="margin:0">Encontramos um pagamento feito com este e-mail, mas ainda não existe uma conta aqui. Crie a conta com <b>este mesmo endereço</b>: o plano é liberado sozinho assim que o e-mail for confirmado.</p>',
+      cta: { label: 'Criar minha conta', href: url }, note: 'Se não foi você, ignore este e-mail.' })),
+
+  /** Fatura Pix do próximo ciclo (pagamento por fatura, sem Pix Automático). */
+  invoiceReady: (to: string, plan: string, cents: number, due: string, payUrl: string) => sendEmail(to, `Sua fatura do plano ${plan} chegou`,
+    layout({ kicker: 'Fatura', title: 'O próximo capítulo já está pronto.', preheader: `${brl(cents)} até ${date(due)}. Pix ou cartão.`,
+      body: `<p style="margin:0">A fatura do próximo ciclo do plano <b>${esc(plan)}</b> está disponível. Pague por Pix ou, se preferir, com cartão de crédito na mesma página.</p>`,
+      rows: [['Plano', esc(plan)], ['Valor', brl(cents)], ['Vencimento', date(due)]],
+      cta: { label: 'Pagar fatura', href: payUrl },
+      note: `Prefere não se preocupar com isso todo ciclo? <a href="${APP_URL}/assinatura?trocar=cartao" style="color:#45453f">Troque para o cartão com cobrança automática</a>: os dias que você já pagou continuam valendo.` })),
+
+  invoiceOverdue: (to: string, plan: string, cents: number, graceUntil: string, payUrl: string) => sendEmail(to, 'Sua fatura venceu: faltam 3 dias',
+    layout({ kicker: 'Pagamento pendente', title: 'Falta só um detalhe.', preheader: `Pague até ${date(graceUntil)} para continuar no ${plan}.`,
+      body: `<p style="margin:0">Não recebemos o pagamento do plano <b>${esc(plan)}</b>. Você continua com tudo até <b>${date(graceUntil)}</b>. Depois disso, a conta volta para o plano Grátis, com seu progresso guardado.</p><p style="margin:14px 0 0">Pague por Pix ou com cartão de crédito na mesma página.</p>`,
+      rows: [['Valor', brl(cents)], ['Prazo final', date(graceUntil)]],
+      cta: { label: 'Pagar agora', href: payUrl },
+      note: `Ou <a href="${APP_URL}/assinatura?trocar=cartao" style="color:#45453f">troque para o cartão com cobrança automática</a>.` })),
+
   creditsLow: (to: string, left: number) => sendEmail(to, 'Seus créditos de IA estão acabando',
     layout({ kicker: 'Créditos de IA', title: `Restam ${left} créditos.`,
       body: '<p style="margin:0">Eles renovam no próximo ciclo. Se quiser continuar ilustrando e conversando agora, um plano maior traz mais créditos todo mês.</p>',

@@ -77,7 +77,9 @@ export function PaywallHost() {
   const minRank = Math.max(1, ent ? ent.plan_rank + 1 : 1)
   const options = PLANS.filter(p => p.id !== 'free' && PLANS.indexOf(p) >= minRank)
   const recommended = PREFERRED[trigger] && options.some(o => o.id === PREFERRED[trigger]) ? PREFERRED[trigger]! : options.find(o => o.highlight)?.id ?? options[0]?.id
-  const go = (plan: PlanId) => { close(); navigate(`/planos?plan=${plan}&from=${trigger}`) }
+  // Vai direto para o checkout do plano escolhido (go=1), no ciclo cujo preço o modal mostrou.
+  // A tela de planos só aparece se o checkout não puder abrir (e-mail por confirmar, menor de idade).
+  const go = (plan: PlanId) => { close(); navigate(`/planos?plan=${plan}&ciclo=mensal&go=1&from=${trigger}`) }
 
   return (
     <Dialog open onOpenChange={o => { if (!o) close() }}>

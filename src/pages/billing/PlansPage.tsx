@@ -76,6 +76,17 @@ export function PlansPage() {
     }
   }
 
+  // Voltar do checkout pelo botão do navegador: a página volta do cache com o botão ainda girando.
+  // Sem isto a pessoa fica sem conseguir escolher outro plano (nem o mesmo) sem recarregar.
+  useEffect(() => {
+    const wake = () => setBusy(null)
+    const onShow = (e: PageTransitionEvent) => { if (e.persisted) wake() }
+    const onVisible = () => { if (document.visibilityState === 'visible') wake() }
+    window.addEventListener('pageshow', onShow)
+    document.addEventListener('visibilitychange', onVisible)
+    return () => { window.removeEventListener('pageshow', onShow); document.removeEventListener('visibilitychange', onVisible) }
+  }, [])
+
   // Veio do site com um plano escolhido: abre o checkout direto (uma vez), se a conta já pode assinar.
   const autoStarted = useRef(false)
   useEffect(() => {
@@ -95,7 +106,14 @@ export function PlansPage() {
     <div className="min-h-dvh px-4 pb-16" style={{ backgroundColor: 'var(--theme-bg)', color: 'var(--theme-text)', paddingTop: 'calc(var(--safe-t, 0px) + 1.25rem)' }}>
       <div className="mx-auto max-w-6xl">
         <div className="flex items-center justify-between h-10">
-          {welcome ? <Logo height={38} /> : (
+          {welcome ? <Logo height={38} /> : null}
+          {welcome ? (
+            // Saída sempre visível: sem isto, quem já assina (o cartão do Grátis some) fica preso nesta tela.
+            <button type="button" onClick={() => (current === 'free' ? void startFree() : navigate('/', { replace: true }))} disabled={busy !== null}
+              className="text-[13.5px] underline underline-offset-4 disabled:opacity-60" style={{ color: 'var(--theme-text-secondary)' }}>
+              {current === 'free' ? (pt ? 'Agora não, continuar no Grátis' : 'Not now, stay on Free') : (pt ? 'Ir para o início' : 'Go home')}
+            </button>
+          ) : (
             <button type="button" onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/'))} className="inline-flex items-center gap-1.5 h-10 px-2 -ml-2 rounded-md text-[13.5px]" style={{ color: 'var(--theme-text-secondary)' }}>
               <ArrowLeft className="w-4 h-4" />{pt ? 'Voltar' : 'Back'}
             </button>

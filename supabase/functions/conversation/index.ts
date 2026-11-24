@@ -20,6 +20,7 @@ type Body = {
 // Os tutores do app (mesmos ids do cliente). Cada um tem a própria memória de cada pessoa (tabela tutor_memory).
 const TUTORS: Record<string, string> = { 'bookmoo-mulher': 'Bia', 'bookmoo-homem': 'Luck', 'bookmoo-yuno': 'Yuno', 'bookmoo-yuri': 'Yuri' }
 const tutorId = (v: unknown) => (typeof v === 'string' && v in TUTORS ? v : null)
+const DEFAULT_TUTOR = 'bookmoo-mulher' // Bia
 
 type Memory = { character_id: string; summary: string; strengths: string[]; weaknesses: string[]; topics: string[]; sessions: number; last_at: string }
 const daysAgo = (iso: string) => Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 86400000))
@@ -288,6 +289,8 @@ async function handle(userId: string, b: Body) {
       const kind = b.kind ?? 'scene'
       if (kind === 'tutor') requireFeature(ent, ent.limits.free_talk, 'free_talk')
       if (kind === 'reader') requireFeature(ent, ent.limits.tutor, 'tutor')
+      // Planos sem os tutores extras conversam com a Bia: a escolha vinda da tela não vale aqui.
+      if (!ent.is_admin && ent.limits.tutors !== 'all') b.characterId = DEFAULT_TUTOR
       if (kind !== 'scene') {
         if (ent.credits_available < 1 && !ent.is_admin) throw new AiError('no_credits', 402, 'no_credits')
         let title = 'Tutor'
@@ -456,7 +459,10 @@ Return JSON {"suggestions": [{"en": "...", "pt": "..."}]}`,
       const now = new Date()
       if (session.status === 'active') {
         const elapsed = Math.round((now.getTime() - new Date(session.started_at).getTime()) / 1000)
-        const used = session.kind === 'scene' ? Math.min(session.planned_seconds, Math.max(0, elapsed)) : 0
+        // Cena que falhou antes da primeira fala (erro de IA, microfone, pessoa saiu): não cobra nada.
+        // Só o relógio correndo na tela aberta não é uso; o que conta é ter falado pelo menos uma vez.
+        const { count: spoken } = await db.from('conversation_turns').select('id', { count: 'exact', head: true }).eq('session_id', session.id).eq('role', 'user')
+        const used = session.kind === 'scene' && (spoken ?? 0) > 0 ? Math.min(session.planned_seconds, Math.max(0, elapsed)) : 0
         if (session.reservation_id) await commitCredits(session.reservation_id, creditsForSeconds(used))
         await db.from('conversation_sessions').update({ status: 'ended', ended_at: now.toISOString(), used_seconds: used }).eq('id', session.id)
       }

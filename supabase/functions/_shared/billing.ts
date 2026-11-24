@@ -12,10 +12,12 @@ export type Limits = {
   mosaic: number | null
   custom_style: boolean
   tutor: boolean
+  /** Quais tutores a pessoa pode escolher: só a Bia, ou todos (Bia, Luck, Yuno, Yuri). */
+  tutors: 'bia' | 'all'
   scenes: 'demo' | 'all'
   scenes_create: boolean
   free_talk: boolean
-  insights: 'none' | 'weekly' | 'on_demand'
+  insights: 'none' | 'monthly' | 'weekly' | 'on_demand'
   stories: number | null
   max_scene_minutes: number
   feedback: 'summary' | 'full' | 'detailed'
@@ -49,6 +51,7 @@ export const CREDIT_COST = {
   'scene-cover': 2,
   'page-grammar': 1,
   'page-quiz': 1,
+  insights: 5,
 } as const
 export type CreditOp = keyof typeof CREDIT_COST
 

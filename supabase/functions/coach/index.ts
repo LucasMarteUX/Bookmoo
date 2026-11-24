@@ -3,7 +3,7 @@
 import { adminClient, corsHeaders, getUser, json, log } from '../_shared/tts.ts'
 import { rateLimit } from '../_shared/rate.ts'
 import { AiError, llmJson, pickProvider } from '../_shared/ai.ts'
-import { entitlements, measured, requireFeature } from '../_shared/billing.ts'
+import { entitlements, measured, metered, requireFeature } from '../_shared/billing.ts'
 
 type Body = { action?: string; words?: string[]; focus?: string; level?: string }
 const LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
@@ -86,14 +86,17 @@ async function handle(userId: string, b: Body) {
       requireFeature(ent, ent.limits.insights !== 'none', 'insights')
       const { data: last } = await db.from('profile_insights').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(1).maybeSingle()
       const age = last ? Date.now() - new Date(last.created_at).getTime() : Infinity
-      const minGap = ent.is_admin ? 0 : ent.limits.insights === 'on_demand' ? 86400_000 : 7 * 86400_000
+      const minGap = ent.is_admin ? 0
+        : ent.limits.insights === 'on_demand' ? 86400_000
+        : ent.limits.insights === 'weekly' ? 7 * 86400_000
+        : 30 * 86400_000
       if (last && age < minGap) return { insight: last, next_at: new Date(new Date(last.created_at).getTime() + minGap).toISOString(), reused: true }
       // Nível oficial = o mesmo que o app mostra (palavras salvas + pontos). A IA não pode mudar.
       const level = LEVELS.includes(String(b.level)) ? String(b.level) : 'A1'
       const summary = await learnerSummary(db, userId)
       const skills = await skillScores(db, userId)
       const previous = (last?.summary as { skills?: SkillScores } | undefined)?.skills ?? null
-      const report = await measured(userId, 'insights', async () => {
+      const report = await metered(userId, 'insights', async () => {
         const { provider, key } = await pickProvider(userId, ['openai', 'gemini'])
         return await llmJson<Record<string, unknown>>(provider, key, {
           prompt: `You are an expert English teacher for Brazilian learners. Write a short, honest and motivating diagnosis IN BRAZILIAN PORTUGUESE.
@@ -110,7 +113,7 @@ Return JSON only:
  "grammar_focus": "estrutura gramatical para focar, em inglês curto (adequada ao nível ${level})",
  "study_plan": ["3 a 5 ações concretas para os próximos 7 dias, citando as áreas do app: Falar, Ditado, Conversar, Vocabulário, leitura"]}`,
         })
-      }, ent.plan)
+      }, { plan: ent.plan })
       const { data: row } = await db.from('profile_insights').insert({ user_id: userId, summary: { level, skills, activity: summary }, report }).select('*').single()
       return { insight: row, next_at: new Date(Date.now() + minGap).toISOString() }
     }

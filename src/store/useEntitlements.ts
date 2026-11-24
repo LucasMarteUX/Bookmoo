@@ -6,8 +6,8 @@ import type { PlanId } from '@/lib/plans'
 
 export type Limits = {
   library: boolean; imports: number | null; text_books: number | null; pages: number | null; mosaic: number | null
-  custom_style: boolean; tutor: boolean; scenes: 'demo' | 'all'; scenes_create: boolean; free_talk: boolean
-  insights: 'none' | 'weekly' | 'on_demand'; stories: number | null; max_scene_minutes: number
+  custom_style: boolean; tutor: boolean; tutors: 'bia' | 'all'; scenes: 'demo' | 'all'; scenes_create: boolean; free_talk: boolean
+  insights: 'none' | 'monthly' | 'weekly' | 'on_demand'; stories: number | null; max_scene_minutes: number
   feedback: 'summary' | 'full' | 'detailed'; monthly_report: boolean
 }
 
