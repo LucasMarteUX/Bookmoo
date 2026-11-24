@@ -1,6 +1,7 @@
 // Cliente do worker Kokoro: download do pacote, geração e estado local.
 import { DEFAULT_KOKORO_VOICE, getKokoroVoice } from './voices'
 import { isMobileDevice } from '@/lib/deviceVoice'
+import { voiceLog } from '@/lib/voiceLog'
 
 const LS_KEY = 'bookmoo.kokoro.v1'
 
@@ -35,44 +36,85 @@ export function getKokoroState() { return readState() }
 export const MOBILE_VOICES = ['af_heart', 'am_michael'] as const
 export function mobileVoiceFor(gender: 'female' | 'male') { return gender === 'male' ? MOBILE_VOICES[1] : MOBILE_VOICES[0] }
 
-// Proteção contra a página cair: antes de carregar/gerar no celular marca "ocupado"; se a página morrer no meio (o
-// navegador recarrega a aba), a marca sobra e, na volta, a voz baixada fica desligada neste aparelho (cai na voz dele).
+// Proteção contra a página cair. Antes, qualquer aba descartada em segundo plano enquanto o motor trabalhava (comum no
+// celular: a pessoa troca de app e o sistema fecha a aba) deixava o pacote desligado PARA SEMPRE, e o tutor ficava mudo
+// mesmo com o pacote baixado. Agora:
+// - só marca "ocupado" com a página visível (em segundo plano o sistema pode matar a aba sem que seja culpa da voz);
+// - esconder ou congelar a página limpa a marca;
+// - uma queda real conta, mas o pacote só fica de lado depois de 2 quedas em 15 minutos, e por 30 minutos no máximo.
 const BUSY_KEY = 'upoonly.kokoro.busy'
-const CRASH_KEY = 'upoonly.kokoro.crashed'
+const CRASH_KEY = 'upoonly.kokoro.crashes'
+const CRASH_WINDOW_MS = 15 * 60_000
+const CRASH_COOLDOWN_MS = 30 * 60_000
 let busyCount = 0
+const visible = () => typeof document === 'undefined' || document.visibilityState === 'visible'
 function markBusy(on: boolean) {
   if (!isMobileDevice()) return
   busyCount = Math.max(0, busyCount + (on ? 1 : -1))
-  try { if (busyCount > 0) localStorage.setItem(BUSY_KEY, String(Date.now())); else localStorage.removeItem(BUSY_KEY) } catch { /* ignore */ }
+  try {
+    if (busyCount > 0 && visible()) localStorage.setItem(BUSY_KEY, String(Date.now()))
+    else localStorage.removeItem(BUSY_KEY)
+  } catch { /* ignore */ }
+}
+function crashes(): number[] {
+  try { return (JSON.parse(localStorage.getItem(CRASH_KEY) || '[]') as number[]).filter(t => Date.now() - t < CRASH_COOLDOWN_MS) } catch { return [] }
 }
 if (typeof window !== 'undefined') {
   try {
+    localStorage.removeItem('upoonly.kokoro.crashed') // trava antiga (permanente): sai de vez
     const at = Number(localStorage.getItem(BUSY_KEY) || 0)
-    // A página anterior morreu enquanto a voz trabalhava (em até 3 min): desliga a voz baixada neste aparelho.
-    if (at && Date.now() - at < 3 * 60_000) localStorage.setItem(CRASH_KEY, String(Date.now()))
+    // A página anterior morreu, visível, com a voz trabalhando (até 3 min atrás): conta uma queda.
+    if (at && Date.now() - at < 3 * 60_000) {
+      const list = [...crashes(), Date.now()]
+      localStorage.setItem(CRASH_KEY, JSON.stringify(list))
+      voiceLog('kokoro.queda_detectada', { quedas: list.length })
+    }
     localStorage.removeItem(BUSY_KEY)
   } catch { /* ignore */ }
-  // Saída normal da página (fechar, recarregar, trocar de site) não conta como queda: só a morte da aba deixa a marca.
-  window.addEventListener('pagehide', () => { try { localStorage.removeItem(BUSY_KEY) } catch { /* ignore */ } })
+  const clearBusy = () => { try { localStorage.removeItem(BUSY_KEY) } catch { /* ignore */ } }
+  window.addEventListener('pagehide', clearBusy)
+  document.addEventListener('visibilitychange', () => {
+    if (!visible()) clearBusy()
+    else if (busyCount > 0) { try { localStorage.setItem(BUSY_KEY, String(Date.now())) } catch { /* ignore */ } }
+  })
+  document.addEventListener('freeze', clearBusy)
 }
-/** A voz baixada derrubou a página neste aparelho: fica desligada (a voz do aparelho fala). */
+/** A voz baixada derrubou a página 2 vezes em pouco tempo neste aparelho: fica de lado por um tempo. */
 export function kokoroCrashedHere() {
-  try { return !!localStorage.getItem(CRASH_KEY) } catch { return false }
+  const list = crashes()
+  return list.filter(t => Date.now() - t < CRASH_WINDOW_MS).length >= 2
 }
-/** Tentar de novo a voz baixada (Ajustes). */
+/** Tentar de novo a voz baixada (Ajustes, diagnóstico). */
 export function clearKokoroCrash() {
   try { localStorage.removeItem(CRASH_KEY) } catch { /* ignore */ }
-  sessionFailures = 0
   listeners.forEach(l => l(readState()))
 }
-// Falhas seguidas nesta sessão (celular): depois de 2, a sessão segue na voz do aparelho sem ficar esperando.
-let sessionFailures = 0
-export function noteKokoroResult(ok: boolean) { sessionFailures = ok ? 0 : sessionFailures + 1 }
+/** Resultado de cada geração (só para o registro de voz; não desliga mais nada). */
+export function noteKokoroResult(ok: boolean) { if (!ok) voiceLog('kokoro.falhou') }
 
 export function isKokoroSupported() {
   if (typeof window === 'undefined' || typeof Worker === 'undefined' || typeof WebAssembly === 'undefined') return false
-  if (isMobileDevice() && (kokoroCrashedHere() || sessionFailures >= 2)) return false
+  if (isMobileDevice() && kokoroCrashedHere()) return false
   return true
+}
+
+// Velocidade de geração medida neste aparelho (ms de processamento por segundo de áudio). Os prazos saem daqui: um celular
+// lento recebe mais tempo em vez de ter a fala cortada (antes era 15 s fixos, e frases longas caíam sempre).
+const RTF_KEY = 'upoonly.kokoro.rtf'
+let rtfMs = (() => { try { return Number(localStorage.getItem(RTF_KEY)) || 0 } catch { return 0 } })()
+function noteRtf(ms: number, audioSec: number) {
+  if (!(audioSec > 0.3) || !(ms > 0)) return
+  const r = ms / audioSec
+  rtfMs = rtfMs ? rtfMs * 0.7 + r * 0.3 : r
+  try { localStorage.setItem(RTF_KEY, String(Math.round(rtfMs))) } catch { /* ignore */ }
+}
+/** ms de processamento por segundo de fala neste aparelho (0 = ainda não medido). */
+export function kokoroRtf() { return Math.round(rtfMs) }
+/** Prazo para gerar este texto: estimativa da duração × velocidade do aparelho, com folga larga e piso de 25 s. */
+function generationDeadline(text: string, speed: number) {
+  const audioSec = Math.max(1, text.length / 14 / Math.max(0.5, speed))
+  const per = rtfMs || (isMobileDevice() ? 2500 : 800)
+  return Math.max(25_000, Math.round(audioSec * per * 2.5 + 10_000))
 }
 
 /** Início de cada palavra falada, como fração (0–1) da duração do áudio; n = nº de fonemas. */
@@ -144,17 +186,35 @@ function send(msg: Record<string, unknown>, onProgress?: (f: number) => void, ti
     markBusy(true)
     const done = <T,>(fn: (v: T) => void) => (v: T) => { if (timer) clearTimeout(timer); markBusy(false); fn(v) }
     pending.set(reqId, { resolve: done(resolve), reject: done(reject), onProgress, files: new Map() })
-    // Sem timeout enquanto o modelo ainda baixa/carrega: reiniciar aqui recomeçaria o download. No celular a fala tem prazo
-    // mesmo com o motor ainda carregando do aparelho: passou dele, a voz do aparelho fala no lugar.
-    if (timeoutMs && (workerReady || (isMobileDevice() && msg.type === 'generate'))) timer = setTimeout(() => { if (pending.has(reqId)) resetWorker('kokoro_timeout') }, timeoutMs)
+    // Sem prazo enquanto o modelo ainda baixa pela rede (reiniciar recomeçaria o download). Gerar tem prazo sempre: com o motor
+    // frio o prazo é grande (inclui carregar o modelo do aparelho), com ele quente vem da velocidade medida.
+    if (timeoutMs && (workerReady || msg.type === 'generate')) timer = setTimeout(() => {
+      if (!pending.has(reqId)) return
+      voiceLog('kokoro.prazo_estourado', { ms: timeoutMs, quente: workerReady })
+      resetWorker('kokoro_timeout')
+    }, timeoutMs)
     getWorker().postMessage({ ...msg, reqId })
   })
 }
 
 /** Carrega o motor em segundo plano (sem gerar nada) para o primeiro play não esperar. */
 export function warmUpKokoro() {
-  if (!activeKokoroVoice()) return
-  send({ type: 'load' }).then(() => {}, () => {})
+  if (!activeKokoroVoice() || workerReady || warming) return
+  const t0 = performance.now()
+  voiceLog('kokoro.aquecendo')
+  warming = send({ type: 'load' }).then(
+    () => { voiceLog('kokoro.pronto', { ms: Math.round(performance.now() - t0), backend: lastBackend }) },
+    (e) => { voiceLog('kokoro.aquecer_falhou', { erro: String((e as Error)?.message ?? e) }) },
+  ).finally(() => { warming = null })
+}
+let warming: Promise<void> | null = null
+/** Espera o motor ficar pronto (aquecendo se preciso). false se não há pacote ou se a carga falhou. */
+export async function waitKokoroWarm(): Promise<boolean> {
+  if (workerReady) return true
+  if (!activeKokoroVoice()) return false
+  warmUpKokoro()
+  try { await warming } catch { /* registrado acima */ }
+  return workerReady
 }
 
 export const KOKORO_INSTALL_FAILED = 'bookmoo:kokoro-install-failed'
@@ -165,12 +225,14 @@ export function mobilePackReady() {
   const s = readState()
   return s.modelReady && MOBILE_VOICES.every(v => s.voices.includes(v))
 }
-/** Baixa o pacote do celular: modelo leve e as duas vozes, testando cada uma com uma frase curta. */
-export async function downloadMobilePack(onProgress?: (f: number) => void) {
+/** Baixa o pacote do celular: modelo leve e as duas vozes, testando cada uma com uma frase curta.
+ *  Devolve se a frase de teste foi gerada (o pacote está no aparelho mesmo quando o teste demora demais). */
+export async function downloadMobilePack(onProgress?: (f: number) => void): Promise<{ sampleOk: boolean }> {
   clearKokoroCrash()
-  await downloadKokoroVoice(MOBILE_VOICES[0], f => onProgress?.(f * 0.92))
-  await downloadKokoroVoice(MOBILE_VOICES[1])
+  const a = await downloadKokoroVoice(MOBILE_VOICES[0], f => onProgress?.(f * 0.92))
+  const b = await downloadKokoroVoice(MOBILE_VOICES[1])
   onProgress?.(1)
+  return { sampleOk: a.size > 0 || b.size > 0 }
 }
 /** Tamanho aproximado do pacote de voz (modelo q8 + vozes), mostrado no aviso. */
 export const KOKORO_PACKAGE_MB = 90
@@ -179,7 +241,7 @@ let installing: Promise<unknown> | null = null
 export function ensureKokoroReady(): Promise<boolean> {
   if (!isKokoroSupported()) return Promise.resolve(false)
   if (activeKokoroVoice()) return Promise.resolve(true)
-  // Celular: nunca baixa 90 MB no meio de uma fala. Pede o aviso do pacote e a fala segue na voz do aparelho.
+  // Celular: nunca baixa 90 MB no meio de uma fala. Pede o aviso do pacote (a fala espera; nunca usa a voz do navegador).
   if (isMobileDevice()) { requestVoicePack(); return Promise.resolve(false) }
   installing ??= downloadKokoroVoice(DEFAULT_KOKORO_VOICE).finally(() => { installing = null })
   return installing.then(() => !!activeKokoroVoice(), () => false).then((ok) => {
@@ -208,9 +270,15 @@ export async function downloadKokoroVoice(voiceId: string, onProgress?: (f: numb
   if (!s.selected) s.selected = voiceId
   writeState(s)
   try {
-    const { blob } = await send({ type: 'generate', text: 'Hello! I will read with you.', voice: voiceId, speed: 1 }, undefined, isMobileDevice() ? 60_000 : undefined)
+    const text = 'Hello! I will read with you.'
+    const t0 = performance.now()
+    const { blob } = await send({ type: 'generate', text, voice: voiceId, speed: 1 }, undefined, isMobileDevice() ? 120_000 : undefined)
+    const sec = blob ? (blob.size - 44) / 2 / 24_000 : 0
+    noteRtf(performance.now() - t0, sec)
+    voiceLog('kokoro.amostra_ok', { voz: voiceId, ms: Math.round(performance.now() - t0) })
     return blob!
-  } catch {
+  } catch (e) {
+    voiceLog('kokoro.amostra_falhou', { voz: voiceId, erro: String((e as Error)?.message ?? e) })
     return new Blob()
   }
 }
@@ -246,15 +314,17 @@ export function kokoroAudioUrl(text: string, voice: string, speed: number, prior
   const key = `${voice}|${speed.toFixed(2)}|${deEss ? `${deEss.maxDb}@${Math.round(deEss.hz)}` : ''}|${pitch ? pitch.toFixed(2) : ''}|${text}`
   const hit = audioCache.get(key)
   if (hit) return hit
-  // Frase atual: se o motor não responder em 30s (após carregado), ele é reiniciado e o app cai para a voz do navegador.
-  // Celular: prazo também no primeiro pedido (motor carregando do aparelho) e no pré-carregamento.
-  const limit = isMobileDevice() ? (workerReady ? 15_000 : 30_000) : (priority === 'high' ? 30_000 : undefined)
+  // Prazo pela velocidade medida deste aparelho (e grande com o motor frio, que ainda carrega o modelo do aparelho).
+  const limit = workerReady ? generationDeadline(text, speed) : (isMobileDevice() ? 150_000 : (priority === 'high' ? 90_000 : undefined))
+  const t0 = performance.now()
   const p = send({ type: 'generate', text, voice, speed, priority, deEss, pitch }, undefined, limit)
     .then(({ blob, ms, words, phones }) => {
-      if (import.meta.env.DEV) console.debug(`[kokoro] ${ms}ms "${text.slice(0, 40)}"`)
+      const sec = blob ? Math.max(0, (blob.size - 44) / 2 / 24_000 - 0.25) : 0
+      if (ms) noteRtf(ms, sec)
+      voiceLog('kokoro.gerou', { ms: ms ?? Math.round(performance.now() - t0), s: Math.round(sec * 10) / 10, letras: text.length, prioridade: priority })
       return { url: URL.createObjectURL(blob!), words: words ?? null, phones: phones ?? null }
     })
-  p.catch(() => audioCache.delete(key))
+  p.catch((e) => { audioCache.delete(key); voiceLog('kokoro.geracao_falhou', { erro: String((e as Error)?.message ?? e), letras: text.length, prioridade: priority }) })
   audioCache.set(key, p)
   if (audioCache.size > MAX_CACHE) {
     const oldest = audioCache.keys().next().value as string

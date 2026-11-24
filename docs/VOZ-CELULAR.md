@@ -1,41 +1,57 @@
-# Voz e personagens no celular
+# Voz dos tutores no celular
 
-Investigação de 17/11/2026: no navegador do celular a voz não saía e às vezes a página caía. Causas e correções.
+Regra: os tutores e a leitura em inglês falam **só com a nossa voz** (Kokoro-82M, gerada no próprio aparelho). Nada de
+servidor gerando áudio e nada de voz do navegador (`speechSynthesis`) para o inglês no celular. Quando algo impede a fala,
+a tela diz o motivo e oferece a saída; o tutor nunca fica mudo sem explicação.
 
-## Causas encontradas
+## Histórico
+- 17/11/2026: a Kokoro foi desligada no celular e a fala ia para a voz do aparelho. Resultado: no iPhone e no Android o
+  tutor ficava mudo e de boca fechada (a voz do navegador também precisa de toque e de vozes instaladas).
+- 24/11/2026 (esta versão): pacote de voz no celular (modelo q8 + 2 vozes, ~90 MB) e as correções abaixo.
 
-1. **Voz Kokoro baixando sozinha no celular.** `useAutoInstallVoices` (no Layout) baixava a Kokoro em todo aparelho. No
-   celular o motor (ONNX/WASM) ocupa centenas de MB de memória; somado ao personagem animado, o navegador matava a página
-   (iPhone recarrega a aba, Android mostra "Ops"). Pior: a voz era marcada como instalada antes de conseguir gerar a
-   primeira frase, então dali em diante toda fala ia para ela e, se ela falhasse, o app ficava mudo (sem plano B).
-2. **Personagem pesado.** Cada personagem animado carrega cerca de 130 MB de texturas na placa de vídeo. Até o botão
-   redondo da tutora (52 px) carregava o personagem inteiro.
-3. **Microfone aberto enquanto o tutor fala.** Com o microfone capturando, o iPhone silencia ou abafa a voz do aparelho, e
-   o som do alto-falante disparava a interrupção ("falar por cima").
-4. **Seletor de voz fora da tela.** O menu de vozes abria para a direita com 288 px de largura; no celular ficava fora.
+## Causas encontradas e correções
+1. **Som bloqueado pelo iPhone.** O avatar criava um `<audio>` novo e o ligava a um `AudioContext` próprio (lip sync da
+   LivLiv). A fala chega segundos depois do toque, então o elemento nunca tinha sido destravado.
+   - Agora há **um player único** (`globalPlayer` em `src/lib/tts.ts`). No celular o avatar não empresta elemento nem usa
+     Web Audio; a boca segue os fonemas do Kokoro (`visemeTrack`).
+   - `installAudioUnlock()` (chamado em `src/main.tsx`) toca um silêncio no primeiro toque e o player fica liberado.
+   - Se o navegador ainda recusar, a fala espera um toque e aparece **"Toque para ouvir o tutor"**
+     (`VoiceStatusLayer`, eventos `AUDIO_BLOCKED_EVENT` e `AUDIO_UNBLOCKED_EVENT`).
+2. **Caía para a voz do navegador.** Isso acontecia com o motor frio, com qualquer erro e com 2 falhas na sessão.
+   - Agora a fala espera o motor aquecer (`waitKokoroWarm`) e, em caso de erro, tenta de novo.
+   - Se falhar outra vez, mostra o aviso com **"Tentar de novo"** (`VOICE_FAILED_EVENT`).
+   - O corte por falhas na sessão saiu.
+3. **Trava falsa de "a página caiu".** O motor só fica marcado como ocupado com a página visível, e a marca é limpa em
+   `pagehide`, `visibilitychange` e `freeze`. A voz só pausa com 2 quedas em 15 minutos, e por 30 minutos. "Reativar voz"
+   aparece no aviso, em Ajustes e no diagnóstico.
+4. **Prazos curtos.** O prazo de geração sai da velocidade medida no próprio aparelho (`kokoroRtf`), com piso de 25 s.
+5. **Primeira fala lenta.**
+   - O motor aquece ao abrir o tutor.
+   - Respostas longas viram trechos de até ~120 letras (`chunkForVoice`).
+   - O trecho seguinte é gerado enquanto o atual toca (uma fala à frente; o worker aceita só 1 no celular).
+   - A pré-geração usa os mesmos parâmetros da fala (`resolveSpeechOpts` e `kokoroParams`). Antes ela gerava com outra
+     velocidade e o cache nunca servia.
+6. **Microfone aberto.** Antes de falar no celular, o microfone e o reconhecedor fecham e há uma pausa de 250 ms para o
+   aparelho sair do modo de gravação.
 
-## O que foi feito
+## Onde ver e testar
+- **Ajustes › Voz (celular):**
+  - estado do pacote;
+  - "Testar voz", "Baixar de novo", "Reativar voz";
+  - link para o diagnóstico.
+- **`/diagnostico-voz`:**
+  - aparelho e pacote: memória, WebGPU, `audioSession`, OPFS;
+  - carga do motor;
+  - 3 gerações com o RTF;
+  - toque pelo player do app;
+  - toque por Web Audio;
+  - toque depois do microfone.
+  
+  "Enviar relatório" grava na tabela `voice_reports` (só o aluno logado insere; a leitura é pelo painel). "Copiar
+  relatório" copia o JSON.
+- **Registro de voz:** os últimos 150 eventos ficam em `localStorage` (`upoonly.voiceLog.v1`, `src/lib/voiceLog.ts`) e
+  vão junto no relatório.
 
-- **Kokoro desligada no celular** (`isKokoroSupported()` é falso no celular; `activeKokoroVoice()` volta null). Não baixa,
-  não carrega o motor, não usa voz "instalada" antiga.
-- **Voz do próprio aparelho** (`src/lib/deviceVoice.ts`): feminina e masculina em inglês escolhidas pelos nomes de cada
-  sistema (iOS, Android, Windows, macOS), sem as vozes de brincadeira; tom mais fino para Yuno e Yuri; se o aparelho tem uma
-  voz só, o masculino sai mais grave. Destaque palavra a palavra e boca do personagem pelos eventos da fala. Proteções:
-  libera a voz no primeiro toque (iPhone), guarda a fala atual (Chrome perdia o fim), não cancela e fala no mesmo instante
-  (Android engolia), retoma ao voltar do segundo plano, não fica preso se a fala nunca começar.
-- **Nunca mudo:** qualquer falha da Kokoro ou do servidor de voz cai na voz do aparelho (`tts.ts`).
-- **Personagem em WebP sem perda (todos os aparelhos):** `public/characters/bookmoo/<pasta>/web/` com as mesmas texturas em
-  resolução total, WebP lossless (`-exact`), idênticas byte a byte às PNG e cerca de 30% menores para baixar. Gerado por
-  `scripts/characters/webp-pack.sh` (rodar de novo quando um rig mudar). A memória de vídeo não muda (a imagem é
-  descompactada na placa do mesmo jeito); o que derrubava o celular era a Kokoro, que ficou desligada lá. Avatares pequenos e
-  mudos no celular viram a foto (`avatar.webp`, 256 px: nítida até num botão de 52 px em tela 3x).
-- **Conversa no celular:** o microfone fecha enquanto o tutor fala e reabre para ouvir; sem interrupção por cima.
-- **Seletor de voz no celular:** escolha direta Feminina / Masculina (com o nome da voz do aparelho), dentro da tela, sem
-  menu suspenso; tocar toca uma amostra. Também em Ajustes > Voz de leitura. No computador o menu continua, e em janela
-  estreita abre para baixo, dentro da tela.
-
-## Limites
-
-- A qualidade da voz depende do aparelho (vozes "aprimoradas" do iPhone soam melhor; podem ser baixadas nos Ajustes do
-  sistema: Acessibilidade > Conteúdo Falado > Vozes).
-- Testado em modo celular no navegador do computador (Android emulado). Ainda falta confirmar num iPhone e num Android reais.
+## Próximos passos, se o relatório mostrar
+- Memória no limite: texturas da LivLiv em meia resolução só no celular (`scripts/characters/webp-pack.sh`).
+- Geração lenta (RTF > 2,5): testar WebGPU no Safari do iOS 26 e no Chrome do Android.

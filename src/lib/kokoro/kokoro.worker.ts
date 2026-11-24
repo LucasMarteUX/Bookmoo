@@ -353,8 +353,9 @@ self.onmessage = async (ev: MessageEvent<InMsg>) => {
     if (idx === -1) queue.push(msg)
     else queue.splice(idx, 0, msg)
   } else {
-    // Celular: sem pré-carregar frases futuras (poupa memória e bateria), só gera o que vai tocar.
-    if (smallDeviceEarly()) { self.postMessage({ type: 'error', reqId: msg.reqId, error: 'cancelled' }); return }
+    // Celular: prepara só UMA frase à frente (a próxima fica pronta enquanto a atual toca, sem buraco entre elas). Mais que
+    // isso pesa na memória e na bateria; os pedidos a mais são recusados e geram na hora em que forem tocar.
+    if (smallDeviceEarly() && queue.some(q => q.priority !== 'high')) { self.postMessage({ type: 'error', reqId: msg.reqId, error: 'cancelled' }); return }
     queue.push(msg)
   }
   void pump()

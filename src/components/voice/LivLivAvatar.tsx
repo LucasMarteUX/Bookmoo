@@ -8,6 +8,8 @@ import { startLipSync, type LipSync } from '@livliv-dev/player/voice'
 import type { VoiceState } from '@/hooks/useVoiceConversation'
 import type { Mood } from '@/components/voice/TutorAvatar'
 import { borrowPlaybackElement } from '@/lib/tts'
+import { isMobileDevice } from '@/lib/deviceVoice'
+import { warmUpKokoro } from '@/lib/kokoro/engine'
 import { getSpeechClock } from '@/lib/speechClock'
 import { activeVisemeTrack, shapeAt, nextStress } from '@/lib/visemeTrack'
 import { characterAvatarUrl, characterBaseUrl, characterById, characterModelUrl } from '@/lib/livliv/characters'
@@ -600,17 +602,23 @@ export function LivLivAvatar({ characterId, state, speakingText = '', onHead, on
   // A voz do app passa a tocar por este <audio>, ligado ao lip sync do LivLiv.
   useEffect(() => {
     if (!voice || !player) return
-    const el = new Audio()
-    el.preload = 'auto'
+    // Celular: a voz toca pelo player único do app (destravado no primeiro toque, ver tts.ts) e a boca segue os fonemas do
+    // Kokoro pelo relógio dele. Antes o avatar criava um <audio> próprio e o passava pelo Web Audio (lip sync por amplitude):
+    // no celular esse <audio> nunca era liberado pelo toque e o contexto de áudio era interrompido pelo microfone, e o
+    // tutor ficava mudo e de boca fechada. O motor de voz já começa a carregar quando o tutor aparece.
+    const mobile = isMobileDevice()
+    if (mobile) warmUpKokoro()
+    const el: HTMLAudioElement | null = mobile ? null : new Audio()
+    if (el) el.preload = 'auto'
     let sync: LipSync | null = null
     let cancelled = false
-    let attached = false
-    const release = borrowPlaybackElement(el)
+    let attached = mobile
+    const release = el ? borrowPlaybackElement(el) : () => {}
     // O lip sync passa o <audio> pelo Web Audio, e o navegador só libera o som dele num gesto da pessoa.
     // Por isso a ligação acontece dentro do primeiro toque ou tecla: até lá a voz toca normal, sem boca,
     // e nunca fica muda. (Na conversa, o toque em "Começar" já faz isso antes da primeira fala.)
     const attach = () => {
-      if (cancelled || attached) return
+      if (cancelled || attached || !el) return
       attached = true
       off()
       // Só a boca segue a voz: sem balanço de cabeça nem pulinhos por sílaba (movimentos próprios ficam por conta do idle).

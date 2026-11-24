@@ -7,6 +7,7 @@ import {setupNative} from './lib/native';
 import {installDeviceVoiceUnlock} from './lib/deviceVoice';
 import {ensureKokoroReady} from './lib/kokoro/engine';
 import {installAudioWarmup} from './lib/audioWarm';
+import {installAudioUnlock} from './lib/tts';
 
 // iPhone: a voz do aparelho só fala depois do primeiro toque; este toque libera.
 installDeviceVoiceUnlock();
@@ -18,6 +19,8 @@ const hasSession = (() => {
 })();
 if (hasSession) window.setTimeout(() => { void ensureKokoroReady(); }, 4000);
 installAudioWarmup();
+// Celular: o primeiro toque destrava o player único das vozes dos tutores, para a fala tocar depois sem precisar de outro toque.
+installAudioUnlock();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

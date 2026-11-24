@@ -3,7 +3,8 @@
 // 2) Toca com HTMLAudioElement (um único player global: nunca dois áudios ao mesmo tempo)
 // 3) Se o serviço TTS falhar, cai para a voz nativa do navegador (fallback temporário).
 import { supabase } from '@/lib/supabase'
-import { activeKokoroVoice, ensureKokoroReady, isKokoroSupported, kokoroAudioUrl, kokoroWarm, mobileVoiceFor, noteKokoroResult, warmUpKokoro, type WordTiming } from '@/lib/kokoro/engine'
+import { activeKokoroVoice, ensureKokoroReady, isKokoroSupported, kokoroAudioUrl, kokoroWarm, mobileVoiceFor, noteKokoroResult, requestVoicePack, waitKokoroWarm, type WordTiming } from '@/lib/kokoro/engine'
+import { voiceLog } from '@/lib/voiceLog'
 import { askVoiceOnce } from '@/lib/voiceGate'
 import { isTutorVoice, resolveReadingVoice } from '@/lib/tutorReadingVoices'
 import { deviceSpeak, hasDeviceVoice, isMobileDevice } from '@/lib/deviceVoice'
@@ -53,6 +54,10 @@ export interface SpeakOptions {
   gender?: 'female' | 'male'
 }
 
+/** A nossa voz falhou duas vezes seguidas nesta fala (celular): a tela mostra o aviso com "Tentar de novo". */
+export const VOICE_FAILED_EVENT = 'upoonly:voice-failed'
+export type VoiceFailedDetail = { error: string; retry: () => void }
+
 export interface SpeakHandle {
   /** Resolve quando o áudio termina (ou é interrompido). */
   done: Promise<void>
@@ -90,11 +95,88 @@ function activeElement(): HTMLAudioElement | null {
 function getPlayer(): HTMLAudioElement {
   const borrowed = playbackOverrides[playbackOverrides.length - 1]
   if (borrowed) return borrowed
+  return globalPlayer()
+}
+function globalPlayer(): HTMLAudioElement {
   if (!player) {
     player = new Audio()
     player.preload = 'auto'
+    player.setAttribute('playsinline', '')
   }
   return player
+}
+
+// ---------------------------------------------------------------------------
+// Destrave do som no celular. O iPhone só deixa um <audio> tocar sozinho depois que ESSE elemento tocou uma vez dentro de
+// um toque da pessoa; a fala do tutor chega segundos depois do toque (espera a IA e a geração), então era bloqueada e o
+// tutor ficava mudo, de boca fechada. Aqui o player único do app toca um silêncio curtinho no primeiro toque e fica
+// liberado para sempre. Se mesmo assim o navegador bloquear, a fala espera um toque ("Toque para ouvir") em vez de sumir.
+// ---------------------------------------------------------------------------
+// 0,1 s de silêncio (8 kHz, 16 bits): curto demais e alguns iPhones não contam como "tocou".
+const SILENT_WAV = 'data:audio/wav;base64,UklGRmQGAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YUAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+let unlocked = false
+let awaitingGesture = 0
+export const AUDIO_BLOCKED_EVENT = 'upoonly:audio-blocked'
+export const AUDIO_UNBLOCKED_EVENT = 'upoonly:audio-unblocked'
+const GESTURES = ['touchend', 'click', 'keydown', 'pointerup'] as const
+
+/** Toca um silêncio no player único, dentro de um toque, para liberar as próximas falas. */
+export function unlockAudioOutput() {
+  if (unlocked || typeof window === 'undefined') return
+  const a = globalPlayer()
+  // Não atrapalha uma fala que esteja tocando, pausada ou esperando um toque: ela mesma destrava ao tocar.
+  const src = a.getAttribute('src')
+  if (awaitingGesture > 0 || (src && src !== SILENT_WAV && !a.ended)) return
+  try {
+    a.src = SILENT_WAV
+    const p = a.play()
+    p?.then(() => { unlocked = true; voiceLog('audio.destravado') }, (e) => voiceLog('audio.destravar_falhou', { erro: String((e as Error)?.name ?? e) }))
+  } catch { /* tenta no próximo toque */ }
+}
+/** Liga o destrave no primeiro toque de qualquer lugar do app (chamado no main). */
+export function installAudioUnlock() {
+  if (typeof window === 'undefined') return
+  const onGesture = () => {
+    unlockAudioOutput()
+    if (unlocked) GESTURES.forEach(t => window.removeEventListener(t, onGesture, true))
+  }
+  GESTURES.forEach(t => window.addEventListener(t, onGesture, true))
+}
+/** Estado do player das falas (para o /diagnostico-voz). */
+export function audioOutputState() {
+  const el = activeElement()
+  return {
+    destravado: unlocked,
+    esperandoToque: awaitingGesture > 0,
+    emprestado: playbackOverrides.length > 0,
+    pausado: el ? el.paused : null,
+    tempo: el ? Math.round(el.currentTime * 100) / 100 : null,
+    prontidao: el ? el.readyState : null,
+    erro: el?.error ? el.error.code : null,
+  }
+}
+/** A fala foi bloqueada: avisa a tela e toca no próximo toque da pessoa (o toque libera o som). */
+function playOnNextGesture(a: HTMLAudioElement, mySrc: string): Promise<boolean> {
+  return new Promise(resolve => {
+    let done = false
+    awaitingGesture++
+    const finish = (ok: boolean) => {
+      if (done) return
+      done = true
+      awaitingGesture--
+      GESTURES.forEach(t => window.removeEventListener(t, onGesture, true))
+      window.removeEventListener(AUDIO_UNBLOCKED_EVENT, onCancel)
+      window.dispatchEvent(new Event(AUDIO_UNBLOCKED_EVENT))
+      resolve(ok)
+    }
+    const onGesture = () => {
+      if (a.src !== mySrc) { finish(false); return }
+      a.play().then(() => { unlocked = true; voiceLog('audio.tocou_apos_toque'); finish(true) }, (e) => voiceLog('audio.ainda_bloqueado', { erro: String((e as Error)?.name ?? e) }))
+    }
+    const onCancel = () => finish(false)
+    GESTURES.forEach(t => window.addEventListener(t, onGesture, true))
+    window.dispatchEvent(new Event(AUDIO_BLOCKED_EVENT))
+  })
 }
 
 async function invoke<T>(name: string, body?: unknown, method: 'POST' | 'GET' = 'POST'): Promise<T> {
@@ -182,16 +264,17 @@ export async function playClip(url: string): Promise<{ done: Promise<void> }> {
 
 /** Pré-carrega (gera/aquece cache) sem tocar. Erros são ignorados. */
 export function prefetch(text: string, opts: SpeakOptions = {}) {
-  if (!text.trim()) return
-  const kv = opts.kokoroVoice ?? activeKokoroVoice()
-  // Celular: sem pré-carregar (duas gerações ao mesmo tempo pesam demais no aparelho).
-  if (kv && activeKokoroVoice() && !isMobileDevice() && (opts.language ?? 'en').toLowerCase().startsWith('en')) {
-    // Tutor: mesmos parâmetros da fala (velocidade de geração e de-esser), para o cache servir na hora de tocar.
-    const r = resolveReadingVoice(kv)
-    const p = r.pitch && Math.abs(r.pitch - 1) > 0.01 ? Math.min(1.35, Math.max(0.8, r.pitch)) : 1
-    const gen = p !== 1 ? characterGen(opts.rate ?? 1, p).gen : 1
-    kokoroAudioUrl(text.replace(/\s+/g, ' ').trim(), r.kokoroVoice, gen, 'low', r.deEssDb && p !== 1 ? { maxDb: r.deEssDb, hz: 4500 / p } : undefined, p !== 1 ? p : undefined).catch(() => {})
-    return
+  const trimmed = text.replace(/\s+/g, ' ').trim()
+  if (!trimmed) return
+  // Gera a próxima fala enquanto a atual toca, com os mesmos parâmetros da fala (voz, velocidade, tom, de-esser) para o
+  // cache servir na hora de tocar. Celular incluso: o worker aceita só 1 fala à frente lá, e ela espera a atual engrenar.
+  if (activeKokoroVoice() && (opts.language ?? 'en').toLowerCase().startsWith('en')) {
+    const r = resolveSpeechOpts(opts)
+    const k = kokoroParams(r.opts, r.sp)
+    if (k.kokoroVoice) {
+      kokoroAudioUrl(trimmed, k.kokoroVoice, k.g.gen, 'low', k.deEssOpt, k.pitch !== 1 ? k.pitch : undefined).catch(() => {})
+      return
+    }
   }
   if (!isTtsConfigured()) return
   getAudioUrl(text, opts).then((url) => {
@@ -331,7 +414,18 @@ async function playUrl(url: string, rate: number, text?: string, onWord?: (i: nu
   // Se o aluno pausou enquanto a frase era preparada, só começa quando ele retomar.
   await waitWhilePaused()
   if (a.src !== mySrc) return { done } // parado enquanto esperava
-  await a.play()
+  try {
+    await a.play()
+    voiceLog('audio.tocando', { s: Number.isFinite(a.duration) ? Math.round(a.duration * 10) / 10 : null })
+  } catch (e) {
+    const name = (e as Error)?.name ?? String(e)
+    voiceLog('audio.play_recusado', { erro: name })
+    if (name === 'AbortError' || a.src !== mySrc) return { done }
+    if (name !== 'NotAllowedError') throw e
+    // Bloqueado pelo navegador: espera o toque da pessoa e toca na hora (nunca some calado).
+    const ok = await playOnNextGesture(a, mySrc)
+    if (!ok) { finishCurrent?.(); return { done } }
+  }
   // Relógio para a boca dos personagens: segue o áudio de verdade, não uma estimativa.
   if (text) { clock = audioClock(text, a, realStarts ?? wordStartFractions(text)); setSpeechClock(clock) }
   if (text && onWord) {
@@ -375,6 +469,7 @@ export function waitWhilePaused(): Promise<void> {
 
 /** Para o áudio atual sem mexer no estado de pausa (usado ao trocar de frase). */
 function haltPlayback() {
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event(AUDIO_UNBLOCKED_EVENT))
   currentToken++
   const f = finishCurrent
   finishCurrent = null
@@ -416,6 +511,33 @@ export function isTtsConfigured() {
 }
 
 
+/** Opções finais da fala: voz do tutor escolhida para a leitura e personagem na tela (voz, gênero e tom). */
+function resolveSpeechOpts(opts: SpeakOptions) {
+  // Personagem na tela (Yuno, Yuri…): voz e tom dele valem em qualquer fala e em qualquer velocidade, mesmo quando quem
+  // chamou não passou (antes só a conversa passava, e no resto a Yuno e o Yuri falavam com a voz adulta).
+  // Tutor escolhido como voz da leitura ("tutor:..."): vira a voz Kokoro dele, com tom e de-esser.
+  if (isTutorVoice(opts.kokoroVoice)) {
+    const r = resolveReadingVoice(opts.kokoroVoice)
+    opts = { ...opts, kokoroVoice: r.kokoroVoice, pitch: opts.pitch ?? r.pitch ?? 1, gender: opts.gender ?? r.gender, deEssDb: r.deEssDb }
+  }
+  const sp = getSpeakerVoice()
+  if (sp && opts.pitch == null) opts = { ...opts, pitch: sp.pitch, gender: opts.gender ?? sp.gender }
+  return { opts, sp }
+}
+/** Voz Kokoro e parâmetros de geração de uma fala. A pré-geração usa a mesma conta, para o cache servir na hora de tocar. */
+function kokoroParams(opts: SpeakOptions, sp: ReturnType<typeof getSpeakerVoice>) {
+  const spVoice = sp && !opts.kokoroVoice ? resolveSpeakerVoice(sp) : undefined
+  // Celular: só as 2 vozes do pacote (feminina/masculina); o tom de Yuno e Yuri vem por cima.
+  const kokoroVoice = activeKokoroVoice()
+    ? (isMobileDevice() ? mobileVoiceFor(opts.gender ?? sp?.gender ?? 'female') : (opts.kokoroVoice ?? spVoice ?? activeKokoroVoice()))
+    : null
+  const pitch = opts.pitch && Math.abs(opts.pitch - 1) > 0.01 ? Math.min(1.35, Math.max(0.8, opts.pitch)) : 1
+  const g = characterGen(opts.rate ?? 1, pitch)
+  const deEssDb = opts.deEssDb ?? sp?.deEssDb
+  const deEssOpt = deEssDb && pitch !== 1 ? { maxDb: deEssDb, hz: 4500 / pitch } : undefined
+  return { kokoroVoice, pitch, g, deEssOpt }
+}
+
 /**
  * Fala um texto com a voz baixada. Nunca usa a voz do navegador.
  * Sem voz instalada, pede o aviso uma única vez e não toca nada.
@@ -427,15 +549,9 @@ export async function speak(text: string, opts: SpeakOptions = {}): Promise<Spea
   if (!trimmed) return { done: Promise.resolve(), source: 'kokoro' }
 
   const lang = (opts.language ?? 'en').toLowerCase()
-  // Personagem na tela (Yuno, Yuri…): voz e tom dele valem em qualquer fala e em qualquer velocidade, mesmo quando quem
-  // chamou não passou (antes só a conversa passava, e no resto a Yuno e o Yuri falavam com a voz adulta).
-  // Tutor escolhido como voz da leitura ("tutor:..."): vira a voz Kokoro dele, com tom e de-esser.
-  if (isTutorVoice(opts.kokoroVoice)) {
-    const r = resolveReadingVoice(opts.kokoroVoice)
-    opts = { ...opts, kokoroVoice: r.kokoroVoice, pitch: opts.pitch ?? r.pitch ?? 1, gender: opts.gender ?? r.gender, deEssDb: r.deEssDb }
-  }
-  const sp = getSpeakerVoice()
-  if (sp && opts.pitch == null) opts = { ...opts, pitch: sp.pitch, gender: opts.gender ?? sp.gender }
+  const resolved = resolveSpeechOpts(opts)
+  opts = resolved.opts
+  const sp = resolved.sp
   // Personagem no computador: instala a voz na hora se ainda não estiver (nunca cai na voz do navegador).
   // Voz própria em todo aparelho (celular incluso): se ainda não está pronta, instala e espera; nunca usa a voz do navegador.
   if (lang.startsWith('en') && !activeKokoroVoice() && isKokoroSupported()) {
@@ -444,27 +560,38 @@ export async function speak(text: string, opts: SpeakOptions = {}): Promise<Spea
     opts.onLoading?.(false)
     if (token !== currentToken) return { done: Promise.resolve(), source: 'kokoro' }
   }
-  const spVoice = sp && !opts.kokoroVoice ? resolveSpeakerVoice(sp) : undefined
   const mobile = isMobileDevice()
-  // Celular: só as 2 vozes do pacote (feminina/masculina); o tom de Yuno e Yuri vem por cima.
-  const kokoroVoice = activeKokoroVoice()
-    ? (mobile ? mobileVoiceFor(opts.gender ?? sp?.gender ?? 'female') : (opts.kokoroVoice ?? spVoice ?? activeKokoroVoice()))
-    : null
+  const { kokoroVoice, pitch, g, deEssOpt } = kokoroParams(opts, sp)
   if (lang.startsWith('en') && !kokoroVoice && !isTtsConfigured()) {
-    // Sem voz baixada: fala com a voz do próprio aparelho (no celular é o normal; no computador o aviso sugere baixar a melhor).
-    if (!isMobileDevice()) askVoiceOnce()
+    // Celular sem o pacote de voz: o tutor só fala com a nossa voz. Abre o aviso para baixar (um toque) e registra.
+    if (mobile) {
+      voiceLog('fala.sem_pacote', { suportado: isKokoroSupported() })
+      requestVoicePack()
+      opts.onFallback?.('voice_pack_missing')
+      return { done: Promise.resolve(), source: 'kokoro' }
+    }
+    // Computador sem voz baixada: o aviso sugere baixar a melhor; enquanto isso, a voz do aparelho.
+    askVoiceOnce()
     if (hasDeviceVoice()) return { ...(await speakOnDevice(trimmed, opts, token)), source: 'browser' }
     return { done: Promise.resolve(), source: 'kokoro' }
   }
-  // Celular com o motor ainda frio: esta fala sai na voz do aparelho (sem esperar) e o motor carrega para as próximas.
-  if (mobile && kokoroVoice && !kokoroWarm() && hasDeviceVoice()) {
-    warmUpKokoro()
-    return { ...(await speakOnDevice(trimmed, opts, token)), source: 'browser' }
+  // Celular com o motor ainda frio: espera ele aquecer (mostra "carregando"), sem trocar para a voz do navegador.
+  if (mobile && kokoroVoice && !kokoroWarm()) {
+    opts.onLoading?.(true)
+    voiceLog('fala.esperando_motor')
+    const ok = await waitKokoroWarm()
+    opts.onLoading?.(false)
+    if (token !== currentToken) return { done: Promise.resolve(), source: 'kokoro' }
+    if (!ok) voiceLog('fala.motor_nao_aqueceu')
   }
   if (kokoroVoice && lang.startsWith('en')) {
+    const playClipNow = async (clip: { url: string; words: WordTiming[] | null; phones?: PhoneTiming[] | null }) => {
+      const starts = clip.words ? startsFromTimings(trimmed, clip.words) : undefined
+      return { ...(await playUrl(clip.url, pitch !== 1 ? g.play : (opts.rate ?? 1), trimmed, opts.onWord, starts, 1, clip.phones)), source: 'kokoro' as const }
+    }
+    voiceLog('fala.kokoro', { voz: kokoroVoice, letras: trimmed.length, quente: kokoroWarm() })
     try {
       opts.onLoading?.(true)
-      const pitch = opts.pitch && Math.abs(opts.pitch - 1) > 0.01 ? Math.min(1.35, Math.max(0.8, opts.pitch)) : 1
       // Com tom alterado, o Kokoro gera sempre no ritmo natural (gerar mais devagar estraga o começo das frases) e o player
       // toca mais rápido (tom * ritmo), o que deixa a voz mais fina.
       // Com tom de personagem, o player acelera só pelo tom (deixa a voz mais jovem) e o ritmo pedido vem da geração:
@@ -472,23 +599,34 @@ export async function speak(text: string, opts: SpeakOptions = {}): Promise<Spea
       // qualquer velocidade (antes, tom × velocidade: no "devagar" o tom sumia e no "rápido" batia no limite).
       // Tom do personagem aplicado no próprio áudio (worker) e a velocidade escolhida feita pelo player com o tom preservado:
       // assim o "devagar" fica devagar de verdade e o tom é o mesmo em qualquer velocidade.
-      const g = characterGen(opts.rate ?? 1, pitch)
-      const deEssDb = opts.deEssDb ?? sp?.deEssDb
-      const deEssOpt = deEssDb && pitch !== 1 ? { maxDb: deEssDb, hz: 4500 / pitch } : undefined
       const clip = await kokoroAudioUrl(trimmed, kokoroVoice, g.gen, 'high', deEssOpt, pitch !== 1 ? pitch : undefined)
       opts.onLoading?.(false)
       if (token !== currentToken) return { done: Promise.resolve(), source: 'kokoro' }
       noteKokoroResult(true)
-      const starts = clip.words ? startsFromTimings(trimmed, clip.words) : undefined
-      return { ...(await playUrl(clip.url, pitch !== 1 ? g.play : (opts.rate ?? 1), trimmed, opts.onWord, starts, 1, clip.phones)), source: 'kokoro' }
+      return await playClipNow(clip)
     } catch (e) {
       opts.onLoading?.(false)
       if (token !== currentToken) return { done: Promise.resolve(), source: 'kokoro' }
       console.warn('[tts] A voz baixada não respondeu:', e)
       opts.onFallback?.(String((e as Error)?.message ?? e))
       noteKokoroResult(false)
-      // Nunca fica mudo: no celular a voz do aparelho fala na hora; no computador tenta de novo a voz baixada.
-      if (!mobile && isKokoroSupported()) {
+      // Celular: tenta de novo com a nossa voz (o worker travado já foi reiniciado); falhando outra vez, avisa a tela.
+      if (mobile) {
+        try {
+          opts.onLoading?.(true)
+          voiceLog('fala.tentando_de_novo')
+          const again = await kokoroAudioUrl(trimmed, kokoroVoice, g.gen, 'high', deEssOpt, pitch !== 1 ? pitch : undefined)
+          opts.onLoading?.(false)
+          if (token === currentToken) return await playClipNow(again)
+        } catch (e2) {
+          opts.onLoading?.(false)
+          voiceLog('fala.falhou_de_novo', { erro: String((e2 as Error)?.message ?? e2) })
+          if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent<VoiceFailedDetail>(VOICE_FAILED_EVENT, { detail: { error: String((e2 as Error)?.message ?? e2), retry: () => { void speak(trimmed, { ...opts, onLoading: undefined, onFallback: undefined }) } } }))
+        }
+        return { done: Promise.resolve(), source: 'kokoro' }
+      }
+      // Computador: tenta de novo a voz baixada.
+      if (isKokoroSupported()) {
         try {
           const again = await kokoroAudioUrl(trimmed, kokoroVoice, 1, 'high')
           if (token === currentToken) return { ...(await playUrl(again.url, opts.rate ?? 1, trimmed, opts.onWord)), source: 'kokoro' }
@@ -513,7 +651,8 @@ export async function speak(text: string, opts: SpeakOptions = {}): Promise<Spea
       opts.onFallback?.(reason)
     }
   }
-  if (hasDeviceVoice()) return { ...(await speakOnDevice(trimmed, opts, token)), source: 'browser' }
+  // Inglês no celular nunca vai para a voz do navegador (só o português, que não tem voz nossa).
+  if (hasDeviceVoice() && !(mobile && lang.startsWith('en'))) return { ...(await speakOnDevice(trimmed, opts, token)), source: 'browser' }
   askVoiceOnce()
   return { done: Promise.resolve(), source: 'kokoro' }
 }

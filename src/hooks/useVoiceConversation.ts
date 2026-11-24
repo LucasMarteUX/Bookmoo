@@ -1,16 +1,16 @@
 // Motor de conversa por voz, mãos-livres (como o modo de voz dos assistentes): depois de começar, ele fica
 // ouvindo; quando a pessoa para de falar ele espera o silêncio, toca uma fala-ponte, responde e volta a ouvir.
 // Dá para interromper a IA falando por cima. A pausa de fim de fala se adapta a quem fala devagar.
-// Sem API de voz em tempo real: reconhecimento de fala do aparelho + IA de texto + voz Kokoro/VoiceStudio/navegador.
+// Sem API de voz em tempo real: reconhecimento de fala do aparelho + IA de texto + a nossa voz (Kokoro, no aparelho).
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createRecognizer, defaultEngine, MicPermissionError, type Recognizer } from '@/lib/speech/recognizers'
-import { speak, stopSpeaking } from '@/lib/tts'
+import { prefetch, speak, stopSpeaking } from '@/lib/tts'
 import { isMobileDevice } from '@/lib/deviceVoice'
 
 // Celular: o microfone fica fechado enquanto o tutor fala. Com ele aberto, o iPhone silencia ou abafa a voz do aparelho
 // (sessão de áudio de gravação) e o som da própria voz no alto-falante disparava a interrupção. Volta a abrir para ouvir.
 const MOBILE = isMobileDevice()
-import { activeKokoroVoice, getKokoroState, kokoroAudioUrl } from '@/lib/kokoro/engine'
+import { activeKokoroVoice, getKokoroState } from '@/lib/kokoro/engine'
 import { getKokoroVoice } from '@/lib/kokoro/voices'
 import { pickFiller } from '../../supabase/functions/_shared/scenes'
 import { boundaryClock, clearSpeechClock, setSpeechClock } from '@/lib/speechClock'
@@ -106,11 +106,36 @@ async function say(text: string, rate: number, alive: () => boolean, voice?: str
   })
 }
 
-function warm(text: string) {
-  // Celular: sem gerar a próxima frase em paralelo (pesa demais e pode derrubar a página).
-  if (MOBILE) return
-  const voice = activeKokoroVoice()
-  if (voice) void kokoroAudioUrl(text, voice, 1, 'low').catch(() => {})
+/** Gera a fala antes da hora, com os mesmos parâmetros de `say` (voz, velocidade, tom), para tocar sem espera.
+ *  No celular o worker aceita só 1 fala à frente (as outras são descartadas sem custo). */
+function warm(text: string, rate: number, sp: { voice?: string; gender?: 'female' | 'male'; pitch: number }) {
+  if (!activeKokoroVoice() || !text.trim()) return
+  prefetch(text, { rate, context: 'phrase', kokoroVoice: sp.voice, pitch: sp.pitch, gender: sp.gender })
+}
+
+/** Celular: frases longas viram trechos de até ~120 letras (corta em vírgula, ponto e vírgula ou espaço). O primeiro
+ *  trecho fica pronto bem antes, e o próximo é gerado enquanto este toca. */
+export function chunkForVoice(text: string, max = 120): string[] {
+  const out: string[] = []
+  for (const sentence of splitSentences(text)) {
+    if (sentence.length <= max) { out.push(sentence); continue }
+    let cur = ''
+    const flush = () => { if (cur.trim()) out.push(cur.trim()); cur = '' }
+    for (const piece of sentence.split(/(?<=[,;:—])\s+/)) {
+      if (piece.length > max) {
+        flush()
+        for (const w of piece.split(' ')) {
+          if (cur && (cur + ' ' + w).length > max) flush()
+          cur = cur ? `${cur} ${w}` : w
+        }
+        continue
+      }
+      if (cur && (cur + ' ' + piece).length > max) flush()
+      cur = cur ? `${cur} ${piece}` : piece
+    }
+    flush()
+  }
+  return out
 }
 
 export function splitSentences(text: string) {
@@ -237,7 +262,9 @@ export function useVoiceConversation(opts: {
     raf.current = requestAnimationFrame(loop)
   }, [])
 
+  /** Fecha o microfone e o analisador. Devolve se havia algo aberto. Celular: também para o reconhecedor de fala. */
   const closeMic = () => {
+    const wasOpen = !!stream.current
     if (raf.current) cancelAnimationFrame(raf.current)
     raf.current = null
     stream.current?.getTracks().forEach(t => t.stop())
@@ -245,24 +272,35 @@ export function useVoiceConversation(opts: {
     analyser.current = null
     void ctx.current?.close().catch(() => {})
     ctx.current = null
+    if (MOBILE && rec.current) { try { rec.current.abort() } catch { /* ignore */ } rec.current = null }
+    return wasOpen
   }
 
   const speakReply = useCallback(async (reply: string, segments?: SpokenSegment[] | null) => {
     const token = ++speakToken.current
     const alive = () => token === speakToken.current && active.current
     // Fala por trechos de idioma: inglês na voz Kokoro, português na voz pt-BR do aparelho.
+    const split = MOBILE ? chunkForVoice : splitSentences
     const parts = (segments?.length ? segments : [{ lang: 'en' as const, text: reply }])
-      .flatMap(seg => splitSentences(seg.text).map(text => ({ lang: seg.lang, text })))
-    parts.slice(1).filter(p => p.lang === 'en').forEach(p => warm(vocalize(p.text)))
+      .flatMap(seg => split(seg.text).map(text => ({ lang: seg.lang, text })))
     resumable.current = null
-    if (MOBILE) closeMic()
+    // Celular: microfone fechado antes de falar (com ele aberto o iPhone abafa ou corta a voz) e um instante para o
+    // aparelho sair do modo de gravação.
+    if (MOBILE && closeMic()) await new Promise(r => setTimeout(r, 250))
+    if (!alive()) return false
     set('speaking')
-    for (const p of parts) {
+    for (let i = 0; i < parts.length; i++) {
+      const p = parts[i]
       if (!alive()) return false
       setSpeakingText(p.text)
       // Lido a cada frase: trocar de personagem no meio da conversa já muda a próxima fala.
       const sp = speakerFor(optsRef.current.gender)
-      await say(vocalize(p.text), optsRef.current.rate ?? 0.95, alive, sp.voice, p.lang, sp.gender, sp.pitch)
+      const rate = optsRef.current.rate ?? 0.95
+      const saying = say(vocalize(p.text), rate, alive, sp.voice, p.lang, sp.gender, sp.pitch)
+      // Uma fala à frente: a próxima é gerada enquanto esta toca (depois desta já ter ido para a fila).
+      const next = parts[i + 1]
+      if (next?.lang === 'en') warm(vocalize(next.text), rate, sp)
+      await saying
     }
     setSpeakingText('')
     metrics.current.aiEndedAt = performance.now()
@@ -281,8 +319,10 @@ export function useVoiceConversation(opts: {
     set(filler ? 'speaking' : 'thinking')
     if (filler) setSpeakingText(filler)
     const fsp = speakerFor(o.gender)
-    if (MOBILE) { resumable.current = null; closeMic() }
-    const fillerDone = filler ? say(filler, o.rate ?? 0.95, alive, fsp.voice, 'en', fsp.gender, fsp.pitch) : Promise.resolve()
+    const micWasOpen = MOBILE ? (resumable.current = null, closeMic()) : false
+    const fillerDone = filler
+      ? (async () => { if (micWasOpen) await new Promise(r => setTimeout(r, 250)); await say(filler, o.rate ?? 0.95, alive, fsp.voice, 'en', fsp.gender, fsp.pitch) })()
+      : Promise.resolve()
     const turn = o.onTurn(text, filler)
     try {
       await fillerDone
@@ -445,7 +485,10 @@ export function useVoiceConversation(opts: {
     }
   }, [speakReply, stop])
 
-  const preload = useCallback((phrases: string[]) => phrases.forEach(warm), [])
+  const preload = useCallback((phrases: string[]) => {
+    const sp = speakerFor(optsRef.current.gender)
+    phrases.forEach(p => warm(vocalize(p), optsRef.current.rate ?? 0.95, sp))
+  }, [])
 
   const getMetrics = () => {
     const m = metrics.current

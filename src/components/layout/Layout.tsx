@@ -13,6 +13,7 @@ import { useGamification } from '@/hooks/useGamification'
 import { useCatalogCoverSync } from '@/hooks/useCatalogCoverSync'
 import { useAutoInstallVoices } from '@/hooks/useAutoInstallVoices'
 import { MobileVoicePackPrompt } from '@/components/voice/MobileVoicePackPrompt'
+import { VoiceStatusLayer } from '@/components/voice/VoiceStatusLayer'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { SIDEBAR_WIDTH, useUiStore } from '@/store/useUiStore'
 import { useReaderChrome } from '@/store/useReaderChrome'
@@ -60,6 +61,7 @@ export function Layout() {
       {/* No livro o topo é do próprio leitor (MobileBookChrome): uma barra só. */}
       {isMobile && !isBookPage ? <NavBar /> : null}
       <MobileVoicePackPrompt pt={pt} />
+      <VoiceStatusLayer pt={pt} />
 
       <div className="flex flex-1 relative">
         {isMobile ? null : <Sidebar />}
