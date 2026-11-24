@@ -42,6 +42,7 @@ export const billing = {
   resume: () => callFn<{ ok: true }>('billing', { action: 'resume' }, { paywall: false }).finally(refreshEntitlements),
   downgrade: (plan: PlanId) => callFn<{ ok: true; until: string }>('billing', { action: 'downgrade', plan }, { paywall: false }).finally(refreshEntitlements),
   refund: () => callFn<{ ok: true }>('billing', { action: 'refund' }, { paywall: false }),
+  invoice: () => callFn<{ url: string; amountCents: number; dueAt: string }>('billing', { action: 'invoice', origin: window.location.origin }, { paywall: false }),
 }
 
 export const BILLING_ERRORS: Record<string, { pt: string; en: string }> = {
@@ -56,6 +57,13 @@ export const BILLING_ERRORS: Record<string, { pt: string; en: string }> = {
   refund_window_closed: { pt: 'O prazo de 7 dias para reembolso já passou.', en: 'The 7-day refund window has passed.' },
   no_subscription: { pt: 'Você não tem uma assinatura ativa.', en: 'You have no active subscription.' },
   gateway_error: { pt: 'O pagamento está instável agora. Tente de novo em instantes.', en: 'Payments are unstable right now. Try again shortly.' },
+  no_invoice: { pt: 'Esta assinatura não é paga por fatura Pix.', en: 'This subscription is not billed by Pix invoice.' },
+  canceled: { pt: 'A assinatura já está cancelada. Para continuar, assine de novo.', en: 'The subscription is already cancelled. Subscribe again to continue.' },
+  nothing_to_resume: { pt: 'Esta assinatura não está cancelada.', en: 'This subscription is not cancelled.' },
+  invalid_plan: { pt: 'Esse plano não vale para esta mudança.', en: 'That plan is not valid for this change.' },
+  intent_not_found: { pt: 'Não encontramos esse pagamento. Atualize a página.', en: 'Payment not found. Refresh the page.' },
+  intent_failed: { pt: 'O pagamento não foi concluído. Tente de novo.', en: 'The payment did not go through. Try again.' },
+  invalid_email: { pt: 'E-mail inválido.', en: 'Invalid email.' },
   resubscribe_required: { pt: 'A assinatura já foi cancelada no pagamento. Para continuar depois do fim do período, assine de novo.', en: 'The subscription was already canceled. Subscribe again after the period ends.' },
 }
 

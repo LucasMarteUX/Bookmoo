@@ -64,7 +64,7 @@ export function SubscriptionPage() {
   const downgrade = async (to: PlanId) => {
     const target = planById(to)
     const ok = await askConfirm(pt ? `Mudar para o ${target.name}?` : `Switch to ${target.name}?`, {
-      detail: pt ? `O ${plan.name} continua até ${date(sub?.current_period_end)}. A partir dessa data você passa para o ${target.name}${sub?.provider === 'abacatepay' ? ', cobrado automaticamente na mesma forma de pagamento' : ' (avisaremos para concluir)'}.` : `${plan.name} stays until ${date(sub?.current_period_end)}. Then you subscribe to ${target.name}.`,
+      detail: pt ? `O ${plan.name} continua até ${date(sub?.current_period_end)}. A partir dessa data você passa para o ${target.name}${sub?.provider === 'abacatepay' ? ', cobrado automaticamente na mesma forma de pagamento' : sub?.provider === 'abacatepay_pix' ? ', e a próxima fatura já sai com o valor novo' : ' (avisaremos para concluir)'}.` : `${plan.name} stays until ${date(sub?.current_period_end)}. Then you subscribe to ${target.name}.`,
       confirmLabel: pt ? 'Agendar mudança' : 'Schedule change',
     })
     if (ok) await run(() => billing.downgrade(to), pt ? 'Mudança agendada.' : 'Change scheduled.')
@@ -76,8 +76,13 @@ export function SubscriptionPage() {
     })
     if (ok) await run(() => billing.refund(), pt ? 'Pedido de reembolso enviado. Você receberá a confirmação por e-mail.' : 'Refund requested.')
   }
+  const payInvoice = async () => {
+    setBusy(true)
+    try { const inv = await billing.invoice(); window.location.href = inv.url } catch (e) { fail(e); setBusy(false) }
+  }
   const firstPaid = [...payments].reverse().find(p => p.status === 'paid')
-  const managed = !!sub && (sub.provider === 'zouti' || sub.provider === 'abacatepay')
+  const managed = !!sub && (sub.provider === 'zouti' || sub.provider === 'abacatepay' || sub.provider === 'abacatepay_pix')
+  const byInvoice = sub?.provider === 'abacatepay_pix'
   const per = cycle === 'annual' ? (pt ? '/ano' : '/yr') : (pt ? '/mês' : '/mo')
   const canRefund = managed && firstPaid?.paid_at && Date.now() - new Date(firstPaid.paid_at).getTime() < 7 * 86400_000 && !payments.some(p => p.kind === 'refund')
 
@@ -105,6 +110,11 @@ export function SubscriptionPage() {
             {ent.plan === 'pro' ? (pt ? 'Ver planos' : 'See plans') : (pt ? 'Fazer upgrade' : 'Upgrade')}
           </Link>
         </div>
+        {byInvoice && !sub.cancel_at_period_end && (
+          <p className="mt-3 text-[13px]" style={{ color: 'var(--theme-text-secondary)' }}>
+            {pt ? 'Pagamento por fatura Pix: enviamos o link por e-mail antes de cada vencimento. Não há débito automático.' : 'Paid by Pix invoice: we email you the link before each due date. There is no automatic debit.'}
+          </p>
+        )}
         <div className="mt-5"><UsageMeters /></div>
         {managed && (
           <div className="mt-5 flex flex-wrap gap-2">
@@ -115,6 +125,11 @@ export function SubscriptionPage() {
             ) : !sub.pending_plan && PLANS.filter(p => p.id !== 'free' && planRank(p.id) < planRank(ent.plan)).map(p => (
               <button key={p.id} type="button" disabled={busy} onClick={() => downgrade(p.id)} className="h-10 px-4 rounded-xl text-[14px] border" style={{ borderColor: 'var(--theme-border)' }}>{pt ? `Mudar para ${p.name}` : `Switch to ${p.name}`}</button>
             ))}
+            {byInvoice && !sub.cancel_at_period_end && (
+              <button type="button" disabled={busy} onClick={payInvoice} className="h-10 px-4 rounded-xl text-[14px] font-medium" style={{ backgroundColor: sub.status === 'past_due' ? 'var(--theme-primary)' : 'transparent', color: sub.status === 'past_due' ? 'var(--theme-primary-text)' : 'var(--theme-text)', border: sub.status === 'past_due' ? 'none' : '1px solid var(--theme-border)' }}>
+                {sub.status === 'past_due' ? (pt ? 'Pagar agora' : 'Pay now') : (pt ? 'Pagar a próxima fatura' : 'Pay next invoice')}
+              </button>
+            )}
             <Link to="/recibos" className="h-10 px-4 rounded-xl inline-flex items-center text-[14px] border" style={{ borderColor: 'var(--theme-border)' }}>{pt ? 'Recibos' : 'Receipts'}</Link>
           </div>
         )}

@@ -70,7 +70,11 @@ export const nextPlan = (id: string | null | undefined) => PLANS[Math.min(PLANS.
 
 /** Plano anual: 20% de desconto sobre 12 meses. Os créditos continuam liberados mês a mês (o servidor faz isso). */
 export const ANNUAL_DISCOUNT = 0.2
-export const annualCents = (monthlyCents: number) => Math.round(monthlyCents * 12 * (1 - ANNUAL_DISCOUNT))
+/** Preço anual de fato cobrado, quando difere do cálculo por arredondamento. Precisa bater com PRICE_TABLE
+ *  (supabase/functions/_shared/payments.ts) e com o produto na AbacatePay, senão o site anuncia um valor e a
+ *  cobrança sai com outro. Chave: a mensalidade do plano. */
+const ANNUAL_EXATO: Record<number, number> = { 4490: 43080 }
+export const annualCents = (monthlyCents: number) => ANNUAL_EXATO[monthlyCents] ?? Math.round(monthlyCents * 12 * (1 - ANNUAL_DISCOUNT))
 export const annualMonthlyCents = (monthlyCents: number) => Math.round(annualCents(monthlyCents) / 12)
 
 /** Checkout da Zouti: um link para todos os planos mensais e outro para os anuais (o valor pago define o plano). */
