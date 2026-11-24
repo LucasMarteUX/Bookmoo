@@ -2,7 +2,7 @@
 import { useState, type CSSProperties, type FormEvent, type ReactNode } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Link } from 'react-router-dom'
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { motion } from 'motion/react'
 import { ArrowRight, BookOpen, Clock, Headphones, Mic, PenLine } from 'lucide-react'
 import { ReportPreview } from '@/pages/proficiency/ReportPreview'
 import { BAND_CEFR, SECTION_LABEL, SECTION_PLAN, type Section } from '@/lib/proficiencyApi'
@@ -11,10 +11,7 @@ import { PageOpening } from '../PageOpening'
 import { useSeo } from '../ui'
 import { FaqSection, FinalCta } from '../sections'
 import { CompareTable, Pricing } from '../blocks'
-import { BreathingTutor } from '../LiveTutor'
-import { SUPPORT_EMAIL, TUTORS, tutorAvatar, tutorImg } from '../content'
-import { VMemory, VPhone, VScenes, VSpeed } from '../vignettes2'
-import { VTutorChat } from '../vignettes'
+import { SUPPORT_EMAIL, TUTORS, tutorImg } from '../content'
 import { In, SectionHead, Tiles } from '../story/Showcase'
 import '../story/story.css'
 
@@ -42,92 +39,6 @@ export function SitePlanos() {
         <In><CompareTable /></In>
       </section>
       <FaqSection ids={['pagar', 'creditos', 'presente', 'cancelar']} />
-    </SiteLayout>
-  )
-}
-
-/* ================================================================ Tutores */
-
-/** Um tutor por seção: retrato pintado de um lado, personalidade, jeito de falar e para quem serve do outro. */
-function TutorSection({ tutor, index }: { tutor: typeof TUTORS[number]; index: number }) {
-  const flip = index % 2 === 1
-  return (
-    <section className="sc-section">
-      <div className={`sc-split tutor-split${flip ? ' is-flipped' : ''}`}>
-        <In>
-          <figure className="tutor-card">
-            <div className="tutor-card-stage" style={{ background: tutor.tint }}>
-              <BreathingTutor id={tutor.id} className="h-[94%]" />
-            </div>
-            <figcaption>
-              <i>{tutor.name}</i><span>{tutor.role}</span>
-              <span aria-hidden>{String(index + 1).padStart(2, '0')} / {String(TUTORS.length).padStart(2, '0')}</span>
-            </figcaption>
-          </figure>
-        </In>
-        <div className="sc-split-copy">
-          <In><p className="sc-kicker">{tutor.role}</p><h2 className="sc-title">{tutor.name}</h2></In>
-          <In delay={0.06}><p className="sc-lead">{tutor.about}</p></In>
-          <In delay={0.1}>
-            <p className="tutor-line" lang="pt-BR">“{tutor.line}”</p>
-          </In>
-          <In delay={0.14}>
-            <div className="tutor-facts">
-              <div>
-                <h3>Jeito de falar</h3>
-                <p>{tutor.style}</p>
-                <p className="tutor-voice">{tutor.voice}</p>
-              </div>
-              <div>
-                <h3>Combina com</h3>
-                <ul>{tutor.fits.map(f => <li key={f}>{f}</li>)}</ul>
-              </div>
-              <div>
-                <h3>Narra por padrão</h3>
-                <p>{tutor.when}</p>
-              </div>
-            </div>
-          </In>
-        </div>
-      </div>
-    </section>
-  )
-}
-
-export function SiteTutores() {
-  useSeo('Tutores · Upoonly', 'Conheça Bia, Luck, Yuno e Yuri e pratique conversação em inglês com os tutores de IA do leitor.')
-  return (
-    <SiteLayout>
-      <PageHero kicker="Tutores" title={<>Quatro pessoas para <i>conversar</i>.</>}
-        text="Cada tutor tem um ritmo, um jeito de corrigir e um assunto preferido. Escolha quem combina com você hoje e troque quando quiser: todos lembram do que vocês já conversaram."
-        actions={<><Primary to="/signup">Experimentar uma conversa</Primary><Secondary to="/planos">Ver planos</Secondary></>} />
-
-      {TUTORS.map((t, i) => <TutorSection key={t.id} tutor={t} index={i} />)}
-
-      <section className="sc-section">
-        <In className="sc-photo-band">
-          <img src="/site/home/conversar.webp" alt="Uma jovem rindo enquanto conversa em inglês com a tutora pelo celular" />
-          <div className="sc-photo-chip"><img src={tutorAvatar('bia')} alt="" /><p lang="en">Great sentence! Just one tip…</p></div>
-          <div className="sc-photo-caption"><p>22:10 · antes de dormir</p><h2>Falar em voz alta fica leve quando alguém <i>torce por você</i>.</h2></div>
-        </In>
-      </section>
-
-      <section className="sc-section">
-        <SectionHead kicker="Sobre o que conversar" title={<>Do capítulo de hoje <i>à vida real</i>.</>}
-          text="Abra uma conversa sobre o livro, entre numa cena como pedir um café ou chegar a uma entrevista, ou simplesmente fale sobre o seu dia." />
-        <Tiles tiles={[
-          { title: 'O capítulo de hoje', text: 'Converse sobre os personagens e peça ajuda com as expressões do texto.', to: '/signup', tone: 'blush', span: 7, visual: <VTutorChat /> },
-          { title: 'Cenas da vida real', text: 'Café, aeroporto, entrevista. Pratique antes de precisar.', to: '/signup', tone: 'sage', span: 5, visual: <VScenes /> },
-          { title: 'Eles lembram de você', text: 'A conversa continua de onde parou.', to: '/signup', tone: 'sand', span: 4, visual: <VMemory /> },
-          { title: 'Vozes naturais', text: 'Escolha a voz e a velocidade de cada tutor.', to: '/signup', tone: 'sky', span: 4, visual: <VSpeed /> },
-          { title: 'No celular também', text: 'Leia no computador e converse no celular.', to: '/signup', tone: 'sage', span: 4, visual: <VPhone /> },
-        ]} />
-      </section>
-
-      <section className="sc-section sc-note-line">
-        <In><p>O Grátis inclui uma cena de teste. A duração das cenas, o tutor de leitura e a conversa livre variam de acordo com o plano. <Link to="/planos" className="sc-textlink">Comparar planos <ArrowRight size={15} /></Link></p></In>
-      </section>
-      <FinalCta />
     </SiteLayout>
   )
 }
@@ -192,31 +103,31 @@ export function SiteSobre() {
   useSeo('Sobre · Upoonly', 'Conheça o leitor, as histórias e os tutores do Upoonly.')
   return (
     <SiteLayout>
-      <PageHero kicker="Sobre o Upoonly" title={<>Tudo começa com <i>um bom livro</i>.</>}
-        text="Criamos o leitor que gostaríamos de ter tido quando começamos a estudar inglês. Um lugar para descobrir uma história e entender o idioma enquanto ela acontece."
+      <PageHero kicker="Sobre o Upoonly" title={<>A vontade de ler <i>mais uma página.</i></>}
+        text="Foi do nosso amor pela leitura que nasceu o Upoonly. Queríamos levar para o estudo de inglês aquela vontade de ficar acordado só para descobrir o que acontece no próximo capítulo."
         actions={<><Primary to="/signup">Começar grátis</Primary><Secondary to="/recursos">Conhecer o leitor</Secondary></>} />
       <section className="sc-section">
         <div className="sc-split sc-story">
           <In className="sc-story-photo"><img src="/site/home/ouvir.webp" alt="Um jovem sorrindo enquanto ouve um livro em inglês no celular, no trem" /></In>
           <div>
-            <In><p className="sc-kicker">Nossa história</p><h2 className="sc-title">Aprender inglês não precisava <i>ser chato</i>.</h2></In>
-            <In delay={0.06}><p className="sc-lead">A gente aprendeu de verdade quando parou de decorar listas e começou a ler o que gostava. O difícil era o resto: parar a cada palavra, abrir o tradutor, perder o fio da história.</p></In>
-            <In delay={0.12}><p className="sc-lead">O Upoonly junta tudo isso num lugar só. A história continua, a palavra é explicada ali mesmo, e quando você quiser falar, tem alguém para conversar.</p></In>
+            <In><p className="sc-kicker">Nossa história</p><h2 className="sc-title">Uma palavra fica quando <i>tem uma história.</i></h2></In>
+            <In delay={0.06}><p className="sc-lead">Quem ama ler conhece a sensação de lembrar de uma fala anos depois de fechar o livro. A gente se lembra de quem falou, do que estava em jogo e até do silêncio que veio depois. Foi daí que veio a ideia de estudar outro idioma dentro de uma história.</p></In>
+            <In delay={0.12}><p className="sc-lead">Imaginamos um leitor em que desse para parar numa frase, ouvir a voz do personagem e perguntar por que aquela palavra muda o sentido da cena. A IA entrou para acompanhar essa curiosidade. Depois, você pode escrever o que ouviu e contar a um tutor como teria respondido. O inglês que começou na voz de outra pessoa ganha a sua.</p></In>
           </div>
         </div>
       </section>
       <section className="sc-section">
-        <SectionHead kicker="No que acreditamos" title={<>Quatro ideias <i>que guiam o Upoonly</i>.</>} text="Elas decidem o que entra no leitor e o que fica de fora." />
+        <SectionHead kicker="No que acreditamos" title={<>Um capítulo, <i>quatro jeitos de aprender.</i></>} text="Uma mesma passagem pode acompanhar você da primeira leitura até uma conversa inteira." />
         <Tiles tiles={[
-          { title: 'A história vem primeiro', text: 'Você abre um livro porque quer saber o que acontece. O inglês vem junto, não no lugar.', to: '/leitor', tone: 'sand', span: 6 },
-          { title: 'Errar faz parte', text: 'Os tutores corrigem com carinho e comemoram cada acerto. Falar em voz alta tem que ser leve.', to: '/tutores', tone: 'blush', span: 6 },
-          { title: 'Português quando ajuda', text: 'Explicações, gramática e diagnóstico em português, para você entender e seguir em frente.', to: '/leitor', tone: 'sage', span: 6 },
-          { title: 'No seu ritmo', text: 'Do A1 ao C2, no computador ou no celular, alguns minutos por dia ou um capítulo inteiro.', to: '/evolucao', tone: 'sky', span: 6 },
+          { title: 'Ler para descobrir', text: 'Siga o fio da história. Quando uma expressão despertar curiosidade, toque nela e descubra o que significa naquela cena.', to: '/leitor', tone: 'sand', span: 6 },
+          { title: 'Escutar a cena', text: 'Ouça a narração acompanhando as palavras na tela. Uma pausa ou uma mudança de tom pode revelar a intenção de um personagem.', to: '/leitor', tone: 'blush', span: 6 },
+          { title: 'Escrever de ouvido', text: 'No ditado, escute uma frase, escreva o que entendeu e compare com o trecho do livro.', to: '/pratica', tone: 'sage', span: 6 },
+          { title: 'Falar com a sua voz', text: 'Você teria aberto aquela porta? Converse com um tutor de IA sobre as escolhas dos personagens. A resposta é sua, e há tempo para tentar de novo.', to: '/tutores', tone: 'sky', span: 6 },
         ]} />
       </section>
       <section className="sc-section">
         <In><div className="sc-numbers">
-          <div><b>100+</b><span>clássicos em inglês, com capa nova e nível indicado</span></div>
+          <div><b>100+</b><span>livros em inglês, com capa e nível indicado</span></div>
           <div><b>16</b><span>estilos para ilustrar as páginas</span></div>
           <div><b>4</b><span>tutores para conversar por voz</span></div>
           <div><b>A1–C2</b><span>do primeiro conto ao Sherlock Holmes</span></div>

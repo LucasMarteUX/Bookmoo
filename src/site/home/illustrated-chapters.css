@@ -76,7 +76,9 @@
 .folio-plate .folio-sample .mt-1 { margin-top: .25rem; }
 .folio-plate .folio-sample .mt-2 { margin-top: .5rem; }
 .folio-plate .folio-sample .mt-3 { margin-top: .75rem; }
-.folio-plate[data-chapter="aventura"] .folio-sample { margin-bottom: 2.75rem; }
+.folio-plate .folio-action { position: relative; z-index: 1; }
+/* Sem demonstração (capítulo "aventura"): o botão vem logo depois do texto. */
+.folio-plate .folio-introduction + .folio-action { margin-top: clamp(24px, 2.4vw, 40px); }
 .folio-plate[data-chapter="palavras"] .folio-sample { width: min(100%, 18.5rem); }
 
 .folio-word {

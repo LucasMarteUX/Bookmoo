@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { motion, useMotionValueEvent, useReducedMotion, useScroll, useTransform } from 'motion/react'
 import { Button } from '@/components/ui/button'
-import { Btn } from '../ui'
+import { Link } from 'react-router-dom'
 import { ImageDither } from '../ImageDither'
 import './illustration-atelier.css'
 
@@ -48,8 +48,8 @@ export function IllustrationAtelier() {
     <section id="atelie" className="illustration-atelier" ref={section} aria-labelledby={titleId}>
      <div className="atelier-stage">
       <motion.div className="atelier-copy" style={reduce ? undefined : { y: typeY }}>
-        <small>Escolha seu tema favorito</small>
-        <h2 id={titleId}>Da tinta<br />à <i>imagem.</i></h2>
+        <small>Estilos de ilustração</small>
+        <h2 id={titleId}>A mesma cena,<br />no <i>seu traço.</i></h2>
         <p>Jim avista um navio na enseada. A cena é a mesma. Escolha um traço e veja como muda a história que você imagina.</p>
       </motion.div>
       <motion.figure className="atelier-plate" style={reduce ? undefined : { y: frameY }}>
@@ -83,7 +83,7 @@ export function IllustrationAtelier() {
                 </Button>
               ))}
             </div>
-            <Btn to="/ilustracoes" arrow>Conhecer os 16 estilos</Btn>
+            <Link className="atelier-all" to="/ilustracoes">Conhecer os 16 estilos <span aria-hidden="true">↗</span></Link>
           </div>
         </figcaption>
       </motion.figure>

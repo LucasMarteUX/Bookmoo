@@ -69,6 +69,12 @@
   .illustration-atelier .atelier-copy h2 { font-size: clamp(65px, 14vw, 90px); }
   .atelier-copy small { margin-bottom: 18px; }
   .atelier-plate figcaption { font-size: 12px; }
+  /* Celular: as abas de estilo ficam acima da imagem, como na seção anterior; o crédito, abaixo. */
+  .atelier-plate { display: flex; flex-direction: column; }
+  .atelier-plate figcaption { display: contents; }
+  .atelier-commands { order: -1; margin: 0 0 12px; }
+  .atelier-credit { order: 1; margin-top: 10px; color: #4e5047; font: 400 12px/1.45 var(--font-sans), sans-serif; }
+  .atelier-commands .atelier-all { order: 2; margin-inline-start: 0; min-height: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -79,3 +85,5 @@
   .illustration-atelier { height: auto; }
   .atelier-stage { position: relative; top: auto; min-height: auto; padding-block: 80px; }
 }
+.atelier-commands .atelier-all { margin-inline-start: auto; display: inline-flex; align-items: center; gap: .45em; min-height: 44px; font-size: 14px; color: #42473c; text-underline-offset: 4px; }
+.atelier-all:is(:hover,:focus-visible) { text-decoration: underline; }

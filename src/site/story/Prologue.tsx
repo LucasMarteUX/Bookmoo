@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useNavigationType } from 'react-router-dom'
 import { motion, useReducedMotion, useScroll, useTransform } from 'motion/react'
 import { Btn } from '../ui'
 import './prologue.css'
@@ -15,9 +16,11 @@ export function Prologue() {
   const scale = useTransform(scrollYProgress,[0,1],[1,1.18])
   const y = useTransform(scrollYProgress,[0,1],['0%','16%'])
   const titleY = useTransform(scrollYProgress, [0, 1], ['0%', '-22%'])
-  // A abertura toca a cada carregamento da página (F5 / Ctrl+Shift+R), mas não ao voltar para a home navegando.
+  // A abertura toca só quando o site é carregado (ou recarregado) já na home. Chegar à home navegando,
+  // pelo logotipo ou por um link, não repete: aí a navegação é PUSH/REPLACE, e não o POP da carga inicial.
+  const navigationType = useNavigationType()
   const [intro, setIntro] = useState(() => {
-    try { return !introPlayed && !location.hash && !matchMedia('(prefers-reduced-motion: reduce)').matches }
+    try { return !introPlayed && navigationType === 'POP' && !location.hash && !matchMedia('(prefers-reduced-motion: reduce)').matches }
     catch { return false }
   })
   // O título só entra quando a abertura começa a se abrir (uma vez), e não de novo quando ela some.

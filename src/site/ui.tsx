@@ -147,3 +147,17 @@ export function useSeo(title: string, description: string) {
     return () => { document.title = prevTitle; if (created) meta?.remove(); else if (meta) meta.content = prevDesc }
   }, [title, description])
 }
+
+/** Tela estreita (celular). Reage quando a janela muda de tamanho. */
+export function useNarrow(px = 760) {
+  const query = `(max-width: ${px}px)`
+  const [narrow, setNarrow] = useState(() => typeof matchMedia !== 'undefined' && matchMedia(query).matches)
+  useEffect(() => {
+    const mq = matchMedia(query)
+    const on = () => setNarrow(mq.matches)
+    on()
+    mq.addEventListener('change', on)
+    return () => mq.removeEventListener('change', on)
+  }, [query])
+  return narrow
+}

@@ -1,12 +1,12 @@
 // Home como história visual (referência: claude.com/product/overview). Nada toca e nada pede para operar:
 // só representação, movimento suave e frases curtas. Cada capítulo leva à página da função.
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { AnimatePresence, motion, useInView, useMotionValueEvent, useReducedMotion, useScroll, useTransform } from 'motion/react'
+import { motion, useInView, useMotionValueEvent, useReducedMotion, useScroll, useTransform } from 'motion/react'
 import { ArrowRight, Check, RotateCcw, Star, Volume2 } from 'lucide-react'
 import { COVERS, coverSrc } from '../covers'
 import { TUTORS, tutorImg } from '../content'
-import { BreathingTutor, LiveTutor } from '../LiveTutor'
+import { BreathingTutor, Bubble, CallingTutor } from '../LiveTutor'
 import { Btn } from '../ui'
 import './story.css'
 
@@ -130,14 +130,14 @@ export function StylesVisual() {
 
 /* ================================================================ Tutores: um de cada vez, trocando com a rolagem */
 
-export function TutorScroll() {
+export function TutorScroll({ profile = false }: { profile?: boolean } = {}) {
   const ref = useRef<HTMLElement>(null)
+  const track = useRef<HTMLDivElement>(null)
   const reduce = useReducedMotion()
   const [i, setI] = useState(0)
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end end'] })
   const stageVisible = useInView(ref, { margin: '350px 0px' })
-  const portraitScale = useTransform(scrollYProgress, [0, .5, 1], [.94, 1, 1.04])
-  // No celular os tutores ficam empilhados e se trocam pelo sumário; o scroll fixo só no computador.
+  // No celular os tutores viram um carrossel; o palco fixo com a rolagem é só no computador.
   const [compact, setCompact] = useState(() => typeof matchMedia !== 'undefined' && matchMedia('(max-width: 768px)').matches)
   useEffect(() => {
     const mq = matchMedia('(max-width: 768px)')
@@ -147,6 +147,13 @@ export function TutorScroll() {
   }, [])
   const pinned = !reduce && !compact
   useMotionValueEvent(scrollYProgress, 'change', v => pinned && setI(Math.min(TUTORS.length - 1, Math.max(0, Math.floor(v * TUTORS.length * 0.999)))))
+  // Os nomes ao lado trocam na hora; o palco só "liga" para o tutor quando a rolagem para um instante,
+  // para não começar uma ligação a cada tutor que passa.
+  const [settled, setSettled] = useState(TUTORS[0].id)
+  useEffect(() => {
+    const d = window.setTimeout(() => setSettled(TUTORS[i].id), 280)
+    return () => window.clearTimeout(d)
+  }, [i])
   function selectTutor(index: number) {
     const section = ref.current
     if (pinned && section) {
@@ -156,59 +163,64 @@ export function TutorScroll() {
     setI(index)
   }
   const t = TUTORS[i]
-  // Tutor que o palco animado vai carregar: só muda quando a rolagem para por um instante.
-  const [settled, setSettled] = useState(t.id)
-  const [liveState, setLiveState] = useState<{ readyId: string | null; failed: boolean }>({ readyId: null, failed: false })
-  const onLive = useCallback((s: { readyId: string | null; failed: boolean }) => setLiveState(s), [])
-  // O animado só aparece quando é o tutor da vez e já está pronto; até lá fica o retrato pintado.
-  const liveOn = !liveState.failed && liveState.readyId === t.id && settled === t.id
-  useEffect(() => {
-    const d = window.setTimeout(() => setSettled(t.id), 260)
-    return () => window.clearTimeout(d)
-  }, [t.id])
+  const cta = <Btn to={profile ? "/signup" : "/tutores"} arrow>{profile ? "Experimentar uma conversa" : "Conhecer os tutores"}</Btn>
+
+  if (compact) {
+    // Celular: um cartão por tutor, deslizando para o lado, com o nome num cartão no canto do quadro.
+    const goTo = (k: number) => {
+      const el = track.current?.children[k] as HTMLElement | undefined
+      el?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', inline: 'center', block: 'nearest' })
+    }
+    const onScroll = () => {
+      const el = track.current
+      if (!el) return
+      const card = el.firstElementChild as HTMLElement | null
+      const step = card ? card.offsetWidth + 12 : el.clientWidth
+      setI(Math.max(0, Math.min(TUTORS.length - 1, Math.round(el.scrollLeft / step))))
+    }
+    return (
+      <section ref={ref} className="st-tutors st-tutors-mobile">
+        <p className="journey-label">Tutores</p>
+        <h2 className="journey-title">Converse com quem tem <i>paciência.</i></h2>
+        <div ref={track} className="st-tm-track" onScroll={onScroll} role="group" aria-label="Tutores">
+          {TUTORS.map(x => (
+            <figure key={x.id} className="st-tm-card" style={{ background: x.tint }}>
+              <div className="st-tm-portrait"><BreathingTutor id={x.id} smile={false} className="h-full" /></div>
+              <div className="st-tm-bubble"><Bubble text={x.line} tail="center" className="text-center" /></div>
+              <figcaption className="st-tm-name"><i>{x.name}</i></figcaption>
+            </figure>
+          ))}
+        </div>
+        <div className="st-tm-dots">
+          {TUTORS.map((x, k) => <button key={x.id} type="button" aria-label={x.name} aria-pressed={k === i} onClick={() => goTo(k)} />)}
+        </div>
+        <p className="st-tutor-about">{t.about}</p>
+        {cta}
+      </section>
+    )
+  }
+
   return (
     <section ref={ref} className="st-tutors" data-pinned={pinned} style={{ height: pinned ? `${TUTORS.length * 90 + 40}vh` : 'auto' }}>
       <div className="st-tutors-pin">
         <div className="st-tutors-grid">
           <figure className="st-tutor-plate">
-            <div className="st-tutor-stage" style={{ background: t.tint }} data-tutor={t.id} data-live={liveState.failed ? 'off' : liveOn ? 'on' : 'loading'}>
-              {stageVisible && <motion.div className="absolute inset-0" style={pinned ? { scale: portraitScale } : undefined}>
-                {/* O retrato pintado acompanha a rolagem na hora; o tutor animado entra por cima quando
-                    o personagem do momento termina de carregar (e some se a pessoa já passou para o próximo). */}
-                {/* Um personagem por vez: o retrato some quando o animado do MESMO tutor está pronto.
-                    O canvas do animado é transparente, então deixar o retrato embaixo mostrava os dois. */}
-                {TUTORS.map((x, k) => (
-                  <motion.div key={x.id} className="absolute inset-0 flex items-end justify-center pointer-events-none"
-                    initial={false} animate={{ opacity: k === i && !liveOn ? 1 : 0 }} transition={{ duration: 0.35, ease: EASE }}>
-                    <BreathingTutor id={x.id} className="h-[84%]" />
-                  </motion.div>
-                ))}
-                <motion.div className="absolute inset-0" initial={false}
-                  animate={{ opacity: liveOn ? 1 : 0 }} transition={{ duration: 0.35, ease: EASE }}>
-                  <LiveTutor id={settled} portrait={false} bubble="head" onLive={onLive} />
-                </motion.div>
-                {!liveOn && !liveState.failed && (
-                  <motion.p className="site-live-calling" initial={{ opacity: 0 }} animate={{ opacity: [0.45, 1, 0.45] }}
-                    transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}>
-                    chamando {t.name}…
-                  </motion.p>
-                )}
-              </motion.div>}
+            <div className="st-tutor-stage" data-tutor={settled}>
+              {stageVisible && <CallingTutor id={settled} name={TUTORS.find(x => x.id === settled)?.name ?? ''} />}
             </div>
-            <figcaption><i>{t.name}</i><span>{t.role}</span><span aria-hidden>{String(i + 1).padStart(2, '0')} / {String(TUTORS.length).padStart(2, '0')}</span></figcaption>
           </figure>
           <div className="st-tutor-copy">
             <p className="journey-label">Tutores</p>
             <h2 className="journey-title">Converse com quem tem <i>paciência.</i></h2>
             <div className="st-tutor-index" role="group" aria-label="Escolher tutor">
-              {TUTORS.map((x, k) => <button type="button" key={x.id} aria-pressed={k === i} onClick={() => selectTutor(k)}><small>{String(k + 1).padStart(2, '0')}</small>{x.name}</button>)}
+              {TUTORS.map((x, k) => <button type="button" key={x.id} aria-pressed={k === i} onClick={() => selectTutor(k)}>{x.name}</button>)}
             </div>
-            <AnimatePresence mode="wait">
-              <motion.div key={t.id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.5, ease: EASE }}>
+            <div>
+              <motion.div key={t.id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: EASE }}>
                 <p className="st-tutor-about">{t.about}</p>
               </motion.div>
-            </AnimatePresence>
-            <Btn to="/tutores" arrow>Conhecer os tutores</Btn>
+            </div>
+            {cta}
           </div>
         </div>
       </div>

@@ -69,7 +69,9 @@ const frames = (n: number) => new Promise<void>(resolve => {
   requestAnimationFrame(tick)
 })
 
-export function LivLivAvatar({ characterId, state, speakingText = '', onHead, onReady, size = 220, mood = 'neutral', wave = false, followPointer = true, voice = false, stage = false, onPoke, onFail }: {
+export function LivLivAvatar({ characterId, state, speakingText = '', onHead, onReady, size = 220, mood = 'neutral', wave = false, followPointer = true, voice = false, stage = false, callOnMount = false, onPoke, onFail }: {
+  /** Palco: começa com a ligação de 3 s também na primeira aparição, e não só ao trocar de personagem. */
+  callOnMount?: boolean
   characterId: string
   /** Frase sendo dita agora: pergunta inclina a cabeça, exclamação anima. */
   speakingText?: string
@@ -100,7 +102,12 @@ export function LivLivAvatar({ characterId, state, speakingText = '', onHead, on
   const onReadyRef = useRef(onReady)
   onReadyRef.current = onReady
   // Troca de tutor no palco: uma "ligação" de uns 3 segundos ("Chamando Luck...") antes de ele aparecer.
-  const [calling, setCalling] = useState(false)
+  const [calling, setCalling] = useState(stage && callOnMount)
+  useEffect(() => {
+    if (!(stage && callOnMount)) return
+    const t = window.setTimeout(() => setCalling(false), CALL_MS)
+    return () => window.clearTimeout(t)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
   // Visível de verdade: carregado, enquadrado e já passou o "chamando" (o balão de fala só aparece daí em diante).
   const visible = ready && !calling
   const visibleRef = useRef(false)

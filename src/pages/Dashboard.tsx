@@ -60,7 +60,7 @@ export function Dashboard() {
   const { vocabularies } = useVocabularyStore()
   const userId = session?.user?.id
   
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const [isAddModalOpen, setIsAddModalOpen] = useState(() => new URLSearchParams(window.location.search).get('importar') === 'livro')
   const [newTitle, setNewTitle] = useState('')
   const [newContent, setNewContent] = useState('')
   const [importedEpub, setImportedEpub] = useState<EpubBook | null>(null)

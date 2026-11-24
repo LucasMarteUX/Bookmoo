@@ -192,3 +192,26 @@
   .site .st-tutors .st-tutor-stage { height: auto; aspect-ratio: 4 / 5; max-height: 62svh; }
   .site .st-tutors .st-tutor-index { max-width: none; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 18px; }
 }
+
+/* ---------------------------------------------------------------- Tutores no celular: carrossel */
+/* Um cartão por tutor, deslizando para o lado. O nome fica num cartãozinho no canto inferior esquerdo
+   do quadro, em vez da lista em cima que empurrava o personagem para fora da tela. */
+.site .st-tutors-mobile { padding: 56px 20px 52px; }
+.site .st-tutors-mobile .journey-title { margin-top: 10px; }
+.site .st-tm-track { display: flex; gap: 12px; margin: 24px -20px 0; padding: 0 20px; overflow-x: auto; overflow-y: hidden;
+  overscroll-behavior-x: contain; touch-action: pan-x pan-y; scroll-snap-type: x mandatory; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+/* Os cartões não entram com a animação de rolagem do site (ela os deslocava na vertical dentro da faixa). */
+.site .st-tm-track > .st-tm-card[data-rv] { opacity: 1 !important; transform: none !important; translate: none !important; }
+.site .st-tm-track::-webkit-scrollbar { display: none; }
+.site .st-tm-card { position: relative; flex: 0 0 84%; margin: 0; aspect-ratio: 4 / 5; overflow: hidden;
+  scroll-snap-align: center; outline: 1px solid #57574720; }
+.site .st-tm-portrait { position: absolute; left: 0; right: 0; bottom: 0; height: 80%; display: flex; justify-content: center; }
+.site .st-tm-bubble { position: absolute; top: 6%; left: 0; right: 0; display: flex; justify-content: center; padding: 0 14%; pointer-events: none; }
+.site .st-tm-name { position: absolute; left: 12px; bottom: 12px; display: grid; gap: 3px; padding: 9px 13px 10px;
+  background: #fbfaf6; border-radius: 10px; box-shadow: 0 1px 2px #0000001f, 0 10px 24px -14px #0000004d; }
+.site .st-tm-name i { font: italic 400 24px/1 var(--font-display), Georgia, serif; color: #292b26; }
+.site .st-tm-name span { font-size: 12px; color: #575b4f; }
+.site .st-tm-dots { display: flex; justify-content: center; gap: 8px; margin-top: 16px; }
+.site .st-tm-dots button { width: 7px; height: 7px; padding: 0; border-radius: 99px; background: #c9c8b9; transition: width .3s ease, background-color .3s ease; }
+.site .st-tm-dots button[aria-pressed=true] { width: 22px; background: #292b26; }
+.site .st-tutors-mobile .st-tutor-about { margin: 18px 0 20px; min-height: 3.2em; }

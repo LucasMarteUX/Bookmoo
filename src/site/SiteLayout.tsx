@@ -62,7 +62,7 @@ function Nav() {
   return <header className="public-header">
     <a className="public-skip" href="#conteudo">Pular para o conteúdo</a>
     <div className="public-bar">
-      <Link to="/" aria-label="Upoonly, início" className="public-logo"><Logo height={32}/></Link>
+      <Link to="/" aria-label="Upoonly, início" className="public-logo"><Logo height={42}/></Link>
       <nav className="public-links" aria-label="Navegação principal">
         {navigation.map(item => <NavLink key={item.to} to={item.to}>{item.label}</NavLink>)}
       </nav>

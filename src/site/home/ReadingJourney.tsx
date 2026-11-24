@@ -2,26 +2,35 @@ import { useRef, useState } from 'react'
 import { motion, useReducedMotion, useScroll, useTransform, type MotionValue } from 'motion/react'
 import { Link } from 'react-router-dom'
 import { ArrowUpRight, Check, X } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { COVERS, coverSrc } from '../covers'
-import { Btn, ScrollRevealText } from '../ui'
+import { CATALOG, coverSrc, type Book } from '../catalog'
+import { Btn, ScrollRevealText, useNarrow } from '../ui'
 import { ImageDither } from '../ImageDither'
 
 export function ConversationPrelude() {
   const ref = useRef<HTMLElement>(null)
+  // No celular o paralaxe grande as levava por cima do texto: lá elas só se afastam da frase (as de cima
+  // sobem, as de baixo descem) e escorregam para fora pela borda da tela.
+  const narrow = useNarrow()
   const reduced = useReducedMotion()
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] })
   // As pinturas sobem mais rápido que o texto (parallax): as próximas correm mais, as distantes menos.
   const near = useTransform(scrollYProgress, [0, 1], [260, -320])
   const far = useTransform(scrollYProgress, [0, 1], [140, -170])
+  const topY = useTransform(scrollYProgress, [0, 1], [34, -34])
+  const bottomY = useTransform(scrollYProgress, [0, 1], [-34, 34])
+  const outL = useTransform(scrollYProgress, [0, 1], [0, -28])
+  const outR = useTransform(scrollYProgress, [0, 1], [0, 28])
+  const motionFor = (place: 'tl' | 'tr' | 'bl' | 'br', desktop: MotionValue<number>) => reduced ? undefined
+    : narrow ? { y: place[0] === 't' ? topY : bottomY, x: place[1] === 'l' ? outL : outR }
+    : { y: desktop }
   return (
     <section ref={ref} className="conversation-prelude" aria-label="Da leitura à conversa">
-      <motion.img aria-hidden="true" alt="" loading="lazy" className="conversation-detail conversation-detail-ink" src="/site/home/margens.webp" style={reduced ? undefined : { y: far }}/>
+      <motion.img aria-hidden="true" alt="" loading="lazy" className="conversation-detail conversation-detail-ink" src="/site/home/margens.webp" style={motionFor('tl', far)}/>
       <ScrollRevealText text="Você entrou na história. Agora, como contaria o que aconteceu?" />
-      <motion.img aria-hidden="true" alt="" loading="lazy" className="conversation-detail conversation-detail-voice" src="/site/home/fala.webp" style={reduced ? undefined : { y: near }}/>
-      <motion.img aria-hidden="true" alt="" loading="lazy" className="conversation-detail conversation-detail-listen" src="/site/home/conversa-ouvir.webp" style={reduced ? undefined : { y: far }}/>
-      <motion.img aria-hidden="true" alt="" loading="lazy" className="conversation-detail conversation-detail-call" src="/site/home/conversa-video.webp" style={reduced ? undefined : { y: near }}/>
-      <motion.img aria-hidden="true" alt="" loading="lazy" className="conversation-detail conversation-detail-boy" src="/site/home/conversa-menino.webp" style={reduced ? undefined : { y: far }}/>
+      <motion.img aria-hidden="true" alt="" loading="lazy" className="conversation-detail conversation-detail-voice" src="/site/home/fala.webp" style={motionFor('br', near)}/>
+      <motion.img aria-hidden="true" alt="" loading="lazy" className="conversation-detail conversation-detail-listen" src="/site/home/conversa-ouvir.webp" style={motionFor('tr', far)}/>
+      <motion.img aria-hidden="true" alt="" loading="lazy" className="conversation-detail conversation-detail-call" src="/site/home/conversa-video.webp" style={motionFor('bl', near)}/>
+      <motion.img aria-hidden="true" alt="" loading="lazy" className="conversation-detail conversation-detail-boy" src="/site/home/conversa-menino.webp" style={narrow || reduced ? undefined : { y: far }}/>
     </section>
   )
 }
@@ -81,35 +90,55 @@ export function PracticePassage() {
   )
 }
 
-const shelfSlugs = ['the-secret-garden', 'treasure-island', 'pride-and-prejudice', 'frankenstein']
-const shelf = shelfSlugs.flatMap(slug => COVERS.filter(book => book.slug === slug))
+// Seleção da biblioteca: três fileiras de capas passando sozinhas, em velocidade constante e sentidos
+// alternados, com uma placa de categoria abrindo cada grupo. É vitrine, não galeria: sem filtro nem
+// paginação, sem parar no mouse e sem depender da rolagem; quem quer escolher vai para /livros.
+const PER_GROUP = 6
+const groups = [...new Set(CATALOG.map(book => book.category))]
+  .map(category => ({ category, books: CATALOG.filter(book => book.category === category) }))
+  .sort((a, b) => b.books.length - a.books.length)
+// Distribui as categorias em três fileiras de tamanho parecido.
+const rows: { category: string; total: number; books: Book[] }[][] = [[], [], []]
+for (const g of groups) {
+  const lightest = rows.reduce((min, row, i) => (row.reduce((n, x) => n + x.books.length, 0) < rows[min].reduce((n, x) => n + x.books.length, 0) ? i : min), 0)
+  rows[lightest].push({ category: g.category, total: g.books.length, books: g.books.slice(0, PER_GROUP) })
+}
+const ROW_SPEED = [96, 118, 84] // segundos para uma volta completa
 
-function ShelfPrint({ index, progress }: { index: number; progress: MotionValue<number> }) {
-  const book = shelf[index]
+function RiverRow({ row, index }: { row: typeof rows[number]; index: number }) {
   const reduced = useReducedMotion()
-  const offset = [-1, .65, -.72, .9][index]
-  const rise = useTransform(progress, [0, .52, 1], [offset * 48, 0, -offset * 46])
-  const angle = useTransform(progress, [0, .52, 1], [offset * 6, 0, -offset * 3])
-  return (
-    <motion.figure className="shelf-print" style={reduced ? undefined : { y: rise, rotate: angle }}>
-      <Link to={`/livro/${book.slug}`} className="shelf-link">
-        <img src={coverSrc(book.slug)} width="400" height="600" alt={book.title} loading="lazy" decoding="async"/>
-        <figcaption><cite lang="en">{book.title}</cite><span>{book.author} · {book.level}</span></figcaption>
+  // A faixa vai duas vezes seguidas: quando a primeira sai inteira, a segunda está no lugar dela.
+  const items = (copy: number) => row.flatMap(group => [
+    <div key={`${copy}-g-${group.category}`} className="river-genre" aria-hidden={copy > 0 || undefined}>
+      <span className="river-genre-kicker">{String(group.total).padStart(2, '0')} livros</span>
+      <i>{group.category}</i>
+    </div>,
+    ...group.books.map(book => (
+      <Link key={`${copy}-${book.slug}`} to={`/livro/${book.slug}`} className="river-book" tabIndex={copy > 0 ? -1 : undefined} aria-hidden={copy > 0 || undefined}>
+        <img src={coverSrc(book.slug)} width="400" height="600" alt={copy > 0 ? '' : book.title} loading="lazy" decoding="async"/>
+        {book.level && <span className="river-book-level">{book.level}</span>}
       </Link>
-    </motion.figure>
+    )),
+  ])
+  return (
+    <div className="river-row">
+      <div className={`river-track${index % 2 ? ' is-reverse' : ''}`} style={{ ['--river-dur' as string]: `${ROW_SPEED[index]}s` }}>
+        {items(0)}{!reduced && items(1)}
+      </div>
+    </div>
   )
 }
 
 export function LibraryShelf() {
-  const ref = useRef<HTMLElement>(null)
-  const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] })
   return (
-    <section ref={ref} className="library-shelf" aria-labelledby="shelf-title">
+    <section className="library-shelf" aria-labelledby="shelf-title">
       <div className="shelf-head">
         <div><p className="journey-label">Seleção da biblioteca</p><h2 id="shelf-title" className="journey-title">Que mundo você<br/>quer <i>abrir agora?</i></h2></div>
         <Btn to="/livros" arrow>Percorrer a biblioteca</Btn>
       </div>
-      <div className="shelf-prints">{shelf.map((book, i) => <ShelfPrint key={book.slug} index={i} progress={scrollYProgress}/>)}</div>
+      <div className="shelf-river">
+        {rows.filter(row => row.length).map((row, i) => <RiverRow key={i} row={row} index={i}/>)}
+      </div>
     </section>
   )
 }

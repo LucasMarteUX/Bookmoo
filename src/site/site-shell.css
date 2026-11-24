@@ -1,8 +1,10 @@
 .site .public-header,
 .site .public-footer {color:var(--site-ink);font-family:var(--font-sans)}
 .public-header {position:sticky;top:0;z-index:50;border-bottom:1px solid var(--site-line);background:var(--site-bg)}
-.public-bar,.public-footer-grid,.public-colophon {width:min(100% - 72px,1280px);margin-inline:auto}
-.public-bar {height:72px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:28px}
+.public-footer-grid,.public-colophon {width:min(100% - 72px,1280px);margin-inline:auto}
+/* O cabeçalho encosta na margem: sem container estreito, respira nas telas largas. */
+.public-bar {width:calc(100% - 56px);margin-inline:auto;max-width:none}
+.public-bar {height:80px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:28px}
 .public-logo {justify-self:start;display:inline-flex;align-items:center;min-height:44px}
 .public-links,.public-account,.public-menu-account,.public-colophon>div {display:flex;align-items:center}
 .public-links {gap:4px;height:100%}
@@ -40,7 +42,8 @@
 .public-colophon a {padding:12px 0}
 .site :where(main section[id],main article[id],main div[id],main[id]) {scroll-margin-top:82px}
 @media(max-width:849px) {
-  .public-bar,.public-footer-grid,.public-colophon {width:calc(100% - 36px)}
+  .public-footer-grid,.public-colophon {width:calc(100% - 36px)}
+  .public-bar {width:calc(100% - 32px)}
   .public-bar {display:flex;justify-content:space-between;height:62px;gap:12px}
   .public-links,.public-account>.public-signin {display:none}
   .public-menu-trigger {display:inline-flex}

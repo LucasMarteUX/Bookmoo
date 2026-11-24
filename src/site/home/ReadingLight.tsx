@@ -36,7 +36,12 @@ export function ReadingLight() {
         </div>
         <figure className="reading-light-page" data-theme={theme}>
           <div className="reading-light-landscape">
-            <motion.img src="/site/home/pemberley.webp" srcSet="/site/home/pemberley-768.webp 768w, /site/home/pemberley.webp 1536w" sizes="(max-width: 760px) 90vw, 54vw" width="1536" height="1024" loading="lazy" decoding="async" alt="Duas mulheres passeiam perto de uma ponte nos jardins de uma propriedade inglesa." style={reduced ? undefined : { scale: zoom, y: horizon }}/>
+            {themes.map((name, index) => (
+              <motion.img key={name} src={'/site/home/mesa-' + name.toLowerCase() + '.webp'}
+                width="1024" height="512" loading="lazy" decoding="async" aria-hidden={theme !== index}
+                alt={['Mesa de estudo junto à janela sob o céu azul da manhã.', 'A luz do pôr do sol atravessa a janela e ilumina o computador.', 'A lua aparece pela janela e a luminária ilumina a mesa.'][index]}
+                style={{ opacity: theme === index ? 1 : 0, ...(reduced ? {} : { scale: zoom, y: horizon }) }} />
+            ))}
           </div>
           <figcaption>
             <cite lang="en">Pride and Prejudice</cite>

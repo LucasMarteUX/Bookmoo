@@ -13,7 +13,7 @@
 .book-prologue{background:#f6f2e8;color:#25271e;min-height:calc(100svh - 72px);align-content:center;text-align:center}
 .book-prologue::before{display:none}.book-copy{position:relative;z-index:1;margin:auto;max-width:76vw}.book-copy h1{font-family:var(--font-display),Georgia,serif}.book-copy h1 i{color:#566749}.book-copy p{margin:2rem auto 1.5rem}.book-start{background:#2c382a;color:#fff8e8}
 .book-fragments{position:absolute;inset:0;pointer-events:none}.book-fragments i{position:absolute;object-fit:cover;object-position:center 35%;height:27%;width:16%}.book-fragments i:nth-child(1){left:-2%;top:12%}.book-fragments i:nth-child(2){right:6%;top:-5%;width:12%;height:22%}.book-fragments i:nth-child(3){left:14%;bottom:-3%;height:23%;width:10%}.book-fragments i:nth-child(4){right:-2%;bottom:16%}
-.story-spread{display:grid;grid-template-columns:1.1fr 1fr;gap:6vw;align-items:center;background:#e8e8d8;padding:clamp(45px,8vw,140px) 7vw}.story-spread>img{width:100%;max-height:76svh;object-fit:contain}.spread-copy h2{font:400 clamp(40px,5.4vw,90px)/1.03 var(--font-display),Georgia,serif;letter-spacing:-.05em;margin:1.5rem 0}.spread-copy h2 button{font:inherit;color:#43613e;border-bottom:2px dotted}.story-verbs{padding:6vw;background:#f7f4ec}.story-verbs a{display:flex;align-items:center;gap:3vw;border-bottom:1px solid #c8c6b9;padding:1.5vw 0}.story-verbs a:nth-child(2){padding-left:12vw}.story-verbs img{width:clamp(44px,7vw,120px);aspect-ratio:4/5;object-fit:cover}.story-verbs span{font:400 clamp(45px,9vw,160px)/1 var(--font-display),Georgia,serif;letter-spacing:-.06em}.story-verbs small{margin-left:auto;max-width:16ch}.story-verbs a:is(:hover,:focus-visible) span{color:#526a49}
+.story-spread{display:grid;grid-template-columns:1.1fr 1fr;gap:6vw;align-items:center;background:#e8e8d8;padding:clamp(45px,8vw,140px) 7vw}.story-spread>img{width:100%;max-height:76svh;object-fit:contain}.spread-copy h2{font:400 clamp(40px,5.4vw,90px)/1.03 var(--font-display),Georgia,serif;letter-spacing:-.05em;margin:1.5rem 0}.spread-copy h2 button{font:inherit;color:#43613e;border-bottom:2px dotted}.story-verbs{padding:6vw;background:#f7f4ec}.story-verbs a{display:flex;align-items:center;gap:3vw;border-bottom:1px solid #c8c6b9;padding:1.5vw 0}.story-verbs a:nth-child(2){padding-left:12vw}.story-verbs img{width:clamp(44px,7vw,120px);aspect-ratio:2/3;object-fit:contain;border-radius:3px}.story-verbs span{font:400 clamp(45px,9vw,160px)/1 var(--font-display),Georgia,serif;letter-spacing:-.06em}.story-verbs small{margin-left:auto;max-width:16ch}.story-verbs a:is(:hover,:focus-visible) span{color:#526a49}
 @supports(animation-timeline:view()){ @media(prefers-reduced-motion:no-preference){.book-fragments i{animation:drift linear both;animation-timeline:view();animation-range:exit 0% exit 100%}@keyframes drift{to{transform:translateY(-22%) scale(1.12)}}}}
 @media(max-width:700px){.story-spread{grid-template-columns:1fr}.book-fragments i{height:14%;width:17%}.book-fragments i:nth-child(2){top:1%;height:12%}.book-fragments i:nth-child(3){bottom:1%;height:13%}.book-fragments i:nth-child(4){bottom:9%}.book-copy h1{font-size:clamp(66px,14vw,90px)}.story-verbs small{font-size:11px}.story-verbs a{padding-block:14px}}
 .book-fragments i{background-image:url('/site/home/jardim.webp');background-size:auto 310%;background-position:3% 67%}.book-fragments [data-detail=portao]{background-position:94% 14%}.book-fragments [data-detail=rabanetes]{background-position:91% 95%}.book-fragments [data-detail=peter]{background-position:52% 26%}
@@ -26,10 +26,11 @@
 .book-story .book-prologue::before{display:block;z-index:-1;background:linear-gradient(90deg,#091813ba,transparent 78%),linear-gradient(0deg,#101a15a3,transparent 55%)}
 .book-story .book-copy{margin:0;max-width:min(640px,80%)}.book-story .book-copy h1{font-size:clamp(82px,11.8vw,205px);line-height:.84}.book-story .book-copy h1 i{color:#ecdab4}.book-story .book-copy p{margin:24px 0;max-width:39ch}.book-story .book-start{background:#f5eddb;color:#1b2923;transition:transform .3s,background .3s}.book-start:is(:hover,:focus-visible){transform:translateY(-3px);background:white}
 .book-story .garden-sequence{height:335svh;position:relative;background:#f4f1e9;animation:none;transform:none;clip-path:none}
-.garden-stage{height:calc(100svh - 70px);position:sticky;top:70px;overflow:hidden;isolation:isolate;display:grid;place-items:center}
+.garden-stage{height:calc(100svh - 80px);position:sticky;top:80px;overflow:hidden;isolation:isolate;display:grid;place-items:center}
 .garden-captions{position:relative;z-index:1;width:72%;text-align:center;display:grid;place-items:center}.garden-captions p{grid-area:1/1;margin:0;max-width:13ch;color:#282a23;font:400 clamp(43px,6.4vw,116px)/.97 var(--font-display),Georgia,serif;letter-spacing:-.06em;text-wrap:balance}
 .garden-pieces{position:absolute;inset:0}.garden-pieces i{position:absolute;background-image:url('/site/home/jardim.webp');background-size:auto 320%;width:20%;height:35%}.garden-pieces i:nth-child(1){left:3%;top:2%}.garden-pieces i:nth-child(2){right:13%;top:-6%;width:13%;height:27%}.garden-pieces i:nth-child(3){left:17%;bottom:-6%;width:13%}.garden-pieces i:nth-child(4){right:0;bottom:8%}
 .garden-reveal{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:2}
+
 .book-story .story-verbs{background:#e4e8db}.story-verbs a{position:relative}.story-verbs a:nth-child(3){justify-content:center}.story-verbs a img{transition:transform .45s ease}.story-verbs a:is(:hover,:focus-visible) img{transform:rotate(-6deg) scale(1.12)}
 .book-story .sc-gal{background:#182923;color:#fff4dc}.book-story .sc-gal :is(.sc-title,.sc-kicker,.sc-head-text,.sc-textlink){color:inherit}.book-story .sc-gal-row:hover .sc-gal-track{animation-play-state:paused}
 
@@ -154,3 +155,25 @@
 .book-prologue[data-waiting=true] .book-copy h1 > *, .book-prologue[data-waiting=true] .book-copy > :is(p, .s-btn) { opacity: 0; }
 /* A abertura fica acima de tudo, inclusive do navbar. */
 .flight-intro { z-index: 2147483000; }
+
+.study-mosaic { position: absolute; inset: 0; pointer-events: none; }
+.study-mosaic img { position: absolute; width: 16%; height: 29%; object-fit: cover; }
+.study-mosaic img:nth-child(1) { left: 5%; top: 8%; width: 21%; }
+.study-mosaic img:nth-child(2) { right: 20%; top: 1%; width: 13%; height: 22%; }
+.study-mosaic img:nth-child(3) { left: 18%; bottom: 3%; width: 14%; height: 24%; }
+.study-mosaic img:nth-child(4) { right: 3%; bottom: 13%; width: 22%; height: 34%; }
+.study-mosaic img:nth-child(5) { left: 0; bottom: 17%; width: 12%; height: 23%; }
+.study-mosaic img:nth-child(6) { right: 2%; top: 5%; width: 12%; height: 20%; }
+.study-mosaic img:nth-child(7) { left: 35%; top: 7%; width: 10%; height: 16%; }
+.study-mosaic img:nth-child(8) { right: 34%; bottom: 4%; width: 13%; height: 20%; }
+.study-mosaic img:nth-child(9) { left: 1%; top: 42%; width: 10%; height: 15%; }
+.study-mosaic img:nth-child(10) { right: 23%; top: 29%; width: 8%; height: 13%; }
+/* Celular: quatro pinturas inteiras (sem corte), duas acima e duas abaixo da frase, sem se encostar. */
+@media (max-width: 700px) {
+  .study-mosaic img { width: 42% !important; height: 26% !important; object-fit: contain; }
+  .study-mosaic img:nth-child(1) { left: 5%; right: auto; top: 3%; bottom: auto; object-position: left top; }
+  .study-mosaic img:nth-child(2) { right: 5%; left: auto; top: 3%; bottom: auto; object-position: right top; }
+  .study-mosaic img:nth-child(3) { left: 5%; right: auto; bottom: 3%; top: auto; object-position: left bottom; }
+  .study-mosaic img:nth-child(4) { right: 5%; left: auto; bottom: 3%; top: auto; object-position: right bottom; }
+  .study-mosaic img:nth-child(n+5) { display: none; }
+}

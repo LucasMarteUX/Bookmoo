@@ -1,4 +1,4 @@
-// Minha assinatura: plano, saldo, extrato, pagamentos, trocar/cancelar/reativar, reembolso em 7 dias.
+// Minha assinatura: plano, saldo, como funcionam os créditos, pagamentos, trocar/cancelar/reativar, reembolso em 7 dias.
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
@@ -6,31 +6,22 @@ import { useLanguage } from '@/store/useLanguage'
 import { useEntitlements } from '@/store/useEntitlements'
 import { askConfirm } from '@/components/ui/confirm'
 import { toast } from '@/components/ui/toast'
-import { formatBRL, planById, PLANS, planRank, type PlanId } from '@/lib/plans'
+import { COST_TABLE, formatBRL, planById, PLANS, planRank, type PlanId } from '@/lib/plans'
 import { billing, BILLING_ERRORS } from '@/lib/billingApi'
 import { UsageMeters } from '@/components/billing/UsageMeters'
 
-type Ledger = { id: number; unit: 'credits' | 'seconds'; delta: number; kind: string; operation: string | null; ref: string | null; created_at: string }
 type Payment = { id: string; amount_cents: number; status: string; kind: string; paid_at: string | null; method: string | null }
 
-const OP_LABEL: Record<string, string> = {
-  'comic-page': 'Página ilustrada', 'comic-replan': 'Página redesenhada', 'comic-panel': 'Quadro editado', 'explain': 'Explicação',
-  'variant-story': 'História', 'vocab-explain': 'Explicação de palavra', 'vocab-story': 'História da palavra', 'vocab-image': 'Imagem do mosaico',
-  'style-extract': 'Estilo próprio', 'detect-characters': 'Personagens', 'transcribe-page': 'Transcrição de PDF', scene: 'Cena', tutor: 'Conversa com tutor',
-  reader: 'Tutor de leitura', plan_change: 'Troca de plano', upgrade_proration: 'Bônus do upgrade', admin_grant: 'Bônus',
-}
 
 export function SubscriptionPage() {
   const pt = useLanguage().locale === 'pt-BR'
   const { data: ent, load } = useEntitlements()
-  const [ledger, setLedger] = useState<Ledger[]>([])
   const [payments, setPayments] = useState<Payment[]>([])
   const [busy, setBusy] = useState(false)
   const [cycle, setCycle] = useState<'monthly' | 'annual'>('monthly')
 
   useEffect(() => {
     if (!supabase) return
-    void supabase.from('credit_ledger').select('id, unit, delta, kind, operation, ref, created_at').order('created_at', { ascending: false }).limit(60).then(({ data }) => setLedger((data ?? []) as Ledger[]))
     void supabase.from('payments').select('id, amount_cents, status, kind, paid_at, method').order('created_at', { ascending: false }).limit(24).then(({ data }) => setPayments((data ?? []) as Payment[]))
   }, [ent?.subscription?.id])
   useEffect(() => {
@@ -136,14 +127,18 @@ export function SubscriptionPage() {
       </section>
 
       <section>
-        <h2 className="text-[16px] font-semibold">{pt ? 'Extrato de créditos e minutos' : 'Credit and minute history'}</h2>
+        <h2 className="text-[16px] font-semibold">{pt ? 'Como funcionam os créditos' : 'How credits work'}</h2>
+        <p className="mt-2 text-[13.5px] leading-relaxed" style={{ color: 'var(--theme-text-secondary)' }}>
+          {pt
+            ? `Todo mês o seu plano recebe ${plan.credits} créditos novos, e o que sobra do mês anterior não acumula. Ler, ouvir e marcar vocabulário não gastam nada: os créditos são só para o que a IA cria na hora.`
+            : `Each month your plan gets ${plan.credits} fresh credits; leftovers do not roll over. Reading, listening and saving vocabulary cost nothing: credits are only for what the AI creates on the spot.`}
+        </p>
         <ul className="mt-3 divide-y rounded-2xl border" style={{ borderColor: 'var(--theme-border)' }}>
-          {ledger.length === 0 && <li className="p-4 text-[14px]" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? 'Nada por aqui ainda.' : 'Nothing yet.'}</li>}
-          {ledger.map(l => (
-            <li key={l.id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-[13.5px]" style={{ borderColor: 'var(--theme-border)' }}>
-              <span className="min-w-0 truncate">{l.kind === 'grant' ? (pt ? 'Renovação do plano' : 'Plan renewal') : l.kind === 'expire' ? (pt ? 'Saldo expirado' : 'Expired balance') : OP_LABEL[l.operation ?? ''] ?? l.operation}{l.ref && l.kind === 'commit' && !l.ref.includes(':') ? ` · ${l.ref}` : ''}</span>
-              <span className="shrink-0 tabular-nums" style={{ color: l.delta >= 0 ? 'var(--pastel-green-fg, #15803d)' : 'var(--theme-text-secondary)' }}>
-                {l.delta > 0 ? '+' : ''}{l.unit === 'seconds' ? `${Math.round(l.delta / 6) / 10} min` : `${l.delta} ${pt ? 'créditos' : 'credits'}`} · {new Date(l.created_at).toLocaleDateString(pt ? 'pt-BR' : 'en-US')}
+          {COST_TABLE.map(c => (
+            <li key={c.pt} className="flex items-center justify-between gap-3 px-4 py-2.5 text-[13.5px]" style={{ borderColor: 'var(--theme-border)' }}>
+              <span className="min-w-0">{pt ? c.pt : c.en}</span>
+              <span className="shrink-0 tabular-nums" style={{ color: 'var(--theme-text-secondary)' }}>
+                {c.credits === '0' ? (pt ? 'de graça' : 'free') : c.credits}
               </span>
             </li>
           ))}

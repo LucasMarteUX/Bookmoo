@@ -2,7 +2,7 @@ import { useRef } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { motion, useReducedMotion, useScroll, useTransform } from 'motion/react'
 import { Btn } from '../ui'
-import { VReader, VSpeak, VRaioX, VCovers } from '../vignettes'
+import { VReader, VSpeak, VRaioX } from '../vignettes'
 import { Fit, VNotes } from '../vignettes2'
 import './illustrated-chapters.css'
 import { ImageDither } from '../ImageDither'
@@ -56,8 +56,8 @@ const chapters = {
   aventura: {
     label: 'Biblioteca', title: 'O próximo', emphasis: 'porto.',
     copy: 'De uma ilha de piratas a um jardim escondido. Encontre um clássico pelo seu nível ou traga um EPUB ou PDF.',
-    alt: 'Um veleiro se aproxima de uma ilha entre as ondas.',
-    to: '/biblioteca', action: 'Abrir a biblioteca', Demo: VCovers,
+    alt: 'Um cartógrafo escolhe uma aventura no tablet diante do porto.',
+    to: '/biblioteca', action: 'Abrir a biblioteca', Demo: null,
   },
 }
 
@@ -79,7 +79,7 @@ export function IllustratedChapter({ name, reverse = false }: { name: ChapterNam
   return (
     <section ref={ref} className="illustrated-chapter folio-plate" data-chapter={name} data-reverse={reverse} aria-labelledby={`folio-title-${name}`}>
       <motion.figure className="folio-image" style={reduced ? undefined : { clipPath: windowEdge }}>
-        <motion.img src={`/site/home/${name}.webp`} alt={alt} loading="lazy" decoding="async" width="506" height="506"
+        <motion.img src={`/site/home/${name === 'aventura' ? 'cartografo' : name}.webp`} alt={alt} loading="lazy" decoding="async" width="506" height="506"
           style={reduced ? undefined : { y: artY, scale: artScale }} />
         <ImageDither corners={reverse ? ['br', 'tl'] : ['bl', 'tr']} />
       </motion.figure>
@@ -89,9 +89,9 @@ export function IllustratedChapter({ name, reverse = false }: { name: ChapterNam
           <h2 id={`folio-title-${name}`}>{title} <em>{emphasis}</em></h2>
           <p>{copy}</p>
         </motion.div>
-        <motion.div className="folio-sample" style={reduced ? undefined : { y: sampleY }}>
+        {Demo && <motion.div className="folio-sample" style={reduced ? undefined : { y: sampleY }}>
           {name === 'palavras' ? <Demo /> : <Fit><Demo /></Fit>}
-        </motion.div>
+        </motion.div>}
         <div className="folio-action"><Btn to={to} arrow>{action}</Btn></div>
       </div>
     </section>

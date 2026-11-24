@@ -1,5 +1,7 @@
+import { ResourceIndex, resourceIntro, resources } from '../ResourceIndex'
 // Uma página por função (Leitor, Ilustrações, Prática, Evolução, Biblioteca) e o hub Recursos. Mesma linguagem da Home:
 // abertura centralizada, visual grande, blocos alternados e chamadas para as outras páginas. Nada toca no site.
+import { useAuth } from '@/contexts/AuthContext'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, useReducedMotion } from 'motion/react'
@@ -45,22 +47,14 @@ function Block({ kicker, title, text, visual, flip }: { kicker: string; title: R
   )
 }
 
-const ALL = [
-  { to: '/leitor', name: 'Leitor', d: 'Áudio, karaokê e cada palavra explicada.' },
-  { to: '/ilustracoes', name: 'Ilustrações', d: 'Páginas que viram imagem e quadrinho.' },
-  { to: '/tutores', name: 'Tutores', d: 'Conversas em inglês por voz.' },
-  { to: '/pratica', name: 'Prática', d: 'Fala, ditado e vocabulário.' },
-  { to: '/evolucao', name: 'Evolução', d: 'Raio-X, metas e estatísticas.' },
-  { to: '/biblioteca', name: 'Biblioteca', d: 'Clássicos e seus próprios livros.' },
-  { to: '/prova', name: 'Prova', d: 'Seu nível nas 4 habilidades.' },
-]
+
 
 function Next({ current }: { current: string }) {
   return (
     <section className="next-index">
       <p className="journey-label">Continue explorando</p>
       <nav aria-label="Outras páginas">
-        {ALL.filter(x => x.to !== current).slice(0, 6).map((x, k) => (
+        {resources.filter(x => x.to !== current).slice(0, 6).map((x, k) => (
           <Link key={x.to} to={x.to}>
             <small>{String(k + 1).padStart(2, '0')}</small>
             <span><b>{x.name}</b><em>{x.d}</em></span>
@@ -75,10 +69,22 @@ function Next({ current }: { current: string }) {
 /* ================================================================ Páginas */
 
 export function SiteLeitor() {
+  const { session, hasSupabase } = useAuth()
+  const importPath = '/?importar=livro'
+  const importLink = hasSupabase && !session ? '/login?next=' + encodeURIComponent(importPath) : importPath
   useSeo('Leitor · Upoonly', 'Leia clássicos em inglês com áudio, karaokê e explicação de cada palavra no contexto.')
   return (
     <SiteLayout>
       <Opening kicker="O leitor" title={<>Cada página vira <i>uma aula</i>.</>} text="Ouça a página com vozes naturais, acompanhe a palavra que está sendo dita e toque em qualquer termo para entender o que ele significa ali."><LaptopShot /></Opening>
+      <section className="page-opening" aria-labelledby="import-title">
+        <div className="page-opening-head">
+          <div><p className="journey-label">Seus livros</p><h2 id="import-title" className="journey-title">Traga o livro que você quer ler.</h2></div>
+          <div className="page-opening-side">
+            <p>Importe um EPUB ou um PDF com texto selecionável para ler na sua biblioteca. A importação está disponível nos planos pagos.</p>
+            <div className="chapter-options"><Btn to={importLink} arrow>Importar PDF ou EPUB</Btn></div>
+          </div>
+        </div>
+      </section>
       <Block kicker="Palavras" title="Um toque e a palavra faz sentido." text="Pronúncia, significado na frase, exemplos nas formas afirmativa, negativa e pergunta, e um clique para marcar como Aprendi, Revisar ou Importante." visual={<VWord />} />
       <Block flip kicker="Gramática" title="Decifre a página." text="A gramática da página explicada em português, trecho por trecho, sem precisar sair da história." visual={<VGrammar />} />
       <Block kicker="Notas" title="Marque o que importa." text="Destaque trechos e escreva suas notas. Elas ficam junto do livro, onde você precisa delas." visual={<VNotes />} />
@@ -151,13 +157,8 @@ export function SiteRecursos() {
   useSeo('Recursos · Upoonly', 'Tudo o que o Upoonly faz: leitor, ilustrações, tutores, prática, evolução, biblioteca e prova.')
   return (
     <SiteLayout>
-      <Opening kicker="Recursos" title={<>Tudo o que o Upoonly <i>faz por você</i>.</>} text="Um leitor completo para aprender inglês com livros de verdade. Escolha por onde começar." />
-      <nav className="folio-index" aria-label="Índice de recursos">
-        {ALL.map((item, index) => <Link key={item.to} to={item.to}>
-          <span>{item.name}</span><small>{item.d}</small><b aria-hidden="true">↗</b>
-          <img loading="lazy" alt="" src={'/site/covers/' + ['the-secret-garden','through-the-looking-glass','little-women','the-call-of-the-wild','great-expectations','treasure-island','the-adventures-of-sherlock-holmes'][index] + '.webp'} />
-        </Link>)}
-      </nav>
+      <Opening kicker="Recursos" title={resourceIntro.title} text={resourceIntro.text} />
+      <ResourceIndex />
       <FinalCta />
     </SiteLayout>
   )

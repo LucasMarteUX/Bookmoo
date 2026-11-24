@@ -11,7 +11,7 @@ const SiteIlustracoes = lazy(() => import('./story/FeaturePages').then(m => ({ d
 const SitePratica = lazy(() => import('./story/FeaturePages').then(m => ({ default: m.SitePratica })))
 const SiteEvolucao = lazy(() => import('./story/FeaturePages').then(m => ({ default: m.SiteEvolucao })))
 const SiteBiblioteca = lazy(() => import('./story/FeaturePages').then(m => ({ default: m.SiteBiblioteca })))
-const SiteTutores = lazy(() => import('./pages/Pages').then(m => ({ default: m.SiteTutores })))
+const SiteTutores = lazy(() => import('./pages/Tutores').then(m => ({ default: m.SiteTutores })))
 const SitePlanos = lazy(() => import('./pages/Pages').then(m => ({ default: m.SitePlanos })))
 const SiteProva = lazy(() => import('./pages/Pages').then(m => ({ default: m.SiteProva })))
 const SiteContato = lazy(() => import('./pages/Pages').then(m => ({ default: m.SiteContato })))
