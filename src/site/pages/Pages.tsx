@@ -1,5 +1,6 @@
 // Páginas internas no mesmo padrão da Home: abertura centralizada, fotos humanas, blocos em tons suaves e respiro.
-import { useState, type ReactNode } from 'react'
+import { useState, type CSSProperties, type FormEvent, type ReactNode } from 'react'
+import { supabase } from '@/lib/supabase'
 import { Link } from 'react-router-dom'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { ArrowRight, BookOpen, Clock, Headphones, Mic, PenLine } from 'lucide-react'
@@ -215,9 +216,103 @@ export function SiteSobre() {
       <section id="contato" className="sc-section sc-note-line">
         <In><p className="sc-kicker">Fale com a gente</p><h2 className="sc-title">Sugestões, dúvidas <i>ou parcerias</i>?</h2>
           <p className="sc-lead" style={{ marginInline: 'auto' }}>Escreva para a nossa equipe. Respondemos sugestões de livros, dúvidas sobre a conta e propostas para escolas.</p>
-          <a className="sc-textlink" href={'mailto:' + SUPPORT_EMAIL}>{SUPPORT_EMAIL} <ArrowRight size={15} /></a></In>
+          <Link className="sc-textlink" to="/contato">Abrir o formulário de contato <ArrowRight size={15} /></Link></In>
       </section>
       <FinalCta />
+    </SiteLayout>
+  )
+}
+
+/* ================================================================ Contato */
+
+const CONTACT_SUBJECTS = ['Dúvida sobre a conta', 'Assinatura e pagamento', 'Sugestão de livro', 'Escolas e parcerias', 'Privacidade e dados', 'Denúncia', 'Outro']
+
+const fieldStyle: CSSProperties = { width: '100%', padding: '13px 14px', border: '1px solid var(--site-line)', borderRadius: 8, background: 'var(--site-card, #fff)', color: 'var(--site-ink)', font: 'inherit', fontSize: 15 }
+const labelStyle: CSSProperties = { display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6, color: 'var(--site-ink)' }
+const errStyle: CSSProperties = { fontSize: 12.5, color: '#a3322a', marginTop: 5 }
+
+export function SiteContato() {
+  useSeo('Contato · Upoonly', 'Fale com a equipe do Upoonly: dúvidas sobre a conta, assinatura, sugestões de livros e parcerias com escolas.')
+  const [form, setForm] = useState({ name: '', email: '', subject: '', message: '', website: '' })
+  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [state, setState] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
+  const [errorMsg, setErrorMsg] = useState('')
+  const set = (k: keyof typeof form) => (e: { target: { value: string } }) => setForm(f => ({ ...f, [k]: e.target.value }))
+
+  const validate = () => {
+    const e: Record<string, string> = {}
+    if (form.name.trim().length < 2) e.name = 'Informe seu nome.'
+    if (!/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(form.email.trim())) e.email = 'Informe um e-mail válido.'
+    if (!form.subject) e.subject = 'Escolha um assunto.'
+    if (form.message.trim().length < 10) e.message = 'Escreva pelo menos 10 caracteres.'
+    return e
+  }
+
+  const submit = async (ev: FormEvent) => {
+    ev.preventDefault()
+    const e = validate()
+    setErrors(e)
+    if (Object.keys(e).length) return
+    if (!supabase) { setState('error'); setErrorMsg(`Envio indisponível agora. Escreva para ${SUPPORT_EMAIL}.`); return }
+    setState('sending')
+    const { data, error } = await supabase.functions.invoke('contact', { body: form })
+    if (!error && data?.ok) { setState('sent'); return }
+    let code = '', fields: Record<string, string> | undefined
+    try { const b = await (error as { context?: Response })?.context?.json(); code = b?.error ?? ''; fields = b?.fields } catch { /* resposta sem corpo */ }
+    if (fields) setErrors(fields)
+    setState('error')
+    setErrorMsg(code === 'rate_limited' ? 'Você enviou várias mensagens em pouco tempo. Tente de novo em uma hora.'
+      : code === 'invalid_fields' ? 'Confira os campos destacados.'
+      : `Não conseguimos enviar agora. Tente de novo ou escreva para ${SUPPORT_EMAIL}.`)
+  }
+
+  return (
+    <SiteLayout>
+      <PageHero kicker="Contato" title={<>Escreva para <i>a gente</i>.</>}
+        text="Dúvidas sobre a conta, assinatura, sugestões de livros ou parcerias com escolas. Respondemos em até 2 dias úteis." />
+      <section className="sc-section">
+        <div style={{ maxWidth: 620, marginInline: 'auto' }}>
+          {state === 'sent' ? (
+            <In><div style={{ textAlign: 'center', padding: '40px 24px', border: '1px solid var(--site-line)', borderRadius: 10 }}>
+              <p className="sc-kicker">Mensagem enviada</p>
+              <h2 className="sc-title">Obrigado, <i>{form.name.split(' ')[0]}</i>.</h2>
+              <p className="sc-lead" style={{ marginInline: 'auto' }}>Enviamos uma confirmação para {form.email}. Respondemos nesse endereço.</p>
+            </div></In>
+          ) : (
+            <form onSubmit={submit} noValidate style={{ display: 'grid', gap: 18 }}>
+              <div style={{ display: 'grid', gap: 18, gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>
+                <div><label htmlFor="ct-name" style={labelStyle}>Nome</label>
+                  <input id="ct-name" autoComplete="name" maxLength={120} value={form.name} onChange={set('name')} style={fieldStyle} aria-invalid={!!errors.name} aria-describedby={errors.name ? 'ct-name-err' : undefined} />
+                  {errors.name && <p id="ct-name-err" style={errStyle}>{errors.name}</p>}</div>
+                <div><label htmlFor="ct-email" style={labelStyle}>E-mail</label>
+                  <input id="ct-email" type="email" autoComplete="email" maxLength={254} value={form.email} onChange={set('email')} style={fieldStyle} aria-invalid={!!errors.email} aria-describedby={errors.email ? 'ct-email-err' : undefined} />
+                  {errors.email && <p id="ct-email-err" style={errStyle}>{errors.email}</p>}</div>
+              </div>
+              <div><label htmlFor="ct-subject" style={labelStyle}>Assunto</label>
+                <select id="ct-subject" value={form.subject} onChange={set('subject')} style={fieldStyle} aria-invalid={!!errors.subject}>
+                  <option value="" disabled>Escolha um assunto</option>
+                  {CONTACT_SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+                {errors.subject && <p style={errStyle}>{errors.subject}</p>}</div>
+              <div><label htmlFor="ct-message" style={labelStyle}>Mensagem</label>
+                <textarea id="ct-message" rows={7} maxLength={5000} value={form.message} onChange={set('message')} style={{ ...fieldStyle, resize: 'vertical' }} aria-invalid={!!errors.message} />
+                {errors.message && <p style={errStyle}>{errors.message}</p>}</div>
+              {/* Honeypot: invisível para pessoas, bots costumam preencher. */}
+              <div aria-hidden="true" style={{ position: 'absolute', left: '-10000px', width: 1, height: 1, overflow: 'hidden' }}>
+                <label htmlFor="ct-website">Site</label>
+                <input id="ct-website" name="website" tabIndex={-1} autoComplete="off" value={form.website} onChange={set('website')} />
+              </div>
+              {state === 'error' && <p role="alert" style={{ ...errStyle, fontSize: 14 }}>{errorMsg}</p>}
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 16, justifyContent: 'space-between' }}>
+                <p style={{ fontSize: 12.5, color: 'var(--site-muted)', maxWidth: 360 }}>Usamos seus dados só para responder. Veja a <Link to="/privacy" className="s-link">política de privacidade</Link>.</p>
+                <button type="submit" className="sc-btn sc-btn-dark" disabled={state === 'sending'}>{state === 'sending' ? 'Enviando…' : 'Enviar mensagem'} <ArrowRight size={16} /></button>
+              </div>
+            </form>
+          )}
+          <p style={{ textAlign: 'center', marginTop: 32, fontSize: 14, color: 'var(--site-muted)' }}>Prefere e-mail? <a className="s-link" href={'mailto:' + SUPPORT_EMAIL}>{SUPPORT_EMAIL}</a></p>
+        </div>
+      </section>
+      <FaqSection ids={['cancelar', 'pagar', 'excluir-conta']} title={<>Antes de escrever,<br />veja se já respondemos.</>} />
     </SiteLayout>
   )
 }

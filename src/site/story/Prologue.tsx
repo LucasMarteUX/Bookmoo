@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, useReducedMotion, useScroll, useTransform } from 'motion/react'
 import { Btn } from '../ui'
 import './prologue.css'
@@ -19,21 +20,25 @@ export function Prologue() {
     try { return !introPlayed && !location.hash && !matchMedia('(prefers-reduced-motion: reduce)').matches }
     catch { return false }
   })
+  // O título só entra quando a abertura começa a se abrir (uma vez), e não de novo quando ela some.
+  const [revealed, setRevealed] = useState(!intro)
   useEffect(() => {
     introPlayed = true
-    if (!intro) return
-    const timer = window.setTimeout(() => setIntro(false), 4600)
-    return () => clearTimeout(timer)
+    if (!intro) { setRevealed(true); return }
+    const open = window.setTimeout(() => setRevealed(true), 3650)
+    const done = window.setTimeout(() => setIntro(false), 4600)
+    return () => { clearTimeout(open); clearTimeout(done) }
   }, [intro])
+  const skip = () => { setRevealed(true); setIntro(false) }
   return <>
-    {intro && <div className="flight-intro" onClick={() => setIntro(false)}>
+    {intro && typeof document !== 'undefined' && createPortal(<div className="flight-intro" onClick={skip}>
       <div className="flight-cast" aria-hidden="true">
         <i className="fr fr-body"/><i className="fr fr-paw"/>
         <span className="fr-head"><i className="fr fr-face"/><i className="fr fr-ears"/></span>
         <div className="flight-butterfly"><i/><b/></div>
       </div>
-    </div>}
-    <section ref={hero} data-waiting={intro} className="book-prologue">
+    </div>, document.body)}
+    <section ref={hero} data-waiting={!revealed} className="book-prologue">
       <ImageDither corners={['br', 'tr']} z={0} />
       <motion.img style={reduce ? undefined : {scale,y}} className="night-reader" src="/site/home/leitora-tablet.webp" alt="" fetchPriority="high" />
       <motion.div className="book-copy" style={reduce ? undefined : { y: titleY }}><h1 lang="en"><span>Once upon</span>{' '}<i>a time.</i></h1>

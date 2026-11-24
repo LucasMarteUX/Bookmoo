@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import { ArrowRight, Menu, X } from 'lucide-react'
 import { Logo } from './SiteLogo'
+import { useScrollReveal } from './ScrollReveal'
 import { SUPPORT_EMAIL } from './content'
 import './site.css'
 import './site-shell.css'
@@ -30,7 +31,8 @@ const footerLinks = [
   ] },
   { title: 'Ajuda', links: [
     { to: '/faq', label: 'Perguntas frequentes' },
-    { to: '/sobre#contato', label: 'Contato' },
+    { to: '/contato', label: 'Contato' },
+    { to: '/conduta', label: 'Código de conduta' },
     { to: '/login', label: 'Entrar na conta' },
   ] },
 ]
@@ -101,13 +103,14 @@ function Footer() {
     </div>
     <div className="public-colophon">
       <span>© {new Date().getFullYear()} Upoonly</span>
-      <div><Link to="/terms">Termos de uso</Link><Link to="/privacy">Privacidade</Link></div>
+      <div><Link to="/terms">Termos de uso</Link><Link to="/privacy">Privacidade</Link><Link to="/conduta">Conduta</Link><Link to="/contato">Contato</Link></div>
     </div>
   </footer>
 }
 
 export function SiteLayout({ children }: { children: ReactNode }) {
   const { pathname, hash } = useLocation()
+  useScrollReveal()
   useEffect(() => {
     const target = hash && document.getElementById(hash.slice(1))
     if (!target) { window.scrollTo({ top: 0, behavior: 'instant' }); return }

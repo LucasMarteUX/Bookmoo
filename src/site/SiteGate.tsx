@@ -14,15 +14,16 @@ const SiteBiblioteca = lazy(() => import('./story/FeaturePages').then(m => ({ de
 const SiteTutores = lazy(() => import('./pages/Pages').then(m => ({ default: m.SiteTutores })))
 const SitePlanos = lazy(() => import('./pages/Pages').then(m => ({ default: m.SitePlanos })))
 const SiteProva = lazy(() => import('./pages/Pages').then(m => ({ default: m.SiteProva })))
+const SiteContato = lazy(() => import('./pages/Pages').then(m => ({ default: m.SiteContato })))
 const SiteSobre = lazy(() => import('./pages/Pages').then(m => ({ default: m.SiteSobre })))
 const SiteLivros = lazy(() => import('./pages/Books').then(m => ({ default: m.SiteLivros })))
 const SiteLivro = lazy(() => import('./pages/Books').then(m => ({ default: m.SiteLivro })))
 
-export type SitePage = 'home' | 'recursos' | 'tutores' | 'planos' | 'prova' | 'sobre' | 'leitor' | 'ilustracoes' | 'pratica' | 'evolucao' | 'biblioteca' | 'livros' | 'livro'
+export type SitePage = 'home' | 'recursos' | 'tutores' | 'planos' | 'prova' | 'sobre' | 'leitor' | 'ilustracoes' | 'pratica' | 'evolucao' | 'biblioteca' | 'livros' | 'livro' | 'contato'
 
 const PAGES: Record<SitePage, React.ComponentType> = {
   home: SiteHome, recursos: SiteRecursos, tutores: SiteTutores, planos: SitePlanos, prova: SiteProva, sobre: SiteSobre,
-  leitor: SiteLeitor, ilustracoes: SiteIlustracoes, pratica: SitePratica, evolucao: SiteEvolucao, biblioteca: SiteBiblioteca, livros: SiteLivros, livro: SiteLivro,
+  leitor: SiteLeitor, ilustracoes: SiteIlustracoes, pratica: SitePratica, evolucao: SiteEvolucao, biblioteca: SiteBiblioteca, livros: SiteLivros, livro: SiteLivro, contato: SiteContato,
 }
 
 /** Rotas que têm versão pública (as do app com o mesmo caminho continuam para quem está logado). */

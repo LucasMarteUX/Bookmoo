@@ -39,3 +39,9 @@
 .site .image-dither { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
 .site .image-dither canvas { display: block; }
 .site .atelier-aperture { position: relative; }
+
+/* Entrada ao rolar (ScrollReveal) */
+@media (prefers-reduced-motion: no-preference) {
+  .site [data-rv] { opacity: 0; translate: 0 26px; transition: opacity .8s cubic-bezier(.2,.8,.2,1) var(--rv-d, 0ms), translate .95s cubic-bezier(.2,.8,.2,1) var(--rv-d, 0ms); }
+  .site [data-rv][data-rv-in] { opacity: 1; translate: none; }
+}

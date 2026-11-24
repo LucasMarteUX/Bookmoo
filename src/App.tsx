@@ -91,6 +91,8 @@ export default function App() {
           <Route path="/terms" element={<LegalPage doc="terms" />} />
           <Route path="/privacy" element={<LegalPage doc="privacy" />} />
           <Route path="/faq" element={<LegalPage doc="faq" />} />
+          <Route path="/conduta" element={<LegalPage doc="conduct" />} />
+          <Route path="/contato" element={<SiteOnly page="contato" />} />
           {/* Site institucional: visitante em / (e /planos, /prova) vê o site; estas três são só do site. */}
           <Route path="/recursos" element={<SiteOnly page="recursos" />} />
           <Route path="/tutores" element={<SiteOnly page="tutores" />} />

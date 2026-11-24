@@ -149,3 +149,8 @@
 .tablet-page-word p { margin: 8px 0 0; font-size: 16px; color: #575b4f; }
 
 .book-story .garden-frame { aspect-ratio: 1394 / 1865; }
+
+/* Antes da abertura se abrir, o texto do hero fica escondido (entra uma vez só). */
+.book-prologue[data-waiting=true] .book-copy h1 > *, .book-prologue[data-waiting=true] .book-copy > :is(p, .s-btn) { opacity: 0; }
+/* A abertura fica acima de tudo, inclusive do navbar. */
+.flight-intro { z-index: 2147483000; }

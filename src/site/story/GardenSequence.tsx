@@ -23,12 +23,14 @@ function Fragment({ index, progress }: {index: number; progress: MotionValue<num
 export function GardenSequence() {
   const section = useRef<HTMLElement>(null)
   const reduced = useReducedMotion()
-  const {scrollYProgress} = useScroll({target:section,offset:['start 0.85','end end']})
+  // Os fragmentos já se movem quando a seção aparece; os textos e a revelação só correm com a seção fixa na tela.
+  const {scrollYProgress: entering} = useScroll({target:section,offset:['start 0.85','end end']})
+  const {scrollYProgress} = useScroll({target:section,offset:['start start','end end']})
   const inset = useTransform(scrollYProgress,[.78,1],['inset(48% 46% 48% 46%)','inset(0% 0% 0% 0%)'])
   const opacity = useTransform(scrollYProgress,[.79,.91],[0,1])
   return <section ref={section} className="garden-sequence" aria-label="Dentro da história">
     <div className="garden-stage">
-      {!reduced && <div className="garden-pieces" aria-hidden="true">{crops.map((crop,i)=><Fragment key={crop} index={i} progress={scrollYProgress}/>)}</div>}
+      {!reduced && <div className="garden-pieces" aria-hidden="true">{crops.map((crop,i)=><Fragment key={crop} index={i} progress={entering}/>)}</div>}
       <div className="garden-captions">{captions.map((text,i)=>reduced ? <p key={text}>{text}</p> : <Caption key={text} text={text} index={i} progress={scrollYProgress}/>)}</div>
       <motion.img className="garden-reveal" src="/site/home/jardim.webp" alt="" style={reduced ? undefined : {clipPath:inset,opacity}}/>
     </div>
