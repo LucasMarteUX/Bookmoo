@@ -329,6 +329,7 @@ export async function applyEvent(ev: NormalizedEvent, opts: { forceUserId?: stri
         grace_until: null, updated_at: now.toISOString(), ...switched,
       }).eq('id', knownSub.id)
       await recordPayment(ev, userId, knownSub.id, null, 'renewal')
+      if (email) await emails.renewed(email, planOf(ev.planId ?? knownSub.plan_id)?.name ?? knownSub.plan_id, ev.amountCents ?? knownSub.price_cents, periodEnd(start, (ev.cycle ?? cycle) as Cycle).toISOString())
       return 'renewed'
     }
     const planId = ev.planId ?? intent?.plan_id ?? knownSub?.plan_id
@@ -391,7 +392,7 @@ export async function applyEvent(ev: NormalizedEvent, opts: { forceUserId?: stri
       await db.from('credit_ledger').insert({ user_id: userId, period_id: (period as { id: string }).id, unit: 'credits', delta: intent.bonus_credits, kind: 'bonus', operation: 'upgrade_proration' })
     }
     await recordPayment(ev, userId, sub.id, intent?.id ?? null, intent?.kind === 'upgrade' || (live && live.provider !== 'admin') ? 'upgrade' : 'new')
-    if (email) await emails.paymentConfirmed(email, plan.name, ev.amountCents ?? priceCents, plan.monthly_credits + (intent?.bonus_credits ?? 0))
+    if (email) await emails.paymentConfirmed(email, plan.name, ev.amountCents ?? priceCents, plan.monthly_credits + (intent?.bonus_credits ?? 0), { cycle, until: sub.current_period_end, extraDays })
     return 'activated'
   }
 
@@ -402,7 +403,8 @@ export async function applyEvent(ev: NormalizedEvent, opts: { forceUserId?: stri
   if (ev.kind === 'failed') {
     const grace = new Date(Date.now() + graceDays * 86400_000)
     await db.from('subscriptions').update({ status: 'past_due', grace_until: grace.toISOString(), updated_at: new Date().toISOString() }).eq('id', sub.id)
-    if (email) await emails.paymentFailed(email, plan?.name ?? sub.plan_id, graceDays)
+    const final = /cancel/i.test(ev.type)
+    if (email) await (final ? emails.movedToFree(email, plan?.name ?? sub.plan_id) : emails.paymentFailed(email, plan?.name ?? sub.plan_id, graceDays))
     return 'past_due'
   }
   if (ev.kind === 'canceled') {

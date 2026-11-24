@@ -150,6 +150,7 @@ async function handle(userId: string, email: string, name: string | undefined, c
           // Troca agendada para a próxima cobrança: a AbacatePay já cobra o valor novo; o webhook aplica o plano.
           await changePlan(live.provider_subscription_id, await productFor(next.id, (live.billing_cycle ?? 'monthly') as Cycle))
           await db.from('subscriptions').update({ pending_plan_id: next.id, updated_at: new Date().toISOString() }).eq('id', live.id)
+          await emails.downgradeScheduled(email, cur.name, next.name, new Date(live.current_period_end).toLocaleDateString('pt-BR'))
         }
         return { ok: true, until: live.current_period_end, next: next.id }
       }
@@ -160,12 +161,18 @@ async function handle(userId: string, email: string, name: string | undefined, c
 
     case 'refund': {
       // Direito de arrependimento (CDC art. 49): até 7 dias da primeira compra.
-      if (!live || live.provider !== 'zouti') throw new BillingError('no_subscription')
+      if (!live || (live.provider !== 'zouti' && live.provider !== 'abacatepay')) throw new BillingError('no_subscription')
       const { data: first } = await db.from('payments').select('paid_at, amount_cents, provider_charge_id').eq('user_id', userId).eq('status', 'paid').order('paid_at', { ascending: true }).limit(1).maybeSingle()
       const { count: refunds } = await db.from('payments').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('kind', 'refund')
       if (!first?.paid_at || Date.now() - new Date(first.paid_at).getTime() > 7 * 86400_000 || (refunds ?? 0) > 0) throw new BillingError('refund_window_closed')
       await db.from('payment_events').insert({ provider: 'app', provider_event_id: `refund:${live.id}`, type: 'refund_request', payload: { user: userId, charge: first.provider_charge_id, amount_cents: first.amount_cents } })
-      await emails.adminAlert('Reembolso solicitado (7 dias)', `<p>${email} pediu reembolso de ${(first.amount_cents / 100).toFixed(2)} (cobrança ${first.provider_charge_id}). Estorne na Zouti: o webhook de estorno encerra o acesso automaticamente.</p>`)
+      // Para a recorrência já: ninguém deve ser cobrado de novo enquanto o estorno é feito.
+      if (live.provider === 'abacatepay' && live.provider_subscription_id && !live.cancel_at_period_end) {
+        await cancelSubscription(live.provider_subscription_id)
+        await db.from('subscriptions').update({ cancel_at_period_end: true, canceled_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('id', live.id)
+      }
+      const gw = live.provider === 'abacatepay' ? 'AbacatePay' : 'Zouti'
+      await emails.adminAlert('Reembolso solicitado (7 dias)', `<p>${email} pediu reembolso de ${(first.amount_cents / 100).toFixed(2)} (cobrança ${first.provider_charge_id}). Estorne no painel da ${gw}: o webhook de estorno encerra o acesso automaticamente.</p>`)
       return { ok: true }
     }
 

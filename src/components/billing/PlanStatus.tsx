@@ -39,3 +39,23 @@ export function BillingAlert({ onClick, compact }: { onClick?: () => void; compa
     </div>
   )
 }
+
+/** Convite fixo para quem está no Grátis (sem atraso): o que o Premium libera, em uma linha, e o caminho para os planos. */
+export function UpgradeCard({ onClick }: { onClick?: () => void }) {
+  const ent = useEntitlements(s => s.data)
+  const pt = useLanguage().locale === 'pt-BR'
+  if (!ent || ent.plan !== 'free' || ent.is_admin) return null
+  if (['past_due', 'expired'].includes(ent.last_subscription_status ?? '')) return null
+  return (
+    <Link to="/planos" onClick={onClick} className="group block rounded-lg border p-3 transition-colors hover:bg-[var(--ui-hover)]" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-card-bg)' }}>
+      <p className="flex items-center gap-1.5 text-[12.5px] font-semibold" style={{ color: 'var(--theme-nav-text)' }}>
+        <span className="premium-pill inline-flex items-center gap-1 h-[18px] px-1.5 rounded text-[9.5px] uppercase tracking-[0.06em]"><Crown className="w-2.5 h-2.5" strokeWidth={2.6} />Premium</span>
+        {pt ? 'Leia sem limites' : 'Read without limits'}
+      </p>
+      <p className="mt-1 text-[11.5px] leading-snug" style={{ color: 'var(--theme-nav-text-muted)' }}>
+        {pt ? 'A biblioteca inteira, ilustrações e tutores por voz. A partir de R$ 19,92/mês.' : 'The whole library, illustrations and voice tutors. From R$ 19.92/mo.'}
+      </p>
+      <span className="mt-2 inline-flex text-[12px] font-semibold underline underline-offset-4" style={{ color: 'var(--theme-nav-text)' }}>{pt ? 'Ver planos' : 'See plans'}</span>
+    </Link>
+  )
+}

@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
+import { takeWantedPlan } from '@/lib/billingApi'
 import { useAuth } from '@/contexts/AuthContext'
 import { useEntitlements } from '@/store/useEntitlements'
 
@@ -52,7 +53,8 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   // Primeiro acesso: completar cadastro (Google) → planos → presente. Não dá para pular pela URL.
   if (ent && !ONBOARDING_PATHS.some(p => location.pathname.startsWith(p))) {
     if (ent.onboarding_step === 'complete_profile') return <Navigate to="/completar-cadastro" replace />
-    if (ent.onboarding_step === 'survey') return <Navigate to="/conhecendo-voce" replace />
+    // Veio do site com um plano escolhido: vai direto ao pagamento (o questionário fica para depois).
+    if (ent.onboarding_step === 'survey') return <Navigate to={takeWantedPlan() ? '/planos?welcome=1' : '/conhecendo-voce'} replace />
     if (ent.onboarding_step === 'plans') return <Navigate to="/planos?welcome=1" replace />
   }
 

@@ -26,11 +26,17 @@ export function SubscriptionPage() {
   const [ledger, setLedger] = useState<Ledger[]>([])
   const [payments, setPayments] = useState<Payment[]>([])
   const [busy, setBusy] = useState(false)
+  const [cycle, setCycle] = useState<'monthly' | 'annual'>('monthly')
 
   useEffect(() => {
     if (!supabase) return
     void supabase.from('credit_ledger').select('id, unit, delta, kind, operation, ref, created_at').order('created_at', { ascending: false }).limit(60).then(({ data }) => setLedger((data ?? []) as Ledger[]))
     void supabase.from('payments').select('id, amount_cents, status, kind, paid_at, method').order('created_at', { ascending: false }).limit(24).then(({ data }) => setPayments((data ?? []) as Payment[]))
+  }, [ent?.subscription?.id])
+  useEffect(() => {
+    const id = ent?.subscription?.id
+    if (!supabase || !id) return
+    void supabase.from('subscriptions').select('billing_cycle').eq('id', id).maybeSingle().then(({ data }) => setCycle((data?.billing_cycle as 'monthly' | 'annual') ?? 'monthly'))
   }, [ent?.subscription?.id])
 
   if (!ent) return null
@@ -58,7 +64,7 @@ export function SubscriptionPage() {
   const downgrade = async (to: PlanId) => {
     const target = planById(to)
     const ok = await askConfirm(pt ? `Mudar para o ${target.name}?` : `Switch to ${target.name}?`, {
-      detail: pt ? `O ${plan.name} continua até ${date(sub?.current_period_end)}. Nessa data a cobrança atual é encerrada e você assina o ${target.name} (${formatBRL(target.priceCents)}/mês), avisaremos para concluir.` : `${plan.name} stays until ${date(sub?.current_period_end)}. Then you subscribe to ${target.name}.`,
+      detail: pt ? `O ${plan.name} continua até ${date(sub?.current_period_end)}. A partir dessa data você passa para o ${target.name}${sub?.provider === 'abacatepay' ? ', cobrado automaticamente na mesma forma de pagamento' : ' (avisaremos para concluir)'}.` : `${plan.name} stays until ${date(sub?.current_period_end)}. Then you subscribe to ${target.name}.`,
       confirmLabel: pt ? 'Agendar mudança' : 'Schedule change',
     })
     if (ok) await run(() => billing.downgrade(to), pt ? 'Mudança agendada.' : 'Change scheduled.')
@@ -71,7 +77,9 @@ export function SubscriptionPage() {
     if (ok) await run(() => billing.refund(), pt ? 'Pedido de reembolso enviado. Você receberá a confirmação por e-mail.' : 'Refund requested.')
   }
   const firstPaid = [...payments].reverse().find(p => p.status === 'paid')
-  const canRefund = sub?.provider === 'zouti' && firstPaid?.paid_at && Date.now() - new Date(firstPaid.paid_at).getTime() < 7 * 86400_000 && !payments.some(p => p.kind === 'refund')
+  const managed = !!sub && (sub.provider === 'zouti' || sub.provider === 'abacatepay')
+  const per = cycle === 'annual' ? (pt ? '/ano' : '/yr') : (pt ? '/mês' : '/mo')
+  const canRefund = managed && firstPaid?.paid_at && Date.now() - new Date(firstPaid.paid_at).getTime() < 7 * 86400_000 && !payments.some(p => p.kind === 'refund')
 
   return (
     <div className="max-w-3xl mx-auto space-y-8">
@@ -89,7 +97,7 @@ export function SubscriptionPage() {
                 {sub.status === 'past_due' ? (pt ? `Pagamento pendente, acesso até ${date(sub.grace_until)}` : `Payment pending, access until ${date(sub.grace_until)}`)
                   : sub.cancel_at_period_end ? (pt ? `Cancelada, ativa até ${date(sub.current_period_end)}${sub.pending_plan ? ` (depois: ${planById(sub.pending_plan).name})` : ''}` : `Cancelled, active until ${date(sub.current_period_end)}`)
                   : sub.provider === 'admin' ? (pt ? `Cortesia até ${date(sub.current_period_end)}` : `Complimentary until ${date(sub.current_period_end)}`)
-                  : (pt ? `${formatBRL(sub.price_cents)}/mês · renova em ${date(sub.current_period_end)}` : `${formatBRL(sub.price_cents)}/mo · renews ${date(sub.current_period_end)}`)}
+                  : (pt ? `${formatBRL(sub.price_cents)}${per} · renova em ${date(sub.current_period_end)}` : `${formatBRL(sub.price_cents)}${per} · renews ${date(sub.current_period_end)}`)}
               </p>
             )}
           </div>
@@ -98,19 +106,16 @@ export function SubscriptionPage() {
           </Link>
         </div>
         <div className="mt-5"><UsageMeters /></div>
-        {sub && sub.provider === 'zouti' && (
+        {managed && (
           <div className="mt-5 flex flex-wrap gap-2">
             {sub.cancel_at_period_end ? (
-              <button type="button" disabled={busy} onClick={() => run(() => billing.resume(), pt ? 'Assinatura reativada!' : 'Subscription resumed!')} className="h-10 px-4 rounded-xl text-[14px] border" style={{ borderColor: 'var(--theme-border)' }}>{pt ? 'Reativar assinatura' : 'Resume subscription'}</button>
-            ) : (
-              <>
-                {PLANS.filter(p => p.id !== 'free' && planRank(p.id) < planRank(ent.plan)).map(p => (
-                  <button key={p.id} type="button" disabled={busy} onClick={() => downgrade(p.id)} className="h-10 px-4 rounded-xl text-[14px] border" style={{ borderColor: 'var(--theme-border)' }}>{pt ? `Mudar para ${p.name}` : `Switch to ${p.name}`}</button>
-                ))}
-                <button type="button" disabled={busy} onClick={cancel} className="h-10 px-4 rounded-xl text-[14px]" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? 'Cancelar assinatura' : 'Cancel subscription'}</button>
-              </>
-            )}
-            {canRefund && <button type="button" disabled={busy} onClick={refund} className="h-10 px-4 rounded-xl text-[14px]" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? 'Pedir reembolso (7 dias)' : 'Request refund (7 days)'}</button>}
+              sub.provider === 'abacatepay'
+                ? <Link to="/planos" className="h-10 px-4 rounded-xl inline-flex items-center text-[14px] border" style={{ borderColor: 'var(--theme-border)' }}>{pt ? 'Assinar de novo' : 'Subscribe again'}</Link>
+                : <button type="button" disabled={busy} onClick={() => run(() => billing.resume(), pt ? 'Assinatura reativada!' : 'Subscription resumed!')} className="h-10 px-4 rounded-xl text-[14px] border" style={{ borderColor: 'var(--theme-border)' }}>{pt ? 'Reativar assinatura' : 'Resume subscription'}</button>
+            ) : !sub.pending_plan && PLANS.filter(p => p.id !== 'free' && planRank(p.id) < planRank(ent.plan)).map(p => (
+              <button key={p.id} type="button" disabled={busy} onClick={() => downgrade(p.id)} className="h-10 px-4 rounded-xl text-[14px] border" style={{ borderColor: 'var(--theme-border)' }}>{pt ? `Mudar para ${p.name}` : `Switch to ${p.name}`}</button>
+            ))}
+            <Link to="/recibos" className="h-10 px-4 rounded-xl inline-flex items-center text-[14px] border" style={{ borderColor: 'var(--theme-border)' }}>{pt ? 'Recibos' : 'Receipts'}</Link>
           </div>
         )}
       </section>
@@ -145,6 +150,14 @@ export function SubscriptionPage() {
             ))}
           </ul>
         </section>
+      )}
+
+      {managed && !sub.cancel_at_period_end && (
+        <footer className="pt-2 pb-6 text-[12.5px] leading-relaxed" style={{ color: 'var(--theme-text-secondary)' }}>
+          {pt ? 'Você pode encerrar a renovação automática quando quiser; o acesso continua até o fim do período pago. ' : 'You can stop automatic renewal at any time; access continues until the end of the paid period. '}
+          <button type="button" disabled={busy} onClick={cancel} className="underline underline-offset-4 hover:opacity-80">{pt ? 'Cancelar assinatura' : 'Cancel subscription'}</button>
+          {canRefund && <>{' · '}<button type="button" disabled={busy} onClick={refund} className="underline underline-offset-4 hover:opacity-80">{pt ? 'Desistir e pedir reembolso (7 dias)' : 'Withdraw and request a refund (7 days)'}</button></>}
+        </footer>
       )}
     </div>
   )

@@ -23,7 +23,7 @@ import { useUnreadNotifications } from '@/components/community/NotificationBell'
 import { Avatar } from '@/components/ui/avatar'
 import { useMyAvatar } from '@/hooks/useMyAvatar'
 import { UsageMeters } from '@/components/billing/UsageMeters'
-import { BillingAlert, PremiumBadge } from '@/components/billing/PlanStatus'
+import { BillingAlert, PremiumBadge, UpgradeCard } from '@/components/billing/PlanStatus'
 import { MessagesSquare, Brain } from 'lucide-react'
 import { Logo, LogoMark } from '@/components/brand/Logo'
 
@@ -261,6 +261,7 @@ export function Sidebar({ isMobileDrawer, onClose }: SidebarProps) {
 
       <div className={isMobileDrawer ? 'flex flex-col gap-2' : 'px-2 pb-2 pt-2 flex flex-col gap-1.5 border-t'} style={{ borderColor: 'var(--theme-border)' }}>
         <BillingAlert onClick={go} compact />
+        <UpgradeCard onClick={go} />
         <UsageMeters compact />
         <Link to="/stats" onClick={go} className="flex items-center gap-3 h-8 px-2 rounded-md text-[12.5px] tabular-nums hover:bg-[var(--ui-hover)]"
           style={{ color: 'var(--theme-nav-text-muted)' }} title={pt ? 'Sequência e pontos' : 'Streak and points'}>

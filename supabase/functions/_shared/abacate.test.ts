@@ -51,6 +51,25 @@ Deno.test('troca de plano aplicada: produto novo define o plano', async () => {
   assertEquals([ev.planId, ev.cycle], ['pro', 'annual'])
 })
 
+Deno.test('anual no cartão em 12x com juros do cliente: valor maior não muda o plano', async () => {
+  const ev = await normalizeAbacate(env('subscription.completed', { amount: 93160, frequency: 'ANNUALLY' }, {
+    checkout: { id: 'bill_2', externalId: '0b6c6a43-6a39-4c1f-9a51-2a3f0b7e8c11', items: [{ id: 'prod_pro_a', quantity: 1 }] },
+    payment: { id: 'char_2', amount: 112000, paidAmount: 112000, status: 'APPROVED', installments: 12 },
+  }), lookup)
+  assertEquals([ev.kind, ev.planId, ev.cycle, ev.review ?? null], ['paid', 'pro', 'annual', null])
+})
+
+Deno.test('Pix Automático recusado: falha de cobrança, sem cancelar a assinatura', async () => {
+  const ev = await normalizeAbacate(env('subscription.payment_failed', { method: 'PIX', status: 'ACTIVE' }, { payment: { id: 'char_3', amount: 4490, status: 'REFUSED' } }), lookup)
+  assertEquals([ev.kind, ev.subscriptionRef], ['failed', 'subs_1'])
+})
+
+Deno.test('reembolso e contestação (aberta e perdida)', async () => {
+  assertEquals((await normalizeAbacate(env('checkout.refunded', {}), lookup)).kind, 'refunded')
+  assertEquals((await normalizeAbacate(env('checkout.disputed', {}), lookup)).kind, 'disputed')
+  assertEquals((await normalizeAbacate(env('checkout.lost', {}), lookup)).kind, 'disputed')
+})
+
 Deno.test('webhook: exige o secret e o HMAC do corpo', async () => {
   Deno.env.set('ABACATEPAY_WEBHOOK_SECRET', 'x'.repeat(40))
   const raw = JSON.stringify({ id: 'log_1', event: 'subscription.completed' })
