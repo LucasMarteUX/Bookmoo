@@ -137,14 +137,30 @@ export function Check({ children, dark }: { children: ReactNode; dark?: boolean 
 /** Título e descrição da página (SEO básico do lado do cliente). */
 export function useSeo(title: string, description: string) {
   useEffect(() => {
+    // Título, descrição, canonical e Open Graph acompanham a página ao navegar (o HTML inicial de cada rota já
+    // vem certo do build; isto mantém o certo quando a navegação acontece dentro do app).
+    const url = `https://www.upoonly.com${window.location.pathname === '/' ? '/' : window.location.pathname}`
+    const set = (selector: string, attr: 'content' | 'href', value: string, create?: () => HTMLElement) => {
+      let el = document.head.querySelector<HTMLElement>(selector)
+      if (!el && create) { el = create(); document.head.appendChild(el) }
+      if (!el) return () => {}
+      const prev = el.getAttribute(attr)
+      el.setAttribute(attr, value)
+      return () => { if (prev === null) el?.remove(); else el?.setAttribute(attr, prev) }
+    }
+    const meta = (key: string, prop = false) => () => { const m = document.createElement('meta'); m.setAttribute(prop ? 'property' : 'name', key); return m }
     const prevTitle = document.title
     document.title = title
-    let meta = document.querySelector<HTMLMetaElement>('meta[name="description"]')
-    const created = !meta
-    if (!meta) { meta = document.createElement('meta'); meta.name = 'description'; document.head.appendChild(meta) }
-    const prevDesc = meta.content
-    meta.content = description
-    return () => { document.title = prevTitle; if (created) meta?.remove(); else if (meta) meta.content = prevDesc }
+    const undo = [
+      set('meta[name="description"]', 'content', description, meta('description')),
+      set('link[rel="canonical"]', 'href', url),
+      set('meta[property="og:url"]', 'content', url),
+      set('meta[property="og:title"]', 'content', title),
+      set('meta[property="og:description"]', 'content', description),
+      set('meta[name="twitter:title"]', 'content', title),
+      set('meta[name="twitter:description"]', 'content', description),
+    ]
+    return () => { document.title = prevTitle; undo.forEach(fn => fn()) }
   }, [title, description])
 }
 

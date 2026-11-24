@@ -1,0 +1,37 @@
+# Upoonly
+
+> Upoonly é uma plataforma brasileira para aprender inglês lendo clássicos. A pessoa lê a página com narração e karaokê, toca em qualquer palavra para ver o sentido no contexto, vê a cena ilustrada por IA e conversa por voz com tutores de IA sobre o livro. Funciona no navegador e no celular. Tem plano grátis, sem cartão.
+
+Público: brasileiros que querem aprender ou melhorar o inglês, do iniciante (A1) ao avançado (C2), incluindo adolescentes (menores de 12 anos só com consentimento do responsável).
+
+## O que o Upoonly faz
+
+- [Leitor](https://www.upoonly.com/leitor): mais de 100 clássicos com narração natural, karaokê, explicação de cada palavra no contexto e a gramática da página explicada em português.
+- [Tutores](https://www.upoonly.com/tutores): Bia, Luck, Yuno e Yuri, tutores de IA que conversam por voz sobre o livro, corrigem com calma e lembram das conversas anteriores.
+- [Ilustrações](https://www.upoonly.com/ilustracoes): cada página pode virar ilustração ou quadrinho por IA, em 16 estilos.
+- [Prática](https://www.upoonly.com/pratica): fala com nota de pronúncia, ditado, desafio e revisão de vocabulário; Cenas de conversa do dia a dia.
+- [Evolução](https://www.upoonly.com/evolucao): Raio-X do inglês com IA, metas e sequência de estudo.
+- [Biblioteca](https://www.upoonly.com/biblioteca) e [livros](https://www.upoonly.com/livros): clássicos de domínio público com nível CEFR indicado; importação de EPUB e PDF.
+- [Prova de proficiência](https://www.upoonly.com/prova): leitura, escuta, escrita e fala, com estimativa de nível CEFR.
+
+## Planos e preços
+
+- Grátis: R$ 0; 1 livro da galeria de presente, 40 créditos de IA por mês, conversa com a tutora Bia.
+- Essencial: R$ 24,90/mês ou R$ 239,04/ano; biblioteca completa, importação de EPUB e PDF, 230 créditos por mês.
+- Plus: R$ 44,90/mês ou R$ 430,80/ano; os quatro tutores, conversa livre, Raio-X semanal, 550 créditos por mês.
+- Pro: R$ 89,90/mês ou R$ 863,04/ano; Raio-X sob demanda, relatório mensal, 1.100 créditos por mês.
+- Pagamento por cartão (anual em até 12x) ou Pix Automático. Cancelamento a qualquer momento; reembolso integral em até 7 dias da primeira compra.
+- Detalhes: [Planos](https://www.upoonly.com/planos)
+
+## Ajuda e políticas
+
+- [Perguntas frequentes](https://www.upoonly.com/faq)
+- [Contato](https://www.upoonly.com/contato) — contato@upoonly.com
+- [Termos de uso](https://www.upoonly.com/terms)
+- [Política de privacidade (LGPD)](https://www.upoonly.com/privacy)
+- [Código de conduta](https://www.upoonly.com/conduta)
+
+## Optional
+
+- [Conteúdo completo em texto (planos, tutores, FAQ e todos os livros)](https://www.upoonly.com/llms-full.txt)
+- [Sitemap](https://www.upoonly.com/sitemap.xml)

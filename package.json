@@ -6,7 +6,7 @@
   "scripts": {
     "postinstall": "patch-package",
     "dev": "vite --port=3000 --host=0.0.0.0",
-    "build": "vite build",
+    "build": "vite build && node scripts/seo-prerender.mjs",
     "preview": "vite preview",
     "deploy": "npm run build && node scripts/deploy-supabase.mjs",
     "deploy:supabase": "node scripts/deploy-supabase.mjs",

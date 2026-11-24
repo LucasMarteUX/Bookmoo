@@ -16,6 +16,8 @@
     <title>Upoonly · Aprenda inglês dentro dos livros</title>
     <!-- Estas tags valem para quem lê o HTML cru: Google, WhatsApp, Instagram, X. O título por página é
          trocado depois pelo React, mas robô e pré-visualização de link só enxergam o que está aqui. -->
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
+    <meta name="author" content="Upoonly" />
     <meta name="description" content="Leia clássicos em inglês com áudio, ilustrações feitas por IA e um tutor que conversa com você sobre o livro. Comece de graça, sem cartão." />
     <link rel="canonical" href="https://www.upoonly.com/" />
     <meta property="og:type" content="website" />
@@ -24,21 +26,33 @@
     <meta property="og:url" content="https://www.upoonly.com/" />
     <meta property="og:title" content="Upoonly · Aprenda inglês dentro dos livros" />
     <meta property="og:description" content="Leia clássicos em inglês com áudio, ilustrações feitas por IA e um tutor que conversa com você sobre o livro. Comece de graça, sem cartão." />
-    <meta property="og:image" content="https://www.upoonly.com/og.jpg" />
+    <meta property="og:image" content="https://www.upoonly.com/og-cover.jpg" />
+    <meta property="og:image:type" content="image/jpeg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Mulher lendo um livro ilustrado em um tablet, em uma pintura clássica." />
+    <meta property="og:image:alt" content="Upoonly: aprenda inglês dentro dos livros. Uma leitora com tablet numa pintura clássica." />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Upoonly · Aprenda inglês dentro dos livros" />
     <meta name="twitter:description" content="Leia clássicos em inglês com áudio, ilustrações feitas por IA e um tutor que conversa com você sobre o livro." />
-    <meta name="twitter:image" content="https://www.upoonly.com/og.jpg" />
-    <link rel="icon" href="/favicon.ico" sizes="48x48" />
-    <link rel="icon" href="/icon.svg" sizes="any" type="image/svg+xml" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon-180x180.png" />
+    <meta name="twitter:image" content="https://www.upoonly.com/og-cover.jpg" />
+    <meta name="twitter:image:alt" content="Upoonly: aprenda inglês dentro dos livros." />
+    <link rel="icon" href="/favicon.ico?v=3" sizes="48x48" />
+    <link rel="icon" href="/icon.svg?v=3" sizes="any" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon-180x180.png?v=3" />
+    <link rel="alternate" type="text/markdown" title="Resumo para agentes de IA" href="/llms.txt" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <!-- Fontes das HQs (balões): só usadas no leitor de quadrinhos, então carregam sem bloquear a primeira pintura. -->
     <link rel="stylesheet" media="print" onload="this.media='all'" href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@600;700&family=Fredoka:wght@500;600;700&family=Comic+Neue:wght@400;700&family=Patrick+Hand&family=Rajdhani:wght@600&family=Lora:wght@500;600&family=Special+Elite&family=M+PLUS+Rounded+1c:wght@700&family=Alegreya:wght@700&family=Bangers&family=Crimson+Pro:wght@700&family=Nunito:wght@800&family=Cinzel:wght@700&display=swap" />
+    <!-- Texto de cada página para buscadores e agentes de IA (gerado no build por scripts/seo-prerender.mjs).
+         O React o substitui ao montar; ele só aparece se o JavaScript não rodar em alguns segundos. -->
+    <style>
+      #seo-prerender { opacity: 0; animation: seo-show .3s 4s forwards; max-width: 760px; margin: 0 auto; padding: 32px 20px 64px;
+        font: 17px/1.6 Georgia, 'Times New Roman', serif; color: #292b26; background: #f6f3eb; }
+      #seo-prerender a { color: #292b26; }
+      #seo-prerender nav { margin: 8px 0 24px; font-size: 14px; }
+      @keyframes seo-show { to { opacity: 1; } }
+    </style>
   </head>
   <body>
     <div id="root"></div>
