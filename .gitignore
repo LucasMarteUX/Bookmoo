@@ -22,3 +22,6 @@ content/collections/*/banner-preview.jpg
 content/models-backup/
 public/ort/
 content/npm-backup/
+
+# Cache do TypeScript (gerado a cada build).
+tsconfig.tsbuildinfo
