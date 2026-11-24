@@ -1,6 +1,6 @@
 // Home como história visual (referência: claude.com/product/overview). Nada toca e nada pede para operar:
 // só representação, movimento suave e frases curtas. Cada capítulo leva à página da função.
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { AnimatePresence, motion, useInView, useMotionValueEvent, useReducedMotion, useScroll, useTransform } from 'motion/react'
 import { ArrowRight, Check, RotateCcw, Star, Volume2 } from 'lucide-react'
@@ -158,6 +158,10 @@ export function TutorScroll() {
   const t = TUTORS[i]
   // Tutor que o palco animado vai carregar: só muda quando a rolagem para por um instante.
   const [settled, setSettled] = useState(t.id)
+  const [liveState, setLiveState] = useState<{ readyId: string | null; failed: boolean }>({ readyId: null, failed: false })
+  const onLive = useCallback((s: { readyId: string | null; failed: boolean }) => setLiveState(s), [])
+  // O animado só aparece quando é o tutor da vez e já está pronto; até lá fica o retrato pintado.
+  const liveOn = !liveState.failed && liveState.readyId === t.id && settled === t.id
   useEffect(() => {
     const d = window.setTimeout(() => setSettled(t.id), 260)
     return () => window.clearTimeout(d)
@@ -167,20 +171,28 @@ export function TutorScroll() {
       <div className="st-tutors-pin">
         <div className="st-tutors-grid">
           <figure className="st-tutor-plate">
-            <div className="st-tutor-stage" style={{ background: t.tint }}>
+            <div className="st-tutor-stage" style={{ background: t.tint }} data-tutor={t.id} data-live={liveState.failed ? 'off' : liveOn ? 'on' : 'loading'}>
               {stageVisible && <motion.div className="absolute inset-0" style={pinned ? { scale: portraitScale } : undefined}>
                 {/* O retrato pintado acompanha a rolagem na hora; o tutor animado entra por cima quando
                     o personagem do momento termina de carregar (e some se a pessoa já passou para o próximo). */}
+                {/* Um personagem por vez: o retrato some quando o animado do MESMO tutor está pronto.
+                    O canvas do animado é transparente, então deixar o retrato embaixo mostrava os dois. */}
                 {TUTORS.map((x, k) => (
                   <motion.div key={x.id} className="absolute inset-0 flex items-end justify-center pointer-events-none"
-                    initial={false} animate={{ opacity: k === i ? 1 : 0 }} transition={{ duration: 0.35, ease: EASE }}>
+                    initial={false} animate={{ opacity: k === i && !liveOn ? 1 : 0 }} transition={{ duration: 0.35, ease: EASE }}>
                     <BreathingTutor id={x.id} className="h-[84%]" />
                   </motion.div>
                 ))}
                 <motion.div className="absolute inset-0" initial={false}
-                  animate={{ opacity: settled === t.id ? 1 : 0 }} transition={{ duration: 0.3, ease: EASE }}>
-                  <LiveTutor id={settled} portrait={false} bubble="head" name={t.name} />
+                  animate={{ opacity: liveOn ? 1 : 0 }} transition={{ duration: 0.35, ease: EASE }}>
+                  <LiveTutor id={settled} portrait={false} bubble="head" onLive={onLive} />
                 </motion.div>
+                {!liveOn && !liveState.failed && (
+                  <motion.p className="site-live-calling" initial={{ opacity: 0 }} animate={{ opacity: [0.45, 1, 0.45] }}
+                    transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}>
+                    chamando {t.name}…
+                  </motion.p>
+                )}
               </motion.div>}
             </div>
             <figcaption><i>{t.name}</i><span>{t.role}</span><span aria-hidden>{String(i + 1).padStart(2, '0')} / {String(TUTORS.length).padStart(2, '0')}</span></figcaption>

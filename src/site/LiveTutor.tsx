@@ -109,7 +109,7 @@ export function BreathingTutor({ id, smile, className = '', style }: { id: strin
 type Layer = { id: string; ready: boolean; key: number }
 
 /** Palco do tutor: animado no computador; foto que respira no celular. Balão com o roteiro automático. */
-export function LiveTutor({ id, playing = true, bubble = 'top-left', script, name, portrait = true }: { id: string; playing?: boolean; bubble?: 'top-left' | 'head' | 'none'; script?: Beat[]; name?: string; portrait?: boolean }) {
+export function LiveTutor({ id, playing = true, bubble = 'top-left', script, name, portrait = true, onLive }: { id: string; playing?: boolean; bubble?: 'top-left' | 'head' | 'none'; script?: Beat[]; name?: string; portrait?: boolean; onLive?: (s: { readyId: string | null; failed: boolean }) => void }) {
   const live = useMemo(canRunLive, [])
   const [failed, setFailed] = useState(false)
   const [layers, setLayers] = useState<Layer[]>(() => [{ id, ready: false, key: 0 }])
@@ -125,6 +125,10 @@ export function LiveTutor({ id, playing = true, bubble = 'top-left', script, nam
     const t = window.setTimeout(() => setLayers(ls => ls.slice(-1)), 750)
     return () => window.clearTimeout(t)
   }, [top?.ready, top?.key, layers.length])
+
+  useEffect(() => {
+    onLive?.({ readyId: live && !failed && top?.ready ? top.id : null, failed: !live || failed })
+  }, [onLive, live, failed, top?.ready, top?.id])
 
   const shownId = top?.ready || !live || failed ? id : (layers.find(l => l.ready)?.id ?? id)
   const reduce = useReducedMotion()
