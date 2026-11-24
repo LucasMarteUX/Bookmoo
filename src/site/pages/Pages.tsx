@@ -11,7 +11,7 @@ import { PageOpening } from '../PageOpening'
 import { useSeo } from '../ui'
 import { FaqSection, FinalCta } from '../sections'
 import { CompareTable, Pricing } from '../blocks'
-import { LiveTutor } from '../LiveTutor'
+import { BreathingTutor } from '../LiveTutor'
 import { SUPPORT_EMAIL, TUTORS, tutorAvatar, tutorImg } from '../content'
 import { VMemory, VPhone, VScenes, VSpeed } from '../vignettes2'
 import { VTutorChat } from '../vignettes'
@@ -48,28 +48,46 @@ export function SitePlanos() {
 
 /* ================================================================ Tutores */
 
-function TutorHero() {
-  const [i, setI] = useState(0)
-  const t = TUTORS[i]
+/** Um tutor por seção: retrato pintado de um lado, personalidade, jeito de falar e para quem serve do outro. */
+function TutorSection({ tutor, index }: { tutor: typeof TUTORS[number]; index: number }) {
+  const flip = index % 2 === 1
   return (
-    <section className="page-opening tutor-opening">
-      <div className="st-tutors-grid">
-        <motion.figure className="st-tutor-plate" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1.1, ease: EASE, delay: 0.2 }}>
-          <div className="st-tutor-stage"><LiveTutor id={t.id} bubble="head" /></div>
-          <figcaption><i>{t.name}</i><span>{t.role}</span><span aria-hidden>{String(i + 1).padStart(2, '0')} / {String(TUTORS.length).padStart(2, '0')}</span></figcaption>
-        </motion.figure>
-        <div className="st-tutor-copy">
-          <p className="journey-label">Tutores de IA</p>
-          <h1 className="journey-title">Vamos conversar <i>em inglês?</i></h1>
-          <div className="st-tutor-index" role="group" aria-label="Escolher tutor">
-            {TUTORS.map((x, k) => <button type="button" key={x.id} aria-pressed={k === i} onClick={() => setI(k)}><small>{String(k + 1).padStart(2, '0')}</small>{x.name}</button>)}
-          </div>
-          <AnimatePresence mode="wait">
-            <motion.div key={t.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.45, ease: EASE }}>
-              <p className="st-tutor-about">{t.about} <span className="tutor-voice">{t.voice}</span></p>
-            </motion.div>
-          </AnimatePresence>
-          <div className="chapter-options"><Primary to="/signup">Experimentar uma conversa</Primary><Secondary to="/planos">Ver planos</Secondary></div>
+    <section className="sc-section">
+      <div className={`sc-split tutor-split${flip ? ' is-flipped' : ''}`}>
+        <In>
+          <figure className="tutor-card">
+            <div className="tutor-card-stage" style={{ background: tutor.tint }}>
+              <BreathingTutor id={tutor.id} className="h-[94%]" />
+            </div>
+            <figcaption>
+              <i>{tutor.name}</i><span>{tutor.role}</span>
+              <span aria-hidden>{String(index + 1).padStart(2, '0')} / {String(TUTORS.length).padStart(2, '0')}</span>
+            </figcaption>
+          </figure>
+        </In>
+        <div className="sc-split-copy">
+          <In><p className="sc-kicker">{tutor.role}</p><h2 className="sc-title">{tutor.name}</h2></In>
+          <In delay={0.06}><p className="sc-lead">{tutor.about}</p></In>
+          <In delay={0.1}>
+            <p className="tutor-line" lang="pt-BR">“{tutor.line}”</p>
+          </In>
+          <In delay={0.14}>
+            <div className="tutor-facts">
+              <div>
+                <h3>Jeito de falar</h3>
+                <p>{tutor.style}</p>
+                <p className="tutor-voice">{tutor.voice}</p>
+              </div>
+              <div>
+                <h3>Combina com</h3>
+                <ul>{tutor.fits.map(f => <li key={f}>{f}</li>)}</ul>
+              </div>
+              <div>
+                <h3>Narra por padrão</h3>
+                <p>{tutor.when}</p>
+              </div>
+            </div>
+          </In>
         </div>
       </div>
     </section>
@@ -80,7 +98,11 @@ export function SiteTutores() {
   useSeo('Tutores · Upoonly', 'Conheça Bia, Luck, Yuno e Yuri e pratique conversação em inglês com os tutores de IA do leitor.')
   return (
     <SiteLayout>
-      <TutorHero />
+      <PageHero kicker="Tutores" title={<>Quatro pessoas para <i>conversar</i>.</>}
+        text="Cada tutor tem um ritmo, um jeito de corrigir e um assunto preferido. Escolha quem combina com você hoje e troque quando quiser: todos lembram do que vocês já conversaram."
+        actions={<><Primary to="/signup">Experimentar uma conversa</Primary><Secondary to="/planos">Ver planos</Secondary></>} />
+
+      {TUTORS.map((t, i) => <TutorSection key={t.id} tutor={t} index={i} />)}
 
       <section className="sc-section">
         <In className="sc-photo-band">

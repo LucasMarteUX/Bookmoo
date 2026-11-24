@@ -67,7 +67,7 @@ function useScript(id: string, playing: boolean, script?: Beat[]) {
 }
 
 /** Balão de fala com troca suave. */
-function Bubble({ text, className = '', tail = 'left' }: { text?: string; className?: string; tail?: 'left' | 'center' }) {
+export function Bubble({ text, className = '', tail = 'left' }: { text?: string; className?: string; tail?: 'left' | 'center' }) {
   return (
     <AnimatePresence mode="wait">
       {text && (
@@ -135,12 +135,10 @@ export function LiveTutor({ id, playing = true, bubble = 'top-left', script }: {
     <div className="absolute inset-0 site-live">
       {showLive && layers.map(l => {
         const isTop = l.key === top.key
-        const leaving = !isTop && top.ready
-        const waiting = !isTop && !top.ready
         return (
           <motion.div key={l.key} className="absolute inset-0"
             initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: l.ready && !leaving ? (waiting ? 0.45 : 1) : 0, y: l.ready ? 0 : 12, scale: leaving ? 0.995 : 1 }}
+            animate={{ opacity: isTop && l.ready ? 1 : 0, y: l.ready ? 0 : 12, scale: isTop ? 1 : 0.995 }}
             transition={{ duration: 0.7, ease: EASE }}>
             <Suspense fallback={null}>
               <LivLivAvatar characterId={CHARACTER[l.id]} stage state={isTop ? beat.state : 'idle'} mood={isTop ? beat.mood : 'neutral'} wave={isTop && !!beat.wave}
@@ -150,7 +148,7 @@ export function LiveTutor({ id, playing = true, bubble = 'top-left', script }: {
           </motion.div>
         )
       })}
-      {(!showLive || !layers.some(layer => layer.ready)) && (
+      {(!showLive || !top?.ready) && (
         <motion.div key={id} className="absolute inset-0 flex items-end justify-center pointer-events-none"
           initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, ease: EASE }}>
           <BreathingTutor id={id} className={bubble === "head" ? "h-[76%]" : "h-[88%]"} smile={beat.mood !== 'neutral' && beat.mood !== 'confused' ? true : undefined} />

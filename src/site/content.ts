@@ -2,7 +2,7 @@
 
 export const SUPPORT_EMAIL = 'contato@upoonly.com'
 
-export type Tutor = { id: string; name: string; tint: string; role: string; line: string; about: string; voice: string; when: string }
+export type Tutor = { id: string; name: string; tint: string; role: string; line: string; about: string; voice: string; when: string; style: string; fits: string[] }
 
 export const TUTORS: Tutor[] = [
   {
@@ -10,24 +10,32 @@ export const TUTORS: Tutor[] = [
     about: 'Simpática, curiosa e paciente. Puxa conversa sobre a história, comemora cada acerto e explica sem pressa.',
     voice: 'Voz feminina, calorosa e clara.',
     when: 'Narradora padrão de romances, contos, poesia e livros infantis.',
+    style: 'Fala devagar, com frases curtas, e repete de outro jeito quando você não entende. Corrige no fim da frase, sem interromper, e sempre mostra o certo antes de explicar o errado.',
+    fits: ['Quem está começando agora', 'Quem trava na hora de falar', 'Quem gosta de conversar sobre a história do livro'],
   },
   {
     id: 'luck', name: 'Luck', tint: '#CFE3E3', role: 'O sério', line: 'Bora conversar sobre o seu dia?',
     about: 'Calmo, direto e atento aos detalhes. Ótimo para quem quer foco, correção cuidadosa e conversa de adulto.',
     voice: 'Voz masculina, grave e tranquila.',
     when: 'Narrador padrão de clássicos, mistério, biografias e não ficção.',
+    style: 'Vai direto ao ponto, com vocabulário de adulto e perguntas que puxam resposta longa. Aponta o erro na hora, explica a regra por trás dele e pede para você repetir.',
+    fits: ['Quem já se vira e quer corrigir o sotaque e a gramática', 'Quem precisa de inglês para o trabalho', 'Quem prefere objetividade a elogio'],
   },
   {
     id: 'yuno', name: 'Yuno', tint: '#E2D8F1', role: 'A animada', line: 'Vamos praticar? Sem pressão!',
     about: 'Jovem, divertida e sem formalidade. Deixa a prática leve, ótima para quem tem vergonha de falar.',
     voice: 'Voz feminina jovem e leve.',
     when: 'Para conversar sobre o dia a dia, séries, jogos e o que você curte.',
+    style: 'Conversa como amiga: gíria, risada e muita pergunta sobre você. Quase não corrige no meio; junta tudo num resumo gentil no fim da conversa.',
+    fits: ['Adolescentes e jovens', 'Quem morre de vergonha de errar', 'Quem quer falar de série, jogo e música'],
   },
   {
     id: 'yuri', name: 'Yuri', tint: '#D5DFEA', role: 'O parceiro', line: 'E aí! Eu ajudo com as palavras.',
     about: 'Gente boa e prático. Ajuda com vocabulário, gírias e frases do jeito que se fala de verdade.',
     voice: 'Voz masculina jovem.',
     when: 'Para treinar palavras novas e conversas rápidas.',
+    style: 'Fala no ritmo da rua, com expressões do dia a dia, e troca a palavra difícil pela que as pessoas realmente usam. Bom em conversas curtas, de cinco minutos.',
+    fits: ['Quem quer soar natural, não escolar', 'Quem estuda em blocos curtos', 'Quem vai viajar e quer o inglês do dia a dia'],
   },
 ]
 

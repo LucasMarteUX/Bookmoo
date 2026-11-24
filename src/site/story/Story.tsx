@@ -6,7 +6,7 @@ import { AnimatePresence, motion, useInView, useMotionValueEvent, useReducedMoti
 import { ArrowRight, Check, RotateCcw, Star, Volume2 } from 'lucide-react'
 import { COVERS, coverSrc } from '../covers'
 import { TUTORS, tutorImg } from '../content'
-import { LiveTutor, BreathingTutor } from '../LiveTutor'
+import { BreathingTutor, Bubble } from '../LiveTutor'
 import { Btn } from '../ui'
 import './story.css'
 
@@ -170,7 +170,15 @@ export function TutorScroll() {
           <figure className="st-tutor-plate">
             <div className="st-tutor-stage" style={{ background: t.tint }}>
               {stageVisible && <motion.div className="absolute inset-0" style={pinned ? { scale: portraitScale } : undefined}>
-                <LiveTutor id={t.id} bubble="head" />
+                {TUTORS.map((x, k) => (
+                  <motion.div key={x.id} className="absolute inset-0 flex items-end justify-center pointer-events-none"
+                    initial={false} animate={{ opacity: k === i ? 1 : 0 }} transition={{ duration: 0.4, ease: EASE }}>
+                    <BreathingTutor id={x.id} className="h-[84%]" />
+                  </motion.div>
+                ))}
+                <div className="absolute top-[7%] inset-x-0 flex justify-center pointer-events-none">
+                  <Bubble text={TUTOR_LINES[t.id]} tail="center" className="max-w-[60%] text-center" />
+                </div>
               </motion.div>}
             </div>
             <figcaption><i>{t.name}</i><span>{t.role}</span><span aria-hidden>{String(i + 1).padStart(2, '0')} / {String(TUTORS.length).padStart(2, '0')}</span></figcaption>

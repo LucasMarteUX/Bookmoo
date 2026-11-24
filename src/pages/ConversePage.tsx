@@ -18,7 +18,7 @@ import { useTutorPersona } from '@/hooks/useTutorPersona'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { TutorPicker } from '@/components/voice/TutorPicker'
 import { useAvatarSettings } from '@/store/useAvatarSettings'
-import { CHARACTERS, characterById, effectiveCharacterId, YOUNG_CHARACTER } from '@/lib/livliv/characters'
+import { CHARACTERS, characterById, DEFAULT_CHARACTER, effectiveCharacterId, YOUNG_CHARACTER } from '@/lib/livliv/characters'
 import { useTutorLang } from '@/lib/tutorLang'
 import { greetingFor } from '@/lib/greetings'
 import { TutorInbox } from '@/components/reader/ReaderTutor'
@@ -99,13 +99,7 @@ export function ConversePage() {
     setPicker(false)
   }
   const isLocked = (c: Choice) => (c.kind === 'tutor' ? !canFree : !c.customId && demoOnly && c.scene.key !== DEMO_SCENE_KEY)
-  // Setas: tutor e todas as cenas, na ordem do catálogo.
   const persona = useTutorPersona()
-  const ring = useMemo<Choice[]>(() => [{ kind: 'tutor' }, ...byCat.flatMap(([, list]) => list.map(sc => ({ kind: 'scene' as const, scene: sc })))], [byCat])
-  const step = (dir: 1 | -1) => {
-    const at = ring.findIndex(c => (c.kind === 'tutor' ? choice.kind === 'tutor' : choice.kind === 'scene' && c.scene.key === choice.scene.key))
-    setChoice(ring[((at < 0 ? 0 : at) + dir + ring.length) % ring.length])
-  }
 
   if (creating) return <CreateScene pt={pt} level={level.id} onDone={created => { setCreating(false); if (created) loadCustom() }} />
   // Histórico: as conversas com os tutores no corpo da página, como um app de mensagens (o modal com as notas segue no botão).
@@ -128,7 +122,7 @@ export function ConversePage() {
         title={title} subtitle={subtitle} onOpenPicker={() => setPicker(true)} onOpenSettings={() => setSettings(true)} onOpenHistory={() => setHistory(true)} onToggleCaptions={() => setCaptions(c => !c)}
         onFeedback={setFeedback}
         sceneSuggestions={visible.filter(s => choice.kind === 'scene' && s.key !== choice.scene.key)}
-        locked={isLocked(choice)} onStep={step}
+        locked={isLocked(choice)}
         onPickScene={sc => pick({ kind: 'scene', scene: sc })} />
 
       <Dialog open={picker} onOpenChange={setPicker}>
@@ -246,10 +240,10 @@ function Seg<T extends number>({ label, options, value, onChange }: { label: str
 // ---------------------------------------------------------------------------
 // Sessão
 // ---------------------------------------------------------------------------
-function Session({ choice, pt, level, rate, captions, minutes, title, subtitle, onOpenPicker, onOpenSettings, onOpenHistory, onToggleCaptions, onFeedback, sceneSuggestions, onPickScene, locked, onStep }: {
+function Session({ choice, pt, level, rate, captions, minutes, title, subtitle, onOpenPicker, onOpenSettings, onOpenHistory, onToggleCaptions, onFeedback, sceneSuggestions, onPickScene, locked }: {
   choice: Choice; pt: boolean; level: string; rate: number; captions: boolean; minutes: number; title: string; subtitle: string
   sceneSuggestions: Scene[]; onPickScene: (s: Scene) => void
-  locked: boolean; onStep: (dir: 1 | -1) => void
+  locked: boolean
   onOpenPicker: () => void; onOpenSettings: () => void; onOpenHistory: () => void; onToggleCaptions: () => void; onFeedback: (f: Feedback | null | 'loading' | 'short') => void
 }) {
   const [phase, setPhase] = useState<'ready' | 'starting' | 'live'>('ready')
@@ -301,26 +295,29 @@ function Session({ choice, pt, level, rate, captions, minutes, title, subtitle, 
   const [suggest, setSuggest] = useState<string | null>(null)
   const isMobile = useIsMobile()
   const tutor = useTutorPersona()
-  // Conversa livre com mais de um tutor: as setas trocam de tutor (o botão do cabeçalho também).
+  // As setas trocam de tutor em qualquer conversa, livre ou Cena (o botão do cabeçalho também).
+  // Giram só entre os tutores que o plano libera: sem os extras, sobra a Bia e elas somem.
   const chosenCharacter = useAvatarSettings(st => st.characterId)
   const setCharacter = useAvatarSettings(st => st.setCharacter)
-  const tutorMode = !scene && CHARACTERS.length > 1
+  const planEnt = useEntitlements(st => st.data)
+  const tutors = !planEnt || planEnt.is_admin || planEnt.limits.tutors === 'all' ? CHARACTERS : CHARACTERS.filter(c => c.id === DEFAULT_CHARACTER)
+  const canSwitchTutor = tutors.length > 1
   const stepTutor = (dir: 1 | -1) => {
-    const i = Math.max(0, CHARACTERS.findIndex(c => c.id === effectiveCharacterId(chosenCharacter)))
-    setCharacter(CHARACTERS[(i + dir + CHARACTERS.length) % CHARACTERS.length].id)
+    const i = Math.max(0, tutors.findIndex(c => c.id === effectiveCharacterId(chosenCharacter)))
+    setCharacter(tutors[(i + dir + tutors.length) % tutors.length].id)
   }
   // Espera (conversa livre, ainda não começou e a pessoa não mexeu em nada): depois de 1 min chama outro tutor, e assim por
   // diante. Qualquer toque, tecla ou rolagem reinicia a contagem. Ao entrar de novo, volta o último com quem ela conversou.
   const setLastTalked = useAvatarSettings(st => st.setLastTalked)
   useEffect(() => {
-    if (!tutorMode || phase !== 'ready') return
+    if (scene || !canSwitchTutor || phase !== 'ready') return
     let t = 0
     const arm = () => { window.clearTimeout(t); t = window.setTimeout(() => stepTutor(1), 60000) }
     const EV = ['pointerdown', 'keydown', 'wheel', 'touchstart'] as const
     EV.forEach(e => window.addEventListener(e, arm, { passive: true }))
     arm()
     return () => { window.clearTimeout(t); EV.forEach(e => window.removeEventListener(e, arm)) }
-  }, [tutorMode, phase, chosenCharacter]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [scene, canSwitchTutor, phase, chosenCharacter]) // eslint-disable-line react-hooks/exhaustive-deps
   const greet = () => {
     // Entra de olhos abertos (o sorriso desses modelos fecha os olhos): só um aceno.
     setWave(true); setMood('neutral')
@@ -544,10 +541,10 @@ function Session({ choice, pt, level, rate, captions, minutes, title, subtitle, 
               </div>
             : <div className="absolute top-2 inset-x-0 z-10 flex justify-center pointer-events-none px-6"><div className="w-full max-w-[420px] flex justify-center"><AvatarBubble text={headText} side="top" /></div></div>
         )}
-        {!live && (
+        {!live && canSwitchTutor && (
           <>
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 z-10"><ArrowBtn dir={-1} onClick={() => (tutorMode ? stepTutor(-1) : onStep(-1))} label={tutorMode ? (pt ? 'Tutor anterior' : 'Previous tutor') : (pt ? 'Anterior' : 'Previous')} /></div>
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 z-10"><ArrowBtn dir={1} onClick={() => (tutorMode ? stepTutor(1) : onStep(1))} label={tutorMode ? (pt ? 'Próximo tutor' : 'Next tutor') : (pt ? 'Próximo' : 'Next')} /></div>
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 z-10"><ArrowBtn dir={-1} onClick={() => stepTutor(-1)} label={pt ? 'Tutor anterior' : 'Previous tutor'} /></div>
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 z-10"><ArrowBtn dir={1} onClick={() => stepTutor(1)} label={pt ? 'Próximo tutor' : 'Next tutor'} /></div>
           </>
         )}
         {locked && !live && (
