@@ -46,6 +46,7 @@ type State = {
 
 let inflight: Promise<Entitlements | null> | null = null
 let claimTried = false
+let welcomeTried = false
 
 export const useEntitlements = create<State>((set) => ({
   data: null,
@@ -66,6 +67,10 @@ export const useEntitlements = create<State>((set) => ({
         return null
       }
       set({ data: data as Entitlements, loading: false, unavailable: false })
+      if ((data as Entitlements)?.onboarding_step === 'done' && !welcomeTried) {
+        welcomeTried = true
+        void supabase!.functions.invoke('billing', { body: { action: 'welcome' } }).catch(() => {})
+      }
       if ((data as Entitlements)?.plan === 'free' && !claimTried) {
         claimTried = true
         // Pagou na Zouti antes de criar a conta (ou deslogado): o servidor libera pelo e-mail confirmado.
