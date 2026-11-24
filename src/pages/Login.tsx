@@ -10,6 +10,7 @@ import { useLanguage } from '@/store/useLanguage'
 import { useTranslations } from '@/lib/i18n'
 import { useReaderSettings } from '@/store/useReaderSettings'
 import { Logo } from '@/components/brand/Logo'
+import { Turnstile, captchaEnabled } from '@/components/auth/Turnstile'
 
 type Mode = 'login' | 'signup'
 
@@ -59,6 +60,8 @@ export function Login({ mode = 'login' }: { mode?: Mode }) {
   const [resent, setResent] = useState(false)
   const [loading, setLoading] = useState<'email' | 'google' | null>(null)
   const [slide, setSlide] = useState(0)
+  const [captcha, setCaptcha] = useState<string | null>(null)
+  const [captchaReset, setCaptchaReset] = useState(0)
   const signup = mode === 'signup'
 
   useEffect(() => {
@@ -106,11 +109,13 @@ export function Login({ mode = 'login' }: { mode?: Mode }) {
     if (signup && signupAge === null) { setError(pt ? 'Informe uma data de nascimento válida.' : 'Enter a valid date of birth.'); return }
     if (signup && signupAge !== null && signupAge < 12 && !guardianOk) { setError(pt ? 'Para menores de 12 anos, um responsável precisa autorizar o cadastro.' : 'Under 12, a guardian must authorize the sign-up.'); return }
     if (signup && !accepted) { setError(pt ? 'Para criar a conta, aceite os Termos e a Política de Privacidade.' : 'To create an account, accept the Terms and Privacy Policy.'); return }
+    if (captchaEnabled && !captcha) { setError(pt ? 'Confirme que você não é um robô.' : 'Please confirm you are not a robot.'); return }
     if (signup) rememberTermsAccepted()
     setLoading('email')
     const normalized = email.trim().toLowerCase()
-    const result: { error: Error | null; needsConfirmation?: boolean } = signup ? await signUp(normalized, password, { full_name: name.trim(), birth_date: birthDate, ...(signupAge !== null && signupAge < 12 ? { guardian_consent_at: new Date().toISOString() } : {}) }) : await signIn(normalized, password)
+    const result: { error: Error | null; needsConfirmation?: boolean } = signup ? await signUp(normalized, password, { full_name: name.trim(), birth_date: birthDate, ...(signupAge !== null && signupAge < 12 ? { guardian_consent_at: new Date().toISOString() } : {}) }, captcha ?? undefined) : await signIn(normalized, password, captcha ?? undefined)
     setLoading(null)
+    if (captchaEnabled) setCaptchaReset(n => n + 1)
     const { error, needsConfirmation } = result
     if (error) { throttleFail(); setError(errorMessage(error)); return }
     throttleReset()
@@ -211,7 +216,7 @@ export function Login({ mode = 'login' }: { mode?: Mode }) {
                 <p className="text-[12.5px]" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? 'Não achou? Veja a caixa de spam.' : 'Can’t find it? Check your spam folder.'}</p>
                 <div className="flex flex-col gap-2 pt-2">
                   <Link to="/login" className="h-11 grid place-items-center rounded-lg text-[15px] font-medium" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>{pt ? 'Ir para o login' : 'Go to sign in'}</Link>
-                  <button type="button" disabled={resent} onClick={async () => { const { supabase } = await import('@/lib/supabase'); await supabase?.auth.resend({ type: 'signup', email: sentTo, options: { emailRedirectTo: window.location.origin } }); setResent(true) }}
+                  <button type="button" disabled={resent} onClick={async () => { const { supabase } = await import('@/lib/supabase'); await supabase?.auth.resend({ type: 'signup', email: sentTo, options: { emailRedirectTo: window.location.origin, ...(captcha ? { captchaToken: captcha } : {}) } }); setResent(true) }}
                     className="h-10 rounded-lg border text-[13.5px] disabled:opacity-60" style={{ borderColor: 'var(--theme-border)' }}>{resent ? (pt ? 'E-mail reenviado' : 'Email sent again') : (pt ? 'Reenviar e-mail' : 'Resend email')}</button>
                 </div>
               </div>
@@ -281,6 +286,8 @@ export function Login({ mode = 'login' }: { mode?: Mode }) {
               )}
               {error && <p role="alert" className="rounded-lg border px-3 py-2.5 text-[13.5px] font-medium" style={{ backgroundColor: 'var(--pastel-rose-bg)', borderColor: 'var(--pastel-rose-bd)', color: 'var(--pastel-rose-fg)' }}>{error}</p>}
               {message && <p role="status" className="rounded-lg border px-3 py-2.5 text-[13.5px]" style={{ backgroundColor: 'var(--pastel-green-bg)', borderColor: 'var(--pastel-green-bd)', color: 'var(--pastel-green-fg)' }}>{message}</p>}
+
+              <Turnstile onToken={setCaptcha} resetKey={captchaReset} />
 
               <button type="submit" disabled={loading !== null}
                 className="!mt-5 w-full h-11 rounded-lg text-[15px] font-medium transition-opacity hover:opacity-90 disabled:opacity-60"

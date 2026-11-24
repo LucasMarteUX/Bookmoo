@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { useLanguage } from '@/store/useLanguage'
 import { useEntitlements } from '@/store/useEntitlements'
 import { useAuth } from '@/contexts/AuthContext'
+import { Turnstile, captchaEnabled } from '@/components/auth/Turnstile'
 import { Logo } from '@/components/brand/Logo'
 
 const field = 'w-full h-12 rounded-xl border px-3.5 text-[15px] bg-transparent outline-none'
@@ -88,19 +89,24 @@ export function ForgotPasswordPage() {
   const [sent, setSent] = useState(false)
   const [busy, setBusy] = useState(false)
   const [cooldown, setCooldown] = useState(0)
+  const [captcha, setCaptcha] = useState<string | null>(null)
+  const [captchaReset, setCaptchaReset] = useState(0)
   useEffect(() => { if (!cooldown) return; const t = setTimeout(() => setCooldown(c => c - 1), 1000); return () => clearTimeout(t) }, [cooldown])
   const send = async () => {
     if (!supabase || !/.+@.+\..+/.test(email)) return
+    if (captchaEnabled && !captcha) return
     setBusy(true)
-    await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), { redirectTo: `${window.location.origin}/nova-senha` })
+    await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), { redirectTo: `${window.location.origin}/nova-senha`, ...(captcha ? { captchaToken: captcha } : {}) })
     setBusy(false)
+    if (captchaEnabled) setCaptchaReset(n => n + 1)
     setSent(true)
     setCooldown(60)
   }
   return (
     <Shell title={pt ? 'Esqueceu a senha?' : 'Forgot your password?'} subtitle={sent ? (pt ? `Se existir uma conta com ${email}, enviamos um link para criar uma senha nova. Confira também o spam.` : `If an account exists for ${email}, we sent a reset link. Check spam too.`) : (pt ? 'Enviamos um link para você criar uma senha nova.' : "We'll email you a link to set a new password.")}>
       <input type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="voce@email.com" className={field} style={{ borderColor: 'var(--theme-border)' }} />
-      <button type="button" disabled={busy || cooldown > 0} onClick={send} className="mt-4 h-12 w-full rounded-xl text-[15px] font-semibold disabled:opacity-60" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
+      <Turnstile onToken={setCaptcha} resetKey={captchaReset} />
+      <button type="button" disabled={busy || cooldown > 0 || (captchaEnabled && !captcha)} onClick={send} className="mt-4 h-12 w-full rounded-xl text-[15px] font-semibold disabled:opacity-60" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>
         {busy ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : cooldown > 0 ? (pt ? `Reenviar em ${cooldown}s` : `Resend in ${cooldown}s`) : sent ? (pt ? 'Reenviar link' : 'Resend link') : (pt ? 'Enviar link' : 'Send link')}
       </button>
       <Link to="/login" className="mt-6 block text-center text-[14px] underline underline-offset-4" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? 'Voltar para o login' : 'Back to sign in'}</Link>

@@ -11,8 +11,8 @@ interface AuthContextValue {
   isAdmin: boolean
   /** True when Supabase env is configured; when true, login is required. */
   hasSupabase: boolean
-  signIn: (email: string, password: string) => Promise<{ error: Error | null }>
-  signUp: (email: string, password: string, meta?: Record<string, string>) => Promise<{ error: Error | null; needsConfirmation?: boolean }>
+  signIn: (email: string, password: string, captchaToken?: string) => Promise<{ error: Error | null }>
+  signUp: (email: string, password: string, meta?: Record<string, string>, captchaToken?: string) => Promise<{ error: Error | null; needsConfirmation?: boolean }>
   signInWithGoogle: () => Promise<{ error: Error | null }>
   signOut: () => Promise<void>
 }
@@ -62,9 +62,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe()
   }, [])
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (email: string, password: string, captchaToken?: string) => {
     if (!supabase) return { error: new Error('Supabase não configurado') }
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password, ...(captchaToken ? { options: { captchaToken } } : {}) })
     if (!error && data?.session) {
       setSession(data.session)
       setUser(data.session.user)
@@ -73,9 +73,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: error ? new Error(error.message) : null }
   }
 
-  const signUp = async (email: string, password: string, meta?: Record<string, string>) => {
+  const signUp = async (email: string, password: string, meta?: Record<string, string>, captchaToken?: string) => {
     if (!supabase) return { error: new Error('Supabase não configurado') }
-    const { data, error } = await supabase.auth.signUp({ email, password, options: { ...(meta ? { data: meta } : {}), emailRedirectTo: window.location.origin } })
+    const { data, error } = await supabase.auth.signUp({ email, password, options: { ...(meta ? { data: meta } : {}), ...(captchaToken ? { captchaToken } : {}), emailRedirectTo: window.location.origin } })
     if (!error && data?.session) {
       setSession(data.session)
       setUser(data.session.user)
