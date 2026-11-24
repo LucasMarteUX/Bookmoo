@@ -22,9 +22,9 @@ function rememberTermsAccepted() {
 
 // Painel da esquerda: ilustrações em preto e branco que trocam devagar, como um onboarding.
 const SLIDES = [
-  { src: '/illustrations/reading.svg', pt: ['Leia o que você ama', 'Aprenda um idioma com livros de verdade, palavra por palavra.'], en: ['Read what you love', 'Learn a language with real books, one word at a time.'] },
-  { src: '/illustrations/chatting.svg', pt: ['Fale sem medo', 'Treine a pronúncia e ouça cada frase no seu ritmo.'], en: ['Speak with confidence', 'Practice pronunciation and hear every sentence at your pace.'] },
-  { src: '/illustrations/meditation.svg', pt: ['Um pouco por dia', 'Sequências, revisões e o seu progresso num só lugar.'], en: ['A little every day', 'Streaks, reviews and your progress in one place.'] },
+  { src: '/site/home/leitora-tablet.webp', pos: '72% center', pt: ['Leia o que você ama', 'Aprenda um idioma com livros de verdade, palavra por palavra.'], en: ['Read what you love', 'Learn a language with real books, one word at a time.'] },
+  { src: '/site/home/tutora-leitura-1120.webp', pos: 'center 38%', pt: ['Fale sem medo', 'Treine a pronúncia e ouça cada frase no seu ritmo.'], en: ['Speak with confidence', 'Practice pronunciation and hear every sentence at your pace.'] },
+  { src: '/site/home/cartografo.webp', pos: 'center', pt: ['Um pouco por dia', 'Sequências, revisões e o seu progresso num só lugar.'], en: ['A little every day', 'Streaks, reviews and your progress in one place.'] },
 ]
 
 function GoogleIcon() {
@@ -78,6 +78,8 @@ export function Login({ mode = 'login' }: { mode?: Mode }) {
 
   useEffect(() => { setError(''); setMessage('') }, [mode])
 
+  // Carrega as pinturas de antemão: a troca vira um esmaecer, sem piscar o painel vazio.
+  useEffect(() => { SLIDES.forEach(x => { const img = new Image(); img.src = x.src }) }, [])
   useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
     const id = window.setInterval(() => setSlide(s => (s + 1) % SLIDES.length), 6000)
@@ -141,29 +143,33 @@ export function Login({ mode = 'login' }: { mode?: Mode }) {
   return (
     <div className="min-h-dvh flex gap-4 lg:gap-6 p-4 lg:p-6" style={{ backgroundColor: 'var(--theme-bg)' }}>
       {/* 70%: ilustração */}
-      <aside className="hidden lg:flex basis-[70%] shrink-0 flex-col rounded-[28px] p-10 relative overflow-hidden"
-        style={{ backgroundColor: 'var(--theme-bg-secondary)' }}>
+      <aside className="hidden lg:flex basis-[70%] shrink-0 flex-col rounded-[28px] p-10 relative overflow-hidden isolate"
+        style={{ backgroundColor: '#1d2019' }}>
+        {/* A pintura ocupa o painel inteiro e troca devagar, com um leve zoom; o texto fica sobre um degradê. */}
+        <AnimatePresence initial={false}>
+          <motion.img key={current.src} src={current.src} alt="" aria-hidden className="absolute inset-0 -z-10 w-full h-full object-cover"
+            style={{ objectPosition: current.pos }}
+            initial={{ opacity: 0, scale: 1.06 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
+            transition={{ opacity: { duration: 1.1, ease: 'easeInOut' }, scale: { duration: 7, ease: 'easeOut' } }} />
+        </AnimatePresence>
+        <div aria-hidden className="absolute inset-0 -z-10 pointer-events-none"
+          style={{ background: 'linear-gradient(180deg, rgba(16,18,13,.45) 0%, rgba(16,18,13,0) 26%, rgba(16,18,13,0) 52%, rgba(16,18,13,.82) 100%)' }} />
         <div className="flex items-center gap-2">
-          <Link to="/" aria-label="Voltar para o site do Upoonly" className="inline-block"><Logo height={56} style={{ color: 'var(--theme-text)' }} /></Link>
+          <Link to="/" aria-label="Voltar para o site do Upoonly" className="inline-block"><Logo height={56} style={{ color: '#fbf6ea' }} /></Link>
         </div>
-        <div className="flex-1 grid place-items-center py-8">
-          <AnimatePresence mode="wait">
-            <motion.img key={current.src} src={current.src} alt="" className="illo w-full max-w-[520px] max-h-[52vh] object-contain"
-              initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.45 }} />
-          </AnimatePresence>
-        </div>
+        <div className="flex-1" />
         <div className="flex items-end justify-between gap-8">
           <AnimatePresence mode="wait">
             <motion.div key={slide} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="max-w-md">
-              <h2 className="text-[34px] leading-[1.1] font-semibold tracking-tight" style={{ color: 'var(--theme-text)' }}>{title}</h2>
-              <p className="mt-3 text-base" style={{ color: 'var(--theme-text-secondary)' }}>{subtitle}</p>
+              <h2 className="text-[34px] leading-[1.1] font-semibold tracking-tight" style={{ color: '#fbf6ea' }}>{title}</h2>
+              <p className="mt-3 text-base" style={{ color: 'rgba(251,246,234,.82)' }}>{subtitle}</p>
             </motion.div>
           </AnimatePresence>
           <div className="flex gap-1.5 pb-2" role="tablist" aria-label={pt ? 'Destaques' : 'Highlights'}>
             {SLIDES.map((s, i) => (
               <button key={s.src} type="button" role="tab" aria-selected={i === slide} aria-label={`${i + 1}`} onClick={() => setSlide(i)}
                 className="h-1.5 rounded-full transition-all"
-                style={{ width: i === slide ? 22 : 6, backgroundColor: i === slide ? 'var(--theme-text)' : 'var(--theme-border)' }} />
+                style={{ width: i === slide ? 22 : 6, backgroundColor: i === slide ? '#fbf6ea' : 'rgba(251,246,234,.38)' }} />
             ))}
           </div>
         </div>
@@ -185,7 +191,7 @@ export function Login({ mode = 'login' }: { mode?: Mode }) {
 
         <div className="flex-1 grid place-items-center py-8">
           <div className="w-full max-w-[360px]">
-            <img src="/illustrations/reading.svg" alt="" className="illo lg:hidden w-44 mx-auto mb-6" />
+            <img src="/site/home/leitora-tablet.webp" alt="" className="lg:hidden w-full h-40 object-cover rounded-2xl mb-7" style={{ objectPosition: '72% center' }} />
             <h1 className="text-[28px] font-semibold tracking-tight" style={{ color: 'var(--theme-text)' }}>
               {signup ? (pt ? 'Crie sua conta' : 'Create your account') : (pt ? 'Bem-vindo de volta' : 'Welcome back')}
             </h1>

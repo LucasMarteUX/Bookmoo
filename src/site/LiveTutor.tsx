@@ -67,6 +67,9 @@ function useScript(id: string, playing: boolean, script?: Beat[]) {
   return list[i % list.length]
 }
 
+/** Roteiro de reações (falas, humor e gestos) de um tutor, para quem desenha o tutor por conta própria. */
+export function useTutorBeat(id: string, playing: boolean) { return useScript(id, playing) }
+
 /** Balão de fala com troca suave. */
 export function Bubble({ text, className = '', tail = 'left' }: { text?: string; className?: string; tail?: 'left' | 'center' }) {
   return (
@@ -101,8 +104,8 @@ export function BreathingTutor({ id, smile, className = '', style }: { id: strin
     <motion.div className={`relative ${className}`} style={{ transformOrigin: '50% 100%', ...style }}
       animate={reduce || style?.transform === 'none' ? undefined : { scaleY: [1, 1.006, 1] }}
       transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}>
-      <img src={tutorImg(id)} alt="" draggable={false} className="block h-full w-auto select-none" />
-      <img src={tutorImg(id, true)} alt="" draggable={false} aria-hidden className="absolute inset-0 h-full w-auto select-none transition-opacity duration-500" style={{ opacity: on ? 1 : 0 }} />
+      <img src={tutorImg(id)} alt="" draggable={false} className="block h-full w-auto select-none transition-opacity duration-100" style={{ opacity: on ? 0 : 1 }} />
+      <img src={tutorImg(id, true)} alt="" draggable={false} aria-hidden className="absolute inset-0 h-full w-auto select-none transition-opacity duration-100" style={{ opacity: on ? 1 : 0 }} />
     </motion.div>
   )
 }
