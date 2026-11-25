@@ -23,12 +23,19 @@ import { fullComicText } from '../../supabase/functions/_shared/comicText'
 import type { EditorialLayout, PanelInspection, VisualBeat } from '../../supabase/functions/_shared/comicEditorial'
 
 export type ComicJobStage = 'image' | 'layout'
-type JobState = { jobId: string; stage: ComicJobStage | 'prepare'; startedAt: number; error?: string }
+/**
+ * Andamento no servidor, para a estimativa: na fila (posição e espera estimada) ou desenhando (desde quando).
+ * `drawSeconds` é o tempo típico de desenho medido nos trabalhos recentes.
+ */
+export type ComicJobProgress = { position?: number; waitSeconds?: number; drawSeconds?: number; drawStartedAt?: number }
+type JobState = { jobId: string; stage: ComicJobStage | 'prepare'; startedAt: number; error?: string; progress?: ComicJobProgress }
 /**
  * Tempo típico do clique até a página pronta (preparo + desenho no servidor + balões), medido nos trabalhos reais:
  * o desenho leva de 60 a 80 s. Serve para a estimativa mostrada enquanto gera.
  */
 export const COMIC_ETA_SECONDS = 90
+/** Encaixe dos balões no app depois que a arte chega (inspeção + rostos). */
+export const COMIC_LAYOUT_SECONDS = 15
 /** Página que acabou de ganhar imagem compartilhada na galeria (o leitor atualiza a lista dele). */
 export const COMIC_SHARED_EVENT = 'upoonly:comic-shared'
 
@@ -61,7 +68,8 @@ const tracking = new Set<string>()
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
 const bookOf = (id: string) => useBookStore.getState().books.find(b => b.id === id)
 
-type JobRow = { id: string; book_id: string; page: number; status: 'running' | 'rendered' | 'done' | 'failed'; result: GeneratedComicPage | null; error: string | null; fix_of: string | null }
+type JobRow = { id: string; book_id: string; page: number; status: 'queued' | 'running' | 'rendered' | 'done' | 'failed'; result: GeneratedComicPage | null; error: string | null; fix_of: string | null }
+type QueueInfo = { status: string; position: number; avg_seconds: number; wait_seconds: number; elapsed_seconds: number }
 
 async function readJob(jobId: string): Promise<JobRow | null> {
   if (!supabase) return null
@@ -73,13 +81,32 @@ async function finishJob(jobId: string) {
   if (supabase) await supabase.rpc('comic_job_finish', { p_job: jobId })
 }
 
-/** Espera o servidor terminar o desenho (consulta a cada 3 s; desiste depois de 9 min, quando o servidor já marcou falha). */
-async function waitRendered(jobId: string): Promise<JobRow> {
+/** Posição na fila e tempos do servidor (só o dono lê). */
+async function readProgress(jobId: string): Promise<ComicJobProgress | null> {
+  if (!supabase) return null
+  const { data } = await supabase.rpc('comic_job_queue_info', { p_job: jobId })
+  const info = data as QueueInfo | null
+  if (!info) return null
+  const drawSeconds = Number(info.avg_seconds) || COMIC_ETA_SECONDS - COMIC_LAYOUT_SECONDS
+  if (info.status === 'queued') return { position: Math.max(1, Number(info.position) || 1), waitSeconds: Math.max(0, Number(info.wait_seconds) || 0), drawSeconds }
+  if (info.status === 'running') return { drawSeconds, drawStartedAt: Date.now() - Math.max(0, Number(info.elapsed_seconds) || 0) * 1000 }
+  return null
+}
+
+/**
+ * Espera o servidor terminar o desenho (consulta a cada 2,5–5 s). Na fila, informa a posição; desenhando, desde quando.
+ * Desiste 9 min depois que o desenho começou (o servidor já marcou falha) ou 35 min na fila (o servidor desiste aos 30).
+ */
+async function waitRendered(jobId: string, onProgress?: (p: ComicJobProgress | null) => void): Promise<JobRow> {
   const t0 = Date.now()
+  let drawingSince = 0
   let delay = 2500
-  while (Date.now() - t0 < 9 * 60_000) {
+  while (Date.now() - t0 < 35 * 60_000 && (!drawingSince || Date.now() - drawingSince < 9 * 60_000)) {
     const row = await readJob(jobId).catch(() => null)
-    if (row && row.status !== 'running') return row
+    if (row && row.status !== 'running' && row.status !== 'queued') return row
+    if (row?.status === 'running' && !drawingSince) drawingSince = Date.now()
+    if (row?.status === 'queued') drawingSince = 0 // voltou para a fila (nova tentativa com espera)
+    if (row && onProgress) onProgress(await readProgress(jobId).catch(() => null))
     await sleep(delay)
     delay = Math.min(5000, delay + 500)
   }
@@ -188,7 +215,8 @@ async function track(p: Pending) {
   const k = key(p.bookId, p.page)
   setJob(k, { jobId: p.jobId, stage: 'image', startedAt: p.at })
   try {
-    const row = await waitRendered(p.jobId)
+    const progress = (jobId: string) => (info: ComicJobProgress | null) => setJob(k, { jobId, stage: 'image', startedAt: p.at, progress: info ?? undefined })
+    const row = await waitRendered(p.jobId, progress(p.jobId))
     if (row.status === 'done') { dropPending(p.jobId); return }
     if (row.status === 'failed' || !row.result) {
       const err = new AiRequestError(row.error || 'request_failed')
@@ -225,7 +253,7 @@ async function track(p: Pending) {
         const fix = await invokeStart({ ...baseOptions(book, p.page, pageText), replan: problems ? `${STYLE_FIX} Fix: ${problems}`.slice(0, 300) : STYLE_FIX }, p.jobId)
         addPending({ jobId: fix, bookId: p.bookId, page: p.page, fixOf: p.jobId, at: Date.now() })
         setJob(k, { jobId: fix, stage: 'image', startedAt: p.at })
-        const fixed = await waitRendered(fix)
+        const fixed = await waitRendered(fix, progress(fix))
         if (fixed.status === 'rendered' && fixed.result) {
           setJob(k, { jobId: fix, stage: 'layout', startedAt: p.at })
           const second = await letter(fixed.result, pageText, book).catch(() => null)
@@ -338,7 +366,7 @@ export async function resumeComicJobs() {
   if (!session) { resumed = false; return }
   const local = loadPending()
   const { data } = await supabase.from('comic_jobs').select('id, book_id, page, fix_of, status, created_at')
-    .in('status', ['running', 'rendered']).is('fix_of', null).gte('created_at', new Date(Date.now() - 24 * 3600_000).toISOString())
+    .in('status', ['queued', 'running', 'rendered']).is('fix_of', null).gte('created_at', new Date(Date.now() - 24 * 3600_000).toISOString())
   const rows = (data ?? []) as { id: string; book_id: string; page: number; fix_of: string | null; created_at: string }[]
   const all = new Map<string, Pending>()
   for (const p of local) if (!p.fixOf) all.set(p.jobId, p)

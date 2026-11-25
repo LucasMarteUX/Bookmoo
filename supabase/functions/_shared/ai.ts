@@ -17,7 +17,18 @@ export const MODELS = {
 } as const
 
 export class AiError extends Error {
+  /** Falha passageira do provedor (429 de limite por minuto, 5xx, tempo esgotado): vale tentar de novo daqui a pouco. */
+  transient = false
+  /** Espera sugerida pelo provedor (Retry-After), em ms. */
+  retryAfterMs?: number
   constructor(message: string, public status = 502, public code = 'ai_error') { super(message) }
+}
+
+/** Erro que merece nova tentativa: os passageiros do provedor, e falhas de rede/tempo (que não chegam como AiError). */
+export function isTransient(e: unknown): boolean {
+  if (e instanceof AiError) return e.transient
+  const name = (e as { name?: string })?.name
+  return name === 'TimeoutError' || name === 'AbortError' || e instanceof TypeError
 }
 
 /** Provedores que o usuário conectou. */
@@ -122,7 +133,7 @@ async function geminiGenerate(key: string, model: string, body: Record<string, u
     signal: AbortSignal.timeout(120_000),
   })
   const j = await r.json().catch(() => ({}))
-  if (!r.ok) throw providerError('gemini', r.status, j)
+  if (!r.ok) throw providerError('gemini', r.status, j, r.headers)
   if (model === MODELS.geminiText) recordText('gemini', model, Number(j.usageMetadata?.promptTokenCount ?? 0), Number(j.usageMetadata?.candidatesTokenCount ?? 0))
   return j as { candidates?: { content?: { parts?: { text?: string; inlineData?: { data: string; mimeType: string } }[] } }[] }
 }
@@ -173,6 +184,12 @@ export function bytesToB64(bytes: Uint8Array) {
   return btoa(s)
 }
 
+/**
+ * WebP com compressão 80: as páginas em JPEG tinham mediana de 343 KB; o WebP nessa faixa fica bem mais leve sem perda
+ * visível no traço e nas cores chapadas. Vale para gerações e edições.
+ */
+const WEBP_COMPRESSION = 80
+
 /** Gera uma página 2:3 (retrato). OpenAI em qualidade "medium": "low" ficava simples demais para uma HQ. */
 export type ImageShape = { square?: boolean; quality?: 'low' | 'medium' | 'high'; mask?: Blob }
 
@@ -190,7 +207,8 @@ export async function generateImage(provider: Provider, key: string, prompt: str
       form.append('prompt', prompt)
       form.append('size', size)
       form.append('quality', quality)
-      form.append('output_format', 'jpeg')
+      form.append('output_format', 'webp')
+      form.append('output_compression', String(WEBP_COMPRESSION))
       if (mask) form.append('mask', mask, 'mask.png')
       refs.forEach((ref, i) => {
         const ext = ref.mime === 'image/jpeg' ? 'jpg' : ref.mime.split('/')[1]
@@ -202,16 +220,16 @@ export async function generateImage(provider: Provider, key: string, prompt: str
       r = await fetch('https://api.openai.com/v1/images/generations', {
         method: 'POST',
         headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: MODELS.openaiImage, prompt, size, quality, output_format: 'jpeg', n: 1 }),
+        body: JSON.stringify({ model: MODELS.openaiImage, prompt, size, quality, output_format: 'webp', output_compression: WEBP_COMPRESSION, n: 1 }),
         signal: AbortSignal.timeout(140_000),
       })
     }
     const j = await r.json().catch(() => ({}))
-    if (!r.ok) throw providerError('openai', r.status, j)
+    if (!r.ok) throw providerError('openai', r.status, j, r.headers)
     const b64 = j.data?.[0]?.b64_json
-    if (!b64) throw new AiError('no_image_returned')
+    if (!b64) throw Object.assign(new AiError('no_image_returned'), { transient: true })
     recordImage('openai', MODELS.openaiImage, quality, size, refs.length)
-    return { bytes: b64ToBytes(b64), mime: 'image/jpeg' }
+    return { bytes: b64ToBytes(b64), mime: 'image/webp' }
   }
   const parts: unknown[] = await Promise.all(refs.map(async (ref) => ({
     inlineData: {
@@ -220,12 +238,13 @@ export async function generateImage(provider: Provider, key: string, prompt: str
     },
   })))
   parts.push({ text: prompt })
+  // A Gemini devolve PNG (ou o que o modelo escolher): guardado como veio, só a OpenAI sai em WebP.
   const j = await geminiGenerate(key, MODELS.geminiImage, {
     contents: [{ role: 'user', parts }],
     generationConfig: { responseModalities: ['IMAGE'], imageConfig: { aspectRatio: shape.square ? '1:1' : '2:3' } },
   })
   const img = (j.candidates?.[0]?.content?.parts ?? []).find((p) => p.inlineData)?.inlineData
-  if (!img) throw new AiError('no_image_returned')
+  if (!img) throw Object.assign(new AiError('no_image_returned'), { transient: true })
   recordImage('gemini', MODELS.geminiImage, quality, size, refs.length)
   return { bytes: b64ToBytes(img.data), mime: img.mimeType || 'image/png' }
 }
@@ -239,10 +258,70 @@ export async function validateKey(provider: Provider, key: string): Promise<bool
 }
 
 /** Erro do provedor sem vazar detalhes sensíveis; mapeia chave inválida/quota para códigos claros. */
-function providerError(provider: Provider, status: number, body: { error?: { message?: string; code?: string; status?: string } }) {
+function providerError(provider: Provider, status: number, body: { error?: { message?: string; code?: string; status?: string } }, headers?: Headers) {
   const msg = String(body?.error?.message ?? '')
+  const code = String(body?.error?.code ?? body?.error?.status ?? '')
   if (status === 401 || status === 403 || /api key|invalid.*key|permission/i.test(msg)) return new AiError(`${provider}_invalid_key`, 401, 'invalid_key')
-  if (status === 429 || /quota|rate limit|billing/i.test(msg)) return new AiError(`${provider}_quota`, 429, 'quota')
+  if (status === 429 || /quota|rate limit|billing/i.test(msg)) {
+    const err = new AiError(`${provider}_quota`, 429, 'quota')
+    // Limite por minuto passa sozinho; saldo/cota esgotados (insufficient_quota, billing) não: só outro provedor resolve.
+    err.transient = status === 429 && !/insufficient_quota|billing/i.test(`${code} ${msg}`)
+    err.retryAfterMs = retryAfterMs(headers)
+    return err
+  }
   if (/safety|content policy|moderation/i.test(msg)) return new AiError(`${provider}_blocked`, 422, 'blocked')
-  return new AiError(`${provider}_error_${status}: ${msg.slice(0, 200)}`, 502, 'provider_error')
+  const err = new AiError(`${provider}_error_${status}: ${msg.slice(0, 200)}`, 502, 'provider_error')
+  err.transient = status >= 500 || status === 408
+  err.retryAfterMs = retryAfterMs(headers)
+  return err
+}
+
+function retryAfterMs(headers?: Headers): number | undefined {
+  const ms = Number(headers?.get('retry-after-ms'))
+  if (Number.isFinite(ms) && ms > 0) return ms
+  const s = Number(headers?.get('retry-after'))
+  return Number.isFinite(s) && s > 0 ? s * 1000 : undefined
+}
+
+export type ImageProvider = { provider: Provider; key: string }
+
+/**
+ * Gera com nova tentativa e troca de provedor. No primeiro provedor, até `retries` novas tentativas em falha passageira
+ * (429 de limite por minuto, 5xx, tempo esgotado), com espera crescente (4 s, 12 s, 36 s…; respeita o Retry-After, até
+ * 30 s). Esgotou ou a cota acabou: passa ao próximo da lista (ex.: Gemini). Nunca começa uma tentativa sem tempo para
+ * terminá-la antes do `deadline` (limite de tempo da função): aí devolve o último erro, e quem chamou decide (a fila põe
+ * o trabalho de volta com espera).
+ */
+export async function generateImageWithRetry(chain: ImageProvider[], prompt: string, refs: (ImagePart | ImageReference)[],
+  opts?: Blob | ImageShape, policy: { deadline?: number; retries?: number; attemptMs?: number; baseMs?: number; onRetry?: (info: Record<string, unknown>) => void } = {},
+): Promise<{ bytes: Uint8Array; mime: string; provider: Provider }> {
+  const attemptMs = policy.attemptMs ?? 100_000
+  const fits = (waitMs = 0) => !policy.deadline || Date.now() + waitMs + attemptMs <= policy.deadline
+  // Sem tempo nem para a primeira tentativa (o preparo demorou): conta como passageira, para a fila tentar de novo.
+  let last: unknown = Object.assign(new AiError('no_time_for_image', 503, 'provider_error'), { transient: true })
+  for (let i = 0; i < chain.length; i++) {
+    const ai = chain[i]
+    const retries = i === 0 ? policy.retries ?? 2 : 1
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      if (!fits()) throw last
+      try {
+        return { ...await generateImage(ai.provider, ai.key, prompt, refs, opts), provider: ai.provider }
+      } catch (e) {
+        last = e
+        const quotaGone = e instanceof AiError && e.code === 'quota'
+        if (!isTransient(e)) {
+          if (quotaGone) break // cota esgotada: tentar de novo não adianta, vai ao próximo provedor
+          throw e
+        }
+        if (attempt === retries) break
+        const base = (policy.baseMs ?? 4000) * 3 ** attempt
+        const wait = Math.min(30_000, Math.max(base, (e as AiError).retryAfterMs ?? 0)) + Math.floor(Math.random() * base * 0.3)
+        if (!fits(wait)) break
+        policy.onRetry?.({ provider: ai.provider, attempt: attempt + 1, waitMs: wait, code: (e as AiError).code ?? 'network' })
+        await new Promise(r => setTimeout(r, wait))
+      }
+    }
+    if (i + 1 < chain.length) policy.onRetry?.({ provider: chain[i + 1].provider, fallbackFrom: ai.provider, code: (last as AiError).code ?? 'network' })
+  }
+  throw last
 }

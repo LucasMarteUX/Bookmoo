@@ -1,6 +1,8 @@
 import { adminClient, corsHeaders, getUser, json, log } from '../_shared/tts.ts'
 import { rateLimit } from '../_shared/rate.ts'
-import { AiError, generateImage, llmJson, pickProvider, type ImageReference } from '../_shared/ai.ts'
+import {
+  AiError, generateImageWithRetry, isTransient, llmJson, pickProvider, type ImageProvider, type ImageReference,
+} from '../_shared/ai.ts'
 import { entitlements, measured, metered, requireFeature } from '../_shared/billing.ts'
 import { sentenceSpans } from '../_shared/comic.ts'
 import { fullComicText } from '../_shared/comicText.ts'
@@ -29,7 +31,7 @@ type Body = {
 declare const EdgeRuntime: { waitUntil(p: Promise<unknown>): void } | undefined
 
 async function uploadImage(sb: ReturnType<typeof adminClient>, userId: string, bookId: string, page: number, id: string,
-  img: Awaited<ReturnType<typeof generateImage>>) {
+  img: { bytes: Uint8Array; mime: string }) {
   const ext = img.mime === 'image/png' ? 'png' : img.mime === 'image/webp' ? 'webp' : 'jpg'
   const path = `${userId}/${bookId}/${page}-${id}.${ext}`
   const storage = sb.storage.from(BUCKET)
@@ -75,7 +77,8 @@ async function editPanel(sb: ReturnType<typeof adminClient>, userId: string, boo
   const styleDirection = bankPrompt
     ? `MASTER STYLE — redraw the masked area exactly in this style${sample ? ' (image 2 is the style sample and the final authority on the look; use it only for how to draw, never copy its content)' : ''}:\n${fitStyle(masterStyle(bankPrompt), 9000)}`
     : `Art direction: ${JSON.stringify(artStyle).slice(0, 5200)}`
-  const img = await generateImage('openai', key,
+  // Edição responde na hora (sem fila): só novas tentativas curtas que caibam no tempo da requisição.
+  const img = await generateImageWithRetry([{ provider: 'openai', key }],
     `Redraw ONLY the area inside the transparent mask of this full comic page (image 1). It corresponds to panel ${beat.id}, at normalized bounds ${JSON.stringify(panel.bounds)}.
 Preserve panel boundaries, gutters, the entire original page geometry and the surrounding art. Make a fresh interpretation of the same action with the same people, costumes, place and historical period.
 ${styleDirection}
@@ -85,6 +88,7 @@ Cast: ${JSON.stringify(cast.filter(c => c.id && beat.cast.includes(c.id))).slice
 Keep these regions visually quiet with calm background scenery in the same style: ${quietAreas.join(', ')}. No cutouts or empty white shapes.
 Return a full portrait page with the exact same framing and no text, lettering or balloons.`,
     [{ mime: data.type, blob: data }, ...(sample ? [sample] : [])], new Blob([Uint8Array.from(atob(mask), c => c.charCodeAt(0))], { type: 'image/png' }),
+    { deadline: Date.now() + 140_000, retries: 1, onRetry: info => log('comic-generate', 'panel_image_retry', info) },
   )
   const generation: GenerationRecord = {
     ...layout.generation, id: crypto.randomUUID(), createdAt: new Date().toISOString(), provider: 'openai',
@@ -129,15 +133,116 @@ async function loadContinuity(sb: ReturnType<typeof adminClient>, userId: string
   return parts.filter((part): part is ImageReference => part !== null)
 }
 
+// ---------------------------------------------------------------------------------------------------------------------
+// Fila (comic_jobs 'queued' → 'running'). O clique só enfileira; um trabalho começa quando há vaga no limite de
+// simultâneas (app_settings.comic_max_concurrent, conferido em comic_job_claim). Quem pega a vaga: a própria invocação do
+// clique, o fim de cada trabalho (acorda a função de novo) e o pg_cron a cada minuto (rede de segurança).
+// ---------------------------------------------------------------------------------------------------------------------
+type Admin = ReturnType<typeof adminClient>
+/** Trabalho da fila sendo desenhado agora. `attempt` conta a partir de 1; `startedAt` é quando pegou a vaga. */
+type RunCtx = { jobId: string; fixOf: string | null; attempt: number; startedAt: number }
+/** Tempo útil de um trabalho dentro da função (folga para gravar e devolver crédito antes do limite da plataforma). */
+const JOB_BUDGET_MS = 320_000
+/** Falha passageira (429/5xx) que sobrou das novas tentativas na hora: volta para a fila com espera crescente. */
+const MAX_ATTEMPTS = 3
+const REQUEUE_DELAYS_S = [60, 180]
+
+async function inBackground(p: Promise<unknown>) {
+  if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime?.waitUntil) EdgeRuntime.waitUntil(p)
+  else await p
+}
+
+const now = () => new Date().toISOString()
+
+async function failJob(sb: Admin, jobId: string, code: string) {
+  await sb.from('comic_jobs').update({ status: 'failed', error: code, updated_at: now(), finished_at: now() })
+    .eq('id', jobId).eq('status', 'running')
+}
+
+/** Acorda outra invocação desta função para pegar o próximo da fila (cada trabalho roda na sua própria invocação). */
+async function kick() {
+  const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+  await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/comic-generate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...(key ? { Authorization: `Bearer ${key}`, apikey: key } : {}) },
+    body: JSON.stringify({ action: 'dispatch' }),
+    signal: AbortSignal.timeout(15_000),
+  }).then(r => r.body?.cancel(), e => log('comic-generate', 'kick_failed', { msg: String(e).slice(0, 160) }))
+}
+
+async function kickIfQueued(sb: Admin) {
+  const { count } = await sb.from('comic_jobs').select('id', { count: 'exact', head: true })
+    .eq('status', 'queued').lte('run_after', now())
+  if (count) await kick()
+}
+
+/** Pega o próximo da fila se houver vaga e o desenha nesta invocação, em segundo plano. */
+async function dispatch(): Promise<string | null> {
+  const sb = adminClient()
+  const { data, error } = await sb.rpc('comic_job_claim')
+  if (error) {
+    log('comic-generate', 'claim_failed', { msg: error.message.slice(0, 200) })
+    return null
+  }
+  const jobId = (data as string | null) ?? null
+  if (!jobId) return null
+  await inBackground((async () => {
+    await kickIfQueued(sb) // ainda há fila (e talvez vaga): a próxima invocação confere e pega
+    await runJob(sb, jobId)
+  })())
+  return jobId
+}
+
+/** Refaz o pedido guardado no trabalho e desenha. Qualquer saída sem entrega marca falha (a reserva já voltou). */
+async function runJob(sb: Admin, jobId: string) {
+  try {
+    const { data: job } = await sb.from('comic_jobs').select('user_id, book_id, page, request, fix_of, attempts, started_at')
+      .eq('id', jobId).maybeSingle()
+    if (!job) return
+    const request = job.request as Body | null
+    if (!request) return await failJob(sb, jobId, 'comic_job_failed')
+    const ctx: RunCtx = {
+      jobId, fixOf: job.fix_of as string | null, attempt: Math.max(1, Number(job.attempts) || 1),
+      startedAt: Date.parse(job.started_at as string) || Date.now(),
+    }
+    const res = await handle(job.user_id as string, { ...request, bookId: job.book_id as string, page: job.page as number, job: true, fixOf: undefined }, ctx)
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({})) as { error?: string }
+      log('comic-generate', 'job_failed', { job: jobId, code: body.error ?? 'comic_job_failed' })
+      await failJob(sb, jobId, body.error ?? 'comic_job_failed')
+    }
+  } catch (e) {
+    log('comic-generate', 'job_crashed', { job: jobId, msg: String((e as Error)?.message ?? e).slice(0, 200) })
+    await failJob(sb, jobId, e instanceof AiError ? e.code : 'comic_job_failed')
+  } finally {
+    await kickIfQueued(sb).catch(() => undefined) // vaga liberada: puxa o próximo
+  }
+}
+
+/** Provedores de reserva para a página (app_settings.comic_image_fallback = 'gemini'), além da OpenAI. */
+async function imageFallback(sb: Admin, userId: string): Promise<ImageProvider[]> {
+  const { data } = await sb.from('app_settings').select('value').eq('key', 'comic_image_fallback').maybeSingle()
+  if (data?.value !== 'gemini') return []
+  const gemini = await pickProvider(userId, ['gemini'], { strict: true }).catch(() => null)
+  return gemini ? [gemini] : []
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405)
+  const b = await req.json().catch(() => null) as Body | null
+  if (!b) return json({ error: 'invalid_json' }, 400)
+  // Despachante (pg_cron, fim de um trabalho): não recebe dados, só pega o que já está na fila e respeita o limite.
+  if (b.action === 'dispatch') return json({ claimed: await dispatch() })
   const user = await getUser(req)
   if (!user) return json({ error: 'unauthorized' }, 401)
   const limited = await rateLimit(req, user.id, 'comic-generate', 6)
   if (limited) return limited
-  const b = await req.json().catch(() => null) as Body | null
-  if (!b) return json({ error: 'invalid_json' }, 400)
+  return handle(user.id, b)
+})
+
+async function handle(userId: string, b: Body, runCtx?: RunCtx): Promise<Response> {
+  const user = { id: userId }
   if (b.action === 'editorial-version') return json({ editorialVersion: 3 })
   const bookId = String(b.bookId ?? '')
   const page = Number(b.page)
@@ -216,6 +321,8 @@ Return JSON {"styleId": one id from the list, "reason": one short sentence in Po
         cap: ent.is_admin ? null : ent.limits.pages,
       })
       : measured(user.id, 'prepare-art', fn, ent.plan)
+    // Da fila: conta desde que pegou a vaga. Pedido direto (app antigo, sem fila): o limite da própria requisição.
+    const deadline = runCtx ? runCtx.startedAt + JOB_BUDGET_MS : Date.now() + 140_000
     const work = async () => {
     const brief = { ...book, category: (catalog as { category?: string | null } | null)?.category ?? null, styleId: fixedStyle }
     const fingerprint = await briefFingerprint(brief)
@@ -284,10 +391,13 @@ Return JSON {"styleId": one id from the list, "reason": one short sentence in Po
     // A miniatura do estilo vai como primeira imagem: é ela que mostra à IA o visual escolhido
     // (o texto sozinho deixava livros famosos voltarem ao visual das edições conhecidas).
     const sample = bankPrompt ? await styleSample(sb, plan.style.styleId) : null
-    const img = await generateImage(imgAi.provider, imgAi.key, imagePrompt(plan, pageLayout.frames, references, continuity.length, b.replan, bankPrompt, !!sample),
-      [...(sample ? [sample] : []), ...images, ...continuity])
+    // 429/5xx: novas tentativas com espera crescente enquanto couber no tempo do trabalho; depois o Gemini, se ligado.
+    const img = await generateImageWithRetry([imgAi, ...await imageFallback(sb, user.id)],
+      imagePrompt(plan, pageLayout.frames, references, continuity.length, b.replan, bankPrompt, !!sample),
+      [...(sample ? [sample] : []), ...images, ...continuity], undefined,
+      { deadline, onRetry: info => log('comic-generate', 'image_retry', { job: runCtx?.jobId, page, ...info }) })
     const generation: GenerationRecord = {
-      id: crypto.randomUUID(), createdAt: new Date().toISOString(), provider: imgAi.provider,
+      id: crypto.randomUUID(), createdAt: new Date().toISOString(), provider: img.provider,
       styleRevision: plan.style.revision!,
       styleId: plan.style.styleId,
       ...(styleRender ? { styleRender } : {}),
@@ -307,8 +417,54 @@ Return JSON {"styleId": one id from the list, "reason": one short sentence in Po
     }
     if (!b.job || !generatePage) return json(await run(work))
 
-    // Trabalho em segundo plano: o desenho continua mesmo se a pessoa sair da tela. A cobrança só é confirmada depois que
-    // a arte e o storyboard estão guardados no trabalho; se nada puder ser entregue, a reserva volta.
+    if (runCtx) {
+      // Chegou a vez deste trabalho na fila. O crédito é reservado só agora (cada tentativa com a sua reserva) e confirmado
+      // só depois que a arte e o storyboard estão guardados; se nada puder ser entregue, a reserva volta.
+      const { jobId, fixOf, attempt } = runCtx
+      const deliver = async () => {
+        const out = await work()
+        // Mesma proteção na gravação do trabalho: o banco pode oscilar por alguns segundos.
+        let saved = false
+        for (let i = 0; i < 5 && !saved; i++) {
+          const { data, error: saveError } = await sb.from('comic_jobs')
+            .update({ status: 'rendered', result: out, error: null, updated_at: now(), finished_at: now() })
+            .eq('id', jobId).eq('status', 'running').select('id')
+          if (!saveError) {
+            // Ninguém atualizado: a limpeza já marcou falha por tempo. Sem entrega, sem cobrança.
+            if (!data?.length) throw new AiError('Job expired before saving', 500, 'comic_job_save_failed')
+            saved = true
+          } else await new Promise(r => setTimeout(r, 2000 * (i + 1)))
+        }
+        if (!saved) throw new AiError('Could not save the illustration', 500, 'comic_job_save_failed')
+        return out
+      }
+      await (fixOf
+        ? measured(user.id, 'comic-autofix', deliver, ent.plan)
+        : metered(user.id, b.replan ? 'comic-replan' : 'comic-page', deliver, {
+          plan: ent.plan, ref: `${bookId}:${page}`, key: `comic-job:${jobId}:${attempt}`, capField: ent.limits.pages != null ? 'pages' : undefined,
+          cap: ent.is_admin ? null : ent.limits.pages,
+        })
+      ).catch(async (e) => {
+        const err = e instanceof AiError ? e : new AiError(String((e as Error)?.message ?? e))
+        // Falha passageira do provedor (as novas tentativas na hora não bastaram): volta para a fila com espera crescente.
+        if (isTransient(e) && attempt < MAX_ATTEMPTS) {
+          const delay = REQUEUE_DELAYS_S[attempt - 1] ?? REQUEUE_DELAYS_S.at(-1)!
+          const { data: back } = await sb.from('comic_jobs')
+            .update({ status: 'queued', error: err.code, started_at: null, run_after: new Date(Date.now() + delay * 1000).toISOString(), updated_at: now() })
+            .eq('id', jobId).eq('status', 'running').select('id')
+          if (back?.length) {
+            log('comic-generate', 'job_requeued', { job: jobId, attempt, delay, code: err.code })
+            return
+          }
+        }
+        log('comic-generate', 'job_failed', { job: jobId, attempt, code: err.code, msg: err.message.slice(0, 200) })
+        await failJob(sb, jobId, err.code)
+      })
+      return json({ jobId })
+    }
+
+    // Clique: valida (livro, estilo, plano) e entra na fila. O desenho começa quando houver vaga, nesta ou em outra
+    // invocação, e continua mesmo se a pessoa sair da tela.
     let fixOf: string | null = null
     if (b.fixOf) {
       const { data: parent } = await sb.from('comic_jobs').select('id, status, created_at')
@@ -318,13 +474,18 @@ Return JSON {"styleId": one id from the list, "reason": one short sentence in Po
       }
       fixOf = parent.id
     }
+    // O pedido fica guardado no trabalho: quem pegar a vaga refaz tudo a partir dele (o texto da página vai sem cortes).
+    const text = (value: unknown, max: number) => typeof value === 'string' && value ? value.slice(0, max) : undefined
+    const request: Body = {
+      pageText, bookContext: text(b.bookContext, 4000), replan: text(b.replan, 600), priorContext: text(b.priorContext, 3000),
+    }
     const { data: job, error: jobError } = await sb.from('comic_jobs')
-      .insert({ user_id: user.id, book_id: bookId, page, fix_of: fixOf }).select('id').single()
+      .insert({ user_id: user.id, book_id: bookId, page, fix_of: fixOf, status: 'queued', request }).select('id').single()
     if (jobError) {
-      // Já há um trabalho desta página andando (dois cliques, duas abas) ou a correção já foi pedida: devolve o mesmo.
+      // Já há um trabalho desta página na fila ou andando (dois cliques, duas abas) ou a correção já foi pedida: devolve o mesmo.
       if (jobError.code === '23505') {
         const { data: active } = await sb.from('comic_jobs').select('id')
-          .eq('user_id', user.id).eq('book_id', bookId).eq('page', page).eq('status', 'running').maybeSingle()
+          .eq('user_id', user.id).eq('book_id', bookId).eq('page', page).in('status', ['queued', 'running']).maybeSingle()
         if (active) return json({ jobId: active.id, existing: true })
         if (fixOf) {
           const { data: fix } = await sb.from('comic_jobs').select('id').eq('fix_of', fixOf).maybeSingle()
@@ -333,39 +494,12 @@ Return JSON {"styleId": one id from the list, "reason": one short sentence in Po
       }
       throw new AiError('Could not start the illustration', 500, 'comic_job_failed')
     }
-    const jobId = job.id as string
-    const deliver = async () => {
-      const out = await work()
-      // Mesma proteção na gravação do trabalho: o banco pode oscilar por alguns segundos.
-      let saveError: unknown = null
-      for (let attempt = 0; attempt < 5; attempt++) {
-        ;({ error: saveError } = await sb.from('comic_jobs')
-          .update({ status: 'rendered', result: out, updated_at: new Date().toISOString(), finished_at: new Date().toISOString() })
-          .eq('id', jobId).eq('status', 'running'))
-        if (!saveError) break
-        await new Promise(r => setTimeout(r, 2000 * (attempt + 1)))
-      }
-      if (saveError) throw new AiError('Could not save the illustration', 500, 'comic_job_save_failed')
-      return out
-    }
-    const background = (fixOf
-      ? measured(user.id, 'comic-autofix', deliver, ent.plan)
-      : metered(user.id, b.replan ? 'comic-replan' : 'comic-page', deliver, {
-        plan: ent.plan, ref: `${bookId}:${page}`, key: `comic-job:${jobId}`, capField: ent.limits.pages != null ? 'pages' : undefined,
-        cap: ent.is_admin ? null : ent.limits.pages,
-      })
-    ).catch(async (e) => {
-      const err = e instanceof AiError ? e : new AiError(String((e as Error)?.message ?? e))
-      log('comic-generate', 'job_failed', { job: jobId, code: err.code, msg: err.message.slice(0, 200) })
-      await sb.from('comic_jobs').update({ status: 'failed', error: err.code, updated_at: new Date().toISOString(), finished_at: new Date().toISOString() })
-        .eq('id', jobId).eq('status', 'running')
-    })
-    if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime?.waitUntil) EdgeRuntime.waitUntil(background)
-    else await background
-    return json({ jobId })
+    // Há vaga? Esta invocação já pega o próximo da fila (o mais antigo, que pode ser de outra pessoa) e desenha.
+    await dispatch()
+    return json({ jobId: job.id, queued: true })
   } catch (e) {
     const err = e instanceof AiError ? e : new AiError(String((e as Error)?.message ?? e))
     log('comic-generate', 'error', { code: err.code, msg: err.code === 'comic_plan_invalid' ? 'Storyboard rejected' : err.message.slice(0, 200) })
     return json({ error: err.code, detail: err.message }, err.status)
   }
-})
+}

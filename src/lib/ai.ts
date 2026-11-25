@@ -26,6 +26,8 @@ export function aiErrorMessage(e: unknown): string {
   if (code === "ai_paused") return "A IA está em pausa por alguns instantes. Tente de novo mais tarde."
   if (code === "invalid_key" || code === "quota") return "A IA está temporariamente indisponível. Tente de novo em instantes."
   if (code === "blocked") return "O provedor de IA recusou este conteúdo."
+  if (code === "queue_timeout") return "Muita gente ilustrando agora e a sua página não saiu da fila a tempo. Nada foi cobrado; tente de novo em alguns minutos."
+  if (code === "provider_error") return "O serviço de IA ficou instável mesmo depois de algumas tentativas. Tente de novo em instantes."
   if (code === "comic_panel_key") return "A edição de quadros está temporariamente indisponível."
   if (code === "book_not_found") return "O livro precisa estar sincronizado com sua conta para gerar quadrinhos."
   if (code === "comic_reference_key") return "A geração com referências visuais está temporariamente indisponível."

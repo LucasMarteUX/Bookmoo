@@ -1635,6 +1635,7 @@ export function Reader({ book, autoPlay = false, headerSlot, headerEndSlot, head
             fullscreenTarget={() => readerRootRef.current}
             stage={comicStage}
             stageStartedAt={localComicStage ? undefined : comicJob?.startedAt}
+            stageProgress={localComicStage ? undefined : comicJob?.progress}
             error={comicError?.page === currentPage ? comicError.message : undefined}
             onGenerate={() => { void handleGenerateComic() }}
             onDelete={handleDeleteComic}
