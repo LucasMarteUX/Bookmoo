@@ -3,6 +3,8 @@ import { VoiceFace, useBookCategories } from '@/components/book/VoiceFace'
 import { defaultNarratorFor } from '@/lib/tutorReadingVoices'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useBookStore } from '@/store/useBookStore'
+import { supabase } from '@/lib/supabase'
+import { ensureBookFull } from '@/lib/supabaseSync'
 import { useBookSync } from '@/hooks/useBookSync'
 import { useLanguage } from '@/store/useLanguage'
 import { useTranslations } from '@/lib/i18n'
@@ -16,7 +18,7 @@ import { VoiceCastDialog } from '@/components/book/VoiceCastDialog'
 import { remapComics } from '@/lib/comicPersistence'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { BookOpen, Lock, Users, CheckCircle2, FilePen, Keyboard, Headphones, Mic, Palette, PenLine, Rows3, XCircle, Settings2, ChevronDown } from 'lucide-react'
+import { BookOpen, Loader2, Lock, Users, CheckCircle2, FilePen, Keyboard, Headphones, Mic, Palette, PenLine, Rows3, XCircle, Settings2, ChevronDown } from 'lucide-react'
 import { MenuItem, ToolButton, ToolGroup } from '@/components/ui/toolbar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { StylePickerDialog, useApplyBookStyle, useStyleBank } from '@/components/book/StylePicker'
@@ -95,6 +97,23 @@ export function BookPage() {
   const enterTutorFocus = useTutorDock(s => s.enterFocus)
   useEffect(() => { setTutorBook(book ?? null); return () => setTutorBook(null) }, [book, setTutorBook])
   useEffect(() => (mode === 'edit' || mode === 'speak' ? enterTutorFocus() : undefined), [mode, enterTutorFocus])
+
+  // Livro que chegou leve (só título e progresso): o texto dele vem na frente da fila.
+  const stubId = book?.stub ? book.id : null
+  useEffect(() => {
+    if (!stubId || !supabase || !session?.user.id) return
+    void ensureBookFull(supabase, session.user.id, stubId, useBookStore.getState().updateBook)
+  }, [stubId, session?.user.id])
+
+  const booksLoaded = useBookStore(st => st.booksLoaded)
+  if ((!book && !booksLoaded) || book?.stub) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full py-24 gap-3" role="status">
+        <Loader2 className="w-7 h-7 animate-spin" style={{ color: 'var(--theme-text-secondary)' }} aria-hidden />
+        <p className="text-[14px]" style={{ color: 'var(--theme-text-secondary)' }}>{pt ? 'Abrindo o livro…' : 'Opening the book…'}</p>
+      </div>
+    )
+  }
 
   if (!book) {
     return (

@@ -11,6 +11,8 @@ export type ComicCharacter = Character
 
 export interface Book {
   id: string
+  /** Só os dados leves chegaram (sem o texto do livro): o texto vem em seguida, em segundo plano. Nunca é gravado assim. */
+  stub?: boolean
   title: string
   /** Optional author name displayed under the title. */
   author?: string

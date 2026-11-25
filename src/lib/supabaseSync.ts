@@ -21,8 +21,9 @@ export function bookFromRow(row: any): Book {
   const needsPagination = legacyContent && !hasComic && !row.word_count
     && (savedPages.length === 0 || (savedPages.length === 1 && savedPages[0].trim() === legacyContent))
   const pages = needsPagination ? splitContentIntoPages(legacyContent) : savedPages.length ? savedPages : legacyContent ? [legacyContent] : []
-  const currentPage = Number.isInteger(row.current_page) ? Math.max(0, Math.min(pages.length - 1, row.current_page)) : 0
-  const progress = readingProgress(currentPage, pages.length, totalPages)
+  const stub = row.pages === undefined && row.content === undefined
+  const currentPage = Number.isInteger(row.current_page) ? (stub ? Math.max(0, row.current_page) : Math.max(0, Math.min(pages.length - 1, row.current_page))) : 0
+  const progress = stub && typeof row.progress === 'number' ? Math.round(row.progress * 100) : readingProgress(currentPage, pages.length, totalPages)
   const comicStyleDoc = row.comic_style_doc && typeof row.comic_style_doc === 'object' ? row.comic_style_doc : undefined
   const comicCharacters = Array.isArray(row.comic_characters) ? row.comic_characters : undefined
   const comicLayouts: Record<number, any> = {}
@@ -34,6 +35,7 @@ export function bookFromRow(row: any): Book {
   }
   return {
     id: row.id,
+    ...(stub ? { stub: true } : {}),
     title: row.title ?? '',
     author: row.author ?? undefined,
     content: row.content ?? '',
@@ -43,7 +45,7 @@ export function bookFromRow(row: any): Book {
     currentPage,
     progress,
     lastRead: row.last_read ? new Date(row.last_read).getTime() : Date.now(),
-    wordCount: row.word_count > 0 ? row.word_count : countWords(pages.join(' ')),
+    wordCount: row.word_count > 0 ? row.word_count : stub ? 0 : countWords(pages.join(' ')),
     totalPages,
     comicPages: Object.keys(comicPagesNum).length ? comicPagesNum : undefined,
     comicStyleDoc: comicStyleDoc ?? undefined,
@@ -128,37 +130,74 @@ export function vocabularyToRow(v: Vocabulary, userId: string) {
   }
 }
 
-export async function fetchBooks(supabase: SupabaseClient, userId: string): Promise<Book[]> {
-  // Cada livro traz o texto inteiro (e as páginas, e a capa): com muitos livros, uma consulta só estourava o tempo
-  // limite do banco e a biblioteca ficava vazia. Primeiro a lista (leve), depois os livros em lotes pequenos.
-  const { data: ids, error } = await supabase
-    .from('books')
-    .select('id')
-    .eq('user_id', userId)
-    .order('last_read', { ascending: false })
-  if (error) {
-    console.error('fetchBooks error', error)
-    return []
+const LIGHT_BOOK_COLUMNS = 'id,user_id,title,current_page,progress,last_read,word_count,total_pages,comic_pages,pinned_vocab_ids,language_code,cover_data,context,author,created_at,updated_at,description,comic_style_doc,comic_characters,comic_layouts,finished_at,shelf_status,favorite,source'
+
+/** Texto completo de um livro (pages e content). */
+export async function fetchBookFull(supabase: SupabaseClient, userId: string, id: string): Promise<Book | null> {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    // Tempo limite: uma requisição pendurada não pode travar a fila dos outros livros.
+    const { data, error } = await supabase.from('books').select('*').eq('user_id', userId).eq('id', id).abortSignal(AbortSignal.timeout(20_000)).maybeSingle()
+    if (!error) return data ? bookFromRow(data) : null
+    await new Promise(r => setTimeout(r, 1200 * (attempt + 1)))
   }
-  const order = (ids ?? []).map(row => row.id as string)
-  const rows = new Map<string, Record<string, unknown>>()
-  const BATCH = 3
-  const loadBatch = async (batch: string[], attempt = 0): Promise<void> => {
-    const { data, error: batchError } = await supabase.from('books').select('*').eq('user_id', userId).in('id', batch)
-    if (batchError) {
-      // Lote pesado demais ou oscilação: tenta de novo, e por fim um livro de cada vez.
-      if (attempt < 1) return loadBatch(batch, attempt + 1)
-      if (batch.length > 1) { for (const id of batch) await loadBatch([id], 1); return }
-      console.error('fetchBooks error', batchError)
-      return
+  return null
+}
+
+const fullLoads = new Map<string, Promise<Book | null>>()
+/**
+ * Garante o texto de um livro que chegou leve. Junta pedidos repetidos e troca o livro no store, preservando o que a
+ * pessoa mudou nesse meio-tempo (página atual, última leitura).
+ */
+export function ensureBookFull(supabase: SupabaseClient, userId: string, id: string, update: (id: string, patch: Partial<Book>) => void): Promise<Book | null> {
+  let p = fullLoads.get(id)
+  if (!p) {
+    p = fetchBookFull(supabase, userId, id).then(full => {
+      if (full) update(id, { stub: undefined, content: full.content, pages: full.pages, wordCount: full.wordCount, progress: full.progress, totalPages: full.totalPages })
+      return full
+    }).finally(() => fullLoads.delete(id))
+    fullLoads.set(id, p)
+  }
+  return p
+}
+
+let filling: Promise<void> | null = null
+/**
+ * Preenche em segundo plano o texto dos livros que chegaram leves, dois por vez, na ordem da estante.
+ * Uma execução só por vez; chamar de novo enquanto roda não duplica nada.
+ */
+export function fillBookTexts(supabase: SupabaseClient, userId: string, getBooks: () => Book[], update: (id: string, patch: Partial<Book>) => void): Promise<void> {
+  if (filling) return filling
+  filling = (async () => {
+    // Algumas voltas: se a lista for trocada no meio (nova sincronização), o que voltou sem texto entra de novo.
+    for (let pass = 0; pass < 4; pass++) {
+      const queue = getBooks().filter(b => b.stub).map(b => b.id)
+      if (!queue.length) return
+      const worker = async () => {
+        for (let id = queue.shift(); id; id = queue.shift()) {
+          if (!getBooks().find(b => b.id === id)?.stub) continue
+          await ensureBookFull(supabase, userId, id, update).catch(() => null)
+        }
+      }
+      await Promise.all([worker(), worker()])
+      await new Promise(r => setTimeout(r, 500))
     }
-    for (const row of data ?? []) rows.set(row.id as string, row)
+  })().finally(() => { filling = null })
+  return filling
+}
+
+/**
+ * Biblioteca em duas etapas. 1) Lista leve (sem o texto dos livros): aparece na hora. 2) O texto de cada livro chega
+ * depois, um por vez, começando pelos lidos por último. Antes uma consulta só trazia tudo (vários MB por livro) e
+ * estourava o tempo limite do banco: a biblioteca ficava vazia.
+ */
+export async function fetchBooks(supabase: SupabaseClient, userId: string): Promise<Book[]> {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const { data, error } = await supabase.from('books').select(LIGHT_BOOK_COLUMNS).eq('user_id', userId).order('last_read', { ascending: false }).abortSignal(AbortSignal.timeout(20_000))
+    if (!error) return (data ?? []).map(bookFromRow)
+    console.error('fetchBooks error', error)
+    await new Promise(r => setTimeout(r, 1500 * (attempt + 1)))
   }
-  const batches: string[][] = []
-  for (let i = 0; i < order.length; i += BATCH) batches.push(order.slice(i, i + BATCH))
-  // Até 3 lotes ao mesmo tempo.
-  for (let i = 0; i < batches.length; i += 3) await Promise.all(batches.slice(i, i + 3).map(batch => loadBatch(batch)))
-  return order.flatMap(id => rows.has(id) ? [bookFromRow(rows.get(id) as never)] : [])
+  return []
 }
 
 export async function fetchVocabulary(supabase: SupabaseClient, userId: string): Promise<Vocabulary[]> {
@@ -188,6 +227,8 @@ export async function fetchStudyDays(supabase: SupabaseClient, userId: string): 
 }
 
 export async function upsertBook(supabase: SupabaseClient, userId: string, book: Book): Promise<void> {
+  // Livro ainda sem o texto (carregamento leve): gravar agora apagaria o texto no banco.
+  if (book.stub) return
   const row = bookToRow(book, userId)
   const { error } = await supabase.from('books').upsert(row, { onConflict: 'id' })
   if (error) {
@@ -213,6 +254,8 @@ export async function updateBookFields(supabase: SupabaseClient, userId: string,
   const row = bookToRow(book, userId) as Record<string, unknown>
   const patch: Record<string, unknown> = {}
   for (const f of fields) for (const col of BOOK_FIELD_COLUMNS[f] ?? []) patch[col] = row[col]
+  // Sem o texto ainda: nada que dependa dele (texto, páginas, contagem, progresso calculado) vai para o banco.
+  if (book.stub) for (const col of ['content', 'pages', 'word_count', 'progress']) delete patch[col]
   if (!Object.keys(patch).length) return
   const { error } = await supabase.from('books').update(patch).eq('id', book.id).eq('user_id', userId)
   if (error) throw error

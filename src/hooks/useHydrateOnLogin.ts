@@ -13,6 +13,7 @@ import {
   fetchStudyDays,
   fetchReaderSettings,
   updateBookFields,
+  fillBookTexts,
   upsertVocabulary
 } from '@/lib/supabaseSync'
 import { fetchBookLinks } from '@/lib/catalog'
@@ -54,7 +55,19 @@ export function useHydrateOnLogin() {
         if (useLevelStore.getState().userId !== userId) useLevelStore.getState().clear()
         void useLevelStore.getState().load(userId).catch(() => {})
         const booksP = fetchBooks(supabase, userId)
-        void booksP.then(b => { if (currentUserRef.current === forUser) setBooks(b) }).catch(() => {})
+        // A lista leve entra na hora; o texto de cada livro chega em seguida, em segundo plano.
+        const keepFull = (list: Awaited<typeof booksP>) => {
+          const cached = new Map(useBookStore.getState().books.map(x => [x.id, x]))
+          return list.map(x => {
+            const mine = cached.get(x.id)
+            return x.stub && mine && !mine.stub && mine.pages?.length ? { ...x, stub: undefined, content: mine.content, pages: mine.pages, wordCount: mine.wordCount || x.wordCount } : x
+          })
+        }
+        void booksP.then(b => {
+          if (currentUserRef.current !== forUser || !b.length) return
+          setBooks(keepFull(b))
+          void fillBookTexts(supabase!, forUser, () => useBookStore.getState().books, useBookStore.getState().updateBook)
+        }).catch(() => {})
         const [books, vocab, study, settings] = await Promise.all([
           booksP,
           fetchVocabulary(supabase, userId),
@@ -63,8 +76,10 @@ export function useHydrateOnLogin() {
         ])
         if (currentUserRef.current !== forUser) return
 
-        console.log('[useHydrateOnLogin] fetched books', books)
-        setBooks(books)
+        setBooks(keepFull(books))
+        // Se a fila já estava rodando, espera ela acabar e confere de novo (a lista acabou de ser trocada).
+        const fill = () => fillBookTexts(supabase!, userId, () => useBookStore.getState().books, useBookStore.getState().updateBook)
+        void fill().then(() => { if (useBookStore.getState().books.some(b => b.stub)) void fill() })
         void fetchBookLinks(userId).then(links => {
           if (currentUserRef.current !== forUser) return
           for (const link of links) useBookStore.getState().updateBook(link.bookId, { catalogId: link.catalogId, imageMode: link.imageMode })

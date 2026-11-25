@@ -11,6 +11,7 @@ import { paywallForError } from '@/components/billing/Paywall'
 import { refreshEntitlements } from '@/store/useEntitlements'
 import { useBookStore, type Book, type ComicCharacter } from '@/store/useBookStore'
 import { saveComicPage } from '@/lib/comicPersistence'
+import { ensureBookFull } from '@/lib/supabaseSync'
 import { browserMeasure, placePanelBoxes } from '@/lib/comicLettering'
 import { resolveSpeakers } from '@/lib/speakerResolution'
 import { letteringThemeFor } from '@/lib/comicThemes'
@@ -194,7 +195,13 @@ async function track(p: Pending) {
       throw err
     }
     setJob(k, { jobId: p.jobId, stage: 'layout' })
-    const book = bookOf(p.bookId)
+    let book = bookOf(p.bookId)
+    // Livro ainda sem o texto (carregamento leve): busca agora, antes de encaixar os balões.
+    if (book?.stub && supabase) {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session) await ensureBookFull(supabase, session.user.id, book.id, useBookStore.getState().updateBook)
+      book = bookOf(p.bookId)
+    }
     const pageText = book?.pages[p.page]
     if (!book || pageText == null) throw new AiRequestError('book_not_found')
     refreshEntitlements()
