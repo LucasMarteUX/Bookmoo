@@ -247,15 +247,18 @@ export function ComicLettering({ layout, width, height, wordsHtml, sourceText, e
       const box = { x: r.x * width, y: r.y * height, w: r.w * width, h: r.h * height }
       const pad = Math.max(8, box.w * 0.05)
       // Altura abraçando o texto da fala atual; a borda mais perto da beira do quadro fica parada.
-      // Editando (caixa selecionada / mover), mostra a caixa inteira para redimensionar.
+      // Vale também com a caixa selecionada ou no modo mover: clicar não muda o tamanho. Só durante o
+      // arrasto a caixa segue o rascunho, que já parte do tamanho visível (editLine, abaixo).
       const hugKey = `${line.id}:${Math.round(line.font * width)}:${Math.round(box.w)}:${Math.round(box.h)}`
       const hugged = hug[hugKey]
-      const editingBox = moveMode || editor?.selected?.panelId === panelId
-      if (hugged && !editingBox && hugged < box.h) {
+      const dragging = editor?.draft?.panelId === panelId
+      if (hugged && !dragging && hugged < box.h) {
         const panelMid = (bounds.y + bounds.h / 2) * height
         if (box.y + box.h / 2 > panelMid) box.y += box.h - hugged
         box.h = hugged
       }
+      // A caixa como aparece, de volta em coordenadas do quadro: é dela que o arrasto e o redimensionamento partem.
+      const editLine = { ...line, box: { x: (box.x / width - bounds.x) / bounds.w, y: (box.y / height - bounds.y) / bounds.h, w: box.w / width / bounds.w, h: box.h / height / bounds.h } }
       const parts = partsOf(line)
       const matches = parts.every(part => part.start >= 0) && parts.map(part => sourceText.slice(part.start, part.end)).join(' ') === line.text
       const words = matches ? parts.map(part => wordsHtml(part.start, part.end)).join(' ') : escapeHtml(line.text)
@@ -328,12 +331,12 @@ export function ComicLettering({ layout, width, height, wordsHtml, sourceText, e
             strokeWidth={1.5} strokeDasharray="6 4" style={{ pointerEvents: 'none' }} />
           <rect x={box.x - 7} y={box.y - 7} width={box.w + 14} height={box.h + 14} rx={10} fill="none" stroke="transparent" strokeWidth={14}
             className={`pointer-events-auto touch-none ${moveMode || isSelected ? 'cursor-move' : 'cursor-grab'}`} data-balloon-handle
-            onPointerDown={event => editor.start(event, line, bounds, 'move')} />
+            onPointerDown={event => editor.start(event, editLine, bounds, 'move')} />
           <rect x={box.x} y={box.y} width={box.w} height={box.h} fill="transparent" stroke="none"
             className={`pointer-events-auto touch-none ${moveMode || isSelected ? 'cursor-move' : 'cursor-grab'}`}
             role="button" tabIndex={0} aria-label={line.text.slice(0, 70)} data-balloon-handle
-            onFocus={() => editor.select(line.id)} onKeyDown={event => editor.keyboard(event, line, bounds)}
-            onPointerDown={event => editor.start(event, line, bounds, 'move')} />
+            onFocus={() => editor.select(line.id)} onKeyDown={event => editor.keyboard(event, editLine, bounds)}
+            onPointerDown={event => editor.start(event, editLine, bounds, 'move')} />
         </>}
         <foreignObject x={box.x + pad} y={box.y} width={Math.max(0, box.w - 2 * pad)} height={box.h} style={{ pointerEvents: 'none', overflow: 'visible' }}>
           <FitText font={line.font * width} text={line.text} inert={moveMode} html={html}
@@ -382,10 +385,10 @@ export function ComicLettering({ layout, width, height, wordsHtml, sourceText, e
             const corner = mode.length === 2
             return corner
               ? <circle key={mode} cx={cx} cy={cy} r={7} fill="#fff" stroke={accent} strokeWidth={2.5} data-balloon-handle
-                className="pointer-events-auto touch-none" style={{ cursor }} onPointerDown={event => editor.start(event, line, bounds, mode)} />
+                className="pointer-events-auto touch-none" style={{ cursor }} onPointerDown={event => editor.start(event, editLine, bounds, mode)} />
               : <rect key={mode} x={cx - (fy === 0.5 ? 4 : 10)} y={cy - (fy === 0.5 ? 10 : 4)} width={fy === 0.5 ? 8 : 20} height={fy === 0.5 ? 20 : 8}
                 rx={4} fill="#fff" stroke={accent} strokeWidth={2} data-balloon-handle
-                className="pointer-events-auto touch-none" style={{ cursor }} onPointerDown={event => editor.start(event, line, bounds, mode)} />
+                className="pointer-events-auto touch-none" style={{ cursor }} onPointerDown={event => editor.start(event, editLine, bounds, mode)} />
           })}
         </>}
       </g>
