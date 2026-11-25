@@ -237,17 +237,9 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
   }, [isFullscreen, imageUrl])
 
   const displayAspect = editorial?.reflow?.aspect ?? aspect
-  // Tela cheia: corta a margem branca da arte (fora dos quadros), para a página encher a tela.
-  const crop = (() => {
-    const panels = isFullscreen && !editorial?.reflow ? editorial?.panels : undefined
-    if (!panels?.length) return null
-    const x0 = Math.min(...panels.map(p => p.bounds.x)), y0 = Math.min(...panels.map(p => p.bounds.y))
-    const x1 = Math.max(...panels.map(p => p.bounds.x + p.bounds.w)), y1 = Math.max(...panels.map(p => p.bounds.y + p.bounds.h))
-    if (x1 - x0 < 0.6 || y1 - y0 < 0.6) return null
-    // Folga para dentro: o contorno detectado costuma incluir um fio da margem branca.
-    const ix = 0.006, iy = 0.006 * displayAspect
-    return { x: x0 + ix, y: y0 + iy, w: x1 - x0 - 2 * ix, h: y1 - y0 - 2 * iy }
-  })()
+  // Tela cheia mostra a página inteira, como no modo normal. Antes cortava a margem branca pelos contornos detectados
+  // dos quadros, mas a detecção erra alguns pixels e o corte comia a borda da arte.
+  const crop = null as { x: number; y: number; w: number; h: number } | null
   const fitAspect = crop ? displayAspect * crop.w / crop.h : displayAspect
   const baseW = fit === 'width' ? box.w : Math.min(box.w, Math.max(320, box.h) * fitAspect) / (crop?.w ?? 1)
   const pageW = Math.round(baseW * zoom)
@@ -769,16 +761,9 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
                 const img = e.currentTarget
                 if (img.naturalWidth && img.naturalHeight) setAspect(img.naturalWidth / img.naturalHeight)
               }} />
-            {/* Tela cheia: as calhas brancas entre os quadros viram fundo escuro (abaixo do texto). */}
-            {crop && editorial && (
-              <svg className="absolute inset-0 pointer-events-none" width={pageW} height={pageH} viewBox={`0 0 ${pageW} ${pageH}`}>
-                <path fillRule="evenodd" fill="#0d0c0b" d={`M0 0H${pageW}V${pageH}H0Z ${editorial.panels.map(({ bounds: b }) => {
-                  const ix = 0.004 * pageW, iy = 0.004 * pageW
-                  const x = b.x * pageW + ix, y = b.y * pageH + iy, w = b.w * pageW - 2 * ix, h = b.h * pageH - 2 * iy
-                  return `M${x} ${y}h${w}v${h}h${-w}Z`
-                }).join(' ')}`} />
-              </svg>
-            )}
+            {/* Tela cheia mostra as divisões da própria arte. Antes as calhas entre os quadros eram pintadas de escuro
+                pelos contornos detectados, mas a detecção erra alguns pixels e a faixa escura cortava a arte, deixando
+                fatias do quadro vizinho e o fio branco da moldura à mostra. */}
             {editorial?.reflow?.panels.map(frame => {
               const panel = editorial.panels.find(item => item.panelId === frame.panelId)
               if (!panel) return null
