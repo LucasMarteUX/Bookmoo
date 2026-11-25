@@ -51,6 +51,13 @@ export const CREDIT_COST = {
   'scene-cover': 2,
   'page-grammar': 1,
   'page-quiz': 1,
+  // Aula da página ("Estudar"): a aula completa custa mais que as ações pontuais dentro dela.
+  'page-lesson': 2,
+  'lesson-exercises': 1,
+  'lesson-chat': 1,
+  'lesson-explain': 1,
+  'lesson-deepen': 1,
+  'lesson-image': 2,
   insights: 5,
 } as const
 export type CreditOp = keyof typeof CREDIT_COST

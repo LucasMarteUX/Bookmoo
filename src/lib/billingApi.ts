@@ -121,36 +121,76 @@ export type SpeechSegment = { lang: 'en' | 'pt'; text: string }
 // ---------------------------------------------------------------------------
 export type LessonPair = { en: string; pt: string }
 export type LessonUnit = {
-  title: string; explanation: string; formula: string
+  title: string; explanation: string; formula: string; contrast?: string
   from_page: LessonPair[]; other: LessonPair[]
   mistake: { wrong: string; right: string; why: string } | null
   practice: { prompt: string; answer: string } | null
 }
-/** Lição da página ("Estudar"), no formato de um livro de inglês. */
+/** Dosagem de idiomas da aula conforme o nível: 'pt' (A1-A2), 'mix' (B1), 'en-pt' (B2), 'en' (C1-C2). */
+export type LessonBalance = 'pt' | 'mix' | 'en-pt' | 'en'
+/** Aula da página ("Estudar"). v3 = aula completa por nível; v2 (antiga) é normalizada com os campos novos vazios. */
 export type GrammarContent = {
-  v: 2
+  v: 2 | 3
+  level?: string
+  balance?: LessonBalance
   title: string
   summary: string
+  minutes?: number
   goals: string[]
-  vocabulary: { word: string; meaning: string; example: string; note: string }[]
+  sentences: { en: string; pt: string; why: string; parts: { chunk: string; role: string }[] }[]
+  vocabulary: { word: string; ipa?: string; pos?: string; meaning: string; in_context?: string; example: string; example_pt?: string; other?: LessonPair | null; note: string }[]
   units: LessonUnit[]
   tenses: { sentence: string; tense: string; time: 'past' | 'present' | 'future'; why: string }[]
   questions_negatives: { sentence: string; why: string; build: string }[]
-  phrasal: { phrase: string; together: string; apart: string; example: string }[]
-  pronunciation: { word: string; tip: string }[]
+  phrasal: { phrase: string; together: string; apart: string; example: string; example_pt?: string; register?: string }[]
+  attention: { title: string; explain: string; wrong: string; right: string }[]
+  style: { form: string; modern: string; explain: string }[]
+  pronunciation: { word: string; ipa?: string; tip: string }[]
   recap: string[]
   tip: string
+}
+/** Completa os campos que a aula antiga (v2) não tem, para a tela nunca quebrar. */
+export function normalizeLesson(raw: Partial<GrammarContent> | null | undefined): GrammarContent | null {
+  if (!raw || typeof raw !== 'object') return null
+  const list = <T,>(v: T[] | undefined) => (Array.isArray(v) ? v : [])
+  return {
+    ...raw,
+    v: raw.v === 3 ? 3 : 2,
+    title: raw.title ?? '', summary: raw.summary ?? '', tip: raw.tip ?? '',
+    goals: list(raw.goals), sentences: list(raw.sentences), vocabulary: list(raw.vocabulary), units: list(raw.units),
+    tenses: list(raw.tenses), questions_negatives: list(raw.questions_negatives), phrasal: list(raw.phrasal),
+    attention: list(raw.attention), style: list(raw.style), pronunciation: list(raw.pronunciation), recap: list(raw.recap),
+  }
 }
 export type QuizQuestion =
   | { type: 'choice'; prompt: string; options: string[]; answer: number; explain: string }
   | { type: 'order'; prompt: string; words: string[]; answer: string; explain: string }
 export type Quiz = { title: string; questions: QuizQuestion[] }
+export type LessonExercise = { prompt: string; options: string[]; answer: number; explain: string; skill: 'vocabulario' | 'gramatica' | 'expressao' | 'armadilha' | 'compreensao'; topic: string }
+export type LessonChatMsg = { role: 'user' | 'assistant'; content: string }
+export type LessonExplain = { term: string; ipa: string; pos: string; meaning: string; in_context: string; examples: LessonPair[]; note: string }
+export type LessonDeepen =
+  | { mode: 'expand'; explanation: string; steps: string[]; examples: LessonPair[]; remember: string }
+  | { mode: 'examples'; examples: (LessonPair & { note: string })[] }
+
+type LessonGet = { found: boolean; content: GrammarContent | null; shared: boolean; outdated: boolean }
+const lessonOf = <T extends { content: GrammarContent | null }>(r: T) => ({ ...r, content: normalizeLesson(r.content) })
 
 export const grammar = {
-  get: (bookId: string, page: number, lang: 'pt' | 'en') =>
-    callFn<{ found: boolean; content: GrammarContent | null; shared: boolean }>('grammar', { action: 'get', bookId, page, lang }, { paywall: false }),
+  get: (bookId: string, page: number, lang: 'pt' | 'en', level: string) =>
+    callFn<LessonGet>('grammar', { action: 'get', bookId, page, lang, level }, { paywall: false }).then(lessonOf),
   generate: (bookId: string, page: number, lang: 'pt' | 'en', level: string) =>
-    callFn<{ found: boolean; content: GrammarContent; shared: boolean; charged: boolean }>('grammar', { action: 'generate', bookId, page, lang, level }).finally(refreshEntitlements),
+    callFn<LessonGet & { charged: boolean }>('grammar', { action: 'generate', bookId, page, lang, level }).then(lessonOf).finally(refreshEntitlements),
+  exercises: (bookId: string, page: number, lang: 'pt' | 'en', level: string, avoid: string[]) =>
+    callFn<{ questions: LessonExercise[] }>('grammar', { action: 'exercises', bookId, page, lang, level, avoid }).finally(refreshEntitlements),
+  chat: (bookId: string, page: number, lang: 'pt' | 'en', level: string, question: string, history: LessonChatMsg[]) =>
+    callFn<{ answer: string }>('grammar', { action: 'chat', bookId, page, lang, level, question, history }).finally(refreshEntitlements),
+  explain: (bookId: string, page: number, lang: 'pt' | 'en', level: string, term: string, context: string) =>
+    callFn<LessonExplain>('grammar', { action: 'explain', bookId, page, lang, level, term, context }).finally(refreshEntitlements),
+  deepen: (bookId: string, page: number, lang: 'pt' | 'en', level: string, mode: 'expand' | 'examples', item: string, opts: { question?: string; avoid?: string[] } = {}) =>
+    callFn<LessonDeepen>('grammar', { action: 'deepen', bookId, page, lang, level, mode, item, ...opts }).finally(refreshEntitlements),
+  image: (bookId: string, page: number, lang: 'pt' | 'en', sentence: string, item: string) =>
+    callFn<{ path: string; url: string | null }>('grammar', { action: 'image', bookId, page, lang, sentence, item }).finally(refreshEntitlements),
   quizGet: (bookId: string, page: number, tier: number, lang: 'pt' | 'en') =>
     callFn<{ quiz: Quiz | null; tier: number }>('grammar', { action: 'quiz-get', bookId, page, tier, lang }, { paywall: false }),
   quiz: (bookId: string, page: number, tier: number, lang: 'pt' | 'en', level: string) =>

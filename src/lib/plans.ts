@@ -91,7 +91,8 @@ export function formatBRL(cents: number) {
 }
 
 /** Custo em créditos mostrado antes de gerar (o servidor cobra o mesmo valor). */
-export const CREDIT_COST = { page: 10, replan: 10, panel: 5, explain: 1, story: 1, mosaic: 1, styleExtract: 3, sceneCover: 2, conversationMinute: 1 } as const
+export const CREDIT_COST = { page: 10, replan: 10, panel: 5, explain: 1, story: 1, mosaic: 1, styleExtract: 3, sceneCover: 2, conversationMinute: 1,
+  lesson: 2, lessonExercises: 1, lessonChat: 1, lessonExplain: 1, lessonDeepen: 1, lessonImage: 2 } as const
 
 /** Tabela mostrada em "Seus créditos". */
 export const COST_TABLE: { pt: string; en: string; credits: string }[] = [
@@ -100,7 +101,10 @@ export const COST_TABLE: { pt: string; en: string; credits: string }[] = [
   { pt: 'Editar um quadro', en: 'Edit a panel', credits: '5' },
   { pt: 'Conversa por voz (Cenas e tutores)', en: 'Voice conversation (Scenes and tutors)', credits: '1 / min' },
   { pt: 'Explicação, história ou exemplo', en: 'Explanation, story or example', credits: '1' },
-  { pt: 'Decifrar a página e Desafio (1ª vez)', en: 'Decode the page and Challenge (first time)', credits: '1' },
+  { pt: 'Aula da página (1ª vez no seu nível)', en: 'Page lesson (first time at your level)', credits: '2' },
+  { pt: 'Exercícios da aula, pergunta no chat, explicar melhor ou mais exemplos', en: 'Lesson exercises, chat question, deeper explanation or more examples', credits: '1' },
+  { pt: 'Imagem exemplo na aula', en: 'Example image in the lesson', credits: '2' },
+  { pt: 'Desafio da página (1ª vez)', en: 'Page challenge (first time)', credits: '1' },
   { pt: 'Imagem do mosaico', en: 'Mosaic image', credits: '1' },
   { pt: 'O que a comunidade já gerou', en: 'What the community already generated', credits: '0' },
 ]
