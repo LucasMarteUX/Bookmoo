@@ -88,7 +88,7 @@ PAGE LAYOUT (positions as percentages of the full page; the outer white margin a
 ${composition}
 ${bank ? 'Illustrate the entire scene, including the quieter areas, in the MASTER STYLE and with the same level of detail as the style sample. Quieter areas continue the background (sky, wall, foliage, floor) with the same perspective and light.' : 'Paint the entire scene, including the quieter areas. Use subdued but recognizable details such as window frames, wood grain, distant furniture, masonry, foliage or clouds. Continue the same perspective, lighting and brushwork into the quieter areas.'} Keep faces, the main subject and significant objects clear of the lettering areas. Avoid blank patches, flat placeholder shapes, cutouts, bubbles, boxes or lettering marks. Do not draw an overlay or placeholder.
 ${feedback ? 'Correction for this pass: ' + cleanText(feedback, 300) : ''}
-Draw only the art. No lettering, captions, balloons, symbols resembling text, sound effects, signatures, or signage. Papers, envelopes, book covers and storefronts must be completely blank and contain no visible handwriting or printing.`
+Draw only the art. No lettering, captions, balloons, symbols resembling text, sound effects, signatures, or signage. Papers, envelopes, book covers, storefronts, gravestones, plaques and engraved inscriptions must be completely blank or show only abstract unreadable marks: no visible letters, names, dates or numbers.`
   // Limite da API de imagem: 32.000 caracteres por pedido. Usa até 30.000 para ter margem.
   const LIMIT = 30_000
   const base = bankPrompt ? prompt.replace(SLOT, '') : prompt
