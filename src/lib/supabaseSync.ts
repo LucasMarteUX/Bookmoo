@@ -129,18 +129,36 @@ export function vocabularyToRow(v: Vocabulary, userId: string) {
 }
 
 export async function fetchBooks(supabase: SupabaseClient, userId: string): Promise<Book[]> {
-  const { data, error } = await supabase
+  // Cada livro traz o texto inteiro (e as páginas, e a capa): com muitos livros, uma consulta só estourava o tempo
+  // limite do banco e a biblioteca ficava vazia. Primeiro a lista (leve), depois os livros em lotes pequenos.
+  const { data: ids, error } = await supabase
     .from('books')
-    .select('*')
+    .select('id')
     .eq('user_id', userId)
     .order('last_read', { ascending: false })
-
   if (error) {
     console.error('fetchBooks error', error)
     return []
   }
-
-  return (data ?? []).map(bookFromRow)
+  const order = (ids ?? []).map(row => row.id as string)
+  const rows = new Map<string, Record<string, unknown>>()
+  const BATCH = 3
+  const loadBatch = async (batch: string[], attempt = 0): Promise<void> => {
+    const { data, error: batchError } = await supabase.from('books').select('*').eq('user_id', userId).in('id', batch)
+    if (batchError) {
+      // Lote pesado demais ou oscilação: tenta de novo, e por fim um livro de cada vez.
+      if (attempt < 1) return loadBatch(batch, attempt + 1)
+      if (batch.length > 1) { for (const id of batch) await loadBatch([id], 1); return }
+      console.error('fetchBooks error', batchError)
+      return
+    }
+    for (const row of data ?? []) rows.set(row.id as string, row)
+  }
+  const batches: string[][] = []
+  for (let i = 0; i < order.length; i += BATCH) batches.push(order.slice(i, i + BATCH))
+  // Até 3 lotes ao mesmo tempo.
+  for (let i = 0; i < batches.length; i += 3) await Promise.all(batches.slice(i, i + 3).map(batch => loadBatch(batch)))
+  return order.flatMap(id => rows.has(id) ? [bookFromRow(rows.get(id) as never)] : [])
 }
 
 export async function fetchVocabulary(supabase: SupabaseClient, userId: string): Promise<Vocabulary[]> {
