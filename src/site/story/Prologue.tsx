@@ -5,6 +5,7 @@ import { motion, useReducedMotion, useScroll, useTransform } from 'motion/react'
 import { Btn } from '../ui'
 import './prologue.css'
 import { ImageDither } from '../ImageDither'
+import { RabbitFlight } from '@/components/brand/RabbitFlight'
 
 let introPlayed = false
 
@@ -35,11 +36,7 @@ export function Prologue() {
   const skip = () => { setRevealed(true); setIntro(false) }
   return <>
     {intro && typeof document !== 'undefined' && createPortal(<div className="flight-intro" onClick={skip}>
-      <div className="flight-cast" aria-hidden="true">
-        <i className="fr fr-body"/><i className="fr fr-paw"/>
-        <span className="fr-head"><i className="fr fr-face"/><i className="fr fr-ears"/></span>
-        <div className="flight-butterfly"><i/><b/></div>
-      </div>
+      <RabbitFlight className="flight-cast" />
     </div>, document.body)}
     <section ref={hero} data-waiting={!revealed} className="book-prologue">
       <ImageDither corners={['br', 'tr']} z={0} />

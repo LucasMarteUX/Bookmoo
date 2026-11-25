@@ -8,7 +8,6 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import type { Mood } from '@/components/voice/TutorAvatar'
 import type { VoiceState } from '@/hooks/useVoiceConversation'
 import { tutorImg } from './content'
-import { characterAvatarUrl } from '@/lib/livliv/characters'
 
 const LivLivAvatar = lazy(() => import('@/components/voice/LivLivAvatar').then(m => ({ default: m.LivLivAvatar })))
 
@@ -181,59 +180,32 @@ export function LiveTutor({ id, playing = true, bubble = 'top-left', script, nam
 
 export type { Beat as TutorBeat }
 
-/** Igual ao "Chamando…" do avatar, para o instante em que o código do personagem ainda está chegando. */
-function CallPlaceholder({ id, name }: { id: string; name: string }) {
-  return (
-    <div className="absolute inset-0 grid place-items-center pointer-events-none">
-      <div className="flex flex-col items-center gap-5">
-        <div className="relative w-28 h-28 grid place-items-center">
-          {[0, 0.7, 1.4].map(d => <span key={d} aria-hidden className="absolute inset-0 rounded-full animate-ping" style={{ border: '1.5px solid color-mix(in srgb, var(--theme-text) 28%, transparent)', animationDuration: '2.1s', animationDelay: `${d}s` }} />)}
-          <img src={characterAvatarUrl(CHARACTER[id])} alt="" className="relative w-24 h-24 rounded-full object-cover" style={{ boxShadow: '0 0 0 3px var(--theme-bg), 0 0 0 4px color-mix(in srgb, var(--theme-text) 18%, transparent)' }} />
-        </div>
-        <div className="text-center">
-          <p className="text-[17px] font-medium leading-tight" style={{ color: 'var(--theme-text)' }}>{name}</p>
-          <p className="mt-1 text-[13px]" style={{ color: 'var(--theme-text-secondary)' }}>Chamando…</p>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-/**
- * Palco do tutor como no app: um único personagem. Ao trocar de tutor (e na primeira vez), aparece a
- * ligação de 3 s do próprio avatar ("Chamando Luck…", foto num círculo com ondas) e depois ele, animado.
- * Nada de retrato pintado no meio: era isso que fazia "uma imagem pequena virar o tutor".
- * Sem WebGL ou com movimento reduzido: retrato de reserva.
- */
+/** O tutor aparece desde a seleção; o player substitui o retrato quando termina de carregar. */
 export function CallingTutor({ id, name, playing = true }: { id: string; name: string; playing?: boolean }) {
   const live = useMemo(canRunLive, [])
   const [failed, setFailed] = useState(false)
   const [visible, setVisible] = useState(false)
   const reduce = useReducedMotion()
-  const beat = useScript(id, playing && !reduce && (visible || !live || failed))
+  const beat = useScript(id, playing && !reduce)
   useEffect(() => { setVisible(false); setFailed(false) }, [id])
-  // Rede lenta ou contexto perdido nunca deixam o site preso em ‘Chamando’.
-  useEffect(() => {
-    if (!live || failed || visible) return
-    const timer = window.setTimeout(() => setFailed(true), 20000)
-    return () => window.clearTimeout(timer)
-  }, [id, live, failed, visible])
-  const bubble = <div className="absolute top-[7%] inset-x-0 flex justify-center pointer-events-none"><Bubble text={beat.line} tail="center" className="max-w-[60%] text-center" /></div>
-  if (!live || failed) {
-    return (
-      <div className="absolute inset-0">
-        <div className="site-call-fallback absolute inset-0 flex items-end justify-center pointer-events-none"><BreathingTutor key={id} id={id} className="h-[76%]" smile={['happy', 'laughing', 'excited', 'wink'].includes(beat.mood)} /></div>
-        {bubble}
-      </div>
-    )
-  }
+  const showLive = live && !failed
   return (
-    <div className="absolute inset-0 site-call">
-      <Suspense fallback={<CallPlaceholder id={id} name={name} />}>
-        <LivLivAvatar key={id} characterId={CHARACTER[id]} stage callOnMount state={beat.state} mood={beat.mood} wave={!!beat.wave}
-          followPointer={false} onFail={() => setFailed(true)} onReady={setVisible} />
-      </Suspense>
-      {visible && bubble}
+    <div className="absolute inset-0 site-call" role="img" aria-label={`Tutor ${name}`}>
+      {/* A rede nunca deixa o palco vazio. Sem timeout: em conexões lentas o player ainda pode concluir. */}
+      <div className="site-call-fallback absolute inset-0 flex items-end justify-center pointer-events-none"
+        style={{ opacity: showLive && visible ? 0 : 1, transition: 'opacity .45s ease' }}>
+        <BreathingTutor key={id} id={id} className="h-[76%]" smile={['happy', 'laughing', 'excited', 'wink'].includes(beat.mood)} />
+      </div>
+      {showLive && <div className="site-call-live absolute inset-0" aria-hidden
+        style={{ opacity: visible ? 1 : 0, transition: 'opacity .45s ease' }}>
+        <Suspense fallback={null}>
+          <LivLivAvatar key={id} characterId={CHARACTER[id]} stage state={beat.state} mood={beat.mood} wave={!!beat.wave}
+            followPointer={false} onFail={() => setFailed(true)} onReady={setVisible} />
+        </Suspense>
+      </div>}
+      <div className="absolute top-[7%] inset-x-0 flex justify-center pointer-events-none">
+        <Bubble text={beat.line} tail="center" className="max-w-[60%] text-center" />
+      </div>
     </div>
   )
 }

@@ -218,3 +218,6 @@
 .site .st-tm-dots button { width: 7px; height: 7px; padding: 0; border-radius: 99px; background: #c9c8b9; transition: width .3s ease, background-color .3s ease; }
 .site .st-tm-dots button[aria-pressed=true] { width: 22px; background: #292b26; }
 .site .st-tutors-mobile .st-tutor-about { margin: 18px 0 20px; min-height: 3.2em; }
+
+/* No site, o retrato cobre a carga do player; a interface de ligação pertence ao app. */
+.site .site-call-live [role=status] { display: none; }

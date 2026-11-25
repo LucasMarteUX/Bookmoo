@@ -172,6 +172,7 @@ export function TutorScroll({ profile = false }: { profile?: boolean } = {}) {
       window.scrollTo({top: top + (section.offsetHeight - window.innerHeight) * (index + .5) / TUTORS.length, behavior: 'instant'})
     }
     setI(index)
+    setSettled(TUTORS[index].id)
   }
   const t = TUTORS[i]
   const cta = <Btn to={profile ? "/signup" : "/tutores"} arrow>{profile ? "Experimentar uma conversa" : "Conhecer os tutores"}</Btn>

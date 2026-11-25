@@ -3,8 +3,8 @@
 .rabbit-flight .fr,.fr-head{position:absolute;inset:0}
 .rabbit-flight .fr{background:url('/site/coelho.svg') center/contain no-repeat}
 /* O coelho em partes (a mesma silhueta recortada): corpo, patinha, cabeça e orelhas. */
-.fr-body{clip-path:polygon(0 36%,100% 36%,100% 60.5%,87.5% 60.5%,87.5% 71%,100% 71%,100% 100%,0 100%)}
-.fr-paw{clip-path:polygon(86% 59.5%,100% 59.5%,100% 72%,86% 72%);transform-origin:92% 59.5%;animation:fr-paw 3.4s .35s ease-in-out both}
+.rabbit-flight .fr-body{background-image:url('/site/coelho-corpo.svg');clip-path:inset(36% 0 0)}
+.rabbit-flight .fr-paw{background-image:url('/site/coelho-pata.svg');transform-origin:92% 59.5%;animation:fr-paw 3.4s .35s ease-in-out both}
 .fr-head{transform-origin:70% 35%;animation:fr-head 3.4s .35s ease-in-out both}
 .fr-face{clip-path:polygon(53% 0,100% 0,100% 38%,37% 38%,37% 23.5%,53% 23.5%)}
 .fr-ears{clip-path:polygon(0 0,55.5% 0,55.5% 25%,0 25%);transform-origin:54% 16%;animation:fr-ears 3.4s .35s ease-in-out both}
