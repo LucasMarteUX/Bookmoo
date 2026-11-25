@@ -2,11 +2,15 @@ import { STYLE_FIELDS, cleanText, type ComicReference } from '../_shared/comicEd
 import { isHistoricalRomanceStyle, usesRealisticLineArt } from '../_shared/comicStyle.ts'
 import { BOOK_FIELDS, contentOnly, fitStyle, masterStyle } from '../_shared/styleBank.ts'
 import type { composeRows, resolvePlan } from './storyboard.ts'
+import { describeFrame, framesFromRows, type Frame } from '../_shared/comicLayouts.ts'
+
+type LayoutInput = ReturnType<typeof composeRows> | Frame[]
+const toFrames = (layout: LayoutInput): Frame[] => layout.length && 'cols' in layout[0] ? framesFromRows(layout as ReturnType<typeof composeRows>) : layout as Frame[]
 
 /** Corta texto longo sem quebrar o pedido (o limite da API é 32 mil caracteres no total). */
 const clip = (text: string, max: number) => text.length > max ? text.slice(0, max) + '…' : text
 
-export function imagePrompt(plan: ReturnType<typeof resolvePlan>, rows: ReturnType<typeof composeRows>, refs: ComicReference[], continuity: number, feedback?: string, bankPrompt?: string | null, sample = false): string {
+export function imagePrompt(plan: ReturnType<typeof resolvePlan>, rows: LayoutInput, refs: ComicReference[], continuity: number, feedback?: string, bankPrompt?: string | null, sample = false): string {
   // Páginas densas (até 9 quadros): encurta a descrição de cada quadro antes de cortar qualquer coisa. Antes o corte final
   // apagava os últimos quadros inteiros.
   for (const panelClip of [1400, 1000, 700, 450]) {
@@ -20,7 +24,7 @@ export function imagePrompt(plan: ReturnType<typeof resolvePlan>, rows: ReturnTy
   return full.slice(0, 30_000 - tail.length) + tail
 }
 
-function buildPrompt(plan: ReturnType<typeof resolvePlan>, rows: ReturnType<typeof composeRows>, refs: ComicReference[], continuity: number, feedback: string | undefined, bankPrompt: string | null | undefined, sample: boolean, panelClip: number) {
+function buildPrompt(plan: ReturnType<typeof resolvePlan>, rows: LayoutInput, refs: ComicReference[], continuity: number, feedback: string | undefined, bankPrompt: string | null | undefined, sample: boolean, panelClip: number) {
   const { style, context, cast, beats } = plan
   const detailed = usesRealisticLineArt(style)
   const styleReference = refs.some(ref => ref.type === 'style')
@@ -40,37 +44,31 @@ function buildPrompt(plan: ReturnType<typeof resolvePlan>, rows: ReturnType<type
   const referenceNotes = refs.map((ref, i) =>
     `Image ${i + first} (${i === 0 ? 'primary, ' : ''}${ref.type}): ${cleanText(ref.instructions, 400) || 'use only for the named role'}`,
   ).join('\n')
-  let panelIndex = 0
-  const composition = rows.map((row, i) => {
-    const widths = row.rightStack ? [row.cols[0], row.cols[1], row.cols[1]] : row.cols
-    const panels = widths.map((width) => {
-      const beat = beats[panelIndex++]
-      const { dialogue, cast: ids, sourceSentenceIds: _source, reservation: _reservation, ...direction } = beat
-      // Contrato com o letreiro: o leitor põe UMA caixa por quadro, no canto da primeira fala.
-      // A arte reserva exatamente esse canto, do tamanho do texto somado do quadro.
-      const quietAreas = (() => {
-        if (!dialogue.length) return [] as string[]
-        const region = dialogue[0].preferredPosition.replace('-', ' ')
-        const chars = dialogue.reduce((sum, line) => sum + line.text.length, 0)
-        const share = chars > 220 ? 'about a third of the panel' : chars > 90 ? 'about a quarter of the panel' : 'about a sixth of the panel'
-        const speaker = dialogue.find(line => line.balloonType !== 'caption' && line.speakerName && line.attribution === 'confirmed')
-        return [
-          `Text area: the ${region} corner of this panel (${share}) is reserved for a lettering box placed later.` +
-          ' Fill it with calm, low-detail, low-contrast background that continues the scene (sky, wall, foliage, floor) in the same style.' +
-          ' No faces, hands, eyes, characters or key story objects may enter that corner; keep the main action toward the opposite side and the panel centre.' +
-          (speaker ? ` Place ${speaker.speakerName} on the same side of the panel as that corner, head clearly visible and not cropped, so a short tail can point to them.` : ''),
-        ]
-      })()
-      return `Panel ${panelIndex}, ${Math.round(width * 100)}% row width: ${clip(JSON.stringify(direction), panelClip)}
+  const frames = toFrames(rows)
+  const composition = frames.map((frame, index) => {
+    const beat = beats[index]
+    if (!beat) return ''
+    const { dialogue, cast: ids, sourceSentenceIds: _source, reservation: _reservation, shape: _shape, breakout: _breakout, ...direction } = beat
+    // Contrato com o letreiro: o leitor põe UMA caixa por quadro, no canto da primeira fala.
+    // A arte reserva exatamente esse canto, do tamanho do texto somado do quadro.
+    const quietAreas = (() => {
+      if (!dialogue.length) return [] as string[]
+      const region = dialogue[0].preferredPosition.replace('-', ' ')
+      const chars = dialogue.reduce((sum, line) => sum + line.text.length, 0)
+      const share = chars > 220 ? 'about a third of the panel' : chars > 90 ? 'about a quarter of the panel' : 'about a sixth of the panel'
+      const speaker = dialogue.find(line => line.balloonType !== 'caption' && line.speakerName && line.attribution === 'confirmed')
+      return [
+        `Text area: the ${region} corner of this panel (${share}) is reserved for a lettering box placed later.` +
+        ' Fill it with calm, low-detail, low-contrast background that continues the scene (sky, wall, foliage, floor) in the same style.' +
+        ' No faces, hands, eyes, characters or key story objects may enter that corner; keep the main action toward the opposite side and the panel centre.' +
+        (speaker ? ` Place ${speaker.speakerName} on the same side of the panel as that corner, head clearly visible and not cropped, so a short tail can point to them.` : ''),
+      ]
+    })()
+    return `${describeFrame(frame, index, frames)}
+Content: ${clip(JSON.stringify(direction), panelClip)}
 Cast: ${cast.filter(c => ids.includes(c.id)).slice(0, 8).map(c => `${cleanText(c.name, 100)} — ${cleanText(c.visualDescription, 250)}`).join('; ')}
 ${quietAreas.join(' ')}`
-    })
-    if (row.rightStack) {
-      return `Band ${i + 1}, ${Math.round(row.h * 100)}% page height. A single tall panel fills the left column. The right column has two stacked panels of equal height. Reading order is the tall left panel, then top right, then bottom right.
-${panels.join('\n')}`
-    }
-    return `Row ${i + 1}, ${Math.round(row.h * 100)}% page height:\n${panels.join('\n')}`
-  }).join('\n')
+  }).filter(Boolean).join('\n')
 
   const prompt = `Create the original unlettered art for ONE portrait 2:3 comic page, exactly ${beats.length} panels.
 ${historicalRomance ? 'MEDIUM: contemporary hand-inked color manga, with the graphic look of painted 2D animation cels over transparent watercolor scenery. This visual treatment has priority over all scene descriptions. Draw faces with distinct ink silhouettes, a simplified nose shape, clean cheek planes, graphic expressive eyes and broad grouped hair locks. On faces and clothing use only two discrete tones per local color: a flat base and one hard-edged cel shadow. Keep skin matte and untextured, with zero realistic gradation, wrinkles rendered by a few lines, and clean large eyes. Keep the entire page bright and airy in pale sage green, sky blue, dusty rose and ivory. Use warm brown only as a small accent. Paint scenery as a few large light watercolor shapes and omit fine background texture, stonework, ornament, and fabric patterns. Keep intricate costume texture, architecture and crowds deliberately simplified. People should read like distinctly stylized drawn animation characters. Crowds are loosely painted silhouettes and the emphasis stays on clean foreground outlines and expression. No sepia, realistic portraiture, historical oil painting, brown cinematic color grading or textured realism.' : ''}
@@ -85,7 +83,8 @@ ${referenceNotes ? `User reference priority follows this order. Apply each image
 ${continuity ? `CONTINUITY — the last ${continuity === 1 ? 'image is an earlier page' : `${continuity} images are earlier pages`} of this same book. Every recurring character MUST look identical to how they appear there: same face shape, eyes, nose, eyebrows, hairstyle, hair colour and length, skin tone, age, height, build and signature clothing (unless the text says they changed clothes). Secondary characters keep their look as strictly as the protagonist. ${bank ? 'Use them only for who the characters are. The drawing style, palette, lighting and rendering come only from the MASTER STYLE above.' : 'Also match the palette, line weight, shading and rendering of those pages.'} Use them only for appearance${bank ? '' : ' and style'}: do not copy their compositions, panels, white shapes or lettering.` : ''}
 CHARACTER SHEET — draw these people exactly as described, identically in every panel where they appear:
 ${cast.filter(c => beats.some(b => b.cast.includes(c.id))).slice(0, 10).map(c => `• ${cleanText(c.name, 100)}: ${cleanText(c.visualDescription, 420)}`).join('\n') || '• (no recurring characters on this page)'}
-${bank ? 'Every panel interior is fully illustrated edge to edge in the MASTER STYLE.' : 'Every panel interior is painted edge to edge.'} Draw actors with expressive eyes, eyebrows, mouth, hands, posture and distinct lines of sight. Clothing follows the date of each scene. Use clean white gutters and simple thin dark panel borders. Keep rectangular panel bounds and the specified row structure, with storytelling-driven framing inside each panel. Every numbered panel is a single undivided image. Do not add inserts, subpanels, montages, or extra borders.
+${bank ? 'Every panel interior is fully illustrated edge to edge in the MASTER STYLE.' : 'Every panel interior is painted edge to edge.'} Draw actors with expressive eyes, eyebrows, mouth, hands, posture and distinct lines of sight. Clothing follows the date of each scene. Use clean white gutters and simple thin dark panel borders. Follow the PAGE LAYOUT below exactly: every panel at its stated position and size, with its stated overlaps and diagonal borders, read left to right and top to bottom; panels of different sizes and formats are intentional, so do not equalize them or turn them into uniform strips. Frame the content of each panel for its format (wide panels spread action sideways, tall panels stack it vertically, small panels isolate one detail). Every numbered panel is a single undivided image. Do not add any panel, inset, subpanel or montage beyond those listed.
+PAGE LAYOUT (positions as percentages of the full page; the outer white margin and gutters are already included):
 ${composition}
 ${bank ? 'Illustrate the entire scene, including the quieter areas, in the MASTER STYLE and with the same level of detail as the style sample. Quieter areas continue the background (sky, wall, foliage, floor) with the same perspective and light.' : 'Paint the entire scene, including the quieter areas. Use subdued but recognizable details such as window frames, wood grain, distant furniture, masonry, foliage or clouds. Continue the same perspective, lighting and brushwork into the quieter areas.'} Keep faces, the main subject and significant objects clear of the lettering areas. Avoid blank patches, flat placeholder shapes, cutouts, bubbles, boxes or lettering marks. Do not draw an overlay or placeholder.
 ${feedback ? 'Correction for this pass: ' + cleanText(feedback, 300) : ''}

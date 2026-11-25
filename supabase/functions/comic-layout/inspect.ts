@@ -2,6 +2,7 @@ import { AiError, bytesToB64, llmJson, pickProvider, type ImagePart, type Provid
 import { adminClient } from '../_shared/tts.ts'
 import { stylePrompt, styleSample } from '../_shared/styleBank.ts'
 import { matchesComposition, stripBounds, templateBounds } from './composition.ts'
+import { safeRect, type Frame } from '../_shared/comicLayouts.ts'
 import { loadReferences } from '../comic-generate/references.ts'
 import { cleanText, rect, type ComicRow, type PanelInspection, type Rect, type StyleDocument } from '../_shared/comicEditorial.ts'
 
@@ -49,12 +50,13 @@ export async function inspectComic(userId: string, input: Record<string, unknown
   const measured = Array.isArray(input.measuredBounds) && input.measuredBounds.length === expected.length
     ? input.measuredBounds.map(rect) : []
   const measuredBounds = measured.length && measured.every((bound): bound is Rect => bound !== null) ? measured : undefined
-  return analyzeComicArtwork({ provider, key, expected, aspect, images, referenceRoles, measuredBounds, composition: input.composition, style: input.style, stylePromptText })
+  const frames = Array.isArray(input.frames) && input.frames.length === expected.length && (input.frames as Frame[]).every(f => rect(f)) ? input.frames as Frame[] : undefined
+  return analyzeComicArtwork({ provider, key, expected, aspect, images, referenceRoles, measuredBounds, composition: input.composition, frames, style: input.style, stylePromptText })
 }
 
-export async function analyzeComicArtwork({ provider, key, expected, aspect, images, referenceRoles, composition, style, measuredBounds, stylePromptText }: {
+export async function analyzeComicArtwork({ provider, key, expected, aspect, images, referenceRoles, composition, frames, style, measuredBounds, stylePromptText }: {
   provider: Provider; key: string; expected: Expected[]; aspect: number; images: ImagePart[]
-  referenceRoles: string[]; composition?: unknown; style?: unknown; measuredBounds?: Rect[]; stylePromptText?: string | null
+  referenceRoles: string[]; composition?: unknown; frames?: Frame[]; style?: unknown; measuredBounds?: Rect[]; stylePromptText?: string | null
 }) {
   // Give vision short, panel-local labels instead of asking it to copy UUIDs.
   const castLabels = expected.map(spec => spec.cast.map((character, index) => ({ ...character, label: `C${index + 1}` })))
@@ -68,7 +70,7 @@ export async function analyzeComicArtwork({ provider, key, expected, aspect, ima
   const result: Verdict | null = await llmJson<Verdict>(provider, key, {
     images,
     prompt: `Inspect this rendered comic artwork. Report the actual number of panels. Read bands from top to bottom. Within each band, read left to right. When a tall left panel is beside a right stack, read the tall panel first, then the top right panel, then the bottom right panel.
-Requested composition (inspect the actual image, not the plan): ${JSON.stringify(composition ?? []).slice(0, 1200)}
+Requested composition (inspect the actual image, not the plan): ${frames ? JSON.stringify(frames.map((f, i) => ({ panel: i + 1, role: f.role, x: +f.x.toFixed(3), y: +f.y.toFixed(3), w: +f.w.toFixed(3), h: +f.h.toFixed(3), over: f.over != null ? f.over + 1 : undefined }))).slice(0, 1800) + '. Panels may differ in size and shape, overlap (inset panels drawn on top of another) or have diagonal borders; report each panel as the rectangle of its visible area.' : JSON.stringify(composition ?? []).slice(0, 1200)}
 Expected storyboard with panel-local cast labels: ${JSON.stringify(storyboard).slice(0, 11500)}
 ${measuredBounds ? `Panel borders already measured from pixels, in reading order: ${JSON.stringify(measuredBounds)}. Use these borders as the coordinate frame for face, body, and free areas in each panel.` : 'Read panel borders from pixels. Planned row proportions are not coordinates.'}
 ${stylePromptText ? `The chosen illustration style is defined below; the image labeled "style sample" shows it. Judge styleMatches ONLY against this style and that sample (line, color palette and brightness, shading, faces, texture and finish). A painterly result is correct when this style is painterly; flat, clean or monochrome results are correct when this style asks for them. Set styleMatches false only when the artwork clearly looks like a different style (for example muddy brown painterly art for a clean bright style, color for a black-and-white style, or flat cartoon for a detailed painted style). Give styleConfidence from 0 to 1 and list concrete styleProblems (at most 4, short).\nSTYLE:\n${stylePromptText.slice(0, 6000)}` : `Expected art direction: ${JSON.stringify(style ?? {}).slice(0, 2400)}`}
@@ -101,9 +103,14 @@ Every rectangle is {x,y,w,h}, top-left origin, normalized 0 to 1. Panel bounds a
   const visionPanels = Array.isArray(result?.panels) && result!.panels!.length === expected.length
     ? result!.panels! : null
   const visionBounds = visionPanels?.map(panel => rect(panel?.bounds))
-  const visionUsable = !!visionBounds && visionBounds.every((b): b is Rect => b !== null) && !overlapping(visionBounds as Rect[])
-    && (!rows.length || matchesComposition(visionBounds as Rect[], rows))
-  const template = rows.length ? templateBounds(rows) : []
+  const iou = (a: Rect, b: Rect) => { const i = intersection(a, b); return i / (a.w * a.h + b.w * b.h - i) }
+  const expectedFrames = frames?.map(safeRect)
+  const visionUsable = !!visionBounds && visionBounds.every((b): b is Rect => b !== null)
+    && (expectedFrames
+      // Diagramação livre: cada quadro visto precisa bater com o planejado (insets se sobrepõem de propósito).
+      ? (visionBounds as Rect[]).every((b, i) => iou(b, expectedFrames[i]) >= 0.45)
+      : !overlapping(visionBounds as Rect[]) && (!rows.length || matchesComposition(visionBounds as Rect[], rows)))
+  const template = expectedFrames ?? (rows.length ? templateBounds(rows) : [])
   const bounds: Rect[] = measuredBounds
     ?? (visionUsable ? visionBounds as Rect[] : template.length === expected.length ? template : stripBounds(expected.length))
   if (!measuredBounds && !visionUsable) issues.push('panel_detection_fallback')
@@ -124,6 +131,13 @@ Every rectangle is {x,y,w,h}, top-left origin, normalized 0 to 1. Panel bounds a
     const free = (Array.isArray(found?.free) ? found!.free! : []).flatMap(entry => rect(entry) ?? []).slice(0, 8)
     const focus = (Array.isArray(found?.focus) ? found!.focus! : []).flatMap(entry => rect(entry) ?? []).slice(0, 3)
     return { panelId: spec.panelId, bounds: bounds[i], faces, free, focus }
+  })
+  // Inset desenhado por cima: no quadro de baixo, a área dele vira obstáculo (balão e rabicho não passam por baixo).
+  frames?.forEach((frame, i) => {
+    if (frame.over == null || !panels[frame.over] || !panels[i]) return
+    const parent = panels[frame.over].bounds, top = panels[i].bounds
+    const local = { x: (top.x - parent.x) / parent.w, y: (top.y - parent.y) / parent.h, w: top.w / parent.w, h: top.h / parent.h }
+    panels[frame.over].focus = [...(panels[frame.over].focus ?? []), local].slice(0, 4)
   })
   return { panels, aspect, issues }
 }

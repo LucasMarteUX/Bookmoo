@@ -81,6 +81,10 @@ export type VisualBeat = {
   importance: string
   period: string
   reservation: string
+  /** Formato que o momento pede na página: wide, tall, square, small ou dominant. */
+  shape?: string
+  /** "yes" quando o personagem ou objeto deve sair da moldura para dar impacto. */
+  breakout?: string
   dialogue: Dialogue[]
 }
 
@@ -113,6 +117,9 @@ export type GenerationRecord = {
   style: ArtDirection
   references: ComicReference[]
   composition?: ComicRow[]
+  /** Diagramação livre (posição exata de cada quadro na página). Quando existe, vale no lugar de composition. */
+  frames?: (Rect & { role: string; over?: number; slantTop?: number; slantBottom?: number; breakout?: boolean })[]
+  layoutId?: string
   panelId?: string
   imageUrl?: string
 }

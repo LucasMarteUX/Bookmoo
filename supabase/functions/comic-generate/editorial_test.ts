@@ -4,6 +4,7 @@ import { composeRows, planPrompt, resolvePlan, type ModelPlan } from './storyboa
 import { analyzeComicArtwork } from '../comic-layout/inspect.ts'
 import { matchesComposition } from '../comic-layout/composition.ts'
 import { imagePrompt } from './imagePrompt.ts'
+import { chooseLayout } from '../_shared/comicLayouts.ts'
 import { loadReferences } from './references.ts'
 import { generateImage } from '../_shared/ai.ts'
 import { sentenceSpans } from '../_shared/comic.ts'
@@ -211,7 +212,33 @@ Deno.test('composition supports side-by-side frames and a tall frame beside stac
   const beats = [{ ...compact, framing: 'emotional close-up', importance: 'high' }, compact, compact]
   const rows = composeRows(beats)
   assert.equal(rows[0].rightStack, true)
-  assert.match(imagePrompt({ ...plan, beats }, rows, [], 0), /tall left panel, then top right, then bottom right/)
+  const prompt = imagePrompt({ ...plan, beats }, rows, [], 0)
+  assert.match(prompt, /Panel 1 \(dominant panel\): left edge 3%/)
+  assert.match(prompt, /PAGE LAYOUT/)
+})
+
+Deno.test('page layouts follow what each beat needs and vary between pages', () => {
+  const plan = resolvePlan(model, {}, [], sentenceSpans(excerpt), excerpt, 0)
+  const base = { ...plan.beats[0], dialogue: [], importance: 'normal' }
+  const beats = [{ ...base, shape: 'wide' }, { ...base, shape: 'tall' }, { ...base, shape: 'dominant', importance: 'high' }, { ...base, shape: 'small' }]
+  const a = chooseLayout(beats, 0)
+  assert.equal(a.frames.length, 4)
+  const largest = Math.max(...a.frames.map(f => f.w * f.h))
+  assert.ok(a.frames[2].w * a.frames[2].h >= largest * 0.6, 'dominant beat gets a big panel')
+  const b = chooseLayout(beats, 1, { previousId: a.id })
+  assert.notEqual(b.id, a.id, 'the next page does not repeat the same layout')
+  for (const n of [1, 2, 3, 4, 5, 6, 7, 8, 9]) {
+    const layout = chooseLayout(Array.from({ length: n }, () => base), n)
+    assert.equal(layout.frames.length >= n, true)
+    for (const f of layout.frames) assert.ok(f.x >= 0 && f.y >= 0 && f.x + f.w <= 1.0001 && f.y + f.h <= 1.0001)
+  }
+  const dynamic = chooseLayout([{ ...base, shape: 'wide' }, { ...base, shape: 'wide', breakout: 'yes' }, { ...base }], 2, { rhythm: 'dynamic' })
+  assert.ok(dynamic.frames.some(f => f.slantBottom || f.slantTop), 'dynamic pages get a diagonal border')
+  assert.equal(dynamic.frames.filter(f => f.breakout).length <= 1, true)
+  const nine = imagePrompt({ ...plan, beats: Array.from({ length: 9 }, (_, i) => ({ ...base, id: `panel-${i + 1}`, action: 'A long and detailed action description '.repeat(30) })) }, chooseLayout(Array.from({ length: 9 }, () => base), 0).frames, [], 0, undefined, 'STYLE: TEST\n' + 'Rule. '.repeat(900), true)
+  assert.ok(nine.length <= 30_000)
+  assert.match(nine, /Panel 9 \(/)
+  assert.match(nine, /STYLE: TEST/)
 })
 
 

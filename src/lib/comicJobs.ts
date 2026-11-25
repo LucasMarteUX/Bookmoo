@@ -118,7 +118,8 @@ async function letter(generated: GeneratedComicPage, pageText: string, book: Boo
   await img.decode()
   const aspect = img.naturalWidth / img.naturalHeight
   const rows = generated.generation.composition
-  const measured = rows?.length && !rows.some(row => row.rightStack) ? await detectPanels(generated.imageUrl, rows, true).catch(() => null) : null
+  // Diagramação livre (frames): as posições já vêm exatas do plano; a detecção por faixas só serve às páginas antigas.
+  const measured = !generated.generation.frames?.length && rows?.length && !rows.some(row => row.rightStack) ? await detectPanels(generated.imageUrl, rows, true).catch(() => null) : null
   const inspected = await inspectWithRetry(generated, aspect, measured?.detected ? measured.panels : undefined)
   const inspection = { ...inspected, panels: await withLocatedFaces(generated.imageUrl, inspected.panels, generated.beats, generated.characters) }
   const dialogue = resolveSpeakers(fullComicText(pageText, generated.beats), generated.beats, generated.characters, pageText)

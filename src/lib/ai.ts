@@ -204,7 +204,7 @@ export interface GeneratedComicPage {
 export function inspectComicPage(generated: Pick<GeneratedComicPage, 'imageUrl' | 'generation' | 'beats' | 'characters'>, aspect: number, measuredBounds?: Rect[]) {
   return invoke<ComicInspection>('comic-layout', {
     action: 'inspect', imageUrl: generated.imageUrl, aspect, style: generated.generation.style, styleId: generated.generation.styleId,
-    composition: generated.generation.composition, measuredBounds,
+    composition: generated.generation.composition, frames: generated.generation.frames, measuredBounds,
     referenceIds: generated.generation.references.map(reference => reference.id),
     expected: generated.beats.map(beat => ({
       panelId: beat.id,

@@ -13,6 +13,7 @@ import { fitStyle, masterStyle, readyStyles, styleForCategory, stylePrompt, styl
 import { imagePrompt } from './imagePrompt.ts'
 import { loadReferences } from './references.ts'
 import { composeRows, planPrompt, resolvePlan, type ModelPlan } from './storyboard.ts'
+import { chooseLayout } from '../_shared/comicLayouts.ts'
 
 const BUCKET = 'comic-pages'
 
@@ -256,6 +257,18 @@ Return JSON {"styleId": one id from the list, "reason": one short sentence in Po
     const lettering = fullComicText(pageText, plan.beats)
     for (const beat of plan.beats) beat.dialogue = lettering.filter(line => line.panelId === beat.id)
     const rows = composeRows(plan.beats)
+    // Diagramação de HQ: formatos e tamanhos pelo que cada momento pede, variando entre páginas.
+    const previousLayout = (book.comic_layouts ?? {})[String(page - 1)]?.generation?.layoutId ?? null
+    const pageLayout = chooseLayout(plan.beats, page, { rhythm: cleanText(raw.pageRhythm, 20), previousId: previousLayout })
+    // Quadro com inset por cima: o texto dele vai para o canto oposto ao inset.
+    pageLayout.frames.forEach(frame => {
+      if (frame.over == null) return
+      const parent = pageLayout.frames[frame.over]
+      const right = frame.x + frame.w / 2 > parent.x + parent.w / 2
+      const bottom = frame.y + frame.h / 2 > parent.y + parent.h / 2
+      const corner = `${bottom ? 'top' : 'bottom'}-${right ? 'left' : 'right'}` as const
+      for (const line of plan.beats[frame.over]?.dialogue ?? []) line.preferredPosition = corner
+    })
     // Continuity: the nearest pages already drawn for this book (earlier first) go to the image
     // model as real images, so recurring characters keep the same face, hair and clothing.
     const bankPrompt = await stylePrompt(sb, plan.style.styleId)
@@ -264,7 +277,7 @@ Return JSON {"styleId": one id from the list, "reason": one short sentence in Po
     // A miniatura do estilo vai como primeira imagem: é ela que mostra à IA o visual escolhido
     // (o texto sozinho deixava livros famosos voltarem ao visual das edições conhecidas).
     const sample = bankPrompt ? await styleSample(sb, plan.style.styleId) : null
-    const img = await generateImage(imgAi.provider, imgAi.key, imagePrompt(plan, rows, references, continuity.length, b.replan, bankPrompt, !!sample),
+    const img = await generateImage(imgAi.provider, imgAi.key, imagePrompt(plan, pageLayout.frames, references, continuity.length, b.replan, bankPrompt, !!sample),
       [...(sample ? [sample] : []), ...images, ...continuity])
     const generation: GenerationRecord = {
       id: crypto.randomUUID(), createdAt: new Date().toISOString(), provider: imgAi.provider,
@@ -272,7 +285,7 @@ Return JSON {"styleId": one id from the list, "reason": one short sentence in Po
       styleId: plan.style.styleId,
       ...(styleRender ? { styleRender } : {}),
       style: Object.fromEntries(STYLE_FIELDS.flatMap(key => plan.style[key] ? [[key, plan.style[key]]] : [])),
-      references, composition: rows,
+      references, frames: pageLayout.frames, layoutId: pageLayout.id,
     }
     const imageUrl = await uploadImage(sb, user.id, bookId, page, generation.id, img)
     generation.imageUrl = imageUrl
