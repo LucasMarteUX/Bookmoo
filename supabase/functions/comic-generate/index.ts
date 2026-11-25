@@ -19,7 +19,13 @@ const BUCKET = 'comic-pages'
 type Body = {
   action?: string; bookId?: string; page?: number; pageText?: string; bookContext?: string
   referenceImages?: string[]; replan?: string; priorContext?: string; panelId?: string; mask?: string; editRevision?: string
+  /** App novo: gera em segundo plano e devolve só o id do trabalho (o app acompanha pela tabela comic_jobs). */
+  job?: boolean
+  /** Correção automática de estilo do trabalho indicado: sem nova cobrança. */
+  fixOf?: string
 }
+
+declare const EdgeRuntime: { waitUntil(p: Promise<unknown>): void } | undefined
 
 async function uploadImage(sb: ReturnType<typeof adminClient>, userId: string, bookId: string, page: number, id: string,
   img: Awaited<ReturnType<typeof generateImage>>) {
@@ -184,7 +190,7 @@ Return JSON {"styleId": one id from the list, "reason": one short sentence in Po
         cap: ent.is_admin ? null : ent.limits.pages,
       })
       : measured(user.id, 'prepare-art', fn, ent.plan)
-    return json(await run(async () => {
+    const work = async () => {
     const brief = { ...book, category: (catalog as { category?: string | null } | null)?.category ?? null, styleId: fixedStyle }
     const fingerprint = await briefFingerprint(brief)
     const imgAi = await pickProvider(user.id, ['openai'], { strict: true })
@@ -257,7 +263,59 @@ Return JSON {"styleId": one id from the list, "reason": one short sentence in Po
         charStart: spans[beat.sourceSentenceIds[0]][0], charEnd: spans[beat.sourceSentenceIds.at(-1)!][1], kind: 'caption',
       })),
     }
-    }))
+    }
+    if (!b.job || !generatePage) return json(await run(work))
+
+    // Trabalho em segundo plano: o desenho continua mesmo se a pessoa sair da tela. A cobrança só é confirmada depois que
+    // a arte e o storyboard estão guardados no trabalho; se nada puder ser entregue, a reserva volta.
+    let fixOf: string | null = null
+    if (b.fixOf) {
+      const { data: parent } = await sb.from('comic_jobs').select('id, status, created_at')
+        .eq('id', String(b.fixOf)).eq('user_id', user.id).eq('book_id', bookId).eq('page', page).maybeSingle()
+      if (!parent || !['rendered', 'done'].includes(parent.status) || Date.now() - Date.parse(parent.created_at) > 30 * 60_000) {
+        return json({ error: 'invalid_target' }, 400)
+      }
+      fixOf = parent.id
+    }
+    const { data: job, error: jobError } = await sb.from('comic_jobs')
+      .insert({ user_id: user.id, book_id: bookId, page, fix_of: fixOf }).select('id').single()
+    if (jobError) {
+      // Já há um trabalho desta página andando (dois cliques, duas abas) ou a correção já foi pedida: devolve o mesmo.
+      if (jobError.code === '23505') {
+        const { data: active } = await sb.from('comic_jobs').select('id')
+          .eq('user_id', user.id).eq('book_id', bookId).eq('page', page).eq('status', 'running').maybeSingle()
+        if (active) return json({ jobId: active.id, existing: true })
+        if (fixOf) {
+          const { data: fix } = await sb.from('comic_jobs').select('id').eq('fix_of', fixOf).maybeSingle()
+          if (fix) return json({ jobId: fix.id, existing: true })
+        }
+      }
+      throw new AiError('Could not start the illustration', 500, 'comic_job_failed')
+    }
+    const jobId = job.id as string
+    const deliver = async () => {
+      const out = await work()
+      const { error: saveError } = await sb.from('comic_jobs')
+        .update({ status: 'rendered', result: out, updated_at: new Date().toISOString(), finished_at: new Date().toISOString() })
+        .eq('id', jobId).eq('status', 'running')
+      if (saveError) throw new AiError('Could not save the illustration', 500, 'comic_job_save_failed')
+      return out
+    }
+    const background = (fixOf
+      ? measured(user.id, 'comic-autofix', deliver, ent.plan)
+      : metered(user.id, b.replan ? 'comic-replan' : 'comic-page', deliver, {
+        plan: ent.plan, ref: `${bookId}:${page}`, key: `comic-job:${jobId}`, capField: ent.limits.pages != null ? 'pages' : undefined,
+        cap: ent.is_admin ? null : ent.limits.pages,
+      })
+    ).catch(async (e) => {
+      const err = e instanceof AiError ? e : new AiError(String((e as Error)?.message ?? e))
+      log('comic-generate', 'job_failed', { job: jobId, code: err.code, msg: err.message.slice(0, 200) })
+      await sb.from('comic_jobs').update({ status: 'failed', error: err.code, updated_at: new Date().toISOString(), finished_at: new Date().toISOString() })
+        .eq('id', jobId).eq('status', 'running')
+    })
+    if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime?.waitUntil) EdgeRuntime.waitUntil(background)
+    else await background
+    return json({ jobId })
   } catch (e) {
     const err = e instanceof AiError ? e : new AiError(String((e as Error)?.message ?? e))
     log('comic-generate', 'error', { code: err.code, msg: err.code === 'comic_plan_invalid' ? 'Storyboard rejected' : err.message.slice(0, 200) })

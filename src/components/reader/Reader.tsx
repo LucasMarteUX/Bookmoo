@@ -14,8 +14,8 @@ import { FloatingAction } from './FloatingAction'
 import { MobileReadDock } from './MobileReadDock'
 import { NoteDialog } from './NoteDialog'
 import { deletePin, loadPins, savePin, usePinStore, type StoryPin } from '@/store/usePinStore'
-import { fetchSharedImages, publishSharedImage } from '@/lib/catalog'
-import { bookStyleKey, catalogStyleOptions } from '@/lib/comicStyles'
+import { fetchSharedImages } from '@/lib/catalog'
+import { bookStyleKey } from '@/lib/comicStyles'
 import { StylePickerDialog, useApplyBookStyle, useStyleBank } from '@/components/book/StylePicker'
 import { VocabularyModal, type VocabTab } from '../vocabulary/VocabularyModal'
 import { useMediaSession, useWakeLock } from '@/hooks/useNativeMedia'
@@ -23,11 +23,8 @@ import { ChevronLeft, ChevronRight, MousePointer2, Type, Pin, PinOff, Pencil, Tr
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
-  generateComicPage,
   prepareComicArt,
   suggestComicStyle,
-  inspectComicPage,
-  locateComicFaces,
   AiRequestError,
   aiErrorMessage,
 } from '@/lib/ai'
@@ -44,14 +41,13 @@ import { flashPassage, type TutorAction } from '@/lib/tutorActions'
 import { motion, useReducedMotion } from 'motion/react'
 import { ComicPageView, type ComicStage } from './ComicPageView'
 import { saveComicPage } from '@/lib/comicPersistence'
+import { COMIC_SHARED_EVENT, clearComicError, startComicJob, useComicJobs, withLocatedFaces } from '@/lib/comicJobs'
 import { browserMeasure, placePanelBoxes } from '@/lib/comicLettering'
 import { resolveSpeakers } from '@/lib/speakerResolution'
 import { CHILD_SPEED, buildVoiceCast, defaultFemaleVoice, defaultMaleVoice, type VoiceSettings } from '@/lib/voiceCast'
 import { speechSpans } from '@/lib/speechSpans'
 import { fullComicText } from '../../../supabase/functions/_shared/comicText'
-import { detectPanels } from '@/lib/comicPanels'
-import type { EditorialLayout, PanelInspection, VisualBeat } from '../../../supabase/functions/_shared/comicEditorial'
-import type { ComicCharacter } from '@/store/useBookStore'
+import type { EditorialLayout } from '../../../supabase/functions/_shared/comicEditorial'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { useNavigate } from 'react-router-dom'
 import { useBookSync } from '@/hooks/useBookSync'
@@ -217,9 +213,8 @@ export function Reader({ book, autoPlay = false, headerSlot, headerEndSlot, head
     firstIllustration.current = hasIllustrations
   }, [hasIllustrations])
   useEffect(() => { setViewMode(Object.keys(book.comicPages ?? {}).length ? 'comic' : 'text') }, [book.id])
-  const [comicStage, setComicStage] = useState<ComicStage>(null)
-  const [comicError, setComicError] = useState<{ page: number; message: string } | null>(null)
-  const isGeneratingComic = comicStage !== null
+  const [localComicStage, setComicStage] = useState<ComicStage>(null)
+  const [localComicError, setComicError] = useState<{ page: number; message: string } | null>(null)
   // Primeira geração do livro: escolher o estilo (com sugestão) antes de desenhar.
   const [firstStyle, setFirstStyle] = useState<{ suggested: string | null; note?: string; loading: boolean } | null>(null)
   const readerRootRef = useRef<HTMLDivElement>(null)
@@ -266,6 +261,14 @@ export function Reader({ book, autoPlay = false, headerSlot, headerEndSlot, head
     void fetchSharedImages(book.catalogId, sharedStyle).then(images => { if (alive) setSharedImages(images) })
     return () => { alive = false }
   }, [book.catalogId, book.imageMode, sharedStyle])
+  useEffect(() => {
+    const onShared = (e: Event) => {
+      const d = (e as CustomEvent<{ bookId: string; page: number; imageUrl: string }>).detail
+      if (d?.bookId === book.id) setSharedImages(prev => ({ ...prev, [d.page]: d.imageUrl }))
+    }
+    window.addEventListener(COMIC_SHARED_EVENT, onShared)
+    return () => window.removeEventListener(COMIC_SHARED_EVENT, onShared)
+  }, [book.id])
 
   // Make vocabularies reactive so the component re-renders when a new word is saved
   const allVocabularies = useVocabularyStore(state => state.vocabularies)
@@ -311,6 +314,11 @@ export function Reader({ book, autoPlay = false, headerSlot, headerEndSlot, head
   }, [])
   const pages = book.pages || [book.content]
   const currentPage = book.currentPage || 0
+  // A geração roda como trabalho do servidor (comicJobs): continua se a pessoa sair daqui e aparece ao voltar.
+  const comicJob = useComicJobs(s => s.jobs[`${book.id}:${currentPage}`])
+  const comicJobError = useComicJobs(s => s.errors[`${book.id}:${currentPage}`])
+  const comicStage: ComicStage = localComicStage ?? comicJob?.stage ?? null
+  const comicError = localComicError?.page === currentPage ? localComicError : comicJobError ? { page: currentPage, message: comicJobError } : null
   const currentContent = pages[currentPage] || ''
   // Numeração única das palavras da página, pela posição no texto. A tela (data-word-index)
   // e a narração usam esta mesma lista; assim o destaque não se desalinha mesmo quando o
@@ -741,24 +749,6 @@ export function Reader({ book, autoPlay = false, headerSlot, headerEndSlot, head
   }
 
   const comicOperation = useRef(false)
-  /** Troca os rostos de cada quadro pelos localizados no recorte (quando a visão encontrar algum). */
-  const withLocatedFaces = async (imageUrl: string, panels: PanelInspection[], beats: VisualBeat[], characters: ComicCharacter[]) => {
-    try {
-      const faces = await locateComicFaces(imageUrl, panels.map(panel => {
-        const beat = beats.find(b => b.id === panel.panelId)
-        return {
-          bounds: panel.bounds,
-          cast: characters.filter(c => c.id && beat?.cast.includes(c.id)),
-          speakers: [...new Set((beat?.dialogue ?? []).flatMap(line => line.speakerId ? [line.speakerId] : []))],
-        }
-      }))
-      return panels.map((panel, i) => faces[i]?.length ? { ...panel, faces: faces[i] } : panel)
-    } catch (error) {
-      console.warn('face pass failed', error)
-      return panels
-    }
-  }
-
   // Reposiciona os balões de uma página pronta: localiza os rostos de novo e refaz o encaixe
   // (sem gerar outra imagem). Custa só uma chamada de visão barata.
   const handleRelayoutComic = async () => {
@@ -804,7 +794,6 @@ export function Reader({ book, autoPlay = false, headerSlot, headerEndSlot, head
     comicOperation.current = true
     const pageIndex = currentPage
     setComicError(null)
-    const pageText = currentContent
     try {
       // A IA vem do plano (créditos): sem chave para conectar. Sem saldo, o servidor recusa e o convite abre.
       // Livro ainda sem estilo escolhido: primeiro o banco de estilos (com sugestão), depois desenha.
@@ -812,66 +801,9 @@ export function Reader({ book, autoPlay = false, headerSlot, headerEndSlot, head
       setComicStage('prepare')
       const styleDoc = await prepareComicArt(book.id)
       useBookStore.getState().updateBook(book.id, { comicStyleDoc: styleDoc })
-      const options = {
-        bookId: book.id, page: pageIndex, pageText, bookTitle: book.title,
-        bookContext: book.context?.trim() || book.pages.slice(0, 2).join('\n\n') || book.content,
-        priorContext: book.pages[pageIndex - 1]?.slice(-1500),
-        languageCode: book.languageCode,
-      }
-      const generateAndInspect = async (replan?: string) => {
-        setComicStage('image')
-        const generated = await generateComicPage({ ...options, replan })
-        setComicStage('layout')
-        const img = new Image()
-        img.src = generated.imageUrl
-        await img.decode()
-        const aspect = img.naturalWidth / img.naturalHeight
-        const rows = generated.generation.composition
-        const measured = rows?.length && !rows.some(row => row.rightStack) ? await detectPanels(generated.imageUrl, rows, true) : null
-        const inspected = await inspectComicPage(generated, aspect, measured?.detected ? measured.panels : undefined)
-        // Segunda passada: rostos quadro a quadro, para o rabicho apontar para quem fala.
-        const inspection = { ...inspected, panels: await withLocatedFaces(generated.imageUrl, inspected.panels, generated.beats, generated.characters) }
-        const dialogue = resolveSpeakers(fullComicText(pageText, generated.beats), generated.beats, generated.characters, pageText)
-        const lettering = placePanelBoxes(inspection, dialogue,
-          browserMeasure(letteringThemeFor(generated.styleDoc ?? book.comicStyleDoc).font))
-        lettering.issues.push(...(generated.editorialIssues ?? []))
-        return { generated, inspection, lettering }
-      }
-      // The inspection never rejects finished art. Only a clearly off-style first render earns
-      // one more attempt; otherwise the page is kept and marked for review.
-      const first = await generateAndInspect()
-      const result = first.inspection.issues.includes('art_style_mismatch')
-        ? await generateAndInspect('The first render looked too realistic. Draw clean stylized faces with flat base colors and a single shadow shape. Use broad quiet background color fields. Reduce surface detail aggressively.')
-          .then(second => second.inspection.issues.includes('art_style_mismatch') ? first : second)
-          .catch(() => first)
-        : first
-      const { generated, inspection, lettering } = result
-      const old = book.comicLayouts?.[pageIndex]
-      const layout: EditorialLayout = {
-        v: 3, panels: inspection.panels, beats: generated.beats, context: generated.context,
-        generation: generated.generation, ...lettering, lettering: 'lines',
-        quality: lettering.issues.length ? 'needs-review' : 'validated',
-        history: old?.v === 3 ? [...(old.history ?? []), old.generation] : undefined,
-      }
-      await saveComicPage(book, pageIndex, generated.imageUrl, layout, {
-        style: generated.styleDoc, styleRevision: generated.previousStyleRevision,
-        characters: generated.characters, previousCharacters: generated.previousCharacters,
-      })
-      // Só estilos do banco têm imagens oficiais compartilhadas.
-      // Só o estilo padrão do livro é compartilhado; cada página publicada nele vale pontos de contribuição.
-      const publishStyle = generated.styleDoc?.styleId
-      const defaultStyle = book.catalogId ? (await catalogStyleOptions(book.catalogId).catch(() => [])).find(option => option.isDefault)?.styleId : undefined
-      if (book.catalogId && publishStyle && (!defaultStyle || publishStyle === defaultStyle) && book.imageMode !== 'personal' && userId && /^https?:\/\//.test(generated.imageUrl) && !sharedImages[pageIndex]) {
-        try {
-          const published = await publishSharedImage(book.catalogId, publishStyle, pageIndex, generated.imageUrl, userId)
-          if (published) {
-            setSharedImages(prev => ({ ...prev, [pageIndex]: generated.imageUrl }))
-            useXpStore.getState().award(`community:page:${book.catalogId}:${publishStyle}:${pageIndex}`, XP.communityImage)
-          }
-        } catch (error) {
-          console.warn('shared comic image', error)
-        }
-      }
+      // Daqui em diante o servidor desenha em segundo plano e o app termina a página, mesmo se a pessoa sair da tela.
+      clearComicError(book.id, pageIndex)
+      await startComicJob(useBookStore.getState().books.find(item => item.id === book.id) ?? book, pageIndex)
     } catch (error) {
       console.error('Failed to generate comic:', error)
       // Erros de plano (sem créditos, recurso pago) já abriram o convite de assinatura no cliente de IA.

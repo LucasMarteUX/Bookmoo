@@ -14,6 +14,7 @@ import { useCatalogCoverSync } from '@/hooks/useCatalogCoverSync'
 import { useAutoInstallVoices } from '@/hooks/useAutoInstallVoices'
 import { MobileVoicePackPrompt } from '@/components/voice/MobileVoicePackPrompt'
 import { VoiceStatusLayer } from '@/components/voice/VoiceStatusLayer'
+import { resumeComicJobs } from '@/lib/comicJobs'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { SIDEBAR_WIDTH, useUiStore } from '@/store/useUiStore'
 import { useReaderChrome } from '@/store/useReaderChrome'
@@ -37,6 +38,8 @@ export function Layout() {
   const isMobile = useIsMobile()
   const screenRef = useRef<HTMLDivElement>(null)
   useEffect(() => subscribeVoicePrompt(() => setVoicePrompt(true)), [])
+  // Ilustrações pedidas antes (outra aba, aba fechada, recarga): o app termina e grava a página.
+  useEffect(() => { void resumeComicJobs() }, [])
   useHydrateOnLogin()
   useGamification()
   useCatalogCoverSync()
