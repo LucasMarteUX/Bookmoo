@@ -1347,7 +1347,8 @@ export function Reader({ book, autoPlay = false, headerSlot, headerEndSlot, head
   const comicImage = (() => {
     const own = book.comicPages?.[currentPage]
     const shared = book.catalogId && book.imageMode !== 'personal' ? sharedImages[currentPage] : undefined
-    const v = book.imageMode === 'personal' ? own : (shared || own)
+    // A página que a pessoa ilustrou sempre vale; a da comunidade só preenche páginas que ela ainda não ilustrou.
+    const v = book.imageMode === 'personal' ? own : (own || shared)
     return v ? (isComicPageUrl(v) ? v : `data:image/jpeg;base64,${v}`) : null
   })()
   // No modo HQ, página ainda sem quadrinho continua mostrando o texto (com o botão de gerar no topo).

@@ -330,14 +330,17 @@ export async function fetchSharedImages(catalogId: string, styleId: string): Pro
   return images
 }
 
-/** Publica só se a página ainda não tem imagem nesse estilo. Um conflito significa que outra pessoa chegou antes. */
+/** Publica a página no estilo da galeria. Se já há imagem: quem publicou troca pela versão nova; de outra pessoa, fica a dela. */
 export async function publishSharedImage(catalogId: string, styleId: string, page: number, imageUrl: string, userId: string): Promise<boolean> {
   if (!supabase) return false
   const { error } = await supabase.from('catalog_comic_pages').insert({
     catalog_id: catalogId, style_id: styleId, page, image_url: imageUrl, created_by: userId,
   })
   if (!error) return true
-  return error.code === '23505'
+  if (error.code !== '23505') return false
+  const { data } = await supabase.from('catalog_comic_pages').update({ image_url: imageUrl })
+    .eq('catalog_id', catalogId).eq('style_id', styleId).eq('page', page).eq('created_by', userId).select('page')
+  return !!data?.length
 }
 
 export async function fetchBookLinks(userId: string): Promise<BookLink[]> {
