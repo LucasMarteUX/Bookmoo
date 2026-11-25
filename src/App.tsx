@@ -1,3 +1,4 @@
+import { AuthEntrance } from '@/components/auth/AuthEntrance'
 import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from '@/contexts/AuthContext'
@@ -71,6 +72,7 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <ThemeToBody />
+        <AuthEntrance />
         <PaywallHost />
         <ProficiencyReadyWatcher />
         <Routes>

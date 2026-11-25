@@ -1,0 +1,5 @@
+.auth-entrance { position: fixed; inset: 0; z-index: 10000; display: grid; place-items: center; background: #f5f1e7; mask-image: linear-gradient(black,black),linear-gradient(black,black); mask-size: 100% 50.1%; mask-repeat: no-repeat; mask-position: center top,center bottom; animation: auth-curtain .85s 3.7s cubic-bezier(.65,0,.2,1) both; }
+.auth-entrance .rabbit-flight { width: clamp(82px,10vw,145px); }
+.auth-entrance button { position: absolute; bottom: max(32px,env(safe-area-inset-bottom)); right: 24px; color: #292b26; font-size: 14px; padding: 12px 16px; border: 1px solid #292b2633; border-radius: 8px; }
+@keyframes auth-curtain { to { mask-position: center -101%,center 201%; } }
+@media (prefers-reduced-motion: reduce) { .auth-entrance { display: none; } }

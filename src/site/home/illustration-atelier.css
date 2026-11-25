@@ -14,11 +14,11 @@
   border-top: 1px solid #d8d5ca;
 }
 
+.illustration-atelier .atelier-copy { container-type: inline-size; }
 .illustration-atelier .atelier-copy h2 {
-  font-size: clamp(52px, 6vw, 112px);
+  font-size: clamp(28px, 10cqw, 72px);
+  white-space: nowrap;
 }
-/* "Da tinta" / "à imagem." sempre em duas linhas. */
-@media (min-width: 761px) { .illustration-atelier .atelier-copy h2 { white-space: nowrap; } }
 
 .illustration-atelier .atelier-copy p {
   max-width: 32ch;
@@ -66,7 +66,6 @@
 @media (max-width: 760px) {
   .illustration-atelier { height: 210svh; }
   .atelier-stage { top: 58px; min-height: calc(100svh - 58px); grid-template-columns: minmax(0, 1fr); gap: 18px; padding-block: 20px; align-content: center; }
-  .illustration-atelier .atelier-copy h2 { font-size: clamp(65px, 14vw, 90px); }
   .atelier-copy small { margin-bottom: 18px; }
   .atelier-plate figcaption { font-size: 12px; }
   /* Celular: as abas de estilo ficam acima da imagem, como na seção anterior; o crédito, abaixo. */

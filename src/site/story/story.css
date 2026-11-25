@@ -206,6 +206,9 @@
 .site .st-tm-card { position: relative; flex: 0 0 84%; margin: 0; aspect-ratio: 4 / 5; overflow: hidden;
   scroll-snap-align: center; outline: 1px solid #57574720; }
 .site .st-tm-portrait { position: absolute; left: 0; right: 0; bottom: 0; height: 80%; display: flex; justify-content: center; }
+/* O retrato da Bia tem 30 px transparentes no rodapé de uma imagem de 820 px.
+   Compensa no retrato estático e no fallback; o cartão recorta só a margem vazia. */
+.site .st-tm-card[data-tutor=bia] :is(.st-tm-portrait, .site-call-fallback) > div { translate: 0 3.658537%; }
 .site .st-tm-bubble { position: absolute; top: 6%; left: 0; right: 0; display: flex; justify-content: center; padding: 0 14%; pointer-events: none; }
 .site .st-tm-name { position: absolute; left: 12px; bottom: 12px; display: grid; gap: 3px; padding: 9px 13px 10px;
   background: #fbfaf6; border-radius: 10px; box-shadow: 0 1px 2px #0000001f, 0 10px 24px -14px #0000004d; }

@@ -6,7 +6,7 @@ import { motion, useInView, useMotionValueEvent, useReducedMotion, useScroll, us
 import { ArrowRight, Check, RotateCcw, Star, Volume2 } from 'lucide-react'
 import { COVERS, coverSrc } from '../covers'
 import { TUTORS, tutorImg } from '../content'
-import { BreathingTutor, Bubble, CallingTutor, useTutorBeat } from '../LiveTutor'
+import { BreathingTutor, CallingTutor } from '../LiveTutor'
 import { Btn } from '../ui'
 import './story.css'
 
@@ -130,25 +130,12 @@ export function StylesVisual() {
 
 /* ================================================================ Tutores: um de cada vez, trocando com a rolagem */
 
-/**
- * Cartão do carrossel no celular. O tutor da vez reage com o mesmo roteiro do palco do computador:
- * a fala do balão muda, ele sorri, dá um pulinho de surpresa ou inclina a cabeça pensando.
- * Os outros cartões ficam parados, com a fala de apresentação.
- */
+/** O cartão ativo usa o mesmo palco e roteiro de reações do desktop. */
 function MobileTutorCard({ tutor, active }: { tutor: typeof TUTORS[number]; active: boolean }) {
-  const beat = useTutorBeat(tutor.id, active)
-  const [beatNo, setBeatNo] = useState(0)
-  useEffect(() => { if (active) setBeatNo(n => n + 1) }, [beat, active])
-  const smile = active && ['happy', 'laughing', 'excited', 'wink'].includes(beat.mood)
-  const gesture = !active ? {} : beat.mood === 'surprised' || beat.wave ? { y: [0, -10, 0] }
-    : beat.mood === 'confused' ? { rotate: [0, -2.2, -2.2, 0] } : beat.mood === 'laughing' ? { y: [0, -4, 0, -4, 0] } : {}
-  const line = active ? beat.line : tutor.line
   return (
-    <figure className="st-tm-card" style={{ background: tutor.tint }}>
-      <motion.div key={beatNo} className="st-tm-portrait" style={{ transformOrigin: '50% 100%' }} animate={gesture} transition={{ duration: 0.9, ease: 'easeInOut' }}>
-        <BreathingTutor id={tutor.id} smile={smile} className="h-full" />
-      </motion.div>
-      <div className="st-tm-bubble"><Bubble text={line} tail="center" className="text-center" /></div>
+    <figure className="st-tm-card" data-tutor={tutor.id} style={{ background: tutor.tint }}>
+      {active ? <CallingTutor key={tutor.id} id={tutor.id} name={tutor.name} /> :
+        <div className="st-tm-portrait"><BreathingTutor id={tutor.id} smile={false} className="h-full" style={{ transform: 'none' }} /></div>}
       <figcaption className="st-tm-name"><i>{tutor.name}</i></figcaption>
     </figure>
   )
@@ -207,7 +194,7 @@ export function TutorScroll({ profile = false }: { profile?: boolean } = {}) {
         <p className="journey-label">Tutores</p>
         <h2 className="journey-title">Converse com quem tem <i>paciência.</i></h2>
         <div ref={track} className="st-tm-track" onScroll={onScroll} role="group" aria-label="Tutores">
-          {TUTORS.map((x, k) => <MobileTutorCard key={x.id} tutor={x} active={k === i && !reduce} />)}
+          {TUTORS.map((x, k) => <MobileTutorCard key={x.id} tutor={x} active={k === i && stageVisible} />)}
         </div>
         <div className="st-tm-dots">
           {TUTORS.map((x, k) => <button key={x.id} type="button" aria-label={x.name} aria-pressed={k === i} onClick={() => goTo(k)} />)}
@@ -224,7 +211,7 @@ export function TutorScroll({ profile = false }: { profile?: boolean } = {}) {
         <div className="st-tutors-grid">
           <figure className="st-tutor-plate">
             <div className="st-tutor-stage" data-tutor={settled}>
-              {stageVisible && <CallingTutor id={settled} name={TUTORS.find(x => x.id === settled)?.name ?? ''} />}
+              {stageVisible && <CallingTutor key={settled} id={settled} name={TUTORS.find(x => x.id === settled)?.name ?? ''} />}
             </div>
           </figure>
           <div className="st-tutor-copy">

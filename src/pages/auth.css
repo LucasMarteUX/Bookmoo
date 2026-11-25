@@ -1,0 +1,29 @@
+/* Phone, tablet, compact computer and wide desktop each keep usable form space. */
+.auth-layout { min-height: 100dvh; display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; padding: 20px; background: var(--theme-bg); }
+.auth-art { display: none; }
+.auth-main { width: 100%; }
+.auth-form-area { flex: 1; display: grid; align-items: center; padding: 28px 0; }
+.auth-form { width: 100%; max-width: 400px; margin-inline: auto; }
+.auth-mobile-art { height: 144px; margin-bottom: 24px; }
+@media (min-width: 640px) and (max-width: 819px) {
+  .auth-layout { padding: 28px 40px; }
+  .auth-form { max-width: 460px; }
+  .auth-mobile-art { height: 190px; }
+  .auth-layout[data-mode=signup] .auth-mobile-art { height: 120px; }
+}
+@media (min-width: 820px) {
+  .auth-layout { grid-template-columns: minmax(0, .85fr) minmax(380px, 1fr); padding: 20px; }
+  .auth-art { display: flex; flex-direction: column; border-radius: 24px; padding: 28px; position: sticky; top: 20px; height: calc(100dvh - 40px); min-height: 480px; }
+  .auth-art > div:last-child { flex-wrap: wrap; gap: 20px; }
+  .auth-art h2 { font-size: clamp(26px, 3vw, 34px); }
+  .auth-mobile-art, .auth-mobile-brand { display: none; }
+  .auth-toolbar { justify-content: flex-end; }
+  .auth-form-area { padding: 24px 20px; }
+}
+@media (min-width: 1200px) {
+  .auth-layout { grid-template-columns: minmax(0, 1.3fr) minmax(420px, 1fr); gap: 32px; padding: 24px; }
+  .auth-art { top: 24px; height: calc(100dvh - 48px); padding: 40px; }
+  .auth-form-area { padding: 32px; }
+}
+@media (min-width: 1600px) { .auth-layout { grid-template-columns: minmax(0, 1.7fr) minmax(480px, 1fr); } }
+@media (max-height: 700px) and (max-width: 819px) { .auth-mobile-art { display: none; } .auth-form-area { padding-top: 20px; } }

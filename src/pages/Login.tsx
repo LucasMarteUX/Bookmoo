@@ -10,6 +10,8 @@ import { useLanguage } from '@/store/useLanguage'
 import { useTranslations } from '@/lib/i18n'
 import { useReaderSettings } from '@/store/useReaderSettings'
 import { Logo } from '@/components/brand/Logo'
+import './auth.css'
+import { rememberAuthEntrance, clearAuthEntrance } from '@/components/auth/AuthEntrance'
 import { Turnstile, captchaEnabled } from '@/components/auth/Turnstile'
 
 type Mode = 'login' | 'signup'
@@ -113,16 +115,17 @@ export function Login({ mode = 'login' }: { mode?: Mode }) {
     if (signup && !accepted) { setError(pt ? 'Para criar a conta, aceite os Termos e a Política de Privacidade.' : 'To create an account, accept the Terms and Privacy Policy.'); return }
     if (captchaEnabled && !captcha) { setError(pt ? 'Confirme que você não é um robô.' : 'Please confirm you are not a robot.'); return }
     if (signup) rememberTermsAccepted()
+    rememberAuthEntrance()
     setLoading('email')
     const normalized = email.trim().toLowerCase()
     const result: { error: Error | null; needsConfirmation?: boolean } = signup ? await signUp(normalized, password, { full_name: name.trim(), birth_date: birthDate, ...(signupAge !== null && signupAge < 12 ? { guardian_consent_at: new Date().toISOString() } : {}) }, captcha ?? undefined) : await signIn(normalized, password, captcha ?? undefined)
     setLoading(null)
     if (captchaEnabled) setCaptchaReset(n => n + 1)
     const { error, needsConfirmation } = result
-    if (error) { throttleFail(); setError(errorMessage(error)); return }
+    if (error) { clearAuthEntrance(); throttleFail(); setError(errorMessage(error)); return }
     throttleReset()
     // Cadastro: o aviso aparece aqui, na hora, e não só na tela de login.
-    if (signup && needsConfirmation) setSentTo(normalized)
+    if (signup && needsConfirmation) { clearAuthEntrance(); setSentTo(normalized) }
     else if (signup) setMessage(pt ? 'Conta criada! Entrando…' : 'Account created! Signing you in…')
   }
 
@@ -131,9 +134,10 @@ export function Login({ mode = 'login' }: { mode?: Mode }) {
     if (signup && !accepted) { setError(pt ? 'Para criar a conta, aceite os Termos e a Política de Privacidade.' : 'To create an account, accept the Terms and Privacy Policy.'); return }
     // Entrar com Google também é aceite (o aviso aparece abaixo do botão).
     rememberTermsAccepted()
+    rememberAuthEntrance()
     setLoading('google')
     const { error } = await signInWithGoogle()
-    if (error) { setLoading(null); setError(errorMessage(error)) }
+    if (error) { clearAuthEntrance(); setLoading(null); setError(errorMessage(error)) }
   }
 
   const current = SLIDES[slide]
@@ -141,9 +145,9 @@ export function Login({ mode = 'login' }: { mode?: Mode }) {
   const field = 'w-full h-11 rounded-lg border px-3 text-[15px] outline-none transition-colors bg-[var(--theme-bg)] border-[var(--theme-border)] text-[var(--theme-text)] placeholder:text-[var(--theme-text-secondary)]/70 focus:border-[var(--theme-text)]'
 
   return (
-    <div className="min-h-dvh flex gap-4 lg:gap-6 p-4 lg:p-6" style={{ backgroundColor: 'var(--theme-bg)' }}>
-      {/* 70%: ilustração */}
-      <aside className="hidden lg:flex basis-[70%] shrink-0 flex-col rounded-[28px] p-10 relative overflow-hidden isolate"
+    <div className="auth-layout" data-mode={mode} style={{ backgroundColor: 'var(--theme-bg)' }}>
+      {/* Painel ilustrado adaptado à largura disponível. */}
+      <aside className="auth-art relative overflow-hidden isolate"
         style={{ backgroundColor: '#1d2019' }}>
         {/* A pintura ocupa o painel inteiro e troca devagar, com um leve zoom; o texto fica sobre um degradê. */}
         <AnimatePresence initial={false}>
@@ -175,10 +179,10 @@ export function Login({ mode = 'login' }: { mode?: Mode }) {
         </div>
       </aside>
 
-      {/* 30%: entrar / criar conta */}
-      <main className="flex-1 min-w-0 flex flex-col">
-        <div className="flex justify-between items-center lg:justify-end">
-          <span className="lg:hidden flex items-center gap-2">
+      {/* Formulário de entrada e cadastro. */}
+      <main className="auth-main min-w-0 flex flex-col">
+        <div className="auth-toolbar flex justify-between items-center">
+          <span className="auth-mobile-brand flex items-center gap-2">
             <Link to="/" aria-label="Voltar para o site do Upoonly" className="inline-block"><Logo height={44} style={{ color: 'var(--theme-text)' }} /></Link>
           </span>
           <button type="button" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
@@ -189,9 +193,9 @@ export function Login({ mode = 'login' }: { mode?: Mode }) {
           </button>
         </div>
 
-        <div className="flex-1 grid place-items-center py-8">
-          <div className="w-full max-w-[360px]">
-            <img src="/site/home/leitora-tablet.webp" alt="" className="lg:hidden w-full h-40 object-cover rounded-2xl mb-7" style={{ objectPosition: '72% center' }} />
+        <div className="auth-form-area">
+          <div className="auth-form">
+            <img src="/site/home/leitora-tablet.webp" alt="" className="auth-mobile-art w-full object-cover rounded-2xl" style={{ objectPosition: '72% center' }} />
             <h1 className="text-[28px] font-semibold tracking-tight" style={{ color: 'var(--theme-text)' }}>
               {signup ? (pt ? 'Crie sua conta' : 'Create your account') : (pt ? 'Bem-vindo de volta' : 'Welcome back')}
             </h1>

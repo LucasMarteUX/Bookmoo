@@ -49,7 +49,7 @@ export function IllustrationAtelier() {
      <div className="atelier-stage">
       <motion.div className="atelier-copy" style={reduce ? undefined : { y: typeY }}>
         <small>Estilos de ilustração</small>
-        <h2 id={titleId}>A mesma cena,<br />no <i>seu traço.</i></h2>
+        <h2 id={titleId}>Gere um<br /><i>estilo personalizado</i></h2>
         <p>Jim avista um navio na enseada. A cena é a mesma. Escolha um traço e veja como muda a história que você imagina.</p>
       </motion.div>
       <motion.figure className="atelier-plate" style={reduce ? undefined : { y: frameY }}>

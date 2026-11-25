@@ -1,5 +1,5 @@
 // Tutor animado no site: o mesmo personagem 2.5D do app, sem voz, num roteiro automático de reações e gestos
-// (sorri, pisca, fica surpreso, pensa, acena), com balão. No celular ou sem WebGL2: a foto, que "respira" e sorri sozinha.
+// (sorri, pisca, fica surpreso, pensa, acena), com balão, no desktop e no celular. Sem WebGL2: retrato com reações.
 //
 // Troca de tutor sem "pulo": o anterior continua na tela (desfocado e mais claro) até o próximo estar carregado e
 // enquadrado; aí os dois fazem uma transição cruzada. A foto só aparece na primeira carga, e some com a mesma transição.
@@ -51,8 +51,13 @@ const SCRIPTS: Record<string, Beat[]> = {
 
 export function canRunLive() {
   if (typeof window === 'undefined') return false
-  if (window.matchMedia('(max-width: 900px), (pointer: coarse), (prefers-reduced-motion: reduce)').matches) return false
-  try { return !!document.createElement('canvas').getContext('webgl2') } catch { return false }
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return false
+  try {
+    const gl = document.createElement('canvas').getContext('webgl2')
+    const supported = !!gl
+    gl?.getExtension('WEBGL_lose_context')?.loseContext()
+    return supported
+  } catch { return false }
 }
 
 function useScript(id: string, playing: boolean, script?: Beat[]) {
@@ -112,7 +117,7 @@ export function BreathingTutor({ id, smile, className = '', style }: { id: strin
 
 type Layer = { id: string; ready: boolean; key: number }
 
-/** Palco do tutor: animado no computador; foto que respira no celular. Balão com o roteiro automático. */
+/** Palco animado em qualquer tamanho, com retrato de reserva e roteiro automático. */
 export function LiveTutor({ id, playing = true, bubble = 'top-left', script, name, portrait = true, onLive }: { id: string; playing?: boolean; bubble?: 'top-left' | 'head' | 'none'; script?: Beat[]; name?: string; portrait?: boolean; onLive?: (s: { readyId: string | null; failed: boolean }) => void }) {
   const live = useMemo(canRunLive, [])
   const [failed, setFailed] = useState(false)
@@ -150,7 +155,7 @@ export function LiveTutor({ id, playing = true, bubble = 'top-left', script, nam
             transition={{ duration: bubble === 'head' ? 0 : 0.7, ease: EASE }}>
             <Suspense fallback={null}>
               <LivLivAvatar characterId={CHARACTER[l.id]} stage state={isTop ? beat.state : 'idle'} mood={isTop ? beat.mood : 'neutral'} wave={isTop && !!beat.wave}
-                followPointer onFail={() => setFailed(true)}
+                followPointer={false} onFail={() => setFailed(true)}
                 onReady={r => { if (!r) return; setLayers(ls => ls.map(x => (x.key === l.key ? { ...x, ready: true } : x))) }} />
             </Suspense>
           </motion.div>
@@ -198,7 +203,7 @@ function CallPlaceholder({ id, name }: { id: string; name: string }) {
  * Palco do tutor como no app: um único personagem. Ao trocar de tutor (e na primeira vez), aparece a
  * ligação de 3 s do próprio avatar ("Chamando Luck…", foto num círculo com ondas) e depois ele, animado.
  * Nada de retrato pintado no meio: era isso que fazia "uma imagem pequena virar o tutor".
- * Sem WebGL (celular, movimento reduzido): o retrato que respira.
+ * Sem WebGL ou com movimento reduzido: retrato de reserva.
  */
 export function CallingTutor({ id, name, playing = true }: { id: string; name: string; playing?: boolean }) {
   const live = useMemo(canRunLive, [])
@@ -206,12 +211,18 @@ export function CallingTutor({ id, name, playing = true }: { id: string; name: s
   const [visible, setVisible] = useState(false)
   const reduce = useReducedMotion()
   const beat = useScript(id, playing && !reduce && (visible || !live || failed))
-  useEffect(() => { setVisible(false) }, [id])
+  useEffect(() => { setVisible(false); setFailed(false) }, [id])
+  // Rede lenta ou contexto perdido nunca deixam o site preso em ‘Chamando’.
+  useEffect(() => {
+    if (!live || failed || visible) return
+    const timer = window.setTimeout(() => setFailed(true), 20000)
+    return () => window.clearTimeout(timer)
+  }, [id, live, failed, visible])
   const bubble = <div className="absolute top-[7%] inset-x-0 flex justify-center pointer-events-none"><Bubble text={beat.line} tail="center" className="max-w-[60%] text-center" /></div>
   if (!live || failed) {
     return (
       <div className="absolute inset-0">
-        <div className="absolute inset-0 flex items-end justify-center pointer-events-none"><BreathingTutor key={id} id={id} className="h-[76%]" /></div>
+        <div className="site-call-fallback absolute inset-0 flex items-end justify-center pointer-events-none"><BreathingTutor key={id} id={id} className="h-[76%]" smile={['happy', 'laughing', 'excited', 'wink'].includes(beat.mood)} /></div>
         {bubble}
       </div>
     )
@@ -219,8 +230,8 @@ export function CallingTutor({ id, name, playing = true }: { id: string; name: s
   return (
     <div className="absolute inset-0 site-call">
       <Suspense fallback={<CallPlaceholder id={id} name={name} />}>
-        <LivLivAvatar characterId={CHARACTER[id]} stage callOnMount state={beat.state} mood={beat.mood} wave={!!beat.wave}
-          followPointer onFail={() => setFailed(true)} onReady={setVisible} />
+        <LivLivAvatar key={id} characterId={CHARACTER[id]} stage callOnMount state={beat.state} mood={beat.mood} wave={!!beat.wave}
+          followPointer={false} onFail={() => setFailed(true)} onReady={setVisible} />
       </Suspense>
       {visible && bubble}
     </div>
