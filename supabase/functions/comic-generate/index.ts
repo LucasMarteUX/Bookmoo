@@ -259,7 +259,8 @@ Return JSON {"styleId": one id from the list, "reason": one short sentence in Po
     const rows = composeRows(plan.beats)
     // Diagramação de HQ: formatos e tamanhos pelo que cada momento pede, variando entre páginas.
     const previousLayout = (book.comic_layouts ?? {})[String(page - 1)]?.generation?.layoutId ?? null
-    const pageLayout = chooseLayout(plan.beats, page, { rhythm: cleanText(raw.pageRhythm, 20), previousId: previousLayout })
+    const nextLayout = (book.comic_layouts ?? {})[String(page + 1)]?.generation?.layoutId ?? null
+    const pageLayout = chooseLayout(plan.beats, page, { rhythm: cleanText(raw.pageRhythm, 20), previousId: previousLayout, nextId: nextLayout })
     // Quadro com inset por cima: o texto dele vai para o canto oposto ao inset.
     pageLayout.frames.forEach(frame => {
       if (frame.over == null) return

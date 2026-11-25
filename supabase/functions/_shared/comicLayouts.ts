@@ -164,7 +164,7 @@ function fullWidthCuts(t: Template) {
  * Escolhe a diagramação da página pelo que cada momento pede. Varia entre páginas (nunca repete a da página anterior
  * quando há alternativa) e, em página dinâmica (ação, perigo, perseguição), inclina uma borda e libera a saída de moldura.
  */
-export function chooseLayout(beats: VisualBeat[], page: number, opts: { rhythm?: string; previousId?: string | null } = {}): PageLayout {
+export function chooseLayout(beats: VisualBeat[], page: number, opts: { rhythm?: string; previousId?: string | null; nextId?: string | null } = {}): PageLayout {
   const n = Math.max(1, Math.min(9, beats.length))
   const options = TEMPLATES[n]
   const textOf = (b: VisualBeat) => b.dialogue.reduce((sum, line) => sum + line.text.length, 0)
@@ -184,7 +184,8 @@ export function chooseLayout(beats: VisualBeat[], page: number, opts: { rhythm?:
       if (f.role === 'inset' && textOf(beat) > 120) cost += 3
     })
     // Variedade: troca de modelo entre páginas, com rotação estável pela página.
-    if (opts.previousId === t.id && options.length > 1) cost += 6
+    // Não repete a diagramação das páginas vizinhas (a anterior e a seguinte, quando já existem).
+    if ((opts.previousId === t.id || opts.nextId === t.id) && options.length > 1) cost += 6
     cost += ((index + page) % options.length) * 0.15
     return { t, frames, cost }
   }).sort((a, b) => a.cost - b.cost)
