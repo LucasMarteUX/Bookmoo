@@ -36,6 +36,8 @@ interface Props {
   onPlacePin?: (x: number, y: number) => void
   onOpenPin?: (id: string) => void
   stage: ComicStage
+  /** Narração tocando agora (não pausada): a câmera do zoom guiado segue a leitura sozinha e a pinça não a desvia. */
+  narrating?: boolean
   /** Início da geração (clique), para a estimativa de tempo; vale também depois de sair e voltar. */
   stageStartedAt?: number
   /** Andamento no servidor: posição na fila e espera, ou desde quando está desenhando. */
@@ -247,6 +249,15 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
   const baseW = fit === 'width' ? box.w : Math.min(box.w, Math.max(320, box.h) * fitAspect) / (crop?.w ?? 1)
   const pageW = Math.round(baseW * zoom)
   const pageH = Math.round(pageW / displayAspect)
+  // Depois do novo tamanho, rola para o ponto ancorado voltar para baixo do mouse/dedos.
+  useLayoutEffect(() => {
+    const a = zoomAnchor.current, el = viewportRef.current, page = pageRef.current
+    if (!a || !el || !page) return
+    zoomAnchor.current = null
+    const r = page.getBoundingClientRect()
+    el.scrollLeft += r.left + a.fx * r.width - a.cx
+    el.scrollTop += r.top + a.fy * r.height - a.cy
+  }, [pageW, pageH])
   const editor = useComicBalloonEditor(editorial, `${pageIndex}|${imageUrl}`, pageW, pageH, props.onSaveLettering, props.letteringTheme.font)
   const [moveMode, setMoveMode] = useState(false)
 
@@ -278,6 +289,9 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
   const setGuideScaleClamped = useCallback((z: number) => setGuideScale(Math.max(1, Math.min(4, Math.round(z * 100) / 100))), [])
   const guideOn = !!props.immersive && !isFullscreen && guidePanels.length >= 1 && guideScale > 1.01
   const [panelIdx, setPanelIdx] = useState(0)
+  // Ponto escolhido com a pinça (fração da página): a câmera fica nele até o quadro em leitura mudar.
+  const [pinchFocus, setPinchFocus] = useState<{ x: number; y: number } | null>(null)
+  useEffect(() => { setPinchFocus(null) }, [panelIdx, pageIndex, props.narrating])
   // Página nova: começa no primeiro quadro; voltando, no último (também quando chega de uma página só de texto).
   const entry = useRef({ page: pageIndex, fromEnd: !!props.enterFromEnd })
   if (entry.current.page !== pageIndex) entry.current = { page: pageIndex, fromEnd: direction < 0 }
@@ -341,19 +355,36 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
   }, [isFullscreen, fit, zoom])
 
   const setZoomClamped = useCallback((z: number) => setZoom(Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, z))), [])
+  // Zoom com âncora: o ponto da página sob o mouse (ou entre os dedos) fica parado na tela enquanto aproxima.
+  // Sem ponto (botões +/−), a âncora é o centro da área visível.
+  const pageRef = useRef<HTMLDivElement>(null)
+  const zoomRef = useRef(zoom)
+  zoomRef.current = zoom
+  const zoomAnchor = useRef<{ fx: number; fy: number; cx: number; cy: number } | null>(null)
+  const zoomAt = useCallback((next: number, clientX?: number, clientY?: number) => {
+    const el = viewportRef.current, page = pageRef.current
+    if (el && page) {
+      const v = el.getBoundingClientRect(), r = page.getBoundingClientRect()
+      const cx = clientX ?? v.left + v.width / 2, cy = clientY ?? v.top + v.height / 2
+      if (r.width && r.height) zoomAnchor.current = { fx: (cx - r.left) / r.width, fy: (cy - r.top) / r.height, cx, cy }
+    }
+    setZoomClamped(next)
+  }, [setZoomClamped])
 
-  // Pinça (o navegador marca como Ctrl) aproxima. Listener passivo: a rolagem
-  // normal não espera o JavaScript, então a página não trava.
+  // Ctrl/⌘ + roda e a pinça do trackpad (o navegador marca como Ctrl) aproximam no ponto do mouse.
+  // Só esses gestos param o evento (senão o navegador ampliaria a janela toda); a rolagem normal segue livre.
   useEffect(() => {
     const el = viewportRef.current
     if (!el) return
     const onWheel = (e: WheelEvent) => {
       if (!e.ctrlKey && !e.metaKey) return
-      setZoom((z) => Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, z * (e.deltaY < 0 ? 1.1 : 1 / 1.1))))
+      e.preventDefault()
+      const factor = Math.exp(-Math.max(-60, Math.min(60, e.deltaY)) * 0.01)
+      zoomAt(zoomRef.current * factor, e.clientX, e.clientY)
     }
-    el.addEventListener('wheel', onWheel, { passive: true })
+    el.addEventListener('wheel', onWheel, { passive: false })
     return () => el.removeEventListener('wheel', onWheel)
-  }, [imageUrl])
+  }, [imageUrl, zoomAt])
 
   // Setas do teclado viram a página.
   useEffect(() => {
@@ -369,7 +400,7 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
 
   // Arrastar com o mouse para mover quando há zoom; toque: pinça e deslizar para virar a página.
   const drag = useRef<{ x: number; y: number; sl: number; st: number; moved: boolean } | null>(null)
-  const pinch = useRef<{ d: number; z: number } | null>(null)
+  const pinch = useRef<{ d: number; z: number; fx: number; fy: number } | null>(null)
   const swipe = useRef<{ x: number; y: number; t: number } | null>(null)
   const suppressClick = useRef(false)
 
@@ -393,7 +424,11 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
     suppressClick.current = false
     if (e.touches.length === 2) {
       const [a, b] = [e.touches[0], e.touches[1]]
-      pinch.current = { d: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY), z: props.immersive ? guideScale : zoom }
+      // Ponto da página entre os dedos: é nele que a pinça aproxima.
+      const r = pageRef.current?.getBoundingClientRect()
+      const mx = (a.clientX + b.clientX) / 2, my = (a.clientY + b.clientY) / 2
+      pinch.current = { d: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY), z: props.immersive ? guideScale : zoom,
+        fx: r?.width ? (mx - r.left) / r.width : 0.5, fy: r?.height ? (my - r.top) / r.height : 0.5 }
       swipe.current = null
     } else if (e.touches.length === 1) {
       swipe.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now() }
@@ -403,7 +438,17 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
     if (pinch.current && e.touches.length === 2) {
       const [a, b] = [e.touches[0], e.touches[1]]
       const z = pinch.current.z * (Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY) / pinch.current.d)
-      if (props.immersive) setGuideScaleClamped(z); else setZoomClamped(z)
+      const mx = (a.clientX + b.clientX) / 2, my = (a.clientY + b.clientY) / 2
+      if (props.immersive) {
+        // Leitura no celular: a câmera centra de forma que o ponto pinçado fique entre os dedos.
+        const v = viewportRef.current?.getBoundingClientRect()
+        const s = Math.max(1, Math.min(4, z))
+        if (v && pageW && pageH && !props.narrating) {
+          const px = pinch.current.fx * pageW, py = pinch.current.fy * pageH
+          setPinchFocus({ x: (px + (v.width / 2 - (mx - v.left)) / s) / pageW, y: (py + ((vpH || box.h) / 2 - (my - v.top)) / s) / pageH })
+        }
+        setGuideScaleClamped(z)
+      } else zoomAt(z, mx, my)
     }
   }
   const onTouchEnd = (e: React.TouchEvent) => {
@@ -451,7 +496,7 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
   const onDoubleClick = (e: React.MouseEvent) => {
     if ((e.target as Element).closest('[data-balloon-handle]')) return
     if ((e.target as HTMLElement).closest('[data-word-index]')) return
-    setZoomClamped(zoom > 1 ? 1 : 2)
+    zoomAt(zoom > 1 ? 1 : 2, e.clientX, e.clientY)
   }
 
   // Leitura imersiva: só a página, sobre fundo escuro, ocupando a tela. Funciona em qualquer
@@ -520,9 +565,11 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
     const vw = box.w, vh = vpH || box.h
     if (!g || !vw || !vh) return undefined
     const scale = guideScale
-    const focus = g.text
-      ? { x: (g.text.x + g.text.w / 2) * pageW, y: (g.text.y + g.text.h / 2) * pageH }
-      : { x: (g.x + g.w / 2) * pageW, y: (g.y + g.h / 2) * pageH }
+    const focus = pinchFocus && !props.narrating
+      ? { x: pinchFocus.x * pageW, y: pinchFocus.y * pageH }
+      : g.text
+        ? { x: (g.text.x + g.text.w / 2) * pageW, y: (g.text.y + g.text.h / 2) * pageH }
+        : { x: (g.x + g.w / 2) * pageW, y: (g.y + g.h / 2) * pageH }
     const halfW = vw / (2 * scale), halfH = vh / (2 * scale)
     const clampAxis = (c: number, size: number, half: number) => size > 2 * half ? Math.max(half, Math.min(size - half, c)) : size / 2
     const cx = clampAxis(focus.x, pageW, halfW)
@@ -573,7 +620,7 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
           <MenuItem icon={zoom > 1 ? <ZoomOut className="w-4 h-4" /> : <ZoomIn className="w-4 h-4" />}
             label={zoom > 1 ? (pt ? 'Tamanho original' : 'Actual size') : (pt ? 'Ampliar 2×' : 'Zoom 2×')}
             description={pt ? 'Também com Ctrl + roda do mouse ou pinça' : 'Also Ctrl + scroll wheel or pinch'}
-            onClick={() => { setMenuOpen(false); setZoomClamped(zoom > 1 ? 1 : 2) }} />
+            onClick={() => { setMenuOpen(false); zoomAt(zoom > 1 ? 1 : 2) }} />
           <MenuItem icon={isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
             label={isFullscreen ? (pt ? 'Sair da tela cheia' : 'Exit full screen') : (pt ? 'Tela cheia' : 'Full screen')}
             onClick={() => { setMenuOpen(false); void toggleFullscreen() }} />
@@ -697,10 +744,10 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
           onPointerDown={bumpZoom}
           style={{ top: 'calc(max(0.75rem, var(--safe-t, 0px)) + 46px)', backgroundColor: 'rgba(20,19,18,0.82)', color: '#fff', border: '1px solid rgba(255,255,255,0.12)' }}
           role="group" aria-label={pt ? 'Zoom' : 'Zoom'}>
-          <button type="button" onClick={() => setZoomClamped(Math.round((zoom - 0.25) * 4) / 4)} disabled={zoom <= MIN_ZOOM} aria-label={pt ? 'Diminuir zoom' : 'Zoom out'}
+          <button type="button" onClick={() => zoomAt(Math.round((zoom - 0.25) * 4) / 4)} disabled={zoom <= MIN_ZOOM} aria-label={pt ? 'Diminuir zoom' : 'Zoom out'}
             className="w-8 h-8 grid place-items-center rounded-lg hover:bg-white/15 disabled:opacity-35"><ZoomOut className="w-4 h-4" /></button>
           <span className="w-12 text-center tabular-nums font-medium" aria-live="polite">{Math.round(zoom * 100)}%</span>
-          <button type="button" onClick={() => setZoomClamped(Math.round((zoom + 0.25) * 4) / 4)} disabled={zoom >= MAX_ZOOM} aria-label={pt ? 'Aumentar zoom' : 'Zoom in'}
+          <button type="button" onClick={() => zoomAt(Math.round((zoom + 0.25) * 4) / 4)} disabled={zoom >= MAX_ZOOM} aria-label={pt ? 'Aumentar zoom' : 'Zoom in'}
             className="w-8 h-8 grid place-items-center rounded-lg hover:bg-white/15 disabled:opacity-35"><ZoomIn className="w-4 h-4" /></button>
           <span className="w-px h-5 mx-1 bg-white/20" />
           <button type="button" onClick={() => { setFit('page'); setZoom(1) }} aria-pressed={fit === 'page' && zoom === 1}
@@ -742,7 +789,7 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
         onDoubleClick={onDoubleClick}
       >
         {/* Troca de página em slideshow (ver flipVariants). */}
-        <div className={`relative mx-auto overflow-hidden ${isFullscreen ? '' : 'rounded-sm shadow-2xl'}`}
+        <div ref={pageRef} className={`relative mx-auto overflow-hidden ${isFullscreen ? '' : 'rounded-sm shadow-2xl'}`}
           style={{
             ...(crop ? { width: Math.round(pageW * crop.w), height: Math.round(pageH * crop.h) } : { width: pageW, height: pageH }),
             ...(guideTransform ? { transform: guideTransform, transformOrigin: '0 0', transition: reduceMotion || pinch.current ? 'none' : 'transform 0.5s cubic-bezier(0.32, 0.72, 0, 1)', willChange: 'transform' } : null),

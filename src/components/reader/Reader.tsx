@@ -1664,6 +1664,7 @@ export function Reader({ book, autoPlay = false, headerSlot, headerEndSlot, head
             onRelayout={handleRelayoutComic}
             characters={book.comicCharacters ?? []}
             currentChar={(isPlaying || isPaused) && ttsHighlightWordIndices?.size ? pageWordTokens[[...ttsHighlightWordIndices][0]]?.start ?? null : null}
+            narrating={isPlaying && !isPaused}
             onPlayLine={(charStart) => {
               const idx = pageWordTokens.findIndex(token => token.end > charStart)
               if (idx >= 0) playFromWord(idx)
