@@ -6,7 +6,7 @@ import { motion, useInView, useMotionValueEvent, useReducedMotion, useScroll, us
 import { ArrowRight, Check, RotateCcw, Star, Volume2 } from 'lucide-react'
 import { COVERS, coverSrc } from '../covers'
 import { TUTORS, tutorImg } from '../content'
-import { BreathingTutor, CallingTutor } from '../LiveTutor'
+import { CallingTutor } from '../LiveTutor'
 import { Btn } from '../ui'
 import './story.css'
 
@@ -131,11 +131,10 @@ export function StylesVisual() {
 /* ================================================================ Tutores: um de cada vez, trocando com a rolagem */
 
 /** O cartão ativo usa o mesmo palco e roteiro de reações do desktop. */
-function MobileTutorCard({ tutor, active }: { tutor: typeof TUTORS[number]; active: boolean }) {
+function MobileTutorCard({ tutor, active, prepare }: { tutor: typeof TUTORS[number]; active: boolean; prepare: boolean }) {
   return (
     <figure className="st-tm-card" data-tutor={tutor.id} style={{ background: tutor.tint }}>
-      {active ? <CallingTutor key={tutor.id} id={tutor.id} name={tutor.name} /> :
-        <div className="st-tm-portrait"><BreathingTutor id={tutor.id} smile={false} className="h-full" style={{ transform: 'none' }} /></div>}
+      {prepare && <CallingTutor id={tutor.id} name={tutor.name} playing={active} />}
       <figcaption className="st-tm-name"><i>{tutor.name}</i></figcaption>
     </figure>
   )
@@ -195,7 +194,7 @@ export function TutorScroll({ profile = false }: { profile?: boolean } = {}) {
         <p className="journey-label">Tutores</p>
         <h2 className="journey-title">Converse com quem tem <i>paciência.</i></h2>
         <div ref={track} className="st-tm-track" onScroll={onScroll} role="group" aria-label="Tutores">
-          {TUTORS.map((x, k) => <MobileTutorCard key={x.id} tutor={x} active={k === i && stageVisible} />)}
+          {TUTORS.map((x, k) => <MobileTutorCard key={x.id} tutor={x} active={k === i && stageVisible} prepare={stageVisible && Math.abs(k - i) <= 1} />)}
         </div>
         <div className="st-tm-dots">
           {TUTORS.map((x, k) => <button key={x.id} type="button" aria-label={x.name} aria-pressed={k === i} onClick={() => goTo(k)} />)}
@@ -212,7 +211,7 @@ export function TutorScroll({ profile = false }: { profile?: boolean } = {}) {
         <div className="st-tutors-grid">
           <figure className="st-tutor-plate">
             <div className="st-tutor-stage" data-tutor={settled}>
-              {stageVisible && <CallingTutor key={settled} id={settled} name={TUTORS.find(x => x.id === settled)?.name ?? ''} />}
+              {stageVisible && <CallingTutor id={settled} name={TUTORS.find(x => x.id === settled)?.name ?? ''} />}
             </div>
           </figure>
           <div className="st-tutor-copy">

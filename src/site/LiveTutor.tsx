@@ -128,6 +128,7 @@ export function LiveTutor({ id, playing = true, bubble = 'top-left', script, nam
   }, [id])
   // Quando a mais nova fica pronta, as antigas saem depois da transição.
   const top = layers[layers.length - 1]
+  const readyLayer = [...layers].reverse().find(l => l.ready)
   useEffect(() => {
     if (!top?.ready || layers.length < 2) return
     const t = window.setTimeout(() => setLayers(ls => ls.slice(-1)), 750)
@@ -138,7 +139,7 @@ export function LiveTutor({ id, playing = true, bubble = 'top-left', script, nam
     onLive?.({ readyId: live && !failed && top?.ready ? top.id : null, failed: !live || failed })
   }, [onLive, live, failed, top?.ready, top?.id])
 
-  const shownId = top?.ready || !live || failed ? id : (layers.find(l => l.ready)?.id ?? id)
+  const shownId = !live || failed ? id : (readyLayer?.id ?? id)
   const reduce = useReducedMotion()
   const beat = useScript(shownId, playing && !reduce, script)
   const showLive = live && !failed
@@ -146,66 +147,40 @@ export function LiveTutor({ id, playing = true, bubble = 'top-left', script, nam
   return (
     <div className="absolute inset-0 site-live">
       {showLive && layers.map(l => {
-        const isTop = l.key === top.key
         return (
-          <motion.div key={l.key} className="absolute inset-0"
+          <motion.div key={l.key} className="site-live-avatar absolute inset-0" data-avatar={l.id} data-ready={l.ready}
             initial={false}
-            animate={{ opacity: isTop && l.ready ? 1 : 0 }}
-            transition={{ duration: bubble === 'head' ? 0 : 0.7, ease: EASE }}>
+            animate={{ opacity: l.key === readyLayer?.key ? 1 : 0 }}
+            transition={{ duration: 0.5, ease: EASE }}>
             <Suspense fallback={null}>
-              <LivLivAvatar characterId={CHARACTER[l.id]} stage state={isTop ? beat.state : 'idle'} mood={isTop ? beat.mood : 'neutral'} wave={isTop && !!beat.wave}
+              <LivLivAvatar characterId={CHARACTER[l.id]} stage state={l.key === readyLayer?.key ? beat.state : 'idle'} mood={l.key === readyLayer?.key ? beat.mood : 'neutral'} wave={l.key === readyLayer?.key && !!beat.wave}
                 followPointer={false} onFail={() => setFailed(true)}
                 onReady={r => { if (!r) return; setLayers(ls => ls.map(x => (x.key === l.key ? { ...x, ready: true } : x))) }} />
             </Suspense>
           </motion.div>
         )
       })}
-      {portrait && (!showLive || !top?.ready) && (
-        <motion.div key={id} className="absolute inset-0 flex items-end justify-center pointer-events-none"
+      {(!showLive || (portrait && !readyLayer)) && (
+        <motion.div key={id} className="site-call-fallback absolute inset-0 flex items-end justify-center pointer-events-none"
           initial={bubble === 'head' ? false : { opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.7, ease: EASE }}>
           <BreathingTutor id={id} style={bubble === 'head' ? { transform: 'none' } : undefined} className={bubble === "head" ? "h-[76%]" : "h-[88%]"} smile={beat.mood !== 'neutral' && beat.mood !== 'confused' ? true : undefined} />
         </motion.div>
       )}
-      {showLive && !top?.ready && name && (
-        <motion.p className="site-live-calling" initial={{ opacity: 0 }} animate={{ opacity: [0.45, 1, 0.45] }}
-          transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}>
-          chamando {name}…
-        </motion.p>
+      {showLive && !readyLayer && name && (
+        <div className="site-live-loading" role="status">
+          <span aria-hidden className="site-live-spinner" />
+          Preparando {name}…
+        </div>
       )}
       {bubble === 'top-left' && <div className="absolute top-6 left-6 right-6 flex pointer-events-none"><Bubble text={beat.line} className="max-w-[78%]" /></div>}
-      {bubble === 'head' && <div className="absolute top-[7%] inset-x-0 flex justify-center pointer-events-none"><Bubble text={beat.line} tail="center" className="max-w-[60%] text-center" /></div>}
+      {bubble === 'head' && (readyLayer || !showLive) && <div className="absolute top-[7%] inset-x-0 flex justify-center pointer-events-none"><Bubble text={beat.line} tail="center" className="max-w-[60%] text-center" /></div>}
     </div>
   )
 }
 
 export type { Beat as TutorBeat }
 
-/** O tutor aparece desde a seleção; o player substitui o retrato quando termina de carregar. */
+/** Mantém o último avatar animado até o próximo estar pronto e cruza os dois palcos. */
 export function CallingTutor({ id, name, playing = true }: { id: string; name: string; playing?: boolean }) {
-  const live = useMemo(canRunLive, [])
-  const [failed, setFailed] = useState(false)
-  const [visible, setVisible] = useState(false)
-  const reduce = useReducedMotion()
-  const beat = useScript(id, playing && !reduce)
-  useEffect(() => { setVisible(false); setFailed(false) }, [id])
-  const showLive = live && !failed
-  return (
-    <div className="absolute inset-0 site-call" role="img" aria-label={`Tutor ${name}`}>
-      {/* A rede nunca deixa o palco vazio. Sem timeout: em conexões lentas o player ainda pode concluir. */}
-      <div className="site-call-fallback absolute inset-0 flex items-end justify-center pointer-events-none"
-        style={{ opacity: showLive && visible ? 0 : 1, transition: 'opacity .45s ease' }}>
-        <BreathingTutor key={id} id={id} className="h-[76%]" smile={['happy', 'laughing', 'excited', 'wink'].includes(beat.mood)} />
-      </div>
-      {showLive && <div className="site-call-live absolute inset-0" aria-hidden
-        style={{ opacity: visible ? 1 : 0, transition: 'opacity .45s ease' }}>
-        <Suspense fallback={null}>
-          <LivLivAvatar key={id} characterId={CHARACTER[id]} stage state={beat.state} mood={beat.mood} wave={!!beat.wave}
-            followPointer={false} onFail={() => setFailed(true)} onReady={setVisible} />
-        </Suspense>
-      </div>}
-      <div className="absolute top-[7%] inset-x-0 flex justify-center pointer-events-none">
-        <Bubble text={beat.line} tail="center" className="max-w-[60%] text-center" />
-      </div>
-    </div>
-  )
+  return <LiveTutor id={id} name={name} playing={playing} bubble="head" portrait={false} />
 }
