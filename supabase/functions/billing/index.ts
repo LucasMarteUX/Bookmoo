@@ -2,7 +2,7 @@
 // downgrade, reembolso (arrependimento) e status da intenção (tela de retorno do pagamento).
 import { adminClient, corsHeaders, getUser, json, log } from '../_shared/tts.ts'
 import { rateLimit } from '../_shared/rate.ts'
-import { buildCheckoutUrl, checkoutUrlFor, claimPending, PAID_PLANS, priceFor, switchCredit, type Cycle, type Plan } from '../_shared/payments.ts'
+import { buildCheckoutUrl, checkoutUrlFor, claimPending, exactEmail, PAID_PLANS, priceFor, switchCredit, type Cycle, type Plan } from '../_shared/payments.ts'
 import { emails } from '../_shared/email.ts'
 import { abacateEnabled, cancelSubscription, changePlan, createOneTimeCheckout, createSubscriptionCheckout, ensureCustomer, pixAutomaticoEnabled, productFor } from '../_shared/abacate.ts'
 import { openRenewalInvoice } from '../_shared/invoices.ts'
@@ -147,7 +147,7 @@ async function handle(userId: string, email: string, name: string | undefined, c
       const other = String(b.email ?? '').trim().toLowerCase()
       if (!/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/.test(other) || other.length > 254) throw new BillingError('invalid_email')
       const { data: known } = await db.rpc('user_id_by_email', { p_email: other })
-      const { data: pend } = await db.from('pending_purchases').select('id').ilike('email', other).is('claimed_at', null).limit(1)
+      const { data: pend } = await db.from('pending_purchases').select('id').eq('email', exactEmail(other)).is('claimed_at', null).limit(1)
       const origin = safeOrigin(b.origin)
       if (known) {
         const { data: link } = await db.auth.admin.generateLink({ type: 'magiclink', email: other, options: { redirectTo: `${origin}/pagamento/sucesso` } })

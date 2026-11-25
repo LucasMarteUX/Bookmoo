@@ -42,6 +42,7 @@ import { motion, useReducedMotion } from 'motion/react'
 import { ComicPageView, type ComicStage } from './ComicPageView'
 import { saveComicPage } from '@/lib/comicPersistence'
 import { COMIC_SHARED_EVENT, clearComicError, startComicJob, useComicJobs, withLocatedFaces } from '@/lib/comicJobs'
+import { ComicEta, etaShort, useComicEtaLeft } from './ComicEta'
 import { browserMeasure, placePanelBoxes } from '@/lib/comicLettering'
 import { resolveSpeakers } from '@/lib/speakerResolution'
 import { CHILD_SPEED, buildVoiceCast, defaultFemaleVoice, defaultMaleVoice, type VoiceSettings } from '@/lib/voiceCast'
@@ -318,6 +319,9 @@ export function Reader({ book, autoPlay = false, headerSlot, headerEndSlot, head
   const comicJob = useComicJobs(s => s.jobs[`${book.id}:${currentPage}`])
   const comicJobError = useComicJobs(s => s.errors[`${book.id}:${currentPage}`])
   const comicStage: ComicStage = localComicStage ?? comicJob?.stage ?? null
+  // Tempo estimado da geração em andamento desta página (some nas operações locais, como reencaixar os balões).
+  const comicStartedAt = localComicStage ? undefined : comicJob?.startedAt
+  const comicEtaLeft = useComicEtaLeft(comicStartedAt)
   const comicError = localComicError?.page === currentPage ? localComicError : comicJobError ? { page: currentPage, message: comicJobError } : null
   const currentContent = pages[currentPage] || ''
   // Numeração única das palavras da página, pela posição no texto. A tela (data-word-index)
@@ -1435,8 +1439,8 @@ export function Reader({ book, autoPlay = false, headerSlot, headerEndSlot, head
                   aria-label={locale === 'pt-BR' ? 'Ilustrar esta página' : 'Illustrate this page'}
                   label={immersive ? undefined : comicStage
                     ? (locale === 'pt-BR'
-                      ? { prepare: 'Preparando a arte…', image: 'Desenhando a página…', layout: 'Encaixando os balões…' }[comicStage]
-                      : { prepare: 'Preparing the art…', image: 'Drawing the page…', layout: 'Fitting balloons…' }[comicStage])
+                      ? `${{ prepare: 'Preparando a arte', image: 'Desenhando a página', layout: 'Encaixando os balões' }[comicStage]} · ${etaShort(comicEtaLeft, true)}`
+                      : `${{ prepare: 'Preparing the art', image: 'Drawing the page', layout: 'Fitting balloons' }[comicStage]} · ${etaShort(comicEtaLeft, false)}`)
                     : (locale === 'pt-BR' ? 'Ilustrar esta página' : 'Illustrate this page')}
                   hint={locale === 'pt-BR' ? 'Desenha esta página como quadrinho, com o texto nos balões.' : 'Draws this page as a comic with the text in balloons.'} />
               </>}
@@ -1535,7 +1539,7 @@ export function Reader({ book, autoPlay = false, headerSlot, headerEndSlot, head
 
         {!showComicPage ? (
           <>
-            {viewMode === 'text' && !comicImage && !nudgeHidden && !immersive && (
+            {viewMode === 'text' && !comicImage && !comicStage && !nudgeHidden && !immersive && (
               <div className="mb-5 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl border px-4 py-3" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg-secondary)' }}>
                 <span className="grid size-9 shrink-0 place-items-center rounded-xl" style={{ backgroundColor: 'var(--theme-card-bg)' }}><Sparkles className="w-4 h-4" /></span>
                 <div className="min-w-0 flex-1 basis-56">
@@ -1550,6 +1554,21 @@ export function Reader({ book, autoPlay = false, headerSlot, headerEndSlot, head
                   <button type="button" onClick={() => { void openComicMode().then(() => handleGenerateComic()) }} className="h-9 px-4 rounded-lg text-[13px] font-medium" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-primary-text)' }}>{locale === 'pt-BR' ? 'Ilustrar esta página' : 'Illustrate this page'}</button>
                   <button type="button" onClick={() => { try { sessionStorage.setItem(`illustrate-nudge:${book.id}`, '1') } catch { /* sem armazenamento */ } setNudgeHidden(true) }} className="h-9 px-3 rounded-full text-[13px]" style={{ color: 'var(--theme-text-secondary)' }}>{locale === 'pt-BR' ? 'Agora não' : 'Not now'}</button>
                 </div>
+              </div>
+            )}
+            {/* Gerando e a página ainda sem ilustração: o texto continua visível, então o andamento aparece aqui. */}
+            {comicStartedAt && !comicImage && comicStage && (
+              <div role="status" className="mb-5 flex flex-wrap items-center gap-x-4 gap-y-3 rounded-2xl border px-4 py-3" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg-secondary)' }}>
+                <span className="grid size-9 shrink-0 place-items-center rounded-xl" style={{ backgroundColor: 'var(--theme-card-bg)' }}><Loader2 className="w-4 h-4 animate-spin" /></span>
+                <div className="min-w-0 flex-1 basis-56">
+                  <p className="text-[13.5px] font-medium">{locale === 'pt-BR'
+                    ? { prepare: 'Preparando a arte…', image: 'Desenhando a página…', layout: 'Encaixando os balões…' }[comicStage]
+                    : { prepare: 'Preparing the art…', image: 'Drawing the page…', layout: 'Fitting balloons…' }[comicStage]}</p>
+                  <p className="text-[12.5px] leading-snug" style={{ color: 'var(--theme-text-secondary)' }}>{locale === 'pt-BR'
+                    ? 'Pode continuar lendo, trocar de página ou sair: a ilustração aparece aqui quando ficar pronta.'
+                    : 'Keep reading, change pages or leave: the illustration shows up here when it is ready.'}</p>
+                </div>
+                <div className="flex w-full items-center sm:w-56"><ComicEta startedAt={comicStartedAt} pt={locale === 'pt-BR'} compact /></div>
               </div>
             )}
             {viewMode === 'comic' && comicError?.page === currentPage && (
@@ -1634,7 +1653,7 @@ export function Reader({ book, autoPlay = false, headerSlot, headerEndSlot, head
             }}
             fullscreenTarget={() => readerRootRef.current}
             stage={comicStage}
-            stageStartedAt={localComicStage ? undefined : comicJob?.startedAt}
+            stageStartedAt={comicStartedAt}
             error={comicError?.page === currentPage ? comicError.message : undefined}
             onGenerate={() => { void handleGenerateComic() }}
             onDelete={handleDeleteComic}
