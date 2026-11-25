@@ -450,9 +450,15 @@ export async function applyEvent(ev: NormalizedEvent, opts: { forceUserId?: stri
 }
 
 /** Libera compras feitas antes de existir a conta (chamado no login, com o e-mail já confirmado). */
+/**
+ * E-mail da compra pendente, comparado por igualdade (as compras são gravadas em minúsculas). Antes era `ilike`, em
+ * que `_` e `%` (válidos em e-mail) viravam curingas: quem tivesse `j_ao@…` confirmado vinculava a compra de `joao@…`.
+ */
+export const exactEmail = (email: string) => email.trim().toLowerCase()
+
 export async function claimPending(userId: string, email: string, onlyId?: string): Promise<string[]> {
   const db = adminClient()
-  let q = db.from('pending_purchases').select('*').ilike('email', email).is('claimed_at', null)
+  let q = db.from('pending_purchases').select('*').eq('email', exactEmail(email)).is('claimed_at', null)
   if (onlyId) q = q.eq('id', onlyId)
   const { data: rows } = await q.order('created_at')
   const results: string[] = []

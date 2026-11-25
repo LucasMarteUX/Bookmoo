@@ -15,7 +15,8 @@ import { LetteringThemePicker } from './LetteringThemePicker'
 import { MenuItem, MenuSection, ToolButton, ToolGroup } from '@/components/ui/toolbar'
 import { createPortal } from 'react-dom'
 import { useReaderChrome } from '@/store/useReaderChrome'
-import { COMIC_ETA_SECONDS, COMIC_LAYOUT_SECONDS, type ComicJobProgress } from '@/lib/comicJobs'
+import type { ComicJobProgress } from '@/lib/comicJobs'
+import { ComicEta, queueLabel } from './ComicEta'
 import { fullComicText } from '../../../supabase/functions/_shared/comicText'
 import type { Character, EditorialLayout, Rect } from '../../../supabase/functions/_shared/comicEditorial'
 
@@ -239,17 +240,9 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
   }, [isFullscreen, imageUrl])
 
   const displayAspect = editorial?.reflow?.aspect ?? aspect
-  // Tela cheia: corta a margem branca da arte (fora dos quadros), para a página encher a tela.
-  const crop = (() => {
-    const panels = isFullscreen && !editorial?.reflow ? editorial?.panels : undefined
-    if (!panels?.length) return null
-    const x0 = Math.min(...panels.map(p => p.bounds.x)), y0 = Math.min(...panels.map(p => p.bounds.y))
-    const x1 = Math.max(...panels.map(p => p.bounds.x + p.bounds.w)), y1 = Math.max(...panels.map(p => p.bounds.y + p.bounds.h))
-    if (x1 - x0 < 0.6 || y1 - y0 < 0.6) return null
-    // Folga para dentro: o contorno detectado costuma incluir um fio da margem branca.
-    const ix = 0.006, iy = 0.006 * displayAspect
-    return { x: x0 + ix, y: y0 + iy, w: x1 - x0 - 2 * ix, h: y1 - y0 - 2 * iy }
-  })()
+  // Tela cheia mostra a página inteira, como no modo normal. Antes cortava a margem branca pelos contornos detectados
+  // dos quadros, mas a detecção erra alguns pixels e o corte comia a borda da arte.
+  const crop = null as { x: number; y: number; w: number; h: number } | null
   const fitAspect = crop ? displayAspect * crop.w / crop.h : displayAspect
   const baseW = fit === 'width' ? box.w : Math.min(box.w, Math.max(320, box.h) * fitAspect) / (crop?.w ?? 1)
   const pageW = Math.round(baseW * zoom)
@@ -539,9 +532,8 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
   })()
 
   const generating = stage !== null
-  const queuePosition = stage === 'image' ? props.stageProgress?.position : undefined
   const stageLabel = stage === 'prepare' ? labels.preparingArt
-    : stage === 'image' ? (queuePosition ? (pt ? `Na fila, posição ${queuePosition}` : `In line, position ${queuePosition}`) : labels.generatingImage)
+    : stage === 'image' ? queueLabel(props.stageProgress, pt) ?? labels.generatingImage
     : labels.generatingLayout
   const btn = 'h-9 min-w-9 px-2 rounded-full flex items-center justify-center gap-1.5 text-xs font-semibold border transition-colors hover:bg-[var(--ui-hover)] disabled:opacity-40'
   const btnStyle = { backgroundColor: 'var(--theme-nav-bg)', borderColor: 'var(--theme-border-subtle)', color: 'var(--theme-nav-text)' }
@@ -774,16 +766,9 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
                 const img = e.currentTarget
                 if (img.naturalWidth && img.naturalHeight) setAspect(img.naturalWidth / img.naturalHeight)
               }} />
-            {/* Tela cheia: as calhas brancas entre os quadros viram fundo escuro (abaixo do texto). */}
-            {crop && editorial && (
-              <svg className="absolute inset-0 pointer-events-none" width={pageW} height={pageH} viewBox={`0 0 ${pageW} ${pageH}`}>
-                <path fillRule="evenodd" fill="#0d0c0b" d={`M0 0H${pageW}V${pageH}H0Z ${editorial.panels.map(({ bounds: b }) => {
-                  const ix = 0.004 * pageW, iy = 0.004 * pageW
-                  const x = b.x * pageW + ix, y = b.y * pageH + iy, w = b.w * pageW - 2 * ix, h = b.h * pageH - 2 * iy
-                  return `M${x} ${y}h${w}v${h}h${-w}Z`
-                }).join(' ')}`} />
-              </svg>
-            )}
+            {/* Tela cheia mostra as divisões da própria arte. Antes as calhas entre os quadros eram pintadas de escuro
+                pelos contornos detectados, mas a detecção erra alguns pixels e a faixa escura cortava a arte, deixando
+                fatias do quadro vizinho e o fio branco da moldura à mostra. */}
             {editorial?.reflow?.panels.map(frame => {
               const panel = editorial.panels.find(item => item.panelId === frame.panelId)
               if (!panel) return null
@@ -832,46 +817,3 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
   )
 })
 
-/**
- * Estimativa enquanto a página é ilustrada: barra de progresso e tempo restante, contados desde o clique.
- * Na fila, soma a espera estimada pelo servidor ao desenho; desenhando, conta desde que o desenho começou.
- */
-function ComicEta({ startedAt, progress: server, pt, compact }: { startedAt?: number; progress?: ComicJobProgress; pt: boolean; compact?: boolean }) {
-  const [now, setNow] = useState(() => Date.now())
-  // A espera da fila chega a cada consulta (2,5–5 s); entre elas, desconta o tempo que passou.
-  const [seenAt, setSeenAt] = useState(() => Date.now())
-  useEffect(() => { setSeenAt(Date.now()) }, [server?.waitSeconds, server?.position])
-  useEffect(() => {
-    const t = window.setInterval(() => setNow(Date.now()), 1000)
-    return () => window.clearInterval(t)
-  }, [])
-  const queued = !!server?.position
-  const draw = (server?.drawSeconds ?? COMIC_ETA_SECONDS - COMIC_LAYOUT_SECONDS) + COMIC_LAYOUT_SECONDS
-  const elapsed = startedAt ? Math.max(0, (now - startedAt) / 1000) : 0
-  const left = Math.ceil(
-    queued ? Math.max(0, (server!.waitSeconds ?? 0) - (now - seenAt) / 1000) + draw
-    : server?.drawStartedAt ? draw - (now - server.drawStartedAt) / 1000
-    : COMIC_ETA_SECONDS - elapsed,
-  )
-  // Passou do previsto: a barra fica quase cheia e o texto avisa que falta pouco (sem número negativo).
-  const progress = startedAt ? Math.min(0.95, elapsed / Math.max(1, elapsed + Math.max(0, left))) : 0.04
-  const text = !startedAt
-    ? (pt ? 'Leva cerca de 1 min e meio' : 'Takes about a minute and a half')
-    : left > 60 ? (pt ? `Faltam cerca de ${Math.ceil(left / 60)} min` : `About ${Math.ceil(left / 60)} min left`)
-    : left > 5 ? (pt ? `Faltam cerca de ${left} s` : `About ${left}s left`)
-    : (pt ? 'Quase pronto…' : 'Almost done…')
-  const hint = queued
-    ? (pt ? 'Muita gente ilustrando agora: sua página começa assim que abrir uma vaga. Pode sair; ela aparece aqui e só é cobrada quando ficar pronta.'
-      : 'Lots of people illustrating right now: your page starts as soon as a slot opens. You can leave; it shows up here and is only charged when ready.')
-    : pt ? 'Pode trocar de página ou sair: a geração continua e a página aparece aqui.' : 'You can change pages or leave: it keeps going and the page shows up here.'
-  return (
-    <div className={compact ? 'flex flex-1 items-center gap-2 min-w-0' : 'w-full max-w-xs flex flex-col items-center gap-2'}>
-      <div className={`${compact ? 'flex-1' : 'w-full'} h-1.5 rounded-full overflow-hidden`} style={{ backgroundColor: 'var(--theme-border-subtle)' }}
-        role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress * 100)} aria-label={text}>
-        <div className="h-full rounded-full transition-[width] duration-1000 ease-linear" style={{ width: `${progress * 100}%`, backgroundColor: 'var(--theme-accent)' }} />
-      </div>
-      <span className="tabular-nums whitespace-nowrap text-xs" style={{ color: 'var(--theme-text-secondary)' }}>{text}</span>
-      {!compact && <span className="text-xs max-w-xs" style={{ color: 'var(--theme-text-secondary)' }}>{hint}</span>}
-    </div>
-  )
-}
