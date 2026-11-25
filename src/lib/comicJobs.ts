@@ -296,6 +296,25 @@ export async function startComicJob(book: Book, page: number) {
   }
 }
 
+/**
+ * Volta uma página para a versão de um trabalho anterior (a arte e o storyboard ficam guardados no trabalho):
+ * encaixa os balões de novo e grava, sem gerar nem cobrar outra imagem.
+ */
+export async function restoreComicFromJob(jobId: string) {
+  const row = await readJob(jobId)
+  if (!row?.result) throw new AiRequestError('book_not_found')
+  let book = bookOf(row.book_id)
+  if (book?.stub && supabase) {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (session) await ensureBookFull(supabase, session.user.id, book.id, useBookStore.getState().updateBook)
+    book = bookOf(row.book_id)
+  }
+  const pageText = book?.pages[row.page]
+  if (!book || pageText == null) throw new AiRequestError('book_not_found')
+  const done = await letter(row.result, pageText, book)
+  await savePage(row.book_id, row.page, done)
+}
+
 let resumed = false
 /** Ao abrir o app: retoma trabalhos desta conta que ficaram no meio (outra aba, aba fechada, recarga). */
 export async function resumeComicJobs() {
