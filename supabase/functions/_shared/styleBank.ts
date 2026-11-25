@@ -24,8 +24,11 @@ export async function styleSample(sb: SupabaseClient, id: string | undefined | n
 
 export async function stylePrompt(sb: SupabaseClient, id: string | undefined | null): Promise<string | null> {
   if (!id) return null
-  const { data } = await sb.from('comic_styles').select('prompt, ready').eq('id', id).maybeSingle()
-  return data?.ready && typeof data.prompt === 'string' ? data.prompt : null
+  // render_prompt: o prompt exclusivo de geração, escrito a partir da amostra do estilo. O prompt antigo fica só de reserva.
+  const { data } = await sb.from('comic_styles').select('prompt, render_prompt, ready').eq('id', id).maybeSingle()
+  if (!data?.ready) return null
+  if (typeof data.render_prompt === 'string' && data.render_prompt.trim()) return data.render_prompt
+  return typeof data.prompt === 'string' ? data.prompt : null
 }
 
 /** Categoria da galeria → estilos preferidos, na ordem. O primeiro que estiver pronto vence. */
@@ -115,3 +118,12 @@ export function fitStyle(text: string, budget: number) {
  * puxava a imagem de volta para o visual antigo.
  */
 export const BOOK_FIELDS = ['setting', 'costume'] as const
+
+/**
+ * Lugar e roupa do livro sem cor nem acabamento: a pesquisa costumava escrever "tons terrosos", "luz pictórica", e isso
+ * puxava qualquer estilo para a pintura marrom. Ficam só formas, materiais e época; cor e luz vêm do estilo.
+ */
+export function contentOnly(text: string) {
+  const look = /\b(tones?|colou?rs?|colou?red|palette|hues?|earthy|muted|desaturated|ochre|sepia|umber|brown|browns|beige|tan|warm|cool|pastel|vivid|bright|dark|soft|painterly|painted|brush\w*|textur\w*|lighting|light|lit|glow\w*|atmosphere|mood|moody|grading|shad\w*)\b/i
+  return text.split(/(?<=[.;])\s+|,\s+/).map(part => part.trim()).filter(part => part && !look.test(part)).join(', ').replace(/,\s*\./g, '.')
+}

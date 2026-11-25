@@ -108,6 +108,8 @@ export type GenerationRecord = {
   styleRevision: string
   /** Estilo do banco usado nesta página (continuidade só entre páginas do mesmo estilo). */
   styleId?: string
+  /** Impressão digital do prompt de estilo usado (continuidade só entre páginas feitas com o mesmo prompt). */
+  styleRender?: string
   style: ArtDirection
   references: ComicReference[]
   composition?: ComicRow[]

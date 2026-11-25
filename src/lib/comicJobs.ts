@@ -208,7 +208,8 @@ async function track(p: Pending) {
     // Arte claramente fora do estilo: uma correção automática, sem nova cobrança. Se ela não ficar melhor, vale a primeira.
     if (!p.fixOf && done.inspection.issues.includes('art_style_mismatch')) {
       try {
-        const fix = await invokeStart({ ...baseOptions(book, p.page, pageText), replan: STYLE_FIX }, p.jobId)
+        const problems = done.inspection.issues.filter(issue => issue.startsWith('style_problem:')).map(issue => issue.slice(14)).join('; ')
+        const fix = await invokeStart({ ...baseOptions(book, p.page, pageText), replan: problems ? `${STYLE_FIX} Fix: ${problems}`.slice(0, 300) : STYLE_FIX }, p.jobId)
         addPending({ jobId: fix, bookId: p.bookId, page: p.page, fixOf: p.jobId, at: Date.now() })
         setJob(k, { jobId: fix, stage: 'image' })
         const fixed = await waitRendered(fix)

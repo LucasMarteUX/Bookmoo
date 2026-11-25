@@ -59,7 +59,7 @@ Rules:
 - The drawing technique comes from the Upoonly style bank. Your job is the book-specific direction: palette, lighting, setting, costume and world.
 - Pick "styleId" from these styles, by what the book is (genre, audience, tone), or "none" when none of them fits: ${JSON.stringify(ready.map(style => ({ id: style.id, look: style.look, use: style.use })))}
 - Never name, cite or imitate the book's original illustrator or any other artist, studio or franchise in any field. Describe visuals in your own neutral terms.
-- palette: a distinct, restrained, story-appropriate palette for this book (muted, harmonious, no neon). lighting: soft, painterly and emotionally fitting. setting: the places and period as visual instructions. costume: hair and clothing shapes for this world.
+- palette and lighting: one short neutral sentence each about the story's mood (the chosen style decides the actual colors and rendering). setting: the places, architecture and period as shapes and objects, without colors or rendering words. costume: hair and clothing shapes, garments and materials for this world, without colors or rendering words.
 - Record stable world context and common material culture only when supported. Leave unknowns open. Treat external sources as contextual references. Do not copy a third-party comic page, characters or composition.
 - Return string keys styleId, ${STYLE_FIELDS.join(', ')}, world, era, locations, socialContext, technology. Use concise visual instructions, one or two sentences per field. Set realism to "illustrated".`,
   })

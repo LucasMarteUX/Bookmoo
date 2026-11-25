@@ -198,7 +198,7 @@ Deno.test('the image prompt translates lettering reservations into painted scene
   raw.style!.lettering = 'A custom lettering treatment'
   const plan = resolvePlan(raw, {}, [], sentenceSpans(excerpt), excerpt, 0)
   const prompt = imagePrompt(plan, composeRows(plan.beats), [], 0)
-  assert.match(prompt, /painted scenery/)
+  assert.match(prompt, /calm, low-detail, low-contrast background/)
   assert.match(prompt, /Paint the entire scene, including the quieter areas/)
   assert.match(prompt, /Avoid blank patches/)
   assert.doesNotMatch(prompt, /Draw a speech balloon placeholder|A custom lettering treatment|I know,/)
@@ -326,25 +326,28 @@ Deno.test('dense lettering stays inside the frame over the art and keeps every o
   assert.equal(text.slice(line.charStart, line.charEnd), text)
 })
 
-Deno.test('a cinematic-looking historical image is kept but flagged for review', async () => {
+Deno.test('style mismatch needs a confident verdict against the chosen style; a failed inspection is inconclusive', async () => {
   const originalFetch = globalThis.fetch
   const image = { mime: 'image/png', data: 'aW1hZ2U=' }
-  globalThis.fetch = () => Promise.resolve(Response.json({ choices: [{ message: {
-    content: JSON.stringify({ panelCount: 1, styleMatches: true, visiblyDrawn: true, cleanPastelInk: false, textFree: true,
-      panels: [{ panelId: 'panel-1', bounds: { x: 0, y: 0, w: 1, h: 1 }, faces: [] }] }),
+  const expected = [{ panelId: 'panel-1', cast: [], action: 'A conversation' }]
+  const reply = (verdict: Record<string, unknown>) => () => Promise.resolve(Response.json({ choices: [{ message: {
+    content: JSON.stringify({ panelCount: 1, textFree: true, panels: [{ panelId: 'panel-1', bounds: { x: 0, y: 0, w: 1, h: 1 }, faces: [] }], ...verdict }),
   } }] }))
   try {
-    const flagged = await analyzeComicArtwork({
-      provider: 'openai', key: 'test', expected: [{ panelId: 'panel-1', cast: [], action: 'A conversation' }],
-      aspect: 2 / 3, images: [image], referenceRoles: [], style: { styleName: 'Historical Romance', realism: 'illustrated' },
-    })
-    assert.ok(flagged.issues.includes('art_style_mismatch'))
-    const realistic = await analyzeComicArtwork({
-      provider: 'openai', key: 'test', expected: [{ panelId: 'panel-1', cast: [], action: 'A conversation' }],
-      aspect: 2 / 3, images: [image], referenceRoles: [], style: { styleName: 'Historical Romance', realism: 'realistic' },
-    })
-    assert.equal(realistic.panels.length, 1)
-    assert.ok(!realistic.issues.includes('art_style_mismatch'))
+    globalThis.fetch = reply({ styleMatches: false, styleConfidence: 0.9, styleProblems: ['muddy brown painterly finish'] })
+    const off = await analyzeComicArtwork({ provider: 'openai', key: 'test', expected, aspect: 2 / 3, images: [image], referenceRoles: [], stylePromptText: 'STYLE: BRIGHT GOUACHE' })
+    assert.ok(off.issues.includes('art_style_mismatch'))
+    assert.ok(off.issues.some(issue => issue.startsWith('style_problem:')))
+    globalThis.fetch = reply({ styleMatches: false, styleConfidence: 0.4 })
+    const unsure = await analyzeComicArtwork({ provider: 'openai', key: 'test', expected, aspect: 2 / 3, images: [image], referenceRoles: [], stylePromptText: 'STYLE: BRIGHT GOUACHE' })
+    assert.ok(!unsure.issues.includes('art_style_mismatch'))
+    globalThis.fetch = reply({ styleMatches: true, styleConfidence: 0.95 })
+    const painted = await analyzeComicArtwork({ provider: 'openai', key: 'test', expected, aspect: 2 / 3, images: [image], referenceRoles: [], stylePromptText: 'STYLE: EPIC FANTASY ILLUSTRATION' })
+    assert.ok(!painted.issues.includes('art_style_mismatch'))
+    globalThis.fetch = () => Promise.resolve(new Response('bad', { status: 500 }))
+    const failed = await analyzeComicArtwork({ provider: 'openai', key: 'test', expected, aspect: 2 / 3, images: [image], referenceRoles: [] })
+    assert.ok(failed.issues.includes('inspection_inconclusive'))
+    assert.ok(!failed.issues.includes('art_style_mismatch'))
   } finally { globalThis.fetch = originalFetch }
 })
 

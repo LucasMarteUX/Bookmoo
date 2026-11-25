@@ -1,6 +1,6 @@
 import { AiError, bytesToB64, llmJson, pickProvider, type ImagePart, type Provider } from '../_shared/ai.ts'
 import { adminClient } from '../_shared/tts.ts'
-import { isHistoricalRomanceStyle } from '../_shared/comicStyle.ts'
+import { stylePrompt, styleSample } from '../_shared/styleBank.ts'
 import { matchesComposition, stripBounds, templateBounds } from './composition.ts'
 import { loadReferences } from '../comic-generate/references.ts'
 import { cleanText, rect, type ComicRow, type PanelInspection, type Rect, type StyleDocument } from '../_shared/comicEditorial.ts'
@@ -37,16 +37,24 @@ export async function inspectComic(userId: string, input: Record<string, unknown
       mime: ref.mime, data: bytesToB64(new Uint8Array(await ref.blob.arrayBuffer())),
     }))))
   }
-  const { provider, key } = await pickProvider(userId, referenceIds.length ? ['openai'] : ['gemini', 'openai'])
+  // Estilo do banco: a inspeção julga pela mesma amostra e pelo mesmo prompt que a geração usou.
+  const styleId = cleanText(input.styleId, 40)
+  const stylePromptText = styleId ? await stylePrompt(sb, styleId) : null
+  const sample = stylePromptText ? await styleSample(sb, styleId) : null
+  if (sample) {
+    images.push({ mime: sample.mime, data: bytesToB64(new Uint8Array(await sample.blob.arrayBuffer())) })
+    referenceRoles = [...referenceRoles, 'style sample: the look this artwork must match']
+  }
+  const { provider, key } = await pickProvider(userId, referenceIds.length || sample ? ['openai'] : ['gemini', 'openai'])
   const measured = Array.isArray(input.measuredBounds) && input.measuredBounds.length === expected.length
     ? input.measuredBounds.map(rect) : []
   const measuredBounds = measured.length && measured.every((bound): bound is Rect => bound !== null) ? measured : undefined
-  return analyzeComicArtwork({ provider, key, expected, aspect, images, referenceRoles, measuredBounds, composition: input.composition, style: input.style })
+  return analyzeComicArtwork({ provider, key, expected, aspect, images, referenceRoles, measuredBounds, composition: input.composition, style: input.style, stylePromptText })
 }
 
-export async function analyzeComicArtwork({ provider, key, expected, aspect, images, referenceRoles, composition, style, measuredBounds }: {
+export async function analyzeComicArtwork({ provider, key, expected, aspect, images, referenceRoles, composition, style, measuredBounds, stylePromptText }: {
   provider: Provider; key: string; expected: Expected[]; aspect: number; images: ImagePart[]
-  referenceRoles: string[]; composition?: unknown; style?: unknown; measuredBounds?: Rect[]
+  referenceRoles: string[]; composition?: unknown; style?: unknown; measuredBounds?: Rect[]; stylePromptText?: string | null
 }) {
   // Give vision short, panel-local labels instead of asking it to copy UUIDs.
   const castLabels = expected.map(spec => spec.cast.map((character, index) => ({ ...character, label: `C${index + 1}` })))
@@ -56,22 +64,18 @@ export async function analyzeComicArtwork({ provider, key, expected, aspect, ima
       label, name, visualDescription, speaks: Array.isArray(speakers) && speakers.includes(id),
     })),
   }))
-  const direction = (style ?? {}) as StyleDocument
-  const historicalRomance = isHistoricalRomanceStyle(direction) && !referenceRoles.some(role => role.startsWith('style:'))
-  type Verdict = { panels?: Detection[]; panelCount?: number; styleMatches?: boolean; visiblyDrawn?: boolean; cleanPastelInk?: boolean; flatCharacterColors?: boolean; lightSimplifiedBackgrounds?: boolean; textFree?: boolean; referencesMatch?: boolean; issues?: string[] }
-  const result: Verdict | null = await llmJson<{ panels?: Detection[]; panelCount?: number; styleMatches?: boolean; visiblyDrawn?: boolean; cleanPastelInk?: boolean; flatCharacterColors?: boolean; lightSimplifiedBackgrounds?: boolean; textFree?: boolean; referencesMatch?: boolean; issues?: string[] }>(provider, key, {
+  type Verdict = { panels?: Detection[]; panelCount?: number; styleMatches?: boolean; styleConfidence?: number; styleProblems?: string[]; textFree?: boolean; referencesMatch?: boolean; issues?: string[] }
+  const result: Verdict | null = await llmJson<Verdict>(provider, key, {
     images,
     prompt: `Inspect this rendered comic artwork. Report the actual number of panels. Read bands from top to bottom. Within each band, read left to right. When a tall left panel is beside a right stack, read the tall panel first, then the top right panel, then the bottom right panel.
 Requested composition (inspect the actual image, not the plan): ${JSON.stringify(composition ?? []).slice(0, 1200)}
 Expected storyboard with panel-local cast labels: ${JSON.stringify(storyboard).slice(0, 11500)}
 ${measuredBounds ? `Panel borders already measured from pixels, in reading order: ${JSON.stringify(measuredBounds)}. Use these borders as the coordinate frame for face, body, and free areas in each panel.` : 'Read panel borders from pixels. Planned row proportions are not coordinates.'}
-Expected art direction: ${JSON.stringify(style ?? {}).slice(0, 2400)}
+${stylePromptText ? `The chosen illustration style is defined below; the image labeled "style sample" shows it. Judge styleMatches ONLY against this style and that sample (line, color palette and brightness, shading, faces, texture and finish). A painterly result is correct when this style is painterly; flat, clean or monochrome results are correct when this style asks for them. Set styleMatches false only when the artwork clearly looks like a different style (for example muddy brown painterly art for a clean bright style, color for a black-and-white style, or flat cartoon for a detailed painted style). Give styleConfidence from 0 to 1 and list concrete styleProblems (at most 4, short).\nSTYLE:\n${stylePromptText.slice(0, 6000)}` : `Expected art direction: ${JSON.stringify(style ?? {}).slice(0, 2400)}`}
 ${referenceRoles.length ? `The first image is the finished artwork. Remaining images are references, in order: ${JSON.stringify(referenceRoles)}. Compare the artwork with each reference only in its designated role. Set referencesMatch to true only if the relevant visual traits are recognizably represented.` : ''}
-Set visiblyDrawn true only when faces, skin, hair and clothing are visibly constructed with deliberate illustrative shapes and drawn contours. A photo-like image or realistic cinematic digital painting with a few ink marks must be false.
-${historicalRomance ? 'For historical romance judge the panels by these concrete tests. cleanPastelInk: foreground people are drawn with clearly stylized facial shapes, clean hair masses and legible ink silhouettes. flatCharacterColors: skin and clothing predominantly use a flat base color and one clean shadow shape, with minimal modeled gradients or painted fabric texture. lightSimplifiedBackgrounds: scenery is primarily pale, loose blocks of watercolor with fewer details than the people, without dark brown or sepia dominating. Evaluate these independently. A detailed realistic watercolor or digital painting does not count as flat character color.' : ''}
-Return {panelCount, styleMatches, visiblyDrawn, cleanPastelInk, flatCharacterColors, lightSimplifiedBackgrounds, textFree, referencesMatch, issues, panels:[{panelId,bounds,faces:[{speakerId,face,body}],free:[],focus:[]}]}.
+Return {panelCount, styleMatches, styleConfidence, styleProblems, textFree, referencesMatch, issues, panels:[{panelId,bounds,faces:[{speakerId,face,body}],free:[],focus:[]}]}.
 For each panel, identify one to three tight rectangles covering only the main subject, key gesture or story object. Return them in focus. Do not mark the whole scene. Free areas may contain drawn background details, furniture or landscape. Choose lower contrast areas that keep the main subject clear.
-Every rectangle is {x,y,w,h}, top-left origin, normalized 0 to 1. Panel bounds are relative to the whole page. Face/body and free rectangles are relative to the actual panel. Use the visible head from crown to chin; include foreground faces even if the person's identity is uncertain, labeled "unknown". Never assign an ID based on expected position alone. Free rectangles must exclude faces and important action, even if that leaves a narrow area. Prioritize locating speaking characters. Use the short cast label such as C1 when identity is clear. Check style against the supplied direction and report missing characters and major scene mismatches. A detailed cinematic or realistic painted rendering fails styleMatches when the brief asks for visibly drawn simplified shapes and clean ink lines. For a style reference, assess facial construction and contour style as well as color. textFree means the art contains no lettering or balloons. Return JSON only.`,
+Every rectangle is {x,y,w,h}, top-left origin, normalized 0 to 1. Panel bounds are relative to the whole page. Face/body and free rectangles are relative to the actual panel. Use the visible head from crown to chin; include foreground faces even if the person's identity is uncertain, labeled "unknown". Never assign an ID based on expected position alone. Free rectangles must exclude faces and important action, even if that leaves a narrow area. Prioritize locating speaking characters. Use the short cast label such as C1 when identity is clear. Report missing characters and major scene mismatches in issues. textFree means the art contains no lettering or balloons. Return JSON only.`,
   }).catch((e) => {
     if (e instanceof AiError && ['no_api_key', 'invalid_key', 'quota'].includes(e.code)) throw e
     return null
@@ -79,9 +83,12 @@ Every rectangle is {x,y,w,h}, top-left origin, normalized 0 to 1. Panel bounds a
   // Inspection never discards finished artwork: problems become review issues and the
   // lettering engine works from the best available panel geometry.
   const issues = Array.isArray(result?.issues) ? result!.issues!.map(issue => cleanText(issue, 160)).filter(Boolean).slice(0, 12) : []
-  if (!result || result.visiblyDrawn !== true || (historicalRomance && (result.cleanPastelInk !== true || result.flatCharacterColors !== true || result.lightSimplifiedBackgrounds !== true))) {
+  // Sem resposta da inspeção: inconclusiva (nunca dispara correção). Desvio de estilo só com confiança alta.
+  if (!result) issues.push('inspection_inconclusive')
+  else if (result.styleMatches === false && (result.styleConfidence ?? 1) >= 0.7) {
     issues.push('art_style_mismatch')
-  } else if (result.styleMatches !== true) issues.push('art_direction_mismatch')
+    for (const problem of (Array.isArray(result.styleProblems) ? result.styleProblems : []).slice(0, 4)) issues.push(`style_problem:${cleanText(problem, 140)}`)
+  } else if (result.styleMatches === false) issues.push('art_direction_mismatch')
   if (result && result.textFree === false) issues.push('art_has_text')
   if (referenceRoles.length && result?.referencesMatch !== true) issues.push('references_unverified')
 

@@ -9,7 +9,7 @@ import {
   type Character, type EditorialLayout, type GenerationRecord, type StyleDocument,
 } from '../_shared/comicEditorial.ts'
 import { briefFingerprint, researchArtBible } from './artBible.ts'
-import { readyStyles, styleForCategory, stylePrompt, styleSample } from '../_shared/styleBank.ts'
+import { fitStyle, masterStyle, readyStyles, styleForCategory, stylePrompt, styleSample } from '../_shared/styleBank.ts'
 import { imagePrompt } from './imagePrompt.ts'
 import { loadReferences } from './references.ts'
 import { composeRows, planPrompt, resolvePlan, type ModelPlan } from './storyboard.ts'
@@ -61,16 +61,23 @@ async function editPanel(sb: ReturnType<typeof adminClient>, userId: string, boo
   const quietAreas = [...new Set(layout.balloons.filter(line => line.panelId === beat.id)
     .map(line => line.preferredPosition.replace('-', ' ')))]
   const { fonts: _fonts, lettering: _lettering, ...artStyle } = layout.generation.style
+  // Mesmo estilo da geração: prompt exclusivo e amostra do estilo (antes ia só a arte antiga, que perpetuava defeitos).
+  const styleId = layout.generation.styleId
+  const bankPrompt = styleId ? await stylePrompt(sb, styleId) : null
+  const sample = bankPrompt ? await styleSample(sb, styleId) : null
+  const styleDirection = bankPrompt
+    ? `MASTER STYLE — redraw the masked area exactly in this style${sample ? ' (image 2 is the style sample and the final authority on the look; use it only for how to draw, never copy its content)' : ''}:\n${fitStyle(masterStyle(bankPrompt), 9000)}`
+    : `Art direction: ${JSON.stringify(artStyle).slice(0, 5200)}`
   const img = await generateImage('openai', key,
-    `Redraw ONLY the area inside the transparent mask of this full comic page. It corresponds to panel ${beat.id}, at normalized bounds ${JSON.stringify(panel.bounds)}.
-Preserve panel boundaries, gutters, the entire original page geometry and the visual identity of surrounding art. Make a fresh interpretation of the same action with the same people, costumes, place and historical period. Maintain the original technique, palette and stylization.
-Art direction: ${JSON.stringify(artStyle).slice(0, 5200)}
+    `Redraw ONLY the area inside the transparent mask of this full comic page (image 1). It corresponds to panel ${beat.id}, at normalized bounds ${JSON.stringify(panel.bounds)}.
+Preserve panel boundaries, gutters, the entire original page geometry and the surrounding art. Make a fresh interpretation of the same action with the same people, costumes, place and historical period.
+${styleDirection}
 Story context: ${JSON.stringify(layout.context).slice(0, 2800)}
 Beat: ${JSON.stringify(direction)}
 Cast: ${JSON.stringify(cast.filter(c => c.id && beat.cast.includes(c.id))).slice(0, 4000)}
-Keep these regions visually quiet with fully painted background scenery: ${quietAreas.join(', ')}. No cutouts or empty white shapes.
+Keep these regions visually quiet with calm background scenery in the same style: ${quietAreas.join(', ')}. No cutouts or empty white shapes.
 Return a full portrait page with the exact same framing and no text, lettering or balloons.`,
-    [{ mime: data.type, blob: data }], new Blob([Uint8Array.from(atob(mask), c => c.charCodeAt(0))], { type: 'image/png' }),
+    [{ mime: data.type, blob: data }, ...(sample ? [sample] : [])], new Blob([Uint8Array.from(atob(mask), c => c.charCodeAt(0))], { type: 'image/png' }),
   )
   const generation: GenerationRecord = {
     ...layout.generation, id: crypto.randomUUID(), createdAt: new Date().toISOString(), provider: 'openai',
@@ -82,8 +89,13 @@ Return a full portrait page with the exact same framing and no text, lettering o
 
 const CONTINUITY_PAGES = 2
 
+async function renderFingerprint(text: string) {
+  const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text))
+  return [...new Uint8Array(hash)].slice(0, 8).map(b => b.toString(16).padStart(2, '0')).join('')
+}
+
 async function loadContinuity(sb: ReturnType<typeof adminClient>, userId: string, bookId: string, page: number,
-  pages: Record<string, string>, layouts: Record<string, EditorialLayout> = {}, styleId?: string | null): Promise<ImageReference[]> {
+  pages: Record<string, string>, layouts: Record<string, EditorialLayout> = {}, styleId?: string | null, styleRender?: string | null): Promise<ImageReference[]> {
   const prefix = `${Deno.env.get('SUPABASE_URL')}/storage/v1/object/public/${BUCKET}/`
   const folder = `${userId}/${bookId}/`
   const candidates = Object.entries(pages)
@@ -92,6 +104,13 @@ async function loadContinuity(sb: ReturnType<typeof adminClient>, userId: string
     // Com estilo do banco, só páginas desenhadas nesse mesmo estilo: uma página no visual antigo
     // como continuidade fazia a nova sair igual a ela.
     .filter(c => !styleId || layouts[String(c.index)]?.generation?.styleId === styleId)
+    // E só páginas feitas com o prompt atual do estilo e sem desvio de estilo apontado: uma página antiga e feia como
+    // continuidade puxava a paleta e o acabamento dela para a página nova.
+    .filter(c => {
+      const layout = layouts[String(c.index)]
+      if (!styleRender) return true
+      return layout?.generation?.styleRender === styleRender && !layout?.issues?.includes('art_style_mismatch')
+    })
     // Earlier pages first (closest to this one), then later pages if nothing earlier exists.
     .sort((a, b) => (a.index > page ? 1 : 0) - (b.index > page ? 1 : 0) || Math.abs(a.index - page) - Math.abs(b.index - page))
     .slice(0, CONTINUITY_PAGES)
@@ -239,8 +258,9 @@ Return JSON {"styleId": one id from the list, "reason": one short sentence in Po
     const rows = composeRows(plan.beats)
     // Continuity: the nearest pages already drawn for this book (earlier first) go to the image
     // model as real images, so recurring characters keep the same face, hair and clothing.
-    const continuity = await loadContinuity(sb, user.id, bookId, page, book.comic_pages ?? {}, book.comic_layouts ?? {}, plan.style.styleId)
     const bankPrompt = await stylePrompt(sb, plan.style.styleId)
+    const styleRender = bankPrompt ? await renderFingerprint(bankPrompt) : null
+    const continuity = await loadContinuity(sb, user.id, bookId, page, book.comic_pages ?? {}, book.comic_layouts ?? {}, plan.style.styleId, styleRender)
     // A miniatura do estilo vai como primeira imagem: é ela que mostra à IA o visual escolhido
     // (o texto sozinho deixava livros famosos voltarem ao visual das edições conhecidas).
     const sample = bankPrompt ? await styleSample(sb, plan.style.styleId) : null
@@ -250,6 +270,7 @@ Return JSON {"styleId": one id from the list, "reason": one short sentence in Po
       id: crypto.randomUUID(), createdAt: new Date().toISOString(), provider: imgAi.provider,
       styleRevision: plan.style.revision!,
       styleId: plan.style.styleId,
+      ...(styleRender ? { styleRender } : {}),
       style: Object.fromEntries(STYLE_FIELDS.flatMap(key => plan.style[key] ? [[key, plan.style[key]]] : [])),
       references, composition: rows,
     }
