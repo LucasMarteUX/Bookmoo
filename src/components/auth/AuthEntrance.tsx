@@ -38,6 +38,5 @@ export function AuthEntrance() {
   if (!visible) return null
   return createPortal(<div className="auth-entrance" role="status" aria-label="Bem-vindo ao Upoonly">
     <RabbitFlight />
-    <button type="button" onClick={() => setVisible(false)}>Pular abertura</button>
   </div>, document.body)
 }
