@@ -798,12 +798,15 @@ export function Reader({ book, autoPlay = false, headerSlot, headerEndSlot, head
       // A IA vem do plano (créditos): sem chave para conectar. Sem saldo, o servidor recusa e o convite abre.
       // Livro ainda sem estilo escolhido: primeiro o banco de estilos (com sugestão), depois desenha.
       if (!opts?.styleChosen && !book.comicStyleDoc?.styleId) { askFirstStyle(); return }
-      setComicStage('prepare')
-      const styleDoc = await prepareComicArt(book.id)
-      useBookStore.getState().updateBook(book.id, { comicStyleDoc: styleDoc })
-      // Daqui em diante o servidor desenha em segundo plano e o app termina a página, mesmo se a pessoa sair da tela.
+      // Desde o clique (inclusive o preparo da arte) o estado fica no trabalho global: trocar de página ou sair do
+      // livro não perde a geração; o servidor desenha em segundo plano e o app termina a página.
       clearComicError(book.id, pageIndex)
-      await startComicJob(useBookStore.getState().books.find(item => item.id === book.id) ?? book, pageIndex)
+      const latest = () => useBookStore.getState().books.find(item => item.id === book.id) ?? book
+      await startComicJob(latest(), pageIndex, async () => {
+        const styleDoc = await prepareComicArt(book.id)
+        useBookStore.getState().updateBook(book.id, { comicStyleDoc: styleDoc })
+        return latest()
+      })
     } catch (error) {
       console.error('Failed to generate comic:', error)
       // Erros de plano (sem créditos, recurso pago) já abriram o convite de assinatura no cliente de IA.
@@ -811,7 +814,6 @@ export function Reader({ book, autoPlay = false, headerSlot, headerEndSlot, head
       if (!['no_credits', 'cap_reached', 'plan_required'].includes(code)) setComicError({ page: pageIndex, message: aiErrorMessage(error) })
     } finally {
       comicOperation.current = false
-      setComicStage(null)
     }
   }
 
@@ -1632,6 +1634,7 @@ export function Reader({ book, autoPlay = false, headerSlot, headerEndSlot, head
             }}
             fullscreenTarget={() => readerRootRef.current}
             stage={comicStage}
+            stageStartedAt={localComicStage ? undefined : comicJob?.startedAt}
             error={comicError?.page === currentPage ? comicError.message : undefined}
             onGenerate={() => { void handleGenerateComic() }}
             onDelete={handleDeleteComic}

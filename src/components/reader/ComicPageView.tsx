@@ -15,6 +15,7 @@ import { LetteringThemePicker } from './LetteringThemePicker'
 import { MenuItem, MenuSection, ToolButton, ToolGroup } from '@/components/ui/toolbar'
 import { createPortal } from 'react-dom'
 import { useReaderChrome } from '@/store/useReaderChrome'
+import { COMIC_ETA_SECONDS } from '@/lib/comicJobs'
 import { fullComicText } from '../../../supabase/functions/_shared/comicText'
 import type { Character, EditorialLayout, Rect } from '../../../supabase/functions/_shared/comicEditorial'
 
@@ -34,6 +35,8 @@ interface Props {
   onPlacePin?: (x: number, y: number) => void
   onOpenPin?: (id: string) => void
   stage: ComicStage
+  /** Início da geração (clique), para a estimativa de tempo; vale também depois de sair e voltar. */
+  stageStartedAt?: number
   error?: string
   onGenerate: () => void
   onDelete: () => void
@@ -639,6 +642,7 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
           <>
             <Loader2 className="w-8 h-8 animate-spin" style={{ color: 'var(--theme-accent)' }} />
             <p className="text-sm font-medium" style={{ color: 'var(--theme-text)' }}>{stageLabel}</p>
+            <ComicEta startedAt={props.stageStartedAt} pt={pt} />
           </>
         ) : (
           <>
@@ -717,7 +721,8 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
       {props.error && <p role="alert" className="text-sm">{props.error}</p>}
       {generating && (
         <div className="w-full text-xs rounded-xl px-3 py-2 flex items-center gap-2" style={{ backgroundColor: 'var(--theme-bg-secondary)', color: 'var(--theme-text-secondary)' }}>
-          <Loader2 className="w-3.5 h-3.5 animate-spin" /> {stageLabel}
+          <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" /> <span className="whitespace-nowrap">{stageLabel}</span>
+          {stage !== 'layout' || props.stageStartedAt ? <ComicEta startedAt={props.stageStartedAt} pt={pt} compact /> : null}
         </div>
       )}
 
@@ -821,3 +826,33 @@ export const ComicPageView = forwardRef<HTMLDivElement, Props>(function ComicPag
     </div>
   )
 })
+
+/** Estimativa enquanto a página é ilustrada: barra de progresso e tempo restante, contados desde o clique. */
+function ComicEta({ startedAt, pt, compact }: { startedAt?: number; pt: boolean; compact?: boolean }) {
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const t = window.setInterval(() => setNow(Date.now()), 1000)
+    return () => window.clearInterval(t)
+  }, [])
+  const total = COMIC_ETA_SECONDS
+  const elapsed = startedAt ? Math.max(0, (now - startedAt) / 1000) : 0
+  const left = Math.ceil(total - elapsed)
+  // Passou do previsto: a barra fica quase cheia e o texto avisa que falta pouco (sem número negativo).
+  const progress = startedAt ? Math.min(0.95, elapsed / total) : 0.04
+  const text = !startedAt
+    ? (pt ? 'Leva cerca de 1 min e meio' : 'Takes about a minute and a half')
+    : left > 60 ? (pt ? `Faltam cerca de ${Math.ceil(left / 60)} min` : `About ${Math.ceil(left / 60)} min left`)
+    : left > 5 ? (pt ? `Faltam cerca de ${left} s` : `About ${left}s left`)
+    : (pt ? 'Quase pronto…' : 'Almost done…')
+  const hint = pt ? 'Pode trocar de página ou sair: a geração continua e a página aparece aqui.' : 'You can change pages or leave: it keeps going and the page shows up here.'
+  return (
+    <div className={compact ? 'flex flex-1 items-center gap-2 min-w-0' : 'w-full max-w-xs flex flex-col items-center gap-2'}>
+      <div className={`${compact ? 'flex-1' : 'w-full'} h-1.5 rounded-full overflow-hidden`} style={{ backgroundColor: 'var(--theme-border-subtle)' }}
+        role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress * 100)} aria-label={text}>
+        <div className="h-full rounded-full transition-[width] duration-1000 ease-linear" style={{ width: `${progress * 100}%`, backgroundColor: 'var(--theme-accent)' }} />
+      </div>
+      <span className="tabular-nums whitespace-nowrap text-xs" style={{ color: 'var(--theme-text-secondary)' }}>{text}</span>
+      {!compact && <span className="text-xs max-w-xs" style={{ color: 'var(--theme-text-secondary)' }}>{hint}</span>}
+    </div>
+  )
+}

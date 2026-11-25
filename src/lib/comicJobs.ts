@@ -23,7 +23,12 @@ import { fullComicText } from '../../supabase/functions/_shared/comicText'
 import type { EditorialLayout, PanelInspection, VisualBeat } from '../../supabase/functions/_shared/comicEditorial'
 
 export type ComicJobStage = 'image' | 'layout'
-type JobState = { jobId: string; stage: ComicJobStage; error?: string }
+type JobState = { jobId: string; stage: ComicJobStage | 'prepare'; startedAt: number; error?: string }
+/**
+ * Tempo típico do clique até a página pronta (preparo + desenho no servidor + balões), medido nos trabalhos reais:
+ * o desenho leva de 60 a 80 s. Serve para a estimativa mostrada enquanto gera.
+ */
+export const COMIC_ETA_SECONDS = 90
 /** Página que acabou de ganhar imagem compartilhada na galeria (o leitor atualiza a lista dele). */
 export const COMIC_SHARED_EVENT = 'upoonly:comic-shared'
 
@@ -181,7 +186,7 @@ async function track(p: Pending) {
   if (tracking.has(p.jobId)) return
   tracking.add(p.jobId)
   const k = key(p.bookId, p.page)
-  setJob(k, { jobId: p.jobId, stage: 'image' })
+  setJob(k, { jobId: p.jobId, stage: 'image', startedAt: p.at })
   try {
     const row = await waitRendered(p.jobId)
     if (row.status === 'done') { dropPending(p.jobId); return }
@@ -194,7 +199,7 @@ async function track(p: Pending) {
       if (p.fixOf) return
       throw err
     }
-    setJob(k, { jobId: p.jobId, stage: 'layout' })
+    setJob(k, { jobId: p.jobId, stage: 'layout', startedAt: p.at })
     let book = bookOf(p.bookId)
     // Livro ainda sem o texto (carregamento leve): busca agora, antes de encaixar os balões.
     if (book?.stub && supabase) {
@@ -219,10 +224,10 @@ async function track(p: Pending) {
         const problems = done.inspection.issues.filter(issue => issue.startsWith('style_problem:')).map(issue => issue.slice(14)).join('; ')
         const fix = await invokeStart({ ...baseOptions(book, p.page, pageText), replan: problems ? `${STYLE_FIX} Fix: ${problems}`.slice(0, 300) : STYLE_FIX }, p.jobId)
         addPending({ jobId: fix, bookId: p.bookId, page: p.page, fixOf: p.jobId, at: Date.now() })
-        setJob(k, { jobId: fix, stage: 'image' })
+        setJob(k, { jobId: fix, stage: 'image', startedAt: p.at })
         const fixed = await waitRendered(fix)
         if (fixed.status === 'rendered' && fixed.result) {
-          setJob(k, { jobId: fix, stage: 'layout' })
+          setJob(k, { jobId: fix, stage: 'layout', startedAt: p.at })
           const second = await letter(fixed.result, pageText, book).catch(() => null)
           if (second && !second.inspection.issues.includes('art_style_mismatch')) done = second
         }
@@ -279,19 +284,28 @@ async function invokeStart(options: GenerateComicOptions, fixOf?: string): Promi
   return jobId
 }
 
-/** Começa a ilustrar uma página. Volta assim que o servidor aceitou; o resto acontece em segundo plano. */
-export async function startComicJob(book: Book, page: number) {
+/**
+ * Começa a ilustrar uma página. O estado fica aqui (fora da tela) desde o clique, inclusive no preparo da arte:
+ * trocar de página, sair do livro ou voltar não "esquece" a geração nem mostra o botão de gerar de novo.
+ * Volta assim que o servidor aceitou; o resto acontece em segundo plano.
+ */
+export async function startComicJob(book: Book, page: number, prepare?: () => Promise<Book>) {
   const k = key(book.id, page)
   if (useComicJobs.getState().jobs[k]) return
+  const startedAt = Date.now()
   setError(k, null)
-  setJob(k, { jobId: 'starting', stage: 'image' })
+  setJob(k, { jobId: 'starting', stage: prepare ? 'prepare' : 'image', startedAt })
   try {
+    if (prepare) book = await prepare()
+    setJob(k, { jobId: 'starting', stage: 'image', startedAt })
     const pageText = book.pages[page] ?? ''
     const jobId = await invokeStart(baseOptions(book, page, pageText))
-    addPending({ jobId, bookId: book.id, page, at: Date.now() })
-    void track({ jobId, bookId: book.id, page, at: Date.now() })
+    addPending({ jobId, bookId: book.id, page, at: startedAt })
+    void track({ jobId, bookId: book.id, page, at: startedAt })
   } catch (e) {
     setJob(k, null)
+    const code = e instanceof AiRequestError ? e.code : ''
+    if (!['no_credits', 'cap_reached', 'plan_required'].includes(code)) setError(k, aiErrorMessage(e))
     throw e
   }
 }
@@ -325,10 +339,10 @@ export async function resumeComicJobs() {
   const local = loadPending()
   const { data } = await supabase.from('comic_jobs').select('id, book_id, page, fix_of, status, created_at')
     .in('status', ['running', 'rendered']).is('fix_of', null).gte('created_at', new Date(Date.now() - 24 * 3600_000).toISOString())
-  const rows = (data ?? []) as { id: string; book_id: string; page: number; fix_of: string | null }[]
+  const rows = (data ?? []) as { id: string; book_id: string; page: number; fix_of: string | null; created_at: string }[]
   const all = new Map<string, Pending>()
   for (const p of local) if (!p.fixOf) all.set(p.jobId, p)
-  for (const r of rows) if (!all.has(r.id)) all.set(r.id, { jobId: r.id, bookId: r.book_id, page: r.page, at: Date.now() })
+  for (const r of rows) if (!all.has(r.id)) all.set(r.id, { jobId: r.id, bookId: r.book_id, page: r.page, at: Date.parse(r.created_at) || Date.now() })
   // Espera os livros carregarem (a página precisa do texto do livro para encaixar os balões).
   for (let i = 0; i < 20 && !useBookStore.getState().books.length; i++) await sleep(500)
   for (const p of all.values()) void track(p)
