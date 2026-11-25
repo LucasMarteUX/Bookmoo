@@ -33,7 +33,13 @@ async function uploadImage(sb: ReturnType<typeof adminClient>, userId: string, b
   const ext = img.mime === 'image/png' ? 'png' : img.mime === 'image/webp' ? 'webp' : 'jpg'
   const path = `${userId}/${bookId}/${page}-${id}.${ext}`
   const storage = sb.storage.from(BUCKET)
-  const { error } = await storage.upload(path, img.bytes, { contentType: img.mime })
+  // A imagem já foi paga ao provedor: uma oscilação do Storage não pode jogá-la fora. Tenta de novo com espera.
+  let error: unknown = null
+  for (let attempt = 0; attempt < 4; attempt++) {
+    ;({ error } = await storage.upload(path, img.bytes, { contentType: img.mime, upsert: true }))
+    if (!error) break
+    await new Promise(r => setTimeout(r, 1500 * (attempt + 1)))
+  }
   if (error) throw new AiError('Could not save comic image', 500, 'upload_failed')
   return storage.getPublicUrl(path).data.publicUrl
 }
@@ -330,9 +336,15 @@ Return JSON {"styleId": one id from the list, "reason": one short sentence in Po
     const jobId = job.id as string
     const deliver = async () => {
       const out = await work()
-      const { error: saveError } = await sb.from('comic_jobs')
-        .update({ status: 'rendered', result: out, updated_at: new Date().toISOString(), finished_at: new Date().toISOString() })
-        .eq('id', jobId).eq('status', 'running')
+      // Mesma proteção na gravação do trabalho: o banco pode oscilar por alguns segundos.
+      let saveError: unknown = null
+      for (let attempt = 0; attempt < 5; attempt++) {
+        ;({ error: saveError } = await sb.from('comic_jobs')
+          .update({ status: 'rendered', result: out, updated_at: new Date().toISOString(), finished_at: new Date().toISOString() })
+          .eq('id', jobId).eq('status', 'running'))
+        if (!saveError) break
+        await new Promise(r => setTimeout(r, 2000 * (attempt + 1)))
+      }
       if (saveError) throw new AiError('Could not save the illustration', 500, 'comic_job_save_failed')
       return out
     }
